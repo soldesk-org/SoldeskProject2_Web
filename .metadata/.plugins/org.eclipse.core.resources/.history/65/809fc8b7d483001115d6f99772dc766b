@@ -1,0 +1,5 @@
+package com.foodtrip.foodsearch.dto;
+
+public class FoodBtiQuestionDTO {
+
+}
