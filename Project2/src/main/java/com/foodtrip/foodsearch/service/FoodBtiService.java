@@ -280,24 +280,5 @@ public class FoodBtiService {
 	    }
 		
 		
-	}
-	
-	
-	
-	
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	}	
+		

@@ -17,7 +17,7 @@ public class FoodBtiResultDTO {
 	private List<String> food;
 	
 	// 성향별 점수
-	private ScoreDTO Score;
+	private ScoreDTO score;
 	
 	public FoodBtiResultDTO() {
 		// TODO Auto-generated constructor stub
@@ -30,7 +30,7 @@ public class FoodBtiResultDTO {
 		this.resultName = resultName;
 		this.resultText = resultText;
 		this.food = food;
-		Score = score;
+		this.score = score;
 	}
 
 	public String getResultType() {
@@ -66,11 +66,11 @@ public class FoodBtiResultDTO {
 	}
 
 	public ScoreDTO getScore() {
-		return Score;
+		return score;
 	}
 
 	public void setScore(ScoreDTO score) {
-		Score = score;
+		this.score = score;
 	}
 	
 	
