@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>&#xC785;&#xB9DB; &#xC720;&#xD615; &#xCC3E;&#xAE30;</title>
+    <link rel="stylesheet" href="/css/food-bti.css">
+</head>
+<body>
+<div class="page">
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-mark">&#x1F374;</div>
+            <strong>&#xC787;&#xD2F0;&#xC6E8;&#xC774;</strong>
+        </div>
+
+        <nav class="menu">
+            <a href="#">&#xD0D0;&#xC0C9;</a>
+            <a href="#">&#xCD94;&#xCC9C;</a>
+            <a href="#">&#xC990;&#xACA8;&#xCC3E;&#xAE30;</a>
+            <a href="/food-bti.html" class="active">&#xC785;&#xB9DB; &#xC720;&#xD615; &#xCC3E;&#xAE30;</a>
+            <a href="#">&#xB9C8;&#xC774;&#xD398;&#xC774;&#xC9C0;</a>
+        </nav>
+    </aside>
+
+    <main class="map-area">
+        <div class="map-overlay"></div>
+        <div class="map-pin pin-large"><span>&#x1F374;</span></div>
+        <div class="map-pin pin-one"><span>&#x1F374;</span></div>
+        <div class="map-pin pin-two"><span>&#x1F374;</span></div>
+        <div class="map-pin pin-three"><span>&#x1F374;</span></div>
+
+        <section id="startScreen" class="card start-card">
+            <p class="label">&#xC785;&#xB9DB; &#xC720;&#xD615; &#xCC3E;&#xAE30;</p>
+            <h1>&#xB0B4; &#xC785;&#xB9DB;&#xC740; &#xC5B4;&#xB5A4; &#xC720;&#xD615;&#xC77C;&#xAE4C;?</h1>
+            <p class="desc">
+                12&#xAC1C;&#xC758; &#xC9C8;&#xBB38;&#xC73C;&#xB85C; &#xB098;&#xC5D0;&#xAC8C; &#xB531; &#xB9DE;&#xB294;<br>
+                &#xC74C;&#xC2DD; &#xCDE8;&#xD5A5;&#xC744; &#xCC3E;&#xC544;&#xBCF4;&#xC138;&#xC694;.
+            </p>
+
+            <div class="button-row">
+                <button class="primary-btn" type="button" onclick="startTest()">&#xC2DC;&#xC791;</button>
+                <button class="sub-btn" type="button" onclick="cancelTest()">&#xCDE8;&#xC18C;</button>
+            </div>
+        </section>
+
+        <section id="questionScreen" class="card question-card hidden">
+            <p class="label">&#xC785;&#xB9DB; &#xC720;&#xD615; &#xCC3E;&#xAE30;</p>
+            <p id="progressText" class="progress-text">1 / 12</p>
+
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+
+            <h2 id="questionText">&#xC9C8;&#xBB38;&#xC744; &#xBD88;&#xB7EC;&#xC624;&#xB294; &#xC911;&#xC785;&#xB2C8;&#xB2E4;.</h2>
+            <div id="choiceArea" class="choice-area"></div>
+        </section>
+
+        <section id="resultScreen" class="card result-card hidden">
+            <p class="label">&#xB098;&#xC758; &#xC785;&#xB9DB; &#xC720;&#xD615;</p>
+            <h1 id="resultType" class="result-type"></h1>
+            <h2 id="resultName" class="result-name"></h2>
+            <p id="resultText" class="result-text"></p>
+
+            <h3>&#xCD94;&#xCC9C; &#xC74C;&#xC2DD;</h3>
+            <div id="foodList" class="food-list"></div>
+
+            <div class="button-row result-buttons">
+                <button class="primary-btn" type="button" onclick="restartTest()">&#xB2E4;&#xC2DC; &#xD558;&#xAE30;</button>
+                <button class="sub-btn" type="button" onclick="closeResult()">&#xB2EB;&#xAE30;</button>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script src="/js/food-bti.js"></script>
+</body>
+</html>

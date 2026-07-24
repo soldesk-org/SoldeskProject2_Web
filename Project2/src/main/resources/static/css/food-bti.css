@@ -1,0 +1,364 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: #243447;
+    background: #f3f3f3;
+}
+
+.page {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    position: relative;
+    z-index: 3;
+    width: 250px;
+    min-height: 100vh;
+    padding: 42px 34px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 1px 0 0 rgba(36, 52, 71, 0.06);
+}
+
+.logo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 58px;
+    color: #243447;
+    font-size: 34px;
+    line-height: 1;
+}
+
+.logo-mark {
+    width: 74px;
+    height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% 50% 50% 8px;
+    background: #ff7a1a;
+    color: #ffffff;
+    font-size: 34px;
+    transform: rotate(-12deg);
+}
+
+.logo strong {
+    font-weight: 900;
+    letter-spacing: 0;
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.menu a {
+    color: #243447;
+    text-decoration: none;
+    font-size: 25px;
+    font-weight: 800;
+}
+
+.menu a.active {
+    color: #ff6b00;
+}
+
+.map-area {
+    position: relative;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 64px;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.74)),
+        repeating-linear-gradient(32deg, transparent 0 74px, rgba(210, 218, 225, 0.34) 75px 78px, transparent 79px 142px),
+        repeating-linear-gradient(-38deg, transparent 0 88px, rgba(210, 218, 225, 0.28) 89px 92px, transparent 93px 160px),
+        #f8faf8;
+}
+
+.map-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.42);
+    backdrop-filter: blur(3px);
+}
+
+.map-pin {
+    position: absolute;
+    z-index: 1;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% 50% 50% 10px;
+    background: #ff7a1a;
+    color: #ffffff;
+    font-size: 20px;
+    box-shadow: 0 8px 20px rgba(255, 107, 0, 0.18);
+    transform: rotate(-45deg);
+}
+
+.map-pin::before {
+    content: "";
+    position: absolute;
+    inset: -13px;
+    border-radius: 50%;
+    background: rgba(255, 107, 0, 0.12);
+    z-index: -1;
+}
+
+.map-pin span {
+    transform: rotate(45deg);
+}
+
+.pin-large {
+    right: 16%;
+    top: 31%;
+    width: 96px;
+    height: 96px;
+    font-size: 38px;
+}
+
+.pin-one {
+    right: 28%;
+    top: 12%;
+}
+
+.pin-two {
+    right: 10%;
+    top: 43%;
+}
+
+.pin-three {
+    right: 22%;
+    bottom: 18%;
+}
+
+.card {
+    position: relative;
+    z-index: 2;
+    width: min(720px, 100%);
+    padding: 58px 72px;
+    border-radius: 30px;
+    background: #fff0ed;
+    text-align: center;
+    box-shadow: 0 18px 42px rgba(36, 52, 71, 0.14);
+}
+
+.hidden {
+    display: none;
+}
+
+.label {
+    margin: 0 0 52px;
+    color: #ff6b00;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.start-card h1 {
+    margin: 0 0 56px;
+    font-size: 30px;
+    font-weight: 900;
+}
+
+.desc {
+    margin: 0;
+    color: #243447;
+    font-size: 18px;
+    line-height: 2;
+}
+
+.button-row {
+    display: flex;
+    justify-content: center;
+    gap: 36px;
+    margin-top: 74px;
+}
+
+button {
+    width: 180px;
+    height: 66px;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.primary-btn {
+    border: 0;
+    background: #ff6b00;
+    color: #ffffff;
+}
+
+.sub-btn {
+    border: 1px solid #ccd4dd;
+    background: #ffffff;
+    color: #243447;
+}
+
+.question-card {
+    width: min(620px, 100%);
+    padding: 44px 52px 50px;
+    background: rgba(255, 255, 255, 0.94);
+}
+
+.question-card .label {
+    margin-bottom: 24px;
+}
+
+.progress-text {
+    margin: 0 0 10px;
+    color: #5d6875;
+    font-size: 16px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: #dde3ea;
+    overflow: hidden;
+}
+
+.progress-fill {
+    width: 8.333%;
+    height: 100%;
+    border-radius: 999px;
+    background: #ff6b00;
+}
+
+.question-card h2 {
+    margin: 38px 0 28px;
+    color: #243447;
+    font-size: 28px;
+    font-weight: 900;
+    text-align: left;
+}
+
+.choice-area {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.choice-btn {
+    width: 100%;
+    height: 66px;
+    padding: 0 28px;
+    border: 1px solid #ccd4dd;
+    background: #ffffff;
+    color: #243447;
+    text-align: left;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.choice-btn:hover {
+    border-color: #ff6b00;
+    transform: translateY(-1px);
+}
+
+.result-card {
+    width: min(680px, 100%);
+    background: rgba(255, 255, 255, 0.94);
+}
+
+.result-card .label {
+    margin-bottom: 26px;
+}
+
+.result-type {
+    margin: 0 0 16px;
+    color: #ff6b00;
+    font-size: 54px;
+    font-weight: 900;
+}
+
+.result-name {
+    margin: 0 0 28px;
+    color: #243447;
+    font-size: 30px;
+    font-weight: 900;
+}
+
+.result-text {
+    margin: 0 auto 34px;
+    max-width: 520px;
+    color: #243447;
+    font-size: 18px;
+    line-height: 1.8;
+}
+
+.result-card h3 {
+    margin: 0 0 18px;
+    font-size: 22px;
+    font-weight: 900;
+    text-align: left;
+}
+
+.food-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-start;
+}
+
+.food-item {
+    padding: 12px 22px;
+    border-radius: 999px;
+    background: #fff0ed;
+    color: #ff6b00;
+    font-weight: 800;
+}
+
+.result-buttons {
+    margin-top: 44px;
+}
+
+@media (max-width: 900px) {
+    .page {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        min-height: auto;
+        padding: 24px;
+    }
+
+    .logo {
+        margin-bottom: 24px;
+    }
+
+    .menu {
+        gap: 16px;
+    }
+
+    .map-area {
+        min-height: calc(100vh - 300px);
+        padding: 28px;
+    }
+
+    .card {
+        padding: 40px 28px;
+    }
+
+    .button-row {
+        gap: 14px;
+    }
+
+    button {
+        width: 140px;
+    }
+}
