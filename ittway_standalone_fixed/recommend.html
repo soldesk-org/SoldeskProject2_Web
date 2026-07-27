@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>잇티웨이 - AI 추천</title>
+<link rel="stylesheet" href="./css/common.css">
+<link rel="stylesheet" href="./css/recommend.css">
+</head>
+<body>
+<div class="app-layout">
+
+<aside class="sidebar">
+  <a href="./recommend.html" class="sidebar-logo"><img src="./img/ittway-logo.png" alt="잇티웨이 로고"></a>
+  <nav class="sidebar-menu">
+    <a href="#" class="sidebar-item"><span class="sidebar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M16.5 16.5L21 21"></path></svg></span><span>탐색</span></a>
+    <a href="./recommend.html" class="sidebar-item active"><span class="sidebar-icon"><svg viewBox="0 0 24 24"><path d="M12 3.5L14.7 9l6.1.9-4.4 4.3 1 6.1L12 17.4l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3.5z"></path></svg></span><span>추천</span></a>
+    <a href="#" class="sidebar-item"><span class="sidebar-icon"><svg viewBox="0 0 24 24"><path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.8l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.4 1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg></span><span>즐겨찾기</span></a>
+    <a href="./mypage.html" class="sidebar-item"><span class="sidebar-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 21c.5-4.2 3.3-6.5 7.5-6.5s7 2.3 7.5 6.5z"></path></svg></span><span>마이페이지</span></a>
+  </nav>
+</aside>
+
+<main class="main-content">
+<section class="search-section">
+<form class="search-form" id="recommendSearchForm">
+<input id="recommendQuery" type="search" placeholder="AI가 취향에 맞는 장소를 추천해드려요" autocomplete="off">
+<button type="submit">검색</button>
+</form>
+</section>
+<section class="result-section">
+<div class="section-heading">
+<h1>추천 결과</h1>
+<span class="result-count" id="resultCount">총 5개의 결과</span>
+</div>
+<div class="result-list" id="resultList"></div>
+<button type="button" class="more-button" id="moreButton">더보기</button>
+</section>
+</main>
+</div>
+<!-- =========================================
+     AI 추천 평가 + 후속 추천 팝업
+========================================= -->
+<div
+  id="recommendPopup"
+  class="recommend-popup hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="popupMessage"
+>
+  <div class="recommend-popup-box">
+    <button
+      type="button"
+      class="popup-close-button"
+      id="popupClose"
+      aria-label="팝업 닫기"
+    >
+      ×
+    </button>
+
+    <section class="feedback-section" aria-labelledby="feedbackTitle">
+      <p class="popup-eyebrow">AI 추천 평가</p>
+      <h2 id="feedbackTitle">이 추천이 도움이 되었나요?</h2>
+
+      <div class="feedback-buttons">
+        <button
+          type="button"
+          class="feedback-button"
+          id="feedbackLike"
+          data-feedback="like"
+        >
+          <span class="feedback-emoji" aria-hidden="true">👍</span>
+          <span>AI 답변이 마음에 들었어요</span>
+        </button>
+
+        <button
+          type="button"
+          class="feedback-button"
+          id="feedbackDislike"
+          data-feedback="dislike"
+        >
+          <span class="feedback-emoji" aria-hidden="true">👎</span>
+          <span>AI 답변이 마음에 들지 않았어요</span>
+        </button>
+      </div>
+
+      <p id="feedbackMessage" class="feedback-message" aria-live="polite"></p>
+    </section>
+
+    <div class="popup-divider"></div>
+
+    <section class="followup-section" aria-labelledby="popupMessage">
+      <div class="followup-icon" id="popupIcon" aria-hidden="true">☕</div>
+
+      <div class="followup-copy">
+        <p class="popup-eyebrow">다음 장소도 이어서 추천</p>
+        <h2 id="popupMessage">
+          밥 먹고 갈 카페도 AI가 추천해드릴까요?
+        </h2>
+        <p class="popup-description">
+          지금 추천 결과와 가까운 장소를 이어서 찾아드릴게요.
+        </p>
+      </div>
+    </section>
+
+    <div class="popup-buttons">
+      <button
+        type="button"
+        id="popupYes"
+        class="popup-primary-button"
+      >
+        추천해주세요
+      </button>
+
+      <button
+        type="button"
+        id="popupNo"
+        class="popup-secondary-button"
+      >
+        괜찮아요
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="./js/recommend.js"></script>
+</body>
+</html>
