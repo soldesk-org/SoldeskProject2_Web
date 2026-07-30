@@ -105,7 +105,9 @@ pipeline {
         //   - /etc/sudoers.d/jenkins-deploy (jenkins 계정이 systemctl restart soldesk-app만 비밀번호 없이 가능)
         // ---------------------------------------------------------------
         stage('Deploy') {
-            when { branch 'main' }
+            // 참고: 이 Job은 Multibranch Pipeline이 아니라 Branch Specifier(*/main)로 고정된
+            // 일반 Pipeline Job이라 env.BRANCH_NAME이 채워지지 않는다 - `when { branch 'main' }`을
+            // 쓰면 항상 skip되는 걸 실제 빌드(#8)로 확인함. 이 Job 자체가 main만 추적하므로 조건 불필요.
             steps {
                 dir("${PROJECT_DIR}") {
                     withCredentials([
