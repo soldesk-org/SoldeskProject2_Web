@@ -54,7 +54,7 @@ public interface MemberService {
 
     PasswordResetConfirmResponseDto confirmPasswordReset(PasswordResetConfirmRequestDto request);
 
-    PhoneResponseDto sendFindEmailPhoneCode(SendFindEmailPhoneCodeRequestDto request);
+    PhoneResponseDto sendFindEmailPhoneCode(SendFindEmailPhoneCodeRequestDto request, String clientIp);
 
     PhoneResponseDto verifyFindEmailPhoneCode(VerifyFindEmailPhoneCodeRequestDto request);
 
@@ -66,7 +66,7 @@ public interface MemberService {
 
     MailResponseDto verifyProfileEmailCode(String authorizationHeader, VerifyCodeRequestDto request);
 
-    PhoneResponseDto sendProfilePhoneCode(String authorizationHeader, SendProfilePhoneCodeRequestDto request);
+    PhoneResponseDto sendProfilePhoneCode(String authorizationHeader, SendProfilePhoneCodeRequestDto request, String clientIp);
 
     PhoneResponseDto verifyProfilePhoneCode(String authorizationHeader, VerifyProfilePhoneCodeRequestDto request);
 

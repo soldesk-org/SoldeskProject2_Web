@@ -5,11 +5,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.foodtrip.foodsearch.common.web.ClientIpUtil;
 import com.foodtrip.foodsearch.phone.dto.PhoneResponseDto;
 import com.foodtrip.foodsearch.phone.dto.SendPhoneCodeRequestDto;
 import com.foodtrip.foodsearch.phone.dto.VerifyPhoneCodeRequestDto;
 import com.foodtrip.foodsearch.phone.service.PhoneAuthService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
@@ -23,8 +25,8 @@ public class PhoneAuthController {
     }
 
     @PostMapping("/send-code")
-    public PhoneResponseDto sendCode(@Valid @RequestBody SendPhoneCodeRequestDto request) {
-        phoneAuthService.sendSignupVerificationCode(request.getEmail(), request.getPhone());
+    public PhoneResponseDto sendCode(@Valid @RequestBody SendPhoneCodeRequestDto request, HttpServletRequest httpRequest) {
+        phoneAuthService.sendSignupVerificationCode(request.getEmail(), request.getPhone(), ClientIpUtil.resolve(httpRequest));
         return new PhoneResponseDto(true, "인증번호가 발송되었습니다.");
     }
 
