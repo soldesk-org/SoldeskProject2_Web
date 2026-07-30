@@ -90,7 +90,8 @@ pipeline {
 
         stage('Archive') {
             steps {
-                archiveArtifacts artifacts: "${PROJECT_DIR}/target/*.jar", fingerprint: true
+                // 이 프로젝트는 war 패키징(pom.xml)이라 산출물이 .jar가 아니라 .war로 나온다.
+                archiveArtifacts artifacts: "${PROJECT_DIR}/target/*.war", fingerprint: true
             }
         }
 
