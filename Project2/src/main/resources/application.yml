@@ -169,13 +169,6 @@ recommendation:
   # 하나씩만 켜서 테스트하는 걸 전제로 한다 — 둘 다 동시에 필요해지면 이 값을 다른 포트로 바꿔서 기동해야 함.
   base-url: ${RECOMMENDATION_BASE_URL:http://localhost:8000}
 
-review-filter:
-  # 리뷰 욕설/비속어 필터(17.리뷰-필터링, 2026-07-24 추가) — 새로 만든 Python(FastAPI) 서버.
-  # SoldeskProject2_Python/review-filter 참고, 기본 포트 8002(business-verify/recommendation의 8000과
-  # 겹치지 않게 새 포트 사용 — 셋 다 동시에 켜둘 수 있음). 서버가 꺼져 있으면 ReviewFilterClient가
-  # 통과(false) 처리하므로 이 값이 없어도 리뷰 작성 자체는 막히지 않는다.
-  base-url: ${REVIEW_FILTER_BASE_URL:http://localhost:8002}
-
 # HTTPS 로컬/팀 테스트용 추가 커넥터(13.HTTPS-전송암호화, 2026-07-23 추가) — 기존 HTTP 포트(8081, 소셜로그인
 # 콜백 등록 URL과의 호환 유지)는 그대로 두고, 같은 애플리케이션에 TLS 커넥터를 하나 더 연다.
 # HttpsConnectorConfig 참고. keystore 파일은 각자 로컬에서 생성해야 함(docs/13.HTTPS-전송암호화/001-04 참고,
