@@ -4,98 +4,103 @@ import java.util.List;
 
 public class FoodBtiResultDTO {
 
-	// 최종 결과 MBTI 출력(전송) EX) SNTP
-	private String resultType;
-	
-	// 결과 이름 유형
-	private String resultName;
-	
-	// 결과 설명
-	private String resultText;
-	
-	// 추천 음식
-	private List<String> food;
-	
-	// 성향별 점수
-	private ScoreDTO score;
-	
-	public FoodBtiResultDTO() {
-		// TODO Auto-generated constructor stub
-	}
+    // 최종 음BTI 유형 예: SNTP
+    private String resultType;
 
-	public FoodBtiResultDTO(String resultType, String resultName, String resultText, List<String> food,
-			ScoreDTO score) {
-		super();
-		this.resultType = resultType;
-		this.resultName = resultName;
-		this.resultText = resultText;
-		this.food = food;
-		this.score = score;
-	}
+    // 화면에 표시할 고유한 유형 이름
+    private String resultName;
 
-	public String getResultType() {
-		return resultType;
-	}
+    // 결과 설명
+    private String resultText;
 
-	public void setResultType(String resultType) {
-		this.resultType = resultType;
-	}
+    /*
+     * 기존 프론트와의 호환성을 위해 유지하는 추천 음식 이름 목록입니다.
+     * 새 검색 기능에서는 아래 recommendations를 사용합니다.
+     */
+    private List<String> food;
 
-	public String getResultName() {
-		return resultName;
-	}
+    // 기존 점수 데이터
+    private ScoreDTO score;
 
-	public void setResultName(String resultName) {
-		this.resultName = resultName;
-	}
+    // 네 가지 성향 축의 비율
+    private List<TraitScoreDTO> traits;
 
-	public String getResultText() {
-		return resultText;
-	}
+    // 검색 키워드, 일치도, 추천 이유를 포함한 확장 추천 목록
+    private List<FoodRecommendationDTO> recommendations;
 
-	public void setResultText(String resultText) {
-		this.resultText = resultText;
-	}
+    public FoodBtiResultDTO() {
+    }
 
-	public List<String> getFood() {
-		return food;
-	}
+    public FoodBtiResultDTO(String resultType, String resultName, String resultText,
+            List<String> food, ScoreDTO score) {
+        this(resultType, resultName, resultText, food, score, List.of(), List.of());
+    }
 
-	public void setFood(List<String> food) {
-		this.food = food;
-	}
+    public FoodBtiResultDTO(String resultType, String resultName, String resultText,
+            List<String> food, ScoreDTO score, List<TraitScoreDTO> traits,
+            List<FoodRecommendationDTO> recommendations) {
+        this.resultType = resultType;
+        this.resultName = resultName;
+        this.resultText = resultText;
+        this.food = food;
+        this.score = score;
+        this.traits = traits;
+        this.recommendations = recommendations;
+    }
 
-	public ScoreDTO getScore() {
-		return score;
-	}
+    public String getResultType() {
+        return resultType;
+    }
 
-	public void setScore(ScoreDTO score) {
-		this.score = score;
-	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+    public void setResultType(String resultType) {
+        this.resultType = resultType;
+    }
+
+    public String getResultName() {
+        return resultName;
+    }
+
+    public void setResultName(String resultName) {
+        this.resultName = resultName;
+    }
+
+    public String getResultText() {
+        return resultText;
+    }
+
+    public void setResultText(String resultText) {
+        this.resultText = resultText;
+    }
+
+    public List<String> getFood() {
+        return food;
+    }
+
+    public void setFood(List<String> food) {
+        this.food = food;
+    }
+
+    public ScoreDTO getScore() {
+        return score;
+    }
+
+    public void setScore(ScoreDTO score) {
+        this.score = score;
+    }
+
+    public List<TraitScoreDTO> getTraits() {
+        return traits;
+    }
+
+    public void setTraits(List<TraitScoreDTO> traits) {
+        this.traits = traits;
+    }
+
+    public List<FoodRecommendationDTO> getRecommendations() {
+        return recommendations;
+    }
+
+    public void setRecommendations(List<FoodRecommendationDTO> recommendations) {
+        this.recommendations = recommendations;
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
