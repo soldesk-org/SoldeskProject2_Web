@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>잇티웨이 관리자 콘솔</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* 잇티웨이 Admin Design System 토큰 — 사용자가 업로드한 파일의 tokens/*.css 값을 그대로 이식 (변형 없음) */
+:root{
+  --brand-navy:#25374B; --brand-orange:#FEA255; --brand-orange-deep:#F97316;
+  --ink-1:#25374B; --ink-2:#4E5E70; --ink-3:#7C8896; --ink-disabled:#AEB7C0;
+  --surface-page:#F6F8FA; --surface-card:#FFFFFF; --surface-sunken:#EEF1F4; --surface-navy:#25374B;
+  --border-1:#E3E8ED; --border-2:#CDD5DD; --border-focus:#25374B;
+  --accent:#FEA255; --accent-hover:#F28E3B; --accent-soft:#FFF3E8;
+  --positive:#2E9E5B; --positive-soft:#E7F6EC;
+  --danger:#E5484D; --danger-soft:#FDECEC;
+  --warning:#EE9500; --warning-soft:#FFF4E0;
+  --neutral-badge:#5B6B7C; --neutral-badge-soft:#EDF0F3;
+  --status-active:var(--positive); --status-active-bg:var(--positive-soft);
+  --status-suspended:var(--danger); --status-suspended-bg:var(--danger-soft);
+  --status-received:var(--warning); --status-received-bg:var(--warning-soft);
+  --status-done:var(--positive); --status-done-bg:var(--positive-soft);
+  --status-rejected:var(--neutral-badge); --status-rejected-bg:var(--neutral-badge-soft);
+  --overlay-scrim:rgba(37,55,75,0.35); --overlay-blur:6px;
+  --font-sans:"Inter","Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --text-page-title:28px; --text-section-title:20px; --text-body-lg:16px; --text-body-md:14px;
+  --text-body-sm:13px; --text-caption:12px; --text-stat:36px;
+  --tracking-tight:-0.05em; --tracking-snug:-0.02em;
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px;
+  --sidebar-width:316px; --sidebar-width-compact:240px; --page-pad-x:40px; --page-pad-y:32px;
+  --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px; --radius-pill:999px;
+  --control-h-sm:32px; --control-h-md:40px; --control-h-lg:48px; --row-h:56px;
+  --shadow-sidebar:4px 0px 4px 0px rgba(37,55,75,0.05);
+  --shadow-card:0 1px 3px rgba(37,55,75,0.06),0 1px 2px rgba(37,55,75,0.04);
+  --shadow-modal:0 16px 48px rgba(37,55,75,0.18);
+  --ease-standard:cubic-bezier(.2,.6,.2,1); --dur-fast:120ms; --dur-normal:200ms;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--surface-page)}
+body{font-family:var(--font-sans);color:var(--ink-1);-webkit-font-smoothing:antialiased}
+a{color:var(--brand-navy)}
+a:hover{color:var(--accent-hover)}
+#root{height:100%}
+.hidden{display:none !important}
+
+/* 원본 디자인 4개 화면(대시보드/회원/리뷰/신고)엔 없는 로그인 게이트만 최소한의 토큰 기반 스타일을
+   별도로 얹는다. (시스템 상태 화면은 2026-07-27 요청으로 제거함 — 필요해지면 별도 페이지로 재도입.) */
+.auth-card{width:380px;max-width:100%;background:var(--surface-card);border-radius:var(--radius-xl);box-shadow:var(--shadow-modal);padding:36px 32px;text-align:center}
+.auth-card h2{margin:4px 0 4px;font-size:22px;font-weight:700;color:var(--brand-navy);letter-spacing:var(--tracking-snug)}
+.auth-card .sub{font-size:13px;color:var(--ink-3);margin-bottom:24px}
+.auth-card label{display:block;text-align:left;font-size:13px;font-weight:600;color:var(--ink-1);margin:14px 0 6px}
+.auth-card .err{color:var(--danger);font-size:13px;margin-top:12px;min-height:16px}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="js/admin-design-system.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const API_BASE = '';
+const h = React.createElement;
+const DS = window.AdminDesignSystem_daf0d7;
+const REASON_LABELS = { SPAM:'스팸/도배', ABUSE:'욕설/비방', FALSE_INFO:'허위 사실', PRIVACY:'개인정보 노출', ETC:'기타' };
+function reasonLabel(code){ return REASON_LABELS[code] || code || '-'; }
+function fmtDate(iso){ return iso ? iso.slice(0,10).replace(/-/g,'.') : ''; }
+const STATUS_MAP_TO_MOCK = { PENDING:'received', RESOLVED:'done', REJECTED:'rejected' };
+
+/* ---- 실 백엔드 DTO를 원본 디자인의 mock 데이터 모양(data.js)으로 맞추는 어댑터 ---- */
+function mapMember(m){
+  return { id:m.memberId, name:m.nickname, email:m.email,
+    type: m.role === 'BUSINESS' ? '사업자' : m.role === 'ADMIN' ? '관리자' : '일반',
+    status: m.status === 'SUSPENDED' ? 'suspended' : 'active',
+    joined: fmtDate(m.createdAt), raw:m };
+}
+function mapReview(r, membersById){
+  const author = membersById[r.memberId];
+  return { id:r.reviewId, author:r.nickname, email: author ? author.email : '',
+    place: r.restaurantName || r.restaurantId, rating:r.rating, content:r.content,
+    date: fmtDate(r.createdAt), raw:r };
+}
+function mapReviewReport(r){
+  return { id:'review-' + r.reviewId, kind:'review', category: reasonLabel(r.latestReasonCode),
+    content: `신고 ${r.reportCount}건 · 최근 사유: ${reasonLabel(r.latestReasonCode)}`,
+    target: r.content, targetUser: r.authorNickname, reporter: '',
+    status: STATUS_MAP_TO_MOCK[r.status] || 'received', date: fmtDate(r.latestReportedAt), raw:r };
+}
+function mapChatReport(c){
+  const isRoom = c.targetType === 'ROOM';
+  return { id:(isRoom ? 'chatroom-' : 'chat-') + c.chatReportId, kind: isRoom ? 'chatroom' : 'chat',
+    category: reasonLabel(c.reasonCode), content: c.detail || '(상세 내용 없음)',
+    target: isRoom ? (c.roomTitle || '-') : (c.contentSnapshot || '-'), targetUser:'',
+    reporter: c.reporterNickname, status: STATUS_MAP_TO_MOCK[c.status] || 'received',
+    date: fmtDate(c.createdAt), raw:c };
+}
+
+function AuthCard({ children }){
+  return h('div', { style:{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24 } },
+    h('div', { className:'auth-card' }, children));
+}
+
+function LoginScreen({ onLogin, error }){
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const { Input, Button } = DS;
+  return h(AuthCard, null,
+    h('img', { src:'img/admin/logo.png', alt:'잇티웨이', width:72, height:72, style:{ marginBottom:8, objectFit:'contain' } }),
+    h('h2', null, '잇티웨이 관리자 콘솔'),
+    h('div', { className:'sub' }, 'ADMIN 권한 계정으로 로그인하세요'),
+    h('label', null, '이메일'),
+    h(Input, { type:'email', placeholder:'admin@test.com', value:email, onChange:e=>setEmail(e.target.value) }),
+    h('label', null, '비밀번호'),
+    h(Input, { type:'password', value:password, onChange:e=>setPassword(e.target.value) }),
+    h('div', { className:'err' }, error || ''),
+    h(Button, { fullWidth:true, style:{ marginTop:18 }, onClick:()=>onLogin(email, password) }, '로그인'));
+}
+
+function DeniedScreen({ message, onLogout }){
+  const { Button } = DS;
+  return h(AuthCard, null,
+    h('div', { className:'err', style:{ marginTop:0 } }, message),
+    h(Button, { variant:'outline', fullWidth:true, style:{ marginTop:18 }, onClick:onLogout }, '로그아웃'));
+}
+
+function App(){
+  const { Sidebar } = DS;
+  const [screen, setScreen] = React.useState('login'); // login | denied | app
+  const [deniedMessage, setDeniedMessage] = React.useState('');
+  const [loginError, setLoginError] = React.useState('');
+  const [page, setPage] = React.useState(localStorage.getItem('eattway-admin-page') || 'dash');
+  const [loginEmail, setLoginEmail] = React.useState(localStorage.getItem('tmp_test_admin_email') || '');
+
+  const [members, setMembers] = React.useState([]);
+  const [reviews, setReviews] = React.useState([]);
+  const [reports, setReports] = React.useState([]);
+
+  const accessTokenRef = React.useRef(localStorage.getItem('tmp_test_access_token') || null);
+  const authHeaders = React.useCallback(() =>
+    accessTokenRef.current ? { Authorization: 'Bearer ' + accessTokenRef.current } : {}, []);
+
+  React.useEffect(() => { localStorage.setItem('eattway-admin-page', page); }, [page]);
+
+  async function reloadMembers(){
+    const res = await fetch(`${API_BASE}/api/admin/members`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || '회원 목록 조회 실패');
+    setMembers(data.map(mapMember));
+    return data;
+  }
+  async function reloadReviews(membersRaw){
+    const res = await fetch(`${API_BASE}/api/admin/reviews`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || '리뷰 목록 조회 실패');
+    const byId = {};
+    (membersRaw || []).forEach(m => { byId[m.memberId] = m; });
+    setReviews(data.map(r => mapReview(r, byId)));
+  }
+  async function reloadReports(){
+    const statuses = ['PENDING', 'RESOLVED', 'REJECTED'];
+    const calls = [];
+    statuses.forEach(st => {
+      calls.push(fetch(`${API_BASE}/api/admin/reports?status=${st}`, { headers: authHeaders() }).then(r => r.ok ? r.json() : []));
+      calls.push(fetch(`${API_BASE}/api/admin/chat-reports?status=${st}`, { headers: authHeaders() }).then(r => r.ok ? r.json() : []));
+    });
+    const results = await Promise.all(calls);
+    let merged = [];
+    statuses.forEach((st, i) => {
+      merged = merged.concat(results[i * 2].map(mapReviewReport));
+      merged = merged.concat(results[i * 2 + 1].map(mapChatReport));
+    });
+    setReports(merged);
+  }
+  async function reloadAll(){
+    const membersRaw = await reloadMembers();
+    await Promise.all([reloadReviews(membersRaw), reloadReports()]);
+  }
+
+  async function checkAdminAccess(){
+    if (!accessTokenRef.current) { setScreen('login'); return; }
+    const res = await fetch(`${API_BASE}/api/admin/members`, { headers: authHeaders() });
+    if (res.status === 401) { setDeniedMessage('로그인이 필요합니다 (401 NOT_LOGGED_IN).'); setScreen('denied'); return; }
+    if (res.status === 403) { setDeniedMessage('관리자 권한이 없는 계정입니다 (403 ADMIN_ACCESS_DENIED). 이 계정은 일반 API는 계속 정상 사용할 수 있고, /api/admin/** 만 막힙니다.'); setScreen('denied'); return; }
+    setScreen('app');
+    await reloadAll();
+  }
+
+  React.useEffect(() => { checkAdminAccess(); }, []);
+
+  async function doLogin(email, password){
+    setLoginError('');
+    try {
+      const res = await fetch(`${API_BASE}/api/members/login`, {
+        method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ email, password }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || '로그인 실패');
+      accessTokenRef.current = data.accessToken;
+      localStorage.setItem('tmp_test_access_token', data.accessToken);
+      localStorage.setItem('tmp_test_admin_email', email);
+      setLoginEmail(email);
+      await checkAdminAccess();
+    } catch (e) { setLoginError(e.message); }
+  }
+  function doLogout(){
+    accessTokenRef.current = null;
+    localStorage.removeItem('tmp_test_access_token');
+    setScreen('login');
+  }
+
+  function findMemberById(id){ return members.find(m => m.id === id); }
+  function findMemberByEmail(email){ return members.find(m => m.email === email); }
+  function findMemberByName(name){ return members.find(m => m.name === name); }
+
+  async function onToggleStatus(memberId){
+    const m = findMemberById(memberId);
+    if (!m) return;
+    const suspend = m.status === 'active';
+    const res = await fetch(`${API_BASE}/api/admin/members/${memberId}/${suspend ? 'suspend' : 'unsuspend'}`, { method:'PATCH', headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok) { alert(data.message || '처리 실패'); return; }
+    await reloadAll();
+  }
+  async function onDeleteReview(reviewId){
+    const res = await fetch(`${API_BASE}/api/admin/reviews/${reviewId}`, { method:'DELETE', headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok) { alert(data.message || '삭제 실패'); return; }
+    await reloadAll();
+  }
+  async function onSuspendMember(email){
+    const m = findMemberByEmail(email);
+    if (!m) { alert('이 이메일의 회원을 찾을 수 없습니다.'); return; }
+    await onToggleStatus(m.id);
+  }
+  function parseReportId(id){
+    const idx = id.indexOf('-');
+    return { kind: id.slice(0, idx), realId: id.slice(idx + 1) };
+  }
+  async function onDeleteReport(id){
+    const { kind, realId } = parseReportId(id);
+    let res;
+    if (kind === 'review') res = await fetch(`${API_BASE}/api/admin/reviews/${realId}`, { method:'DELETE', headers: authHeaders() });
+    else if (kind === 'chatroom') res = await fetch(`${API_BASE}/api/admin/chat-rooms/${realId}`, { method:'DELETE', headers: authHeaders() });
+    else {
+      const row = reports.find(r => r.id === id);
+      const chatMessageId = row && row.raw && row.raw.chatMessageId;
+      if (!chatMessageId) { alert('삭제할 메시지를 찾을 수 없습니다.'); return; }
+      res = await fetch(`${API_BASE}/api/admin/chat-messages/${chatMessageId}`, { method:'DELETE', headers: authHeaders() });
+    }
+    const data = await res.json();
+    if (!res.ok) { alert(data.message || '삭제 실패'); return; }
+    await reloadAll();
+  }
+  async function onSuspendMemberByName(name){
+    if (!name) { alert('채팅 신고는 백엔드 응답에 신고당한 사람의 신원이 포함되지 않아(신고자만 알 수 있음) 이 화면에서 회원 정지를 걸 수 없습니다. 메시지 삭제/방 폭파로 조치해 주세요.'); return; }
+    const m = findMemberByName(name);
+    if (!m) { alert('이 닉네임의 회원을 찾을 수 없습니다.'); return; }
+    await onToggleStatus(m.id);
+  }
+  async function reportAction(id, action){
+    const { kind, realId } = parseReportId(id);
+    if (kind !== 'review') { await chatReportAction(realId, action); return; }
+    const res = await fetch(`${API_BASE}/api/admin/reports/${realId}/${action}`, { method:'PATCH', headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok) { alert(data.message || '처리 실패'); return; }
+    await reloadReports();
+  }
+  async function chatReportAction(chatReportId, action){
+    const res = await fetch(`${API_BASE}/api/admin/chat-reports/${chatReportId}/${action}`, { method:'PATCH', headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok) { alert(data.message || '처리 실패'); return; }
+    await reloadReports();
+  }
+
+  if (screen === 'login') return h(LoginScreen, { onLogin: doLogin, error: loginError });
+  if (screen === 'denied') return h(DeniedScreen, { message: deniedMessage, onLogout: doLogout });
+
+  const ic = (paths) => h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, fill:'none', stroke:'currentColor', strokeWidth:1.75, strokeLinecap:'round', strokeLinejoin:'round' },
+    paths.map((d, i) => h('path', { key:i, d })));
+  // 실제 번들 코드를 까보니 Sidebar는 logoSrc를 주면 사이드바 폭 전체를 채우는 정사각 배너 이미지로
+  // 렌더링한다(원본 zip의 "작은 아이콘+텍스트" 헤더와는 다른, 더 최신 버전). 2026-07-26 실제 로고
+  // (1024×1024 정사각) 전달받아 적용.
+  const logoSrc = 'img/admin/logo.png';
+  const dashIcon = h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, fill:'none', stroke:'currentColor', strokeWidth:1.75, strokeLinecap:'round', strokeLinejoin:'round' },
+    h('rect', { x:3, y:3, width:8, height:8, rx:1.5 }), h('rect', { x:13, y:3, width:8, height:8, rx:1.5 }),
+    h('rect', { x:3, y:13, width:8, height:8, rx:1.5 }), h('rect', { x:13, y:13, width:8, height:8, rx:1.5 }));
+  const personIcon = h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, stroke:'var(--brand-navy)', fill:'none', strokeWidth:1.75, strokeLinecap:'round' },
+    h('circle', { cx:12, cy:8, r:4 }), h('path', { d:'M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5' }));
+  const reviewIcon = ic(['M12 20s-7-4.35-9.5-8.5C.8 8.1 2.2 4.5 5.7 4.5c2 0 3.4 1.1 4.3 2.6C10.9 5.6 12.3 4.5 14.3 4.5c3.5 0 4.9 3.6 3.2 7C15 15.65 12 20 12 20z']);
+  const reportIcon = ic(['M4 21V4', 'M4 4h13l-2.5 4L17 12H4']);
+
+  return h('div', { style:{ display:'flex', minHeight:'100vh' } },
+    h(Sidebar, {
+      logoSrc, brand:'잇티웨이', active: page, onSelect: setPage,
+      items: [
+        { id:'dash', label:'대시보드', icon: dashIcon },
+        { id:'members', label:'회원 관리', icon: personIcon },
+        { id:'reviews', label:'리뷰 관리', icon: reviewIcon },
+        { id:'reports', label:'신고 관리', icon: reportIcon },
+      ],
+    }),
+    h('main', { style:{ flex:1, minWidth:0, padding:'var(--page-pad-y) var(--page-pad-x)' } },
+      page === 'dash' && h(window.DashboardScreen, { members, reports }),
+      page === 'members' && h(window.MembersScreen, { members, onToggleStatus }),
+      page === 'reviews' && h(window.ReviewsScreen, { reviews, members, onDeleteReview, onSuspendMember }),
+      page === 'reports' && h(window.ReportsScreen, {
+        reports, members, onDeleteReport, onSuspendMemberByName,
+        onResolveReport: id => reportAction(id, 'resolve'),
+        onRejectReport: id => reportAction(id, 'reject'),
+      })));
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body>
+</html>

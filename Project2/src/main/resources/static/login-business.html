@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>사업자 로그인 | 잇티웨이</title>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body data-initial-tab="business">
+<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
+  <div class="relative flex w-full shrink-0 flex-col overflow-y-auto px-10 py-8 lg:w-[31%] lg:min-w-[440px] lg:max-w-[595px] lg:px-14">
+    <a href="index" class="flex items-center gap-3">
+      <div class="relative size-16 shrink-0 overflow-hidden">
+        <img src="assets/images/logo-icon.png" alt="Eatty way 로고" class="absolute left-[-36.79%] top-[-24.44%] size-[173.11%] max-w-none object-cover" />
+      </div>
+      <span class="bg-gradient-to-r from-[#fd6d4a] to-[#fea255] bg-clip-text text-[36px] font-bold tracking-[-1.8px] text-transparent">Eatty way</span>
+    </a>
+
+    <div class="flex flex-1 flex-col justify-center py-8">
+      <div class="text-[#25374b]">
+        <h1 class="text-[30px] font-semibold leading-tight tracking-[-1.5px]">다시 만나서 반가워요!</h1>
+        <p class="mt-3 text-[18px] font-medium leading-normal tracking-[-0.9px] opacity-80">로그인하고 나만의 맛집 지도를<br />만들어보세요.</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="mt-8 grid grid-cols-2">
+        <button type="button" id="tab-personal" class="flex flex-col items-center pb-3">
+          <span class="text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)]">개인 회원</span>
+          <span class="tab-underline mt-2 h-[3px] w-full bg-[rgba(37,55,75,0.7)]"></span>
+        </button>
+        <button type="button" id="tab-business" class="flex flex-col items-center pb-3">
+          <span class="text-[18px] font-medium tracking-[-0.9px] text-[#fd6d4a]">사업자 회원</span>
+          <span class="tab-underline mt-2 h-[3px] w-full bg-[#fd6d4a]"></span>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form id="login-form" class="mt-6 flex flex-col gap-3">
+        <input id="login-email" type="email" placeholder="이메일을 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
+        <input id="login-password" type="password" placeholder="비밀번호를 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
+
+        <div class="mt-2 flex items-center justify-between">
+          <button type="button" id="remember-toggle" class="flex items-center gap-3">
+            <span id="remember-check-box" class="flex size-[25px] items-center justify-center rounded-[7px] border border-[rgba(37,55,75,0.7)] bg-white">
+              <svg id="remember-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)]">아이디 저장</span>
+          </button>
+          <a href="find-password" class="text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)]">비밀번호 찾기</a>
+        </div>
+
+        <div class="mt-2">
+          <button type="submit" id="login-submit-btn" class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">로그인</button>
+        <p id="login-error" class="text-[15px] font-medium text-red-500" style="display:none"></p>
+        </div>
+      </form>
+
+      <div data-tab-only="business">
+        <div class="mt-6">
+          <a href="signup-business" class="relative flex h-[52px] w-full items-center justify-center rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">
+            <span class="absolute left-6 top-1/2 -translate-y-1/2 text-[20px]">‹</span>
+            사업자 회원가입
+          </a>
+        </div>
+      </div>
+
+      <div data-tab-only="personal">
+        <div class="mt-6 flex items-center gap-4">
+          <span class="h-px flex-1 bg-[rgba(37,55,75,0.7)]"></span>
+          <span class="text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)]">또는</span>
+          <span class="h-px flex-1 bg-[rgba(37,55,75,0.7)]"></span>
+        </div>
+        <div class="mt-6 flex justify-center gap-8">
+          <button aria-label="카카오 로그인" id="login-kakao" class="size-16 overflow-hidden rounded-[10px] transition-opacity hover:opacity-90">
+            <img src="assets/images/kakao.png" alt="카카오 로그인" class="size-full object-cover" />
+          </button>
+          <button aria-label="네이버 로그인" id="login-naver" class="size-16 overflow-hidden rounded-[10px] transition-opacity hover:opacity-90">
+            <img src="assets/images/naver.png" alt="네이버 로그인" class="size-full object-cover" />
+          </button>
+          <button aria-label="구글 로그인" id="login-google" class="size-16 overflow-hidden rounded-[10px] transition-opacity hover:opacity-90">
+            <img src="assets/images/google.png" alt="구글 로그인" class="size-full object-cover" />
+          </button>
+        </div>
+      </div>
+
+      <p data-tab-only="business" class="mt-8 text-center text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)]">
+        개인 회원이신가요?<span>&nbsp;&nbsp;</span><button type="button" id="to-personal" class="bg-gradient-to-r from-[rgba(253,109,74,0.7)] to-[rgba(254,162,85,0.7)] bg-clip-text font-medium text-transparent">개인 로그인</button>
+      </p>
+      <p data-tab-only="personal" class="mt-8 text-center text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)]">
+        계정이 없으신가요?<span>&nbsp;&nbsp;</span><a href="signup" class="bg-gradient-to-r from-[rgba(253,109,74,0.7)] to-[rgba(254,162,85,0.7)] bg-clip-text font-medium text-transparent">회원가입</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="relative hidden flex-1 lg:block">
+    <img src="assets/images/map.png" alt="맛집 지도" class="absolute inset-0 size-full object-cover" />
+  </div>
+</div>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/login.js"></script>
+</body>
+</html>

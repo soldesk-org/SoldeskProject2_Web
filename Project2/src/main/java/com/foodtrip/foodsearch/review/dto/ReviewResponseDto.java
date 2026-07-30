@@ -1,0 +1,55 @@
+package com.foodtrip.foodsearch.review.dto;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+public class ReviewResponseDto {
+
+    private final Long reviewId;
+    private final String nickname;
+    private final int rating;
+    private final String content;
+    private final boolean receiptVerified;
+    private final LocalDateTime createdAt;
+    // 리뷰 태그(2026-07-22 추가) — review_keywords 테이블에서 조회한 값.
+    private final List<ReviewKeywordResponseDto> keywords;
+
+    public ReviewResponseDto(Long reviewId, String nickname, int rating, String content,
+                              boolean receiptVerified, LocalDateTime createdAt, List<ReviewKeywordResponseDto> keywords) {
+        this.reviewId = reviewId;
+        this.nickname = nickname;
+        this.rating = rating;
+        this.content = content;
+        this.receiptVerified = receiptVerified;
+        this.createdAt = createdAt;
+        this.keywords = keywords;
+    }
+
+    public Long getReviewId() {
+        return reviewId;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public int getRating() {
+        return rating;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public boolean isReceiptVerified() {
+        return receiptVerified;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public List<ReviewKeywordResponseDto> getKeywords() {
+        return keywords;
+    }
+}

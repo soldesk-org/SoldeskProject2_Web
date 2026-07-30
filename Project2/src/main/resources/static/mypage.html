@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>마이페이지 | 잇티웨이</title>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
+  <aside class="relative z-10 flex w-[280px] shrink-0 flex-col bg-white">
+    <a href="explore" class="flex justify-center">
+      <img src="assets/images/logo-full.png" alt="잇티웨이 로고" class="size-[220px] object-contain" />
+    </a>
+    <nav class="mt-2 flex flex-col gap-4 overflow-y-auto px-6 pb-6">
+      <a href="explore" data-nav="explore" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">탐색</span>
+      </a>
+      <a href="recommend" data-nav="recommend" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">추천</span>
+      </a>
+      <a href="mypage?tab=favorites" data-nav="mypage?tab=favorites" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">즐겨찾기</span>
+      </a>
+      <a href="taste-quiz" data-nav="taste-quiz" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">입맛 유형 찾기</span>
+      </a>
+      <a href="mypage" data-nav="mypage" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">마이페이지</span>
+      </a>
+      <a href="chat" data-nav="chat" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">잇티챗</span>
+      </a>
+      <a href="business-mypage" data-nav="business-mypage" data-role="BUSINESS" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/></svg>
+        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">사업자</span>
+      </a>
+      <a href="admin" data-nav="admin" data-role="ADMIN" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M12 2a5 5 0 0 0-5 5v2a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2V7a5 5 0 0 0-5-5Z"/><path d="M9 7a3 3 0 0 1 6 0v2H9Z"/></svg>
+        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">관리자 전용</span>
+      </a>
+      <button type="button" data-logout-btn class="flex items-center gap-4 rounded-[10px] px-3 py-3 text-left transition-colors text-[rgba(37,55,75,0.6)] hover:bg-[rgba(254,162,85,0.1)]">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">로그아웃</span>
+      </button>
+    </nav>
+  </aside>
+
+  <div class="flex-1 overflow-y-auto p-10">
+    <h1 class="bg-gradient-to-r from-[#fea255] to-[#fd6d4a] bg-clip-text text-[40px] font-bold tracking-[-2px] text-transparent">마이페이지</h1>
+    <p class="mt-2 text-[20px] font-medium text-[rgba(37,55,75,0.6)]">내가 저장한 맛집을 한눈에 확인해보세요.</p>
+
+    <div class="mt-8 flex flex-wrap items-center gap-6 rounded-[16px] border border-[rgba(37,55,75,0.1)] bg-[rgba(254,162,85,0.1)] p-8">
+      <div id="profile-avatar" class="size-[80px] shrink-0 overflow-hidden rounded-full"></div>
+      <div class="min-w-0 flex-1">
+        <p id="profile-nickname" class="truncate text-[26px] font-semibold tracking-[-1.3px] text-[#25374b]">-</p>
+        <p id="profile-email" class="truncate text-[18px] text-[rgba(37,55,75,0.6)]">-</p>
+      </div>
+      <a href="mypage-edit" class="shrink-0 rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] px-6 py-3 text-[18px] font-semibold text-white transition-opacity hover:opacity-90">내 정보 수정</a>
+    </div>
+
+    <div class="mt-8 flex gap-10 border-b border-[rgba(37,55,75,0.15)]">
+      <button id="tab-btn-info" class="relative pb-4 text-[22px] font-semibold tracking-[-1.1px] transition-colors">
+        내 정보<span class="tab-indicator absolute -bottom-px left-0 h-[3px] w-full rounded-full bg-[#fd6d4a]"></span>
+      </button>
+      <button id="tab-btn-favorites" class="relative pb-4 text-[22px] font-semibold tracking-[-1.1px] transition-colors">
+        즐겨찾기 맛집<span class="tab-indicator absolute -bottom-px left-0 h-[3px] w-full rounded-full bg-[#fd6d4a]"></span>
+      </button>
+      <button id="tab-btn-reviews" class="relative pb-4 text-[22px] font-semibold tracking-[-1.1px] transition-colors">
+        리뷰 관리<span class="tab-indicator absolute -bottom-px left-0 h-[3px] w-full rounded-full bg-[#fd6d4a]"></span>
+      </button>
+    </div>
+
+    <!-- 내 정보 -->
+    <div id="tab-panel-info" class="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+      <section class="rounded-[10px] bg-white p-8 shadow-[0px_4px_4px_0px_rgba(0,0,0,0.15)]">
+        <div class="flex items-center justify-between">
+          <h2 class="text-[28px] font-semibold tracking-[-1.4px] text-[#25374b]">최근 리뷰 기록</h2>
+          <button id="see-reviews-link" class="flex items-center gap-1 text-[18px] font-medium text-[rgba(37,55,75,0.45)]">
+            더보기 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div id="recent-reviews-list" class="mt-6 flex flex-col gap-5">
+          <p class="text-[16px] text-[rgba(37,55,75,0.5)]">불러오는 중...</p>
+        </div>
+      </section>
+
+      <section class="rounded-[10px] bg-white p-8 shadow-[0px_4px_4px_0px_rgba(0,0,0,0.15)]">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="bg-gradient-to-r from-[#fea255] to-[#fd6d4a] bg-clip-text text-[36px] font-semibold tracking-[-1.8px] text-transparent">음BTI</span>
+            <span class="rounded-[8px] bg-[rgba(254,162,85,0.3)] px-3 py-1 text-[18px] font-semibold tracking-[-0.9px] text-[rgba(253,109,74,0.7)]">Beta</span>
+          </div>
+          <a href="taste-quiz" class="text-[16px] font-medium text-[rgba(37,55,75,0.45)] hover:text-[#fd6d4a]">다시 검사하기</a>
+        </div>
+
+        <div id="foodbti-result" class="mt-6 flex flex-wrap items-center gap-6 rounded-[10px] border border-[rgba(37,55,75,0.15)] p-6" style="display:none">
+          <div class="flex size-[100px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#fea255] to-[#fd6d4a] text-[28px] font-bold tracking-[-1.4px] text-white"><span id="foodbti-code">-</span></div>
+          <div class="flex-1">
+            <h3 class="text-[22px] font-semibold tracking-[-1.1px] text-[#25374b]">나의 음식 취향 유형</h3>
+            <p class="mt-2 text-[16px] text-[rgba(37,55,75,0.6)]">입맛 유형 검사 결과에 따라 맞춤 맛집을 추천받아보세요.</p>
+          </div>
+        </div>
+        <p id="foodbti-empty" class="mt-4 text-[18px] text-[rgba(37,55,75,0.6)]" style="display:none">아직 입맛 유형 검사를 하지 않으셨어요. "입맛 유형 찾기"에서 검사해보세요!</p>
+      </section>
+    </div>
+
+    <!-- 즐겨찾기 맛집 -->
+    <div id="tab-panel-favorites" class="mt-8" style="display:none">
+      <p class="text-[24px] font-semibold tracking-[-1.2px] text-[#25374b]">즐겨찾기 맛집 <span class="text-[#fd6d4a]">총 <span id="favorites-count" class="font-bold">0개</span></span></p>
+      <div id="favorites-grid" class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <p class="text-[16px] text-[rgba(37,55,75,0.5)]">불러오는 중...</p>
+      </div>
+    </div>
+
+    <!-- 리뷰 관리 -->
+    <div id="tab-panel-reviews" class="mt-8" style="display:none">
+      <p id="reviews-count-label" class="text-[20px] font-medium text-[rgba(37,55,75,0.6)]">내가 남긴 리뷰 0개</p>
+      <div id="reviews-list" class="mt-6 flex flex-col gap-5">
+        <p class="text-[16px] text-[rgba(37,55,75,0.5)]">불러오는 중...</p>
+      </div>
+      <a href="mypage-reviews" class="mt-6 inline-flex items-center gap-1 text-[18px] font-medium text-[#fd6d4a] hover:underline">
+        전체 리뷰 관리 페이지로 이동 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </a>
+    </div>
+  </div>
+</div>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/mypage.js"></script>
+</body>
+</html>

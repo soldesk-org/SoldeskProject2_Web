@@ -1,0 +1,12 @@
+category_code,category_name_ko,display_order
+KOREAN,한식,1
+WESTERN,양식,2
+CHINESE,중식,3
+JAPANESE,일식,4
+SNACK,분식,5
+FAST_FOOD,패스트푸드,6
+ASIAN,아시안,7
+BAR,술집,8
+BUFFET,뷔페,9
+CAFE_DESSERT,카페/디저트,10
+ETC,그 외,11

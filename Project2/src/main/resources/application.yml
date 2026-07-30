@@ -1,0 +1,192 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+
+  application:
+    name: Project2
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MariaDBDialect
+
+  mail:
+    host: smtp.daum.net
+    port: 465
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_APP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          timeout: 5000
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+
+  servlet:
+    multipart:
+      # 사업자등록증명원 PDF/이미지 업로드용. 기본값(1MB)으로는 스캔 PDF가 거의 다 걸려서 상향.
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+  refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:14}
+  # 로그인 상태 유지 체크박스를 껐을 때(또는 생략 시) 적용되는 짧은 세션(2026-07-19 요구사항 추가).
+  refresh-expiration-hours-short: ${JWT_REFRESH_EXPIRATION_HOURS_SHORT:24}
+
+member:
+  cleanup:
+    unverified-after-hours: ${MEMBER_CLEANUP_UNVERIFIED_AFTER_HOURS:24}
+    cron: ${MEMBER_CLEANUP_CRON:0 0 * * * *}
+
+phone-crypto:
+  aes-key: ${PHONE_AES_KEY}
+  hash-key: ${PHONE_HASH_KEY}
+
+password-reset:
+  frontend-url: ${PASSWORD_RESET_FRONTEND_URL:http://localhost:5173/reset-password}
+
+mail-sender:
+  # Daum SMTP는 인증 아이디(spring.mail.username, 도메인 없는 "eattyway")와
+  # 메일 From 헤더에 표시할 실제 주소가 다르므로 분리해서 관리한다.
+  from-address: ${MAIL_FROM_ADDRESS:eattyway@daum.net}
+
+ppurio:
+  # 2026-07-20: 공식 API 문서(message.ppurio.com) 기준으로 갱신 — 예전에 참고했던 api.bizppurio.com 문서는
+  # 구버전이었음(엔드포인트/요청·응답 필드가 다름, SMS-인증-Ppurio-연동-가이드.md 참고).
+  base-url: ${PPURIO_BASE_URL:https://message.ppurio.com}
+  account: ${PPURIO_ACCOUNT:}
+  auth-key: ${PPURIO_AUTH_KEY:}
+  sender-number: ${PPURIO_SENDER_NUMBER:07052364828}
+
+profile-image:
+  # 로컬 디스크에 저장(클라우드 스토리지 미도입 — 이 프로젝트의 다른 파일 업로드도 별도 저장소를 쓰지 않음).
+  upload-dir: ${PROFILE_IMAGE_UPLOAD_DIR:./uploads/profile-images}
+  base-url: ${PROFILE_IMAGE_BASE_URL:http://localhost:8081/profile-images}
+  # 사진을 등록하지 않은 회원에게 보여줄 기본 프로필 이미지 URL. 실제 이미지 자산은 아직 정해지지 않아
+  # 의도적으로 비워둠 — 값이 비어있으면 profileImageUrl 응답 필드는 null로 내려간다(추후 값만 채우면 됨).
+  default-url: ${PROFILE_IMAGE_DEFAULT_URL:}
+  max-size-bytes: ${PROFILE_IMAGE_MAX_SIZE_BYTES:5242880}
+
+restaurant:
+  # 음식점 사진을 등록하지 않았을 때(사업자 등록 기능은 아직 없어 항상 이 경우임) 보여줄 기본 이미지 URL.
+  # profile-image.default-url과 같은 패턴 — 실제 이미지 자산 미정이라 의도적으로 비워둠, 비어있으면
+  # imageUrl 응답 필드는 null로 내려간다.
+  default-image-url: ${RESTAURANT_DEFAULT_IMAGE_URL:}
+
+restaurant-image:
+  # 사업자 등록(2026-07-20 추가) 음식점 사진 업로드 — profile-image와 완전히 같은 로컬 디스크 저장 패턴.
+  upload-dir: ${RESTAURANT_IMAGE_UPLOAD_DIR:./uploads/restaurant-images}
+  base-url: ${RESTAURANT_IMAGE_BASE_URL:http://localhost:8081/restaurant-images}
+  max-size-bytes: ${RESTAURANT_IMAGE_MAX_SIZE_BYTES:5242880}
+
+oauth:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID:}
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8081/oauth/kakao}
+  naver:
+    client-id: ${NAVER_CLIENT_ID:}
+    client-secret: ${NAVER_CLIENT_SECRET:}
+    redirect-uri: ${NAVER_REDIRECT_URI:http://localhost:8081/oauth/naver}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8081/oauth/google}
+  # 소셜로그인 콜백(/oauth/{provider}) 처리 완료 후 302로 리다이렉트할 프론트 주소(2026-07-21 추가).
+  # login.js의 handleOAuthRedirectParams()가 쿼리스트링(accessToken/refreshToken/memberId 또는 error)을 처리한다.
+  frontend-redirect-url: ${OAUTH_FRONTEND_REDIRECT_URL:http://localhost:8081/login}
+
+business-verify:
+  # 사업자등록증명원 OCR+원본확인+진위확인 + 영수증 OCR(08 영수증OCR, 2026-07-21) Python(FastAPI) 서버.
+  # SoldeskProject2_Python/receipt-biz-verify 참고 — 이 프로젝트 저장소 밖에서 별도로(uvicorn) 기동해야
+  # 하며, 기본 포트 8000을 가정한다. 영수증 OCR(ReceiptOcrClient)도 같은 서버의 다른 라우터라 이 설정을
+  # 그대로 재사용한다(별도 receipt-ocr.base-url을 만들지 않음).
+  base-url: ${BUSINESS_VERIFY_BASE_URL:http://localhost:8000}
+
+receipt-image:
+  # 영수증 이미지(08 영수증OCR, 2026-07-21 추가) — profile-image/restaurant-image와 동일한 로컬 디스크
+  # 저장 패턴.
+  upload-dir: ${RECEIPT_IMAGE_UPLOAD_DIR:./uploads/receipt-images}
+  base-url: ${RECEIPT_IMAGE_BASE_URL:http://localhost:8081/receipt-images}
+  max-size-bytes: ${RECEIPT_IMAGE_MAX_SIZE_BYTES:5242880}
+
+parking-data:
+  # 인근 유료주차장 정보(15.주차장-정보, 2026-07-23 추가) — 공공데이터포털 "한국교통안전공단_주차정보
+  # 제공 API"(서비스 B553881/Parking). 반경 검색을 지원하지 않아 배치 동기화 후 우리 DB에서 직접 거리
+  # 계산하는 구조(docs/15.주차장-정보/001-02 참고). 이 API는 활용신청 심의승인이 필요해서 키가 없으면
+  # 동기화가 조용히 건너뛰어진다(nearby 조회 자체는 그냥 빈 배열, PARKING_DATA_SERVICE_UNAVAILABLE 없음).
+  #
+  # (2026-07-27 — 전국 176만여 건(중복 다수)에 반경검색 불가, 시간대에 따라 원인불명의 -999 에러까지 겹쳐
+  # 아래 seoul-parking-data(서울 열린데이터광장)로 전환. 이 설정과 관련 스케줄러/클라이언트 코드는 삭제하지
+  # 않고 남겨둠 — 나중에 전국 단위로 다시 필요해지면 되돌릴 수 있게.)
+  base-url: ${PARKING_DATA_BASE_URL:http://apis.data.go.kr/B553881/Parking}
+  service-key: ${PARKING_DATA_SERVICE_KEY:}
+  # 2차 추가(2026-07-23) — 관리자 수동 트리거 대신 자동 동기화(ParkingSyncScheduler): 서버 기동 직후
+  # 1회(데이터가 하나도 없을 때만) + 매일 새벽 3시 정기 실행. 관리자 API는 즉시 강제 재동기화용으로 유지.
+  sync-cron: ${PARKING_DATA_SYNC_CRON:0 0 3 * * *}
+  sync-max-pages: ${PARKING_DATA_SYNC_MAX_PAGES:50}
+
+seoul-parking-data:
+  # 인근 유료주차장 정보 2차 전환(2026-07-27) — 서울 열린데이터광장 "서울시 주차장 정보"(GetParkInfo).
+  # 서울시 전체 2,189건(위경도 채워진 건 약 1,456건)으로 규모가 작아, DB 동기화 없이 검색할 때마다 전체를
+  # 실시간으로 가져와(최대 1000건씩 3번) 우리 서버에서 Haversine 거리 계산으로 직접 거른다
+  # (docs/15.주차장-정보 참고, ParkingDataClient/ParkingSyncService와 별도 경로).
+  base-url: ${SEOUL_PARKING_BASE_URL:http://openapi.seoul.go.kr:8088}
+  service-key: ${SEOUL_PARKING_SERVICE_KEY:}
+
+ncp-directions:
+  # 길찾기(2026-07-27 신규) — NCP(네이버클라우드플랫폼) Maps "Direction 5"(자동차 길찾기) API. 지도
+  # 렌더링에 쓰는 공개 ncpKeyId(프론트 maps.js 스크립트 태그, i99edc9due)와 달리, 이건 서버에서만 쓰는
+  # Client ID/Secret 쌍으로 인증한다(X-NCP-APIGW-API-KEY-ID / X-NCP-APIGW-API-KEY 헤더). 소요시간/거리/
+  # 통행료/택시요금과 경로 좌표(path)를 응답으로 준다 — docs/16.길찾기 참고.
+  base-url: ${NCP_DIRECTIONS_BASE_URL:https://maps.apigw.ntruss.com/map-direction/v1/driving}
+  client-id: ${NCP_MAPS_CLIENT_ID:}
+  client-secret: ${NCP_MAPS_CLIENT_SECRET:}
+
+recommendation:
+  # AI 추천(2026-07-22 추가) — 다른 팀원이 만든 Python(FastAPI) 서버 recommendation_api.py.
+  # SoldeskProject2_Python/keyword-extraction 참고, run_recommendation_api.cmd로 기본 포트 8000에 기동.
+  # business-verify와 기본 포트가 같은 8000인데, 이 둘은 서로 다른 Python 프로젝트라 실제로는 한 번에
+  # 하나씩만 켜서 테스트하는 걸 전제로 한다 — 둘 다 동시에 필요해지면 이 값을 다른 포트로 바꿔서 기동해야 함.
+  base-url: ${RECOMMENDATION_BASE_URL:http://localhost:8000}
+
+review-filter:
+  # 리뷰 욕설/비속어 필터(17.리뷰-필터링, 2026-07-24 추가) — 새로 만든 Python(FastAPI) 서버.
+  # SoldeskProject2_Python/review-filter 참고, 기본 포트 8002(business-verify/recommendation의 8000과
+  # 겹치지 않게 새 포트 사용 — 셋 다 동시에 켜둘 수 있음). 서버가 꺼져 있으면 ReviewFilterClient가
+  # 통과(false) 처리하므로 이 값이 없어도 리뷰 작성 자체는 막히지 않는다.
+  base-url: ${REVIEW_FILTER_BASE_URL:http://localhost:8002}
+
+# HTTPS 로컬/팀 테스트용 추가 커넥터(13.HTTPS-전송암호화, 2026-07-23 추가) — 기존 HTTP 포트(8081, 소셜로그인
+# 콜백 등록 URL과의 호환 유지)는 그대로 두고, 같은 애플리케이션에 TLS 커넥터를 하나 더 연다.
+# HttpsConnectorConfig 참고. keystore 파일은 각자 로컬에서 생성해야 함(docs/13.HTTPS-전송암호화/001-04 참고,
+# 커밋되지 않음). 팀원 로컬에 keystore가 없으면 HTTPS_CONNECTOR_ENABLED=false로 끄면 기존과 동일하게 동작.
+https-connector:
+  enabled: ${HTTPS_CONNECTOR_ENABLED:false}
+  port: ${HTTPS_CONNECTOR_PORT:8443}
+  key-store: ${SSL_KEY_STORE:./keystore/localhost.p12}
+  key-store-password: ${SSL_KEY_STORE_PASSWORD:}
+  key-store-type: ${SSL_KEY_STORE_TYPE:PKCS12}
+  key-alias: ${SSL_KEY_ALIAS:localhost}
+
+server:
+  port: 8081

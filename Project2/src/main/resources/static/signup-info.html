@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>정보 입력 | 잇티웨이</title>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
+  <div class="relative flex w-full shrink-0 flex-col overflow-y-auto px-10 py-8 lg:w-[31%] lg:min-w-[440px] lg:max-w-[595px] lg:px-14">
+    <a href="index" class="flex items-center gap-3">
+      <div class="relative size-16 shrink-0 overflow-hidden">
+        <img src="assets/images/logo-icon.png" alt="Eatty way 로고" class="absolute left-[-36.79%] top-[-24.44%] size-[173.11%] max-w-none object-cover" />
+      </div>
+      <span class="bg-gradient-to-r from-[#fd6d4a] to-[#fea255] bg-clip-text text-[36px] font-bold tracking-[-1.8px] text-transparent">Eatty way</span>
+    </a>
+
+    <div class="flex flex-1 flex-col justify-center py-8">
+      <div class="text-[#25374b]">
+        <h1 class="text-[30px] font-semibold leading-tight tracking-[-1.5px]">정보 입력</h1>
+        <p class="mt-3 text-[18px] font-medium leading-normal tracking-[-0.9px] opacity-80">회원 정보를 입력해주세요.</p>
+      </div>
+
+      <form id="signup-info-form" data-next="signup-done" class="mt-8 flex flex-col gap-3">
+        <label class="text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">닉네임</label>
+        <input id="signup-nickname" placeholder="닉네임을 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
+
+        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">이메일</label>
+        <input id="signup-email" type="email" placeholder="이메일을 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
+        <button type="button" id="email-send" class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">인증코드 전송</button>
+        <div id="email-code-group" style="display:none">
+          <label class="mt-2 block text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">인증코드</label>
+          <div class="mt-1 flex items-center gap-3">
+            <input id="signup-email-code" placeholder="코드를 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
+          </div>
+          <button type="button" id="email-confirm" class="mt-2 relative h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">인증 확인</button>
+          <p id="email-verify-status" class="mt-1 text-[14px] font-medium text-[rgba(37,55,75,0.5)]"></p>
+        </div>
+
+        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">비밀번호</label>
+        <input id="signup-password" type="password" placeholder="비밀번호를 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
+
+        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">비밀번호 확인</label>
+        <input id="signup-password-confirm" type="password" placeholder="비밀번호를 다시 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
+
+        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">전화번호</label>
+        <input id="signup-phone" placeholder="전화번호를 입력해주세요. ('-' 없이)" class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
+        <button type="button" id="phone-send" class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">인증코드 전송</button>
+        <div id="phone-code-group" style="display:none">
+          <label class="mt-2 block text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">인증코드</label>
+          <div class="mt-1 flex items-center gap-3">
+            <input id="signup-phone-code" placeholder="코드를 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
+          </div>
+          <button type="button" id="phone-confirm" class="mt-2 relative h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">인증 확인</button>
+          <p id="phone-verify-status" class="mt-1 text-[14px] font-medium text-[rgba(37,55,75,0.5)]"></p>
+        </div>
+
+        <p id="signup-error" class="text-[15px] font-medium text-red-500" style="display:none"></p>
+        <div class="mt-4">
+          <button type="submit" id="signup-submit-btn" class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">다음</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="relative hidden flex-1 lg:block">
+    <img src="assets/images/map.png" alt="맛집 지도" class="absolute inset-0 size-full object-cover" />
+  </div>
+</div>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/signup-info.js"></script>
+</body>
+</html>
