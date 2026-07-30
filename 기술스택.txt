@@ -1,0 +1,1 @@
+Java, Spring Boot, Spring Security, JPA/Hibernate, MariaDB, Redis, JWT, OAuth 2.0, HTML, CSS, JavaScript, Tailwind CSS, WebSocket, Tomcat, Docker, Git, Maven, Naver Maps API, Kakao API, Python/FastAPI, Playwright

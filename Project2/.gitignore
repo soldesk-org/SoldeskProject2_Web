@@ -1,0 +1,47 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Env ###
+.env
+
+### 프로필 사진 업로드(로컬 디스크 저장, docs/05.회원정보수정 참고) ###
+uploads/
+
+### E2E (Playwright) ###
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+
+### HTTPS 로컬 테스트용 자체 서명 키스토어(13.HTTPS-전송암호화 참고) — 개인키라 커밋하지 않음 ###
+keystore/
