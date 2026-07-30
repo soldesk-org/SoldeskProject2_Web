@@ -44,7 +44,7 @@
 | Upstage Information Extraction API | 업스테이지(Upstage) | 영수증 OCR 1차 결과(RapidOCR)를 LLM으로 보정 | upstage.ai |
 | RapidOCR | 오픈소스(로컬 실행, API 아님) | 영수증 이미지 1차 OCR 인식 | github.com/RapidAI/RapidOCR |
 | Qwen2.5-1.5B-Instruct | Alibaba(Qwen팀, HuggingFace, 로컬 추론) | 자연어 추천 질의에서 위치/카테고리/분위기 키워드 추출 | huggingface.co/Qwen/Qwen2.5-1.5B-Instruct |
-| korcen | 오픈소스 라이브러리(Tanat05, 로컬 실행, API 아님) | 리뷰 본문 욕설/비속어 판별(17.리뷰-필터링) | github.com/KR-korcen/korcen |
+| korcen | 오픈소스 라이브러리(Tanat05, MIT License, API 아님 — 2026-07-30부로 Java로 직접 이식되어 별도 프로세스 없이 인프로세스로 실행) | 리뷰 본문/오픈채팅 메시지 욕설·비속어 판별(17.리뷰-필터링, 19.오픈채팅) | github.com/KR-korcen/korcen |
 
 ------------------------------------------------------------------------
 ## 5. 회원 인증
