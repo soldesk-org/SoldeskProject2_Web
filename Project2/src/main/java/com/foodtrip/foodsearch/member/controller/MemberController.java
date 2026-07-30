@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.foodtrip.foodsearch.common.web.ClientIpUtil;
 import com.foodtrip.foodsearch.mail.dto.MailResponseDto;
 import com.foodtrip.foodsearch.mail.dto.SendCodeRequestDto;
 import com.foodtrip.foodsearch.mail.dto.VerifyCodeRequestDto;
@@ -48,6 +49,7 @@ import com.foodtrip.foodsearch.member.dto.WithdrawResponseDto;
 import com.foodtrip.foodsearch.member.service.MemberService;
 import com.foodtrip.foodsearch.phone.dto.PhoneResponseDto;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
@@ -102,8 +104,8 @@ public class MemberController {
     }
 
     @PostMapping("/find-email/verify-phone/send-code")
-    public PhoneResponseDto sendFindEmailPhoneCode(@Valid @RequestBody SendFindEmailPhoneCodeRequestDto request) {
-        return memberService.sendFindEmailPhoneCode(request);
+    public PhoneResponseDto sendFindEmailPhoneCode(@Valid @RequestBody SendFindEmailPhoneCodeRequestDto request, HttpServletRequest httpRequest) {
+        return memberService.sendFindEmailPhoneCode(request, ClientIpUtil.resolve(httpRequest));
     }
 
     @PostMapping("/find-email/verify-phone/confirm")
@@ -135,8 +137,9 @@ public class MemberController {
 
     @PostMapping("/me/phone/send-code")
     public PhoneResponseDto sendProfilePhoneCode(@RequestHeader(value = "Authorization", required = false) String authorizationHeader,
-                                                  @Valid @RequestBody SendProfilePhoneCodeRequestDto request) {
-        return memberService.sendProfilePhoneCode(authorizationHeader, request);
+                                                  @Valid @RequestBody SendProfilePhoneCodeRequestDto request,
+                                                  HttpServletRequest httpRequest) {
+        return memberService.sendProfilePhoneCode(authorizationHeader, request, ClientIpUtil.resolve(httpRequest));
     }
 
     @PostMapping("/me/phone/verify-code")

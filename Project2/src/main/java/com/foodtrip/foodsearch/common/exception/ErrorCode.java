@@ -26,6 +26,7 @@ public enum ErrorCode {
     PHONE_NOT_FOUND(HttpStatus.BAD_REQUEST, "인증번호 발송 이력이 없는 전화번호입니다."),
     PHONE_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "전화번호 인증이 완료되지 않았습니다."),
     SMS_SEND_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "SMS 발송에 실패했습니다."),
+    PHONE_SMS_DAILY_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "SMS 인증 요청 횟수를 초과했습니다. 내일 다시 시도해주세요."),
     INVALID_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST, "유효하지 않거나 만료된 조회 정보입니다. 이메일 찾기를 다시 시도해주세요."),
     DUPLICATE_BUSINESS_NUMBER(HttpStatus.CONFLICT, "이미 등록된 사업자등록번호입니다."),
     BUSINESS_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST, "사업자등록증명원 검증에 실패했습니다."),
