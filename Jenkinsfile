@@ -144,8 +144,6 @@ pipeline {
                         string(credentialsId: 'soldesk-seoul-parking-service-key', variable: 'SEOUL_PARKING_SERVICE_KEY'),
                         string(credentialsId: 'soldesk-ncp-maps-client-id', variable: 'NCP_MAPS_CLIENT_ID'),
                         string(credentialsId: 'soldesk-ncp-maps-client-secret', variable: 'NCP_MAPS_CLIENT_SECRET'),
-                        string(credentialsId: 'soldesk-ssl-key-store-password', variable: 'SSL_KEY_STORE_PASSWORD'),
-                        string(credentialsId: 'soldesk-https-connector-enabled', variable: 'HTTPS_CONNECTOR_ENABLED'),
                     ]) {
                         sh '''
                             cp target/*.war /opt/soldesk-app/soldesk-app.war
@@ -183,13 +181,10 @@ PARKING_DATA_SERVICE_KEY=$PARKING_DATA_SERVICE_KEY
 SEOUL_PARKING_SERVICE_KEY=$SEOUL_PARKING_SERVICE_KEY
 NCP_MAPS_CLIENT_ID=$NCP_MAPS_CLIENT_ID
 NCP_MAPS_CLIENT_SECRET=$NCP_MAPS_CLIENT_SECRET
-SSL_KEY_STORE_PASSWORD=$SSL_KEY_STORE_PASSWORD
-HTTPS_CONNECTOR_ENABLED=$HTTPS_CONNECTOR_ENABLED
+HTTPS_CONNECTOR_ENABLED=false
 ENVEOF
                             chmod 600 /opt/soldesk-app/.env
                             sudo systemctl restart soldesk-app.service
-                            sleep 5
-                            sudo systemctl status soldesk-app.service --no-pager
                         '''
                     }
                 }
