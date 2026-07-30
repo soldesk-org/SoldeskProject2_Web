@@ -43,7 +43,7 @@
 | Google Gemini API (`gemini-2.5-flash`) | 구글(Google) | 사업자등록증명원 이미지에서 텍스트 추출 | ai.google.dev |
 | Upstage Information Extraction API | 업스테이지(Upstage) | 영수증 OCR 1차 결과(RapidOCR)를 LLM으로 보정 | upstage.ai |
 | RapidOCR | 오픈소스(로컬 실행, API 아님) | 영수증 이미지 1차 OCR 인식 | github.com/RapidAI/RapidOCR |
-| Qwen2.5-1.5B-Instruct | Alibaba(Qwen팀, HuggingFace, 로컬 추론) | 자연어 추천 질의에서 위치/카테고리/분위기 키워드 추출 | huggingface.co/Qwen/Qwen2.5-1.5B-Instruct |
+| kanana-nano-2.1b-instruct | 카카오(Kakao, HuggingFace, 로컬 추론) | 자연어 추천 질의에서 위치/카테고리/분위기 키워드 추출 | huggingface.co/kakaocorp/kanana-nano-2.1b-instruct (실제 구동 서버 `recommendation_api.py`가 `FOOTTRIP_MODEL_NAME` 기본값으로 사용 — 같은 폴더의 `keyword_api.py`/`keyword_extraction.py`에 남아있는 `Qwen2.5-1.5B-Instruct` 참조는 실제로 실행되지 않는 이전 버전) |
 | korcen | 오픈소스 라이브러리(Tanat05, MIT License, API 아님 — 2026-07-30부로 Java로 직접 이식되어 별도 프로세스 없이 인프로세스로 실행) | 리뷰 본문/오픈채팅 메시지 욕설·비속어 판별(17.리뷰-필터링, 19.오픈채팅) | github.com/KR-korcen/korcen |
 
 ------------------------------------------------------------------------
