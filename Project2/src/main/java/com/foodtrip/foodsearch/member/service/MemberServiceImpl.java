@@ -463,7 +463,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public PhoneResponseDto sendFindEmailPhoneCode(SendFindEmailPhoneCodeRequestDto request) {
+    public PhoneResponseDto sendFindEmailPhoneCode(SendFindEmailPhoneCodeRequestDto request, String clientIp) {
         Long memberId = resolveFindEmailSession(request.getVerificationToken());
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_VERIFICATION_TOKEN));
@@ -475,7 +475,7 @@ public class MemberServiceImpl implements MemberService {
             throw new CustomException(ErrorCode.PHONE_NOT_FOUND);
         }
 
-        phoneAuthService.sendVerificationCode(memberId, request.getPhone(), PhoneVerification.PURPOSE_FIND_EMAIL);
+        phoneAuthService.sendVerificationCode(memberId, request.getPhone(), PhoneVerification.PURPOSE_FIND_EMAIL, clientIp);
         return new PhoneResponseDto(true, "인증번호가 발송되었습니다.");
     }
 
@@ -534,9 +534,9 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public PhoneResponseDto sendProfilePhoneCode(String authorizationHeader, SendProfilePhoneCodeRequestDto request) {
+    public PhoneResponseDto sendProfilePhoneCode(String authorizationHeader, SendProfilePhoneCodeRequestDto request, String clientIp) {
         Long memberId = resolveMemberId(authorizationHeader);
-        phoneAuthService.sendVerificationCode(memberId, request.getPhone(), PhoneVerification.PURPOSE_PROFILE_UPDATE);
+        phoneAuthService.sendVerificationCode(memberId, request.getPhone(), PhoneVerification.PURPOSE_PROFILE_UPDATE, clientIp);
         return new PhoneResponseDto(true, "인증번호가 발송되었습니다.");
     }
 

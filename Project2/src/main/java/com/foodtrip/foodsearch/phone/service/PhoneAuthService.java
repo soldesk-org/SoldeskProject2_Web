@@ -30,16 +30,19 @@ public class PhoneAuthService {
     private final PpurioSmsService ppurioSmsService;
     private final MemberRepository memberRepository;
     private final EmailVerificationRepository emailVerificationRepository;
+    private final PhoneSmsRateLimitService phoneSmsRateLimitService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public PhoneAuthService(PhoneVerificationRepository phoneVerificationRepository,
                              PpurioSmsService ppurioSmsService,
                              MemberRepository memberRepository,
-                             EmailVerificationRepository emailVerificationRepository) {
+                             EmailVerificationRepository emailVerificationRepository,
+                             PhoneSmsRateLimitService phoneSmsRateLimitService) {
         this.phoneVerificationRepository = phoneVerificationRepository;
         this.ppurioSmsService = ppurioSmsService;
         this.memberRepository = memberRepository;
         this.emailVerificationRepository = emailVerificationRepository;
+        this.phoneSmsRateLimitService = phoneSmsRateLimitService;
     }
 
     /**
@@ -47,7 +50,7 @@ public class PhoneAuthService {
      * 완료된 상태인지 확인한 뒤에만 SMS 인증번호를 발송한다.
      */
     @Transactional
-    public void sendSignupVerificationCode(String email, String phone) {
+    public void sendSignupVerificationCode(String email, String phone, String clientIp) {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.EMAIL_NOT_FOUND));
 
@@ -59,7 +62,7 @@ public class PhoneAuthService {
             throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
 
-        sendVerificationCode(member.getMemberId(), phone, PhoneVerification.PURPOSE_SIGNUP);
+        sendVerificationCode(member.getMemberId(), phone, PhoneVerification.PURPOSE_SIGNUP, clientIp);
     }
 
     /**
@@ -74,7 +77,11 @@ public class PhoneAuthService {
     }
 
     @Transactional
-    public void sendVerificationCode(Long memberId, String phone, String purpose) {
+    public void sendVerificationCode(Long memberId, String phone, String purpose, String clientIp) {
+        // SMS 발송 비용이 실제로 청구되므로, DB에 저장하거나 실제로 발송하기 전에 먼저
+        // IP 기준 일일 한도를 확인한다(21.전화번호-인증-속도제한, 2026-07-30 신규).
+        phoneSmsRateLimitService.checkAndRecord(clientIp);
+
         String code = generateCode();
         LocalDateTime expiredAt = LocalDateTime.now().plusMinutes(EXPIRE_MINUTES);
         phoneVerificationRepository.save(
