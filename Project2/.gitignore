@@ -45,3 +45,8 @@ e2e/playwright-report/
 
 ### HTTPS 로컬 테스트용 자체 서명 키스토어(13.HTTPS-전송암호화 참고) — 개인키라 커밋하지 않음 ###
 keystore/
+
+### Project2 안에서 생성/작성되는 문서류는 커밋 대상 아님 (문서는 저장소 루트 docs/에만 둠) ###
+*.md
+*.txt
+docs/
