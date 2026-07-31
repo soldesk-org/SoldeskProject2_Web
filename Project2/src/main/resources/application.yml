@@ -168,7 +168,7 @@ hyperclova:
   # 시스템 프롬프트로 고정해서 고객센터 문의 응대 용도로만 쓴다 - docs/25.AI고객센터챗봇 참고.
   # 키가 없으면(로컬에서 발급 전) SUPPORT_CHAT_SERVICE_UNAVAILABLE로 응답하고 앱 기동 자체는 막지 않는다.
   base-url: ${HYPERCLOVA_BASE_URL:https://clovastudio.stream.ntruss.com}
-  model: ${HYPERCLOVA_MODEL:HCX-005}
+  model: ${HYPERCLOVA_MODEL:HCX-DASH-002}
   api-key: ${HYPERCLOVA_API_KEY:}
 
 recommendation:
