@@ -1,0 +1,643 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="0 0 1280 720"
+     width="1280"
+     height="720"
+     preserveAspectRatio="xMidYMid meet"
+     role="img"
+     aria-labelledby="demoTitle demoDescription">
+  <title id="demoTitle">잇테이블 음BTI 인터랙티브 데모</title>
+  <desc id="demoDescription">12개 질문에 답하면 음식 성향과 추천 음식을 보여주는 단일 SVG 데모</desc>
+
+  <style>
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #f4f7fb;
+    }
+
+    text {
+      font-family: Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif;
+      letter-spacing: 0;
+      fill: #263244;
+      user-select: none;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .nav-item {
+      cursor: default;
+    }
+
+    .option,
+    .icon-button,
+    .search-button,
+    .restart-button {
+      cursor: pointer;
+      outline: none;
+    }
+
+    .option rect {
+      fill: #ffffff;
+      stroke: #dce3eb;
+      stroke-width: 2;
+      transition: fill 160ms ease, stroke 160ms ease, transform 160ms ease;
+    }
+
+    .option:hover rect,
+    .option:focus rect {
+      fill: #fff4f0;
+      stroke: #ff7658;
+    }
+
+    .option.selected rect {
+      fill: #ffe8e1;
+      stroke: #ff6240;
+    }
+
+    .option:hover .option-key,
+    .option:focus .option-key,
+    .option.selected .option-key {
+      fill: #ff6240;
+    }
+
+    .icon-button circle,
+    .restart-button rect {
+      transition: fill 160ms ease, stroke 160ms ease;
+    }
+
+    .icon-button:hover circle,
+    .icon-button:focus circle {
+      fill: #eef5ff;
+      stroke: #1777e8;
+    }
+
+    .restart-button:hover rect,
+    .restart-button:focus rect {
+      fill: #eaf3ff;
+      stroke: #1777e8;
+    }
+
+    .search-button rect {
+      transition: fill 160ms ease;
+    }
+
+    .search-button:hover rect,
+    .search-button:focus rect {
+      fill: #0d63c9;
+    }
+  </style>
+
+  <defs>
+    <filter id="panelShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#334155" flood-opacity="0.12"/>
+    </filter>
+
+    <symbol id="icon-search" viewBox="0 0 24 24">
+      <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M15.5 15.5 21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="icon-star" viewBox="0 0 24 24">
+      <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"
+            fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="icon-heart" viewBox="0 0 24 24">
+      <path d="M20.8 5.9c-2-2-5.2-2-7.2 0L12 7.5l-1.6-1.6c-2-2-5.2-2-7.2 0s-2 5.2 0 7.2L12 21l8.8-7.9c2-2 2-5.2 0-7.2Z"
+            fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="icon-pin" viewBox="0 0 24 24">
+      <path d="M20 10c0 5.4-8 11-8 11S4 15.4 4 10a8 8 0 1 1 16 0Z"
+            fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <circle cx="12" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    </symbol>
+
+    <symbol id="icon-user" viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M4 21c.6-4.2 3.3-6.5 8-6.5s7.4 2.3 8 6.5"
+            fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="icon-arrow-left" viewBox="0 0 24 24">
+      <path d="m14.5 5-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="icon-refresh" viewBox="0 0 24 24">
+      <path d="M20 7v5h-5M4 17v-5h5" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M18.2 10A7 7 0 0 0 6.1 7.3L4 10M5.8 14A7 7 0 0 0 17.9 16.7L20 14"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+
+  <!-- Application background -->
+  <rect width="1280" height="720" fill="#f4f7fb"/>
+  <rect x="28" y="28" width="1224" height="664" rx="8" fill="#ffffff" stroke="#1683f3" stroke-width="3"/>
+
+  <!-- Quiet map texture -->
+  <g opacity="0.52" aria-hidden="true">
+    <rect x="272" y="30" width="978" height="660" fill="#f8fbfa"/>
+    <path d="M290 170 C430 100 580 220 720 144 S1010 82 1238 164"
+          fill="none" stroke="#d8e8e2" stroke-width="16"/>
+    <path d="M300 174 C440 104 580 224 720 148 S1010 86 1240 168"
+          fill="none" stroke="#ffffff" stroke-width="8"/>
+    <path d="M320 590 C500 510 624 630 780 535 S1040 470 1238 545"
+          fill="none" stroke="#dbe8f5" stroke-width="18"/>
+    <path d="M320 590 C500 510 624 630 780 535 S1040 470 1238 545"
+          fill="none" stroke="#ffffff" stroke-width="8"/>
+    <path d="M430 42 C500 174 410 296 510 420 S620 610 600 684"
+          fill="none" stroke="#e4e9ef" stroke-width="10"/>
+    <path d="M850 34 C794 170 900 286 840 418 S740 590 790 688"
+          fill="none" stroke="#e4e9ef" stroke-width="10"/>
+    <path d="M1090 48 C1018 180 1114 286 1050 420 S980 610 1035 688"
+          fill="none" stroke="#e4e9ef" stroke-width="10"/>
+    <g fill="#73928a" font-size="12">
+      <text x="356" y="116">서초동</text>
+      <text x="1100" y="220">역삼동</text>
+      <text x="680" y="638">강남대로</text>
+      <text x="952" y="476">테헤란로</text>
+    </g>
+    <g>
+      <path d="M350 248c0 16-22 31-22 31s-22-15-22-31a22 22 0 1 1 44 0Z" fill="#ff8a55"/>
+      <circle cx="328" cy="248" r="7" fill="#ffffff"/>
+      <path d="M1174 340c0 15-21 29-21 29s-21-14-21-29a21 21 0 1 1 42 0Z" fill="#f4b43d"/>
+      <circle cx="1153" cy="340" r="6" fill="#ffffff"/>
+      <path d="M940 96c0 14-19 27-19 27s-19-13-19-27a19 19 0 1 1 38 0Z" fill="#1e9a88"/>
+      <circle cx="921" cy="96" r="6" fill="#ffffff"/>
+    </g>
+  </g>
+
+  <!-- Sidebar -->
+  <rect x="30" y="30" width="242" height="660" fill="#ffffff"/>
+  <line x1="272" y1="30" x2="272" y2="690" stroke="#e5eaf0" stroke-width="2"/>
+
+  <g transform="translate(62 74)">
+    <circle cx="24" cy="24" r="22" fill="#fff0e9" stroke="#ff7352" stroke-width="2"/>
+    <path d="M17 8v18M12 8v8c0 3 2 5 5 5s5-2 5-5V8M31 8v18"
+          fill="none" stroke="#ff6240" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M31 8c5 6 5 12 0 18" fill="none" stroke="#1777e8" stroke-width="2.4" stroke-linecap="round"/>
+    <text x="56" y="21" font-size="23" font-weight="800" fill="#1f3a5f">잇테이블</text>
+    <text x="56" y="40" font-size="11" font-weight="700" fill="#ff6240">EAT YOUR TYPE</text>
+  </g>
+
+  <g class="nav-item" transform="translate(64 160)" color="#46576d">
+    <title>탐색</title>
+    <use href="#icon-search" x="0" y="0" width="20" height="20"/>
+    <text x="34" y="15" font-size="15" font-weight="600">탐색</text>
+  </g>
+  <g class="nav-item" transform="translate(64 208)" color="#46576d">
+    <title>추천</title>
+    <use href="#icon-star" x="0" y="0" width="20" height="20"/>
+    <text x="34" y="15" font-size="15" font-weight="600">추천</text>
+  </g>
+  <g class="nav-item" transform="translate(64 256)" color="#46576d">
+    <title>즐겨찾기</title>
+    <use href="#icon-heart" x="0" y="0" width="20" height="20"/>
+    <text x="34" y="15" font-size="15" font-weight="600">즐겨찾기</text>
+  </g>
+  <g class="nav-item" transform="translate(50 296)">
+    <rect width="194" height="46" rx="6" fill="#eef5ff"/>
+    <g transform="translate(14 13)" color="#1777e8">
+      <title>음BTI 유형 찾기</title>
+      <use href="#icon-pin" x="0" y="0" width="20" height="20"/>
+      <text x="34" y="15" font-size="15" font-weight="800" fill="#1269cf">음BTI 유형 찾기</text>
+    </g>
+  </g>
+  <g class="nav-item" transform="translate(64 362)" color="#46576d">
+    <title>마이페이지</title>
+    <use href="#icon-user" x="0" y="0" width="20" height="20"/>
+    <text x="34" y="15" font-size="15" font-weight="600">마이페이지</text>
+  </g>
+
+  <text x="62" y="650" font-size="12" fill="#8794a6">FOOD TRIP PROJECT</text>
+
+  <!-- Page label -->
+  <g transform="translate(310 62)">
+    <circle cx="8" cy="8" r="5" fill="#1777e8"/>
+    <text x="24" y="13" font-size="14" font-weight="800" fill="#176bc9">음BTI 질문</text>
+  </g>
+
+  <!-- Quiz view -->
+  <g id="quizView">
+    <rect x="392" y="105" width="740" height="520" rx="8"
+          fill="#fffaf8" filter="url(#panelShadow)"/>
+
+    <g id="backButton" class="icon-button hidden" role="button" tabindex="0" aria-label="이전 질문">
+      <title>이전 질문</title>
+      <circle cx="434" cy="149" r="19" fill="#ffffff" stroke="#dce3eb" stroke-width="2"/>
+      <use href="#icon-arrow-left" x="423" y="138" width="22" height="22" color="#486079"/>
+    </g>
+
+    <text x="762" y="162" text-anchor="middle" font-size="29" font-weight="800" fill="#f45b37">
+      입맛 유형 찾기
+    </text>
+    <text id="stepText" x="762" y="190" text-anchor="middle" font-size="14" font-weight="700" fill="#7b8797">
+      1 / 12
+    </text>
+
+    <rect x="470" y="214" width="584" height="12" rx="6" fill="#e6ebf1"/>
+    <rect id="progressFill" x="470" y="214" width="49" height="12" rx="6" fill="#ff7051"/>
+
+    <text id="axisText" x="470" y="260" font-size="13" font-weight="800" fill="#1777e8">맛 강도</text>
+    <text id="questionText" x="470" y="293" font-size="20" font-weight="800" fill="#263244">
+      음식을 먹을 때 더 끌리는 맛은?
+    </text>
+
+    <g id="optionA" class="option" role="button" tabindex="0" aria-label="첫 번째 답변">
+      <rect x="470" y="328" width="584" height="82" rx="8"/>
+      <circle cx="508" cy="369" r="18" fill="#fff0eb"/>
+      <text class="option-key" x="508" y="375" text-anchor="middle" font-size="15" font-weight="800" fill="#ec674a">A</text>
+      <text id="optionAText" x="544" y="375" font-size="16" font-weight="700">재료 본연의 담백하고 깔끔한 맛.</text>
+    </g>
+
+    <g id="optionB" class="option" role="button" tabindex="0" aria-label="두 번째 답변">
+      <rect x="470" y="428" width="584" height="82" rx="8"/>
+      <circle cx="508" cy="469" r="18" fill="#edf5ff"/>
+      <text class="option-key" x="508" y="475" text-anchor="middle" font-size="15" font-weight="800" fill="#1777e8">B</text>
+      <text id="optionBText" x="544" y="475" font-size="16" font-weight="700">맵고 짜고 양념이 강한 자극적인 맛.</text>
+    </g>
+
+    <g transform="translate(470 548)">
+      <rect width="584" height="1" fill="#eadfdb"/>
+      <circle cx="10" cy="24" r="4" fill="#1e9a88"/>
+      <text id="answerStatus" x="24" y="29" font-size="13" font-weight="600" fill="#718096">
+        나에게 더 가까운 답변을 선택해 주세요
+      </text>
+    </g>
+  </g>
+
+  <!-- Result view -->
+  <g id="resultView" class="hidden">
+    <rect x="330" y="72" width="850" height="584" rx="8"
+          fill="#ffffff" filter="url(#panelShadow)"/>
+
+    <g transform="translate(374 108)">
+      <rect width="80" height="30" rx="6" fill="#fff0e9"/>
+      <text id="resultType" x="40" y="21" text-anchor="middle" font-size="15" font-weight="900" fill="#ed5e3d">SNTP</text>
+      <text id="resultName" x="0" y="70" font-size="28" font-weight="900" fill="#20344f">매운맛 탐험가</text>
+      <text id="resultDescription" x="0" y="101" font-size="14" font-weight="600" fill="#66758a">
+        강렬한 맛과 새로운 음식을 좋아하며, 사람들과 함께 새로운 맛집을 계획해 찾아다니는 유형입니다.
+      </text>
+    </g>
+
+    <g transform="translate(374 236)">
+      <text x="0" y="0" font-size="16" font-weight="900" fill="#263244">성향 비율</text>
+
+      <g transform="translate(0 24)">
+        <text id="traitLabel0" x="0" y="15" font-size="13" font-weight="700">담백한 맛 33%</text>
+        <text id="traitRight0" x="348" y="15" text-anchor="end" font-size="13" font-weight="700">강한 맛 67%</text>
+        <rect x="0" y="26" width="348" height="8" rx="4" fill="#e7ecf2"/>
+        <rect id="traitBar0" x="0" y="26" width="116" height="8" rx="4" fill="#1e9a88"/>
+      </g>
+
+      <g transform="translate(0 72)">
+        <text id="traitLabel1" x="0" y="15" font-size="13" font-weight="700">익숙한 음식 33%</text>
+        <text id="traitRight1" x="348" y="15" text-anchor="end" font-size="13" font-weight="700">새로운 음식 67%</text>
+        <rect x="0" y="26" width="348" height="8" rx="4" fill="#e7ecf2"/>
+        <rect id="traitBar1" x="0" y="26" width="116" height="8" rx="4" fill="#1777e8"/>
+      </g>
+
+      <g transform="translate(400 24)">
+        <text id="traitLabel2" x="0" y="15" font-size="13" font-weight="700">혼자 먹기 33%</text>
+        <text id="traitRight2" x="348" y="15" text-anchor="end" font-size="13" font-weight="700">함께 먹기 67%</text>
+        <rect x="0" y="26" width="348" height="8" rx="4" fill="#e7ecf2"/>
+        <rect id="traitBar2" x="0" y="26" width="116" height="8" rx="4" fill="#f2b53c"/>
+      </g>
+
+      <g transform="translate(400 72)">
+        <text id="traitLabel3" x="0" y="15" font-size="13" font-weight="700">계획적 선택 67%</text>
+        <text id="traitRight3" x="348" y="15" text-anchor="end" font-size="13" font-weight="700">즉흥적 선택 33%</text>
+        <rect x="0" y="26" width="348" height="8" rx="4" fill="#e7ecf2"/>
+        <rect id="traitBar3" x="0" y="26" width="232" height="8" rx="4" fill="#ff7051"/>
+      </g>
+    </g>
+
+    <g transform="translate(374 365)">
+      <text x="0" y="0" font-size="16" font-weight="900" fill="#263244">추천 음식</text>
+      <text x="748" y="0" text-anchor="end" font-size="12" font-weight="700" fill="#8290a3">일치도 높은 순</text>
+
+      <g id="foodRow0" transform="translate(0 18)">
+        <line x1="0" y1="0" x2="748" y2="0" stroke="#e7ecf2"/>
+        <text id="foodName0" x="0" y="29" font-size="16" font-weight="900">마라탕</text>
+        <text id="foodReason0" x="98" y="29" font-size="12" font-weight="600" fill="#718096">새로운 맛을 함께 즐기기 좋아요.</text>
+        <text id="foodScore0" x="634" y="29" text-anchor="end" font-size="13" font-weight="900" fill="#ed5e3d">67%</text>
+        <g id="foodSearch0" class="search-button" role="button" tabindex="0" aria-label="마라탕 지도 검색">
+          <title>지도에서 검색</title>
+          <rect x="650" y="8" width="98" height="32" rx="6" fill="#1777e8"/>
+          <use href="#icon-search" x="663" y="16" width="16" height="16" color="#ffffff"/>
+          <text x="690" y="29" font-size="12" font-weight="800" fill="#ffffff">지도 검색</text>
+        </g>
+      </g>
+
+      <g id="foodRow1" transform="translate(0 66)">
+        <line x1="0" y1="0" x2="748" y2="0" stroke="#e7ecf2"/>
+        <text id="foodName1" x="0" y="29" font-size="16" font-weight="900">쭈꾸미</text>
+        <text id="foodReason1" x="98" y="29" font-size="12" font-weight="600" fill="#718096">매콤한 한 접시를 나누기 좋아요.</text>
+        <text id="foodScore1" x="634" y="29" text-anchor="end" font-size="13" font-weight="900" fill="#ed5e3d">67%</text>
+        <g id="foodSearch1" class="search-button" role="button" tabindex="0" aria-label="쭈꾸미 지도 검색">
+          <title>지도에서 검색</title>
+          <rect x="650" y="8" width="98" height="32" rx="6" fill="#1777e8"/>
+          <use href="#icon-search" x="663" y="16" width="16" height="16" color="#ffffff"/>
+          <text x="690" y="29" font-size="12" font-weight="800" fill="#ffffff">지도 검색</text>
+        </g>
+      </g>
+
+      <g id="foodRow2" transform="translate(0 114)">
+        <line x1="0" y1="0" x2="748" y2="0" stroke="#e7ecf2"/>
+        <text id="foodName2" x="0" y="29" font-size="16" font-weight="900">닭갈비</text>
+        <text id="foodReason2" x="98" y="29" font-size="12" font-weight="600" fill="#718096">여럿이 든든하게 즐기기 좋아요.</text>
+        <text id="foodScore2" x="634" y="29" text-anchor="end" font-size="13" font-weight="900" fill="#ed5e3d">58%</text>
+        <g id="foodSearch2" class="search-button" role="button" tabindex="0" aria-label="닭갈비 지도 검색">
+          <title>지도에서 검색</title>
+          <rect x="650" y="8" width="98" height="32" rx="6" fill="#1777e8"/>
+          <use href="#icon-search" x="663" y="16" width="16" height="16" color="#ffffff"/>
+          <text x="690" y="29" font-size="12" font-weight="800" fill="#ffffff">지도 검색</text>
+        </g>
+      </g>
+
+      <g id="foodRow3" transform="translate(0 162)">
+        <line x1="0" y1="0" x2="748" y2="0" stroke="#e7ecf2"/>
+        <text id="foodName3" x="0" y="29" font-size="16" font-weight="900">닭발</text>
+        <text id="foodReason3" x="98" y="29" font-size="12" font-weight="600" fill="#718096">즉흥적인 야식에 잘 어울려요.</text>
+        <text id="foodScore3" x="634" y="29" text-anchor="end" font-size="13" font-weight="900" fill="#ed5e3d">58%</text>
+        <g id="foodSearch3" class="search-button" role="button" tabindex="0" aria-label="닭발 지도 검색">
+          <title>지도에서 검색</title>
+          <rect x="650" y="8" width="98" height="32" rx="6" fill="#1777e8"/>
+          <use href="#icon-search" x="663" y="16" width="16" height="16" color="#ffffff"/>
+          <text x="690" y="29" font-size="12" font-weight="800" fill="#ffffff">지도 검색</text>
+        </g>
+      </g>
+
+      <g id="foodRow4" transform="translate(0 210)">
+        <line x1="0" y1="0" x2="748" y2="0" stroke="#e7ecf2"/>
+        <text id="foodName4" x="0" y="29" font-size="16" font-weight="900">딤섬</text>
+        <text id="foodReason4" x="98" y="29" font-size="12" font-weight="600" fill="#718096">작은 메뉴를 함께 맛보기 좋아요.</text>
+        <text id="foodScore4" x="634" y="29" text-anchor="end" font-size="13" font-weight="900" fill="#ed5e3d">58%</text>
+        <g id="foodSearch4" class="search-button" role="button" tabindex="0" aria-label="딤섬 지도 검색">
+          <title>지도에서 검색</title>
+          <rect x="650" y="8" width="98" height="32" rx="6" fill="#1777e8"/>
+          <use href="#icon-search" x="663" y="16" width="16" height="16" color="#ffffff"/>
+          <text x="690" y="29" font-size="12" font-weight="800" fill="#ffffff">지도 검색</text>
+        </g>
+      </g>
+    </g>
+
+    <g id="restartButton" class="restart-button" role="button" tabindex="0" aria-label="검사 다시 하기">
+      <title>검사 다시 하기</title>
+      <rect x="948" y="104" width="188" height="38" rx="6" fill="#f5f9ff" stroke="#cbdcf0" stroke-width="2"/>
+      <use href="#icon-refresh" x="966" y="113" width="20" height="20" color="#1777e8"/>
+      <text x="998" y="129" font-size="13" font-weight="800" fill="#176bc9">검사 다시 하기</text>
+    </g>
+  </g>
+
+  <script><![CDATA[
+    (() => {
+      const questions = [
+        { axis: "맛 강도", question: "음식을 먹을 때 더 끌리는 맛은?", a: ["재료 본연의 담백하고 깔끔한 맛.", "L"], b: ["맵고 짜고 양념이 강한 자극적인 맛.", "S"] },
+        { axis: "맛 강도", question: "스트레스 받는 날 먹고 싶은 음식은?", a: ["따뜻하고 편한 국물이나 집밥.", "L"], b: ["매운 음식이나 양념이 강한 음식.", "S"] },
+        { axis: "맛 강도", question: "야식으로 더 먹고 싶은 음식은?", a: ["샌드위치, 죽, 샐러드처럼 부담 없고 부드러운 음식.", "L"], b: ["닭발, 떡볶이, 마라탕처럼 강렬한 음식.", "S"] },
+        { axis: "메뉴 경험", question: "해외여행에서 현지 음식을 발견한다면?", a: ["조금이라도 알고 있는 무난한 음식을 찾는다.", "F"], b: ["현지에서만 먹을 수 있는 음식에 도전한다.", "N"] },
+        { axis: "메뉴 경험", question: "자주 가는 맛집이 생겼을 때 나는?", a: ["마음에 들었던 메뉴를 계속 주문한다.", "F"], b: ["다른 메뉴를 골라가며 먹어본다.", "N"] },
+        { axis: "메뉴 경험", question: "처음 방문한 식당에서 메뉴를 고를 때 나는?", a: ["익숙한 메뉴를 선택한다.", "F"], b: ["처음 보는 메뉴에 도전해본다.", "N"] },
+        { axis: "식사 방식", question: "맛있는 음식이 생각났을 때 나는?", a: ["혼자라도 바로 먹으러 간다.", "A"], b: ["같이 먹으러 갈 사람을 먼저 찾는다.", "T"] },
+        { axis: "식사 방식", question: "밥을 먹을 때 선호하는 분위기는?", a: ["혼자 조용하고 편하게 먹는 분위기.", "A"], b: ["친구 또는 지인과 이야기하며 먹는 분위기.", "T"] },
+        { axis: "식사 방식", question: "길을 가다 새로운 맛집을 발견했을 때 나는?", a: ["내 일정에 맞춰 혼자라도 방문한다.", "A"], b: ["친구와 공유하고 함께 방문한다.", "T"] },
+        { axis: "선택 방식", question: "식당에 방문하기 전 나는?", a: ["메뉴, 가격, 리뷰를 미리 확인한다.", "P"], b: ["일단 방문해서 끌리는 메뉴를 선택한다.", "I"] },
+        { axis: "선택 방식", question: "주말 외식 장소를 정할 때 나는?", a: ["며칠 전부터 식당을 검색하고 정한다.", "P"], b: ["당일 먹고 싶은 메뉴를 선택한다.", "I"] },
+        { axis: "선택 방식", question: "식당에 웨이팅이 길게 있다면 나는?", a: ["미리 찾아둔 다음 식당으로 이동한다.", "P"], b: ["주변을 둘러보다 눈에 띄는 식당으로 들어간다.", "I"] }
+      ];
+
+      const profiles = {
+        LFAP: ["차분한 단골 설계자", "담백하고 익숙한 메뉴를 선호하며, 혼자 먹을 식당도 미리 꼼꼼하게 알아보는 유형입니다."],
+        LFAI: ["담백한 혼밥러", "익숙하고 부담 없는 음식을 혼자 편안하게 즐기며, 그날 기분에 따라 가볍게 선택하는 유형입니다."],
+        LFTP: ["정겨운 맛집 리더", "편안하고 검증된 메뉴를 사람들과 함께 즐기며, 식사 장소를 미리 정해두는 유형입니다."],
+        LFTI: ["편안한 번개 식객", "익숙하고 담백한 음식을 좋아하며, 사람들과 즉흥적으로 식사 약속을 잡는 유형입니다."],
+        LNAP: ["꼼꼼한 메뉴 개척자", "부담 없는 맛을 선호하면서도 새로운 메뉴를 탐색하고, 혼자만의 미식 계획을 세우는 유형입니다."],
+        LNAI: ["조용한 맛 탐험가", "담백한 새 메뉴를 발견하면 혼자서도 가볍게 도전하는 자유로운 유형입니다."],
+        LNTP: ["계획형 푸드 큐레이터", "새롭고 섬세한 맛을 찾아 사람들과 나누며, 방문할 식당과 메뉴를 미리 조사하는 유형입니다."],
+        LNTI: ["함께 떠나는 맛 모험가", "부담 없는 새로운 음식을 좋아하고, 사람들과 즉흥적인 미식 경험을 즐기는 유형입니다."],
+        SFAP: ["매운맛 단골 전략가", "강한 맛의 익숙한 메뉴를 선호하며, 혼자 먹을 때도 검증된 식당을 미리 찾아보는 유형입니다."],
+        SFAI: ["화끈한 혼밥 직진러", "익숙하고 자극적인 음식이 생각나면 혼자라도 바로 먹으러 가는 유형입니다."],
+        SFTP: ["검증된 회식 대장", "강렬하고 익숙한 메뉴를 사람들과 즐기며, 실패 없는 식사 자리를 계획하는 유형입니다."],
+        SFTI: ["즉흥 야식 파티원", "익숙한 강한 맛을 좋아하고, 사람들과 갑자기 잡힌 식사나 야식을 즐기는 유형입니다."],
+        SNAP: ["치밀한 강맛 개척자", "자극적인 새로운 메뉴를 혼자서도 탐색하며, 도전할 식당을 미리 조사하는 유형입니다."],
+        SNAI: ["혼자 떠나는 매운 모험가", "강렬하고 낯선 음식도 망설이지 않고 혼자 즉흥적으로 도전하는 유형입니다."],
+        SNTP: ["매운맛 탐험가", "강렬한 맛과 새로운 음식을 좋아하며, 사람들과 함께 새로운 맛집을 계획해 찾아다니는 유형입니다."],
+        SNTI: ["번개 미식 원정대장", "새롭고 강한 맛을 찾아 사람들과 즉흥적으로 움직이는 활발한 유형입니다."]
+      };
+
+      const foods = [
+        ["칼국수", "칼국수", "LFAP", "부담 없는 국물과 면으로 차분하게 한 끼를 정하기 좋아요."],
+        ["백반", "백반", "LFAP", "익숙한 반찬 구성이 있어 안정적인 식사를 하기 좋아요."],
+        ["국밥", "국밥", "LFAI", "갑자기 든든한 한 그릇이 필요할 때 좋은 메뉴예요."],
+        ["김밥", "김밥", "LFAI", "간단하게 먹을 수 있고 상황에 맞춰 고르기 쉬워요."],
+        ["샤브샤브", "샤브샤브", "LFTP", "재료를 천천히 익혀 대화하며 식사하기 좋아요."],
+        ["한정식", "한정식", "LFTP", "여러 반찬을 함께 나누며 정돈된 식사를 즐기기 좋아요."],
+        ["보쌈", "보쌈", "LFTI", "담백한 고기를 곁들임과 함께 나눠 먹기 좋아요."],
+        ["만두전골", "만두전골", "LFTI", "따뜻한 국물을 함께 끓이며 편하게 나누기 좋아요."],
+        ["포케", "포케", "LNAP", "재료 조합을 고를 수 있어 가볍고 색다른 한 끼예요."],
+        ["오차즈케", "오차즈케", "LNAP", "은은한 맛 안에서 새로운 식감을 경험하기 좋아요."],
+        ["쌀국수", "쌀국수", "LNAI", "가볍게 먹기 좋고 향신료로 기분 전환이 돼요."],
+        ["후무스볼", "후무스볼", "LNAI", "낯선 재료를 부담스럽지 않게 시도하기 좋아요."],
+        ["딤섬", "딤섬", "LNTP", "작은 메뉴를 여러 개 고르며 함께 맛보기 좋아요."],
+        ["스페인 타파스", "타파스", "LNTP", "다양한 접시를 나누며 새 메뉴를 탐색하기 좋아요."],
+        ["반쎄오", "반쎄오", "LNTI", "바삭한 식감과 채소를 색다르게 나눠 먹기 좋아요."],
+        ["월남쌈", "월남쌈", "LNTI", "각자 원하는 재료를 싸 먹으며 편하게 즐기기 좋아요."],
+        ["제육덮밥", "제육덮밥", "SFAP", "매콤한 양념과 밥을 든든하게 먹기 좋아요."],
+        ["매운 돈가스", "매운 돈가스", "SFAP", "익숙한 돈가스에 매운 소스가 확실한 만족감을 줘요."],
+        ["떡볶이", "떡볶이", "SFAI", "갑자기 매콤한 분식이 당길 때 좋은 메뉴예요."],
+        ["매운 라면", "매운 라면", "SFAI", "간단하지만 강한 맛으로 기분 전환하기 좋아요."],
+        ["닭갈비", "닭갈비", "SFTP", "매콤한 양념을 볶아 여럿이 든든하게 즐기기 좋아요."],
+        ["부대찌개", "부대찌개", "SFTP", "익숙한 재료가 많아 함께 먹을 때 호불호가 적어요."],
+        ["삼겹살", "삼겹살", "SFTI", "즉석에서 구워 먹는 재미가 있는 모임 메뉴예요."],
+        ["곱창", "곱창", "SFTI", "진한 풍미로 즉흥적인 외식 기분을 내기 좋아요."],
+        ["탄탄면", "탄탄면", "SNAP", "고소함과 매콤함을 새로운 면 요리로 즐기기 좋아요."],
+        ["인도 커리", "인도 커리", "SNAP", "향신료의 깊은 맛으로 취향을 탐색하기 좋아요."],
+        ["마라샹궈", "마라샹궈", "SNAI", "원하는 재료를 즉석에서 조합해 강렬하게 즐기기 좋아요."],
+        ["매운 쌀국수", "매운 쌀국수", "SNAI", "익숙한 쌀국수에 매운 국물이 색다른 자극을 줘요."],
+        ["마라탕", "마라탕", "SNTP", "재료와 맵기를 직접 조합하며 새로운 맛을 즐기기 좋아요."],
+        ["쭈꾸미", "쭈꾸미", "SNTP", "매콤한 한 접시를 여럿이 나누며 분위기 내기 좋아요."],
+        ["닭발", "닭발", "SNTI", "강한 양념과 쫄깃한 식감이 즉흥적인 야식에 어울려요."],
+        ["멕시칸 타코", "멕시칸 타코", "SNTI", "토핑을 자유롭게 고르며 색다른 맛을 나누기 좋아요."]
+      ];
+
+      const traitRows = [
+        ["L", "담백한 맛", "S", "강한 맛"],
+        ["F", "익숙한 음식", "N", "새로운 음식"],
+        ["A", "혼자 먹기", "T", "함께 먹기"],
+        ["P", "계획적 선택", "I", "즉흥적 선택"]
+      ];
+
+      const colors = ["#1e9a88", "#1777e8", "#f2b53c", "#ff7051"];
+      const quizView = document.getElementById("quizView");
+      const resultView = document.getElementById("resultView");
+      const backButton = document.getElementById("backButton");
+      const optionA = document.getElementById("optionA");
+      const optionB = document.getElementById("optionB");
+      const restartButton = document.getElementById("restartButton");
+
+      let currentQuestion = 0;
+      let answers = [];
+      let transitionLocked = false;
+
+      function setText(id, value) {
+        document.getElementById(id).textContent = value;
+      }
+
+      function renderQuestion() {
+        const current = questions[currentQuestion];
+        setText("stepText", `${currentQuestion + 1} / ${questions.length}`);
+        setText("axisText", current.axis);
+        setText("questionText", current.question);
+        setText("optionAText", current.a[0]);
+        setText("optionBText", current.b[0]);
+        setText("answerStatus", answers[currentQuestion] ? "선택한 답변을 다시 고를 수 있어요" : "나에게 더 가까운 답변을 선택해 주세요");
+        document.getElementById("progressFill").setAttribute("width", String(584 * (currentQuestion + 1) / questions.length));
+        backButton.classList.toggle("hidden", currentQuestion === 0);
+        optionA.classList.toggle("selected", answers[currentQuestion] === current.a[1]);
+        optionB.classList.toggle("selected", answers[currentQuestion] === current.b[1]);
+        optionA.setAttribute("aria-label", `첫 번째 답변: ${current.a[0]}`);
+        optionB.setAttribute("aria-label", `두 번째 답변: ${current.b[0]}`);
+      }
+
+      function selectAnswer(optionKey, optionElement) {
+        if (transitionLocked) return;
+        transitionLocked = true;
+
+        const selected = questions[currentQuestion][optionKey];
+        answers[currentQuestion] = selected[1];
+        optionA.classList.remove("selected");
+        optionB.classList.remove("selected");
+        optionElement.classList.add("selected");
+        setText("answerStatus", "답변이 반영됐어요");
+
+        window.setTimeout(() => {
+          if (currentQuestion < questions.length - 1) {
+            currentQuestion += 1;
+            renderQuestion();
+          } else {
+            showResult();
+          }
+          transitionLocked = false;
+        }, 220);
+      }
+
+      function moveBack() {
+        if (transitionLocked || currentQuestion === 0) return;
+        currentQuestion -= 1;
+        renderQuestion();
+      }
+
+      function calculateScores() {
+        const scores = { L: 0, S: 0, F: 0, N: 0, A: 0, T: 0, P: 0, I: 0 };
+        answers.forEach(answer => {
+          scores[answer] += 1;
+        });
+        return scores;
+      }
+
+      function calculateType(scores) {
+        return `${scores.L >= scores.S ? "L" : "S"}${scores.F >= scores.N ? "F" : "N"}${scores.A >= scores.T ? "A" : "T"}${scores.P >= scores.I ? "P" : "I"}`;
+      }
+
+      function calculateRecommendations(scores) {
+        return foods
+          .map(food => {
+            const tags = food[2].split("");
+            const points = tags.reduce((sum, tag) => sum + scores[tag], 0);
+            return {
+              name: food[0],
+              keyword: food[1],
+              tags: food[2],
+              reason: food[3],
+              score: Math.round(points * 100 / 12)
+            };
+          })
+          .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name, "ko"))
+          .slice(0, 5);
+      }
+
+      function showResult() {
+        const scores = calculateScores();
+        const type = calculateType(scores);
+        const profile = profiles[type];
+        const recommendations = calculateRecommendations(scores);
+
+        setText("resultType", type);
+        setText("resultName", profile[0]);
+        setText("resultDescription", profile[1]);
+
+        traitRows.forEach((trait, index) => {
+          const leftPercent = Math.round(scores[trait[0]] * 100 / 3);
+          const rightPercent = 100 - leftPercent;
+          setText(`traitLabel${index}`, `${trait[1]} ${leftPercent}%`);
+          setText(`traitRight${index}`, `${trait[3]} ${rightPercent}%`);
+          const bar = document.getElementById(`traitBar${index}`);
+          bar.setAttribute("width", String(348 * leftPercent / 100));
+          bar.setAttribute("fill", colors[index]);
+        });
+
+        recommendations.forEach((food, index) => {
+          setText(`foodName${index}`, food.name);
+          setText(`foodReason${index}`, food.reason);
+          setText(`foodScore${index}`, `${food.score}%`);
+
+          const button = document.getElementById(`foodSearch${index}`);
+          button.setAttribute("aria-label", `${food.keyword} 지도 검색`);
+          button.onclick = () => {
+            const url = `https://map.naver.com/p/search/${encodeURIComponent(food.keyword)}`;
+            window.open(url, "_blank", "noopener");
+          };
+        });
+
+        quizView.classList.add("hidden");
+        resultView.classList.remove("hidden");
+      }
+
+      function restart() {
+        answers = [];
+        currentQuestion = 0;
+        transitionLocked = false;
+        resultView.classList.add("hidden");
+        quizView.classList.remove("hidden");
+        renderQuestion();
+      }
+
+      function activateOnKeyboard(element, callback) {
+        element.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            callback();
+          }
+        });
+      }
+
+      optionA.addEventListener("click", () => selectAnswer("a", optionA));
+      optionB.addEventListener("click", () => selectAnswer("b", optionB));
+      backButton.addEventListener("click", moveBack);
+      restartButton.addEventListener("click", restart);
+
+      activateOnKeyboard(optionA, () => selectAnswer("a", optionA));
+      activateOnKeyboard(optionB, () => selectAnswer("b", optionB));
+      activateOnKeyboard(backButton, moveBack);
+      activateOnKeyboard(restartButton, restart);
+
+      document.addEventListener("keydown", event => {
+        if (resultView.classList.contains("hidden")) {
+          if (event.key === "1") selectAnswer("a", optionA);
+          if (event.key === "2") selectAnswer("b", optionB);
+          if (event.key === "ArrowLeft") moveBack();
+        }
+      });
+
+      renderQuestion();
+    })();
+  ]]></script>
+</svg>
