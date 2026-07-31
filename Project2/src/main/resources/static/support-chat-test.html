@@ -55,8 +55,22 @@
   const endBtn = document.getElementById("end-btn");
   const endedBanner = document.getElementById("ended-banner");
 
+  // crypto.randomUUID()는 보안 컨텍스트(HTTPS 또는 localhost)에서만 제공된다 — 이 테스트 페이지를
+  // http://<VM 공인 IP>:8081/처럼 평문 HTTP로 열면 함수 자체가 없어서 던진다. 세션 구분용 식별자일
+  // 뿐 암호학적 보안이 필요한 값이 아니므로, 없을 때는 간단한 UUID v4 형태 문자열로 대체한다.
+  function generateSessionId() {
+    if (window.crypto && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
   // 브라우저 탭 하나당 하나의 상담 세션 — 로그를 세션 단위로 묶어 남기기 위한 식별자일 뿐, 인증 토큰이 아니다.
-  let sessionId = crypto.randomUUID();
+  let sessionId = generateSessionId();
   let ended = false;
 
   function endSession(reason) {
