@@ -26,5 +26,9 @@ Project2/uploads/
 # 실행/중지용 배치 스크립트 (컴퓨터마다 로컬 경로가 다를 수 있어 제외)
 start-server.bat
 stop-server.bat
+
+# 로컬 MCP 도구 설정 (개인 환경별로 다름)
 .mcp.json
+
+# 디버그용 임시 스크린샷
 Project2/tmp-*.png
