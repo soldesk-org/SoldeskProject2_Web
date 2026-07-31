@@ -13,10 +13,25 @@
   .msg.bot .bubble { background: #fff; border: 1px solid #ddd; }
   .msg.error .bubble { background: #fee; border: 1px solid #f99; color: #a00; }
   .bubble { display: inline-block; padding: 8px 12px; border-radius: 12px; max-width: 80%; }
+  .bubble strong { font-weight: 700; }
   form { display: flex; gap: 8px; }
   input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
   button { padding: 10px 16px; border: none; border-radius: 6px; background: #fd6d4a; color: #fff; cursor: pointer; }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* 응답 대기 중 표시 */
+  .typing .bubble { display: flex; align-items: center; gap: 6px; color: #888; }
+  .typing-dots { display: inline-flex; gap: 3px; }
+  .typing-dots span {
+    width: 6px; height: 6px; border-radius: 50%; background: #bbb;
+    animation: typing-bounce 1.2s infinite ease-in-out;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
 </style>
 </head>
 <body>
@@ -34,15 +49,43 @@
   const input = document.getElementById("message-input");
   const sendBtn = document.getElementById("send-btn");
 
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  // "**굵게**" 마크다운만 <strong>으로 바꿔서 렌더링(그 외 HTML은 이스케이프해서 안전하게 처리)
+  function renderBotText(text) {
+    return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  }
+
   function addMessage(text, cls) {
     const wrap = document.createElement("div");
     wrap.className = "msg " + cls;
     const bubble = document.createElement("div");
     bubble.className = "bubble";
-    bubble.textContent = text;
+    if (cls === "bot") {
+      bubble.innerHTML = renderBotText(text);
+    } else {
+      bubble.textContent = text;
+    }
     wrap.appendChild(bubble);
     log.appendChild(wrap);
     log.scrollTop = log.scrollHeight;
+    return wrap;
+  }
+
+  function addTypingIndicator() {
+    const wrap = document.createElement("div");
+    wrap.className = "msg bot typing";
+    wrap.innerHTML =
+      '<div class="bubble">답변하고 있어요, 잠시만 기다려주세요' +
+      '<span class="typing-dots"><span></span><span></span><span></span></span></div>';
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+    return wrap;
   }
 
   form.addEventListener("submit", async (e) => {
@@ -53,6 +96,8 @@
     input.value = "";
     sendBtn.disabled = true;
 
+    const typingEl = addTypingIndicator();
+
     try {
       const res = await fetch("/api/support-chat/ask", {
         method: "POST",
@@ -60,12 +105,14 @@
         body: JSON.stringify({ message }),
       });
       const data = await res.json();
+      typingEl.remove();
       if (res.ok && data.success) {
         addMessage(data.answer, "bot");
       } else {
         addMessage(data.message || "오류가 발생했습니다.", "error");
       }
     } catch (err) {
+      typingEl.remove();
       addMessage("네트워크 오류: " + err.message, "error");
     } finally {
       sendBtn.disabled = false;
