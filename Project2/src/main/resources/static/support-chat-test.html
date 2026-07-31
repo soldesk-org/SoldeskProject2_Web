@@ -18,6 +18,8 @@
   input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
   button { padding: 10px 16px; border: none; border-radius: 6px; background: #fd6d4a; color: #fff; cursor: pointer; }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #end-btn { background: #888; margin-left: 8px; }
+  #ended-banner { display:none; text-align:center; color:#a00; font-size:13px; margin-bottom:12px; }
 
   /* 응답 대기 중 표시 */
   .typing .bubble { display: flex; align-items: center; gap: 6px; color: #888; }
@@ -37,10 +39,12 @@
 <body>
 <h1>잇티웨이 AI 고객센터 챗봇 (테스트)</h1>
 <p style="color:#666;font-size:13px;">로그인 없이 누구나 문의 가능 — HyperCLOVA X 연동 테스트 페이지</p>
+<div id="ended-banner">상담이 종료되었습니다. 이전 대화 내용은 더 이상 볼 수 없습니다.</div>
 <div id="log"></div>
 <form id="chat-form">
   <input type="text" id="message-input" placeholder="궁금한 점을 입력하세요" autocomplete="off" required />
   <button type="submit" id="send-btn">전송</button>
+  <button type="button" id="end-btn">상담종료</button>
 </form>
 
 <script>
@@ -48,6 +52,33 @@
   const form = document.getElementById("chat-form");
   const input = document.getElementById("message-input");
   const sendBtn = document.getElementById("send-btn");
+  const endBtn = document.getElementById("end-btn");
+  const endedBanner = document.getElementById("ended-banner");
+
+  // 브라우저 탭 하나당 하나의 상담 세션 — 로그를 세션 단위로 묶어 남기기 위한 식별자일 뿐, 인증 토큰이 아니다.
+  let sessionId = crypto.randomUUID();
+  let ended = false;
+
+  function endSession(reason) {
+    if (ended) return;
+    ended = true;
+    const payload = JSON.stringify({ sessionId, reason });
+    // 페이지가 닫히는 중일 수도 있어 fetch 대신 sendBeacon으로 신뢰성 있게 전송
+    navigator.sendBeacon("/api/support-chat/end", new Blob([payload], { type: "application/json" }));
+  }
+
+  function endSessionFromButton() {
+    if (ended) return;
+    endSession("button");
+    log.innerHTML = "";
+    endedBanner.style.display = "block";
+    input.disabled = true;
+    sendBtn.disabled = true;
+    endBtn.disabled = true;
+  }
+
+  endBtn.addEventListener("click", endSessionFromButton);
+  window.addEventListener("pagehide", () => endSession("page_closed"));
 
   function escapeHtml(text) {
     return text
@@ -90,6 +121,7 @@
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (ended) return;
     const message = input.value.trim();
     if (!message) return;
     addMessage(message, "user");
@@ -102,7 +134,7 @@
       const res = await fetch("/api/support-chat/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, sessionId }),
       });
       const data = await res.json();
       typingEl.remove();
