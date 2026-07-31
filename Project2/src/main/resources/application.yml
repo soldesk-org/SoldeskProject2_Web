@@ -162,6 +162,15 @@ ncp-directions:
   client-id: ${NCP_MAPS_CLIENT_ID:}
   client-secret: ${NCP_MAPS_CLIENT_SECRET:}
 
+hyperclova:
+  # AI 고객센터 챗봇(2026-07-31 신규) — 네이버클라우드플랫폼(NCP) CLOVA Studio의 HyperCLOVA X Chat
+  # Completions API. 서버 전용 API 키(Authorization: Bearer)로 인증하며, 잇티웨이 서비스 안내를
+  # 시스템 프롬프트로 고정해서 고객센터 문의 응대 용도로만 쓴다 - docs/25.AI고객센터챗봇 참고.
+  # 키가 없으면(로컬에서 발급 전) SUPPORT_CHAT_SERVICE_UNAVAILABLE로 응답하고 앱 기동 자체는 막지 않는다.
+  base-url: ${HYPERCLOVA_BASE_URL:https://clovastudio.stream.ntruss.com}
+  model: ${HYPERCLOVA_MODEL:HCX-005}
+  api-key: ${HYPERCLOVA_API_KEY:}
+
 recommendation:
   # AI 추천(2026-07-22 추가) — 다른 팀원이 만든 Python(FastAPI) 서버 recommendation_api.py.
   # SoldeskProject2_Python/keyword-extraction 참고, run_recommendation_api.cmd로 기본 포트 8000에 기동.
