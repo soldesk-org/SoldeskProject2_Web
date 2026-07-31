@@ -174,8 +174,9 @@ hyperclova:
 support-chat-log:
   # AI 고객센터 챗봇 대화 로그(2026-07-31 2차 추가) — 질문/답변을 JSON Lines 파일로 남기되, phone-crypto와
   # 같은 AES-256-GCM 방식으로 대화 내용(question/answer)만 암호화해서 저장한다(세션ID/시각은 평문).
-  # docs/25.AI고객센터챗봇 참고.
-  aes-key: ${CHAT_LOG_AES_KEY}
+  # 키가 없으면(아직 Jenkins Credentials 미등록 등) 로그 기록 자체를 건너뛰고 앱 기동은 막지 않는다
+  # (HYPERCLOVA_API_KEY와 같은 방어적 설계) — docs/25.AI고객센터챗봇 참고.
+  aes-key: ${CHAT_LOG_AES_KEY:}
   log-file: ${CHAT_LOG_FILE_PATH:./logs/support-chat.jsonl}
 
 recommendation:

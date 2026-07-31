@@ -46,6 +46,14 @@ public class SupportChatLogService {
 
     public SupportChatLogService(@Value("${support-chat-log.aes-key}") String aesKeyBase64,
                                   @Value("${support-chat-log.log-file}") String logFilePath) {
+        if (aesKeyBase64 == null || aesKeyBase64.isBlank()) {
+            // 키가 없으면(로컬/CI에서 아직 발급 전) 로그 기록을 건너뛴다 — 암호화 없이 저장하는 것보다
+            // 안전한 선택이며, 이 부가 기능 하나 때문에 앱 기동 자체가 막히지 않게 한다.
+            log.warn("CHAT_LOG_AES_KEY가 설정되지 않아 챗봇 대화 로그를 기록하지 않습니다.");
+            this.aesKey = null;
+            this.logFile = null;
+            return;
+        }
         this.aesKey = new SecretKeySpec(Base64.getDecoder().decode(aesKeyBase64), "AES");
         this.logFile = Path.of(logFilePath);
     }
@@ -59,6 +67,9 @@ public class SupportChatLogService {
     }
 
     private void writeLine(String type, String sessionId, String field1, String field2) {
+        if (aesKey == null) {
+            return;
+        }
         try {
             var entry = new java.util.LinkedHashMap<String, Object>();
             entry.put("type", type);
