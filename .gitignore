@@ -1,0 +1,40 @@
+# 환경변수/비밀키 (VM/개인 컴퓨터마다 다름, 절대 커밋 금지)
+.env
+Project2/keystore/
+
+# 빌드 산출물
+Project2/target/
+Project2/e2e/node_modules/
+Project2/e2e/test-results/
+Project2/e2e/playwright-report/
+
+# 런타임에 생성되는 업로드 파일 (프로필 사진, 리뷰 사진, 영수증 사진 등)
+Project2/uploads/
+
+# IDE/에디터 메타데이터
+.metadata/
+.claude/
+.settings/
+.project
+.classpath
+.factorypath
+.vscode/
+
+# 로그
+*.log
+
+# 실행/중지용 배치 스크립트 (컴퓨터마다 로컬 경로가 다를 수 있어 제외)
+start-server.bat
+stop-server.bat
+
+# 로컬 MCP 도구 설정 (개인 환경별로 다름)
+.mcp.json
+
+# 디버그용 임시 스크린샷
+Project2/tmp-*.png
+
+# 저장소 최상위 문서/메모 - GitHub에 올리지 않음(2026-07-30 재확정)
+/docs/
+*.md
+*.txt
+.gitignore
