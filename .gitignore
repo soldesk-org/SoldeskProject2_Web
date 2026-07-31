@@ -32,3 +32,8 @@ stop-server.bat
 
 # 디버그용 임시 스크린샷
 Project2/tmp-*.png
+
+# 저장소 최상위 문서/메모 - GitHub에 올리지 않음(2026-07-30 재확정)
+/docs/
+*.md
+*.txt
