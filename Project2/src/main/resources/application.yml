@@ -171,6 +171,13 @@ hyperclova:
   model: ${HYPERCLOVA_MODEL:HCX-DASH-002}
   api-key: ${HYPERCLOVA_API_KEY:}
 
+support-chat-log:
+  # AI 고객센터 챗봇 대화 로그(2026-07-31 2차 추가) — 질문/답변을 JSON Lines 파일로 남기되, phone-crypto와
+  # 같은 AES-256-GCM 방식으로 대화 내용(question/answer)만 암호화해서 저장한다(세션ID/시각은 평문).
+  # docs/25.AI고객센터챗봇 참고.
+  aes-key: ${CHAT_LOG_AES_KEY}
+  log-file: ${CHAT_LOG_FILE_PATH:./logs/support-chat.jsonl}
+
 recommendation:
   # AI 추천(2026-07-22 추가) — 다른 팀원이 만든 Python(FastAPI) 서버 recommendation_api.py.
   # SoldeskProject2_Python/keyword-extraction 참고, run_recommendation_api.cmd로 기본 포트 8000에 기동.

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.foodtrip.foodsearch.common.web.ClientIpUtil;
 import com.foodtrip.foodsearch.supportchat.dto.AskSupportChatRequestDto;
+import com.foodtrip.foodsearch.supportchat.dto.EndSupportChatRequestDto;
 import com.foodtrip.foodsearch.supportchat.dto.SupportChatResponseDto;
 import com.foodtrip.foodsearch.supportchat.service.SupportChatService;
 
@@ -27,6 +28,13 @@ public class SupportChatController {
     @PostMapping("/ask")
     public SupportChatResponseDto ask(@Valid @RequestBody AskSupportChatRequestDto request,
                                        HttpServletRequest httpRequest) {
-        return supportChatService.ask(request.getMessage(), ClientIpUtil.resolve(httpRequest));
+        return supportChatService.ask(request.getMessage(), request.getSessionId(), ClientIpUtil.resolve(httpRequest));
+    }
+
+    // 2026-07-31 2차 추가 — 상담종료 버튼 클릭, 또는 페이지 닫힘 시 navigator.sendBeacon으로 호출됨.
+    // sendBeacon은 응답 본문을 읽지 않으므로 반환값은 의미 없지만, 명시적으로 200을 준다.
+    @PostMapping("/end")
+    public void end(@Valid @RequestBody EndSupportChatRequestDto request) {
+        supportChatService.endSession(request.getSessionId(), request.getReason());
     }
 }
