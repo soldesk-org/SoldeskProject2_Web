@@ -1,288 +1,3360 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-auth-state="admin">
 <head>
 <meta charset="UTF-8">
-<title>잇티웨이 관리자 콘솔</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>관리자 콘솔 — 잇티웨이</title>
+<meta name="description" content="잇티웨이 운영 관리자 콘솔. 회원 관리, 신고 처리, 서버 모니터링.">
+
+<!--
+================================================================================
+ admin.html — 관리자 콘솔 (대시보드 / 회원관리 / 신고관리 / 서버 모니터링)
+--------------------------------------------------------------------------------
+ ※ 이 화면만 좌측 사이드바 구조를 유지합니다. (데이터 밀집 관리 화면 특성)
+
+ [사이드바]
+   #adminSide                  사이드바 루트 (모바일에서는 .is-open 토글)
+   #adminSideToggle            모바일 사이드바 열기
+   #adminSideClose             모바일 사이드바 닫기
+   a.e-admin-side-link[data-admin-nav]   섹션 이동 (dashboard|members|reports|monitor)
+
+ [상단바]
+   #adminSearchInput           전역 검색 (회원 이메일 / 신고 ID)
+   #adminAlertBtn              알림
+   #adminProfileBtn / #adminProfileMenu / #adminLogoutBtn
+   #adminRefreshBtn            데이터 새로고침
+   #adminLastUpdated           마지막 갱신 시각
+
+ ┌ 섹션 1 · 대시보드 (#sectionDashboard) ────────────────────────────────
+   ★ GET /api/admin/stats/summary
+   #kpiTotalMembers            총 회원 수
+   #kpiNewMembers              오늘 신규 가입
+   #kpiActiveMembers           활성 회원 (7일)
+   #kpiSuspendedMembers        정지 회원
+   #kpiPendingReports          미처리 신고
+   #kpiTotalReviews            총 리뷰 수
+   #memberTrendChart           회원 증가 추이 (막대 자리)
+   #reportSummaryList          신고 유형별 현황
+   #recentActivityList         최근 운영 활동 로그
+   #quickActionList            빠른 처리 카드
+ └──────────────────────────────────────────────────────────────────────
+
+ ※ 실제 구현된 백엔드 엔드포인트 (AdminController.java 기준)
+     GET    /api/admin/status
+     GET    /api/admin/dashboard
+     GET    /api/admin/members
+     PATCH  /api/admin/members/{memberId}/suspend
+     PATCH  /api/admin/members/{memberId}/unsuspend      ← 정지 해제
+     GET    /api/admin/reviews
+     DELETE /api/admin/reviews/{reviewId}
+     GET    /api/admin/reports
+     PATCH  /api/admin/reports/{reviewId}/resolve
+     PATCH  /api/admin/reports/{reviewId}/reject
+     GET    /api/admin/chat-reports                      ← 채팅 신고는 별도 API
+     PATCH  /api/admin/chat-reports/{chatReportId}/resolve
+     PATCH  /api/admin/chat-reports/{chatReportId}/reject
+     DELETE /api/admin/chat-messages/{chatMessageId}
+     DELETE /api/admin/chat-rooms/{chatRoomId}
+     POST   /api/admin/parking-lots/sync                 ← 주차장 데이터 동기화
+
+   ★ 아직 백엔드가 없는 화면 (신규 개발 필요)
+     - 알림 발송 (#sectionNotice)  : NotificationController 미구현
+     - API 서버 모니터링 상세      : /api/admin/status 로 일부만 대체 가능
+
+ ┌ 섹션 2 · 회원 관리 (#sectionMembers) ─────────────────────────────────
+   ★ GET /api/admin/members?role=&status=&q=&page=
+   #memberSearchInput          이메일 / 닉네임 검색
+   #memberRoleFilter           역할 필터 (all|user|business|admin)
+   #memberStatusFilter         상태 필터 (all|active|suspended|withdrawn)
+   #memberSortSelect           정렬
+   #memberFilterResetBtn       필터 초기화
+   #memberExportBtn            CSV 내보내기
+   #memberTable                회원 테이블
+   #memberCheckAll             전체 선택 체크박스
+   input[name="memberCheck"]   개별 선택
+   #bulkActionBar              선택 시 노출되는 일괄 처리 바 (기본 hidden)
+   #bulkSuspendBtn / #bulkReleaseBtn / #selectedCount
+   [data-suspend-member]       정지 (data-modal-open="suspendModal")
+                               ★ PATCH /api/admin/members/{memberId}/suspend
+   [data-release-member]       정지 해제
+                               ★ PATCH /api/admin/members/{memberId}/unsuspend
+   [data-view-member]          상세 보기 (data-modal-open="memberDetailModal")
+   #memberPagination           페이지네이션
+
+   #suspendModal               정지 처리 모달
+     #suspendTargetName #suspendPeriodSelect #suspendReasonSelect
+     #suspendDetail #suspendConfirmBtn        ★ POST /api/admin/members/{id}/suspend
+   #memberDetailModal          회원 상세 모달
+ └──────────────────────────────────────────────────────────────────────
+
+ ┌ 섹션 3 · 신고 관리 (#sectionReports) ─────────────────────────────────
+   ★ GET /api/admin/reports?type=&status=&page=
+   #reportTypeFilter           신고 유형 (all|review|chat)
+   #reportSearchInput          신고 검색
+   #reportStatusTabs           상태 탭 (data-tabs)
+     #tabReportPending  대기중  / #tabReportDone 처리완료 / #tabReportRejected 반려
+   #reportPendingTable / #reportDoneTable / #reportRejectedTable
+   [data-handle-report]        처리 (data-modal-open="handleReportModal")
+   [data-reject-report]        반려
+   #handleReportModal          신고 처리 모달
+     #reportTargetContent #reportActionSelect #reportMemo #handleReportConfirmBtn
+
+   ★ 리뷰 신고와 채팅 신고는 엔드포인트가 분리되어 있습니다.
+     리뷰 : PATCH /api/admin/reports/{reviewId}/resolve | /reject
+     채팅 : PATCH /api/admin/chat-reports/{chatReportId}/resolve | /reject
+     조치로 콘텐츠 삭제를 선택하면 아래를 추가 호출합니다.
+       DELETE /api/admin/reviews/{reviewId}
+       DELETE /api/admin/chat-messages/{chatMessageId}
+       DELETE /api/admin/chat-rooms/{chatRoomId}
+     → 행의 유형 배지(리뷰/채팅)로 분기하세요. tr[data-report-id] 참고
+ └──────────────────────────────────────────────────────────────────────
+
+ ┌ 섹션 4 · API 서버 모니터링 (#sectionMonitor) ─────────────────────────
+   ★ GET /api/admin/health  (주기적 폴링)
+   #monitorOverallStatus       전체 상태 배지
+   #monitorAutoRefreshSwitch   자동 새로고침 on/off
+   #monitorTable               서비스별 상태 테이블
+   .svc-row[data-service]      서비스 행 (status / latency / uptime)
+   #monitorLatencyChart        응답시간 추이 (막대 자리)
+   #monitorErrorLogList        최근 에러 로그
+   #monitorWsStatus            WebSocket(STOMP) 연결 수
+   #monitorDbStatus            DB 커넥션 풀
+ └──────────────────────────────────────────────────────────────────────
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/eatty-ui.js"></script>
+
 <style>
-/* 잇티웨이 Admin Design System 토큰 — 사용자가 업로드한 파일의 tokens/*.css 값을 그대로 이식 (변형 없음) */
-:root{
-  --brand-navy:#25374B; --brand-orange:#FEA255; --brand-orange-deep:#F97316;
-  --ink-1:#25374B; --ink-2:#4E5E70; --ink-3:#7C8896; --ink-disabled:#AEB7C0;
-  --surface-page:#F6F8FA; --surface-card:#FFFFFF; --surface-sunken:#EEF1F4; --surface-navy:#25374B;
-  --border-1:#E3E8ED; --border-2:#CDD5DD; --border-focus:#25374B;
-  --accent:#FEA255; --accent-hover:#F28E3B; --accent-soft:#FFF3E8;
-  --positive:#2E9E5B; --positive-soft:#E7F6EC;
-  --danger:#E5484D; --danger-soft:#FDECEC;
-  --warning:#EE9500; --warning-soft:#FFF4E0;
-  --neutral-badge:#5B6B7C; --neutral-badge-soft:#EDF0F3;
-  --status-active:var(--positive); --status-active-bg:var(--positive-soft);
-  --status-suspended:var(--danger); --status-suspended-bg:var(--danger-soft);
-  --status-received:var(--warning); --status-received-bg:var(--warning-soft);
-  --status-done:var(--positive); --status-done-bg:var(--positive-soft);
-  --status-rejected:var(--neutral-badge); --status-rejected-bg:var(--neutral-badge-soft);
-  --overlay-scrim:rgba(37,55,75,0.35); --overlay-blur:6px;
-  --font-sans:"Inter","Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  --text-page-title:28px; --text-section-title:20px; --text-body-lg:16px; --text-body-md:14px;
-  --text-body-sm:13px; --text-caption:12px; --text-stat:36px;
-  --tracking-tight:-0.05em; --tracking-snug:-0.02em;
-  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px;
-  --sidebar-width:316px; --sidebar-width-compact:240px; --page-pad-x:40px; --page-pad-y:32px;
-  --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px; --radius-pill:999px;
-  --control-h-sm:32px; --control-h-md:40px; --control-h-lg:48px; --row-h:56px;
-  --shadow-sidebar:4px 0px 4px 0px rgba(37,55,75,0.05);
-  --shadow-card:0 1px 3px rgba(37,55,75,0.06),0 1px 2px rgba(37,55,75,0.04);
-  --shadow-modal:0 16px 48px rgba(37,55,75,0.18);
-  --ease-standard:cubic-bezier(.2,.6,.2,1); --dur-fast:120ms; --dur-normal:200ms;
-}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--surface-page)}
-body{font-family:var(--font-sans);color:var(--ink-1);-webkit-font-smoothing:antialiased}
-a{color:var(--brand-navy)}
-a:hover{color:var(--accent-hover)}
-#root{height:100%}
-.hidden{display:none !important}
-
-/* 원본 디자인 4개 화면(대시보드/회원/리뷰/신고)엔 없는 로그인 게이트만 최소한의 토큰 기반 스타일을
-   별도로 얹는다. (시스템 상태 화면은 2026-07-27 요청으로 제거함 — 필요해지면 별도 페이지로 재도입.) */
-.auth-card{width:380px;max-width:100%;background:var(--surface-card);border-radius:var(--radius-xl);box-shadow:var(--shadow-modal);padding:36px 32px;text-align:center}
-.auth-card h2{margin:4px 0 4px;font-size:22px;font-weight:700;color:var(--brand-navy);letter-spacing:var(--tracking-snug)}
-.auth-card .sub{font-size:13px;color:var(--ink-3);margin-bottom:24px}
-.auth-card label{display:block;text-align:left;font-size:13px;font-weight:600;color:var(--ink-1);margin:14px 0 6px}
-.auth-card .err{color:var(--danger);font-size:13px;margin-top:12px;min-height:16px}
+  /* 관리자 상단바 */
+  .adm-topbar {
+    position: sticky; top: 0; z-index: 50;
+    height: 64px;
+    background: rgba(255, 255, 255, .88);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 20px;
+  }
+  /* 섹션 전환 */
+  .adm-section[hidden] { display: none !important; }
+  /* 막대 차트 자리 */
+  .adm-bars { display: flex; align-items: flex-end; gap: 6px; height: 140px; }
+  .adm-bars > span { flex: 1; border-radius: 5px 5px 0 0; background: var(--brand-200); position: relative; }
+  .adm-bars > span.is-peak { background: var(--brand-grad); }
+  /* 로그 코드 블록 */
+  .adm-log {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px; line-height: 1.7;
+    background: var(--ink-900); color: #d7d3de;
+    border-radius: var(--r-md); padding: 14px 16px;
+    overflow-x: auto; max-height: 260px;
+  }
+  .adm-log .lv-error { color: #fca5a5; font-weight: 700; }
+  .adm-log .lv-warn { color: #fcd34d; font-weight: 700; }
+  .adm-log .lv-info { color: #93c5fd; font-weight: 700; }
+  .adm-log .ts { color: var(--ink-500); }
 </style>
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
-<script src="js/admin-design-system.js"></script>
-<script src="assets/js/api.js"></script>
 </head>
-<body>
-<div id="root"></div>
+
+<body class="bg-[var(--bg-soft)]">
+<a href="#adminMain" class="skip-link">본문으로 건너뛰기</a>
+
+<div class="e-admin-shell">
+
+  <!-- ============================ 사이드바 ============================ -->
+  <div class="e-drawer-backdrop lg:hidden" data-drawer-backdrop="adminSide"></div>
+
+  <aside class="e-admin-side" id="adminSide" aria-label="관리자 메뉴">
+    <!-- 로고 -->
+    <div class="flex items-center gap-2 px-5 h-16 border-b border-white/10 flex-none">
+      <a href="index.html" class="e-logo">
+        <span class="e-logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+          </svg>
+        </span>
+        <span class="e-logo-text !text-white !text-[17px]">잇티<em class="!text-white !bg-none">웨이</em></span>
+      </a>
+      <button type="button" class="e-modal-close !text-[var(--ink-400)] hover:!bg-white/10 ml-auto lg:hidden"
+              id="adminSideClose" data-drawer-close="adminSide" aria-label="메뉴 닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- 관리자 정보 -->
+    <div class="p-4 border-b border-white/10 flex-none">
+      <div class="flex items-center gap-3">
+        <span class="e-avatar e-avatar-sm flex-none" style="background:var(--brand-grad)" aria-hidden="true">관</span>
+        <div class="min-w-0">
+          <p class="text-[13.5px] font-extrabold text-white truncate">운영관리자</p>
+          <p class="text-[11.5px] text-[var(--ink-500)] truncate">admin@eattyway.com</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 메뉴 -->
+    <nav class="flex-1 py-3 overflow-y-auto">
+      <p class="e-admin-side-label">운영</p>
+      <a class="e-admin-side-link is-active" href="#sectionDashboard" data-admin-nav="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>
+          <rect x="14" y="10" width="7" height="11" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        </svg>
+        대시보드
+      </a>
+      <a class="e-admin-side-link" href="#sectionMembers" data-admin-nav="members">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/><path d="M17 11a3 3 0 1 0 0-6"/>
+        </svg>
+        회원 관리
+        <span class="ml-auto e-badge e-badge--gray !text-[10px]">128k</span>
+      </a>
+      <a class="e-admin-side-link" href="#sectionReports" data-admin-nav="reports">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/>
+        </svg>
+        신고 관리
+        <span class="ml-auto e-badge e-badge--danger !text-[10px]">17</span>
+      </a>
+      <a class="e-admin-side-link" href="#sectionReviews" data-admin-nav="reviews">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/>
+        </svg>
+        리뷰 관리
+        <span class="ml-auto e-badge e-badge--gray !text-[10px]">42k</span>
+      </a>
+      <a class="e-admin-side-link" href="#sectionNotice" data-admin-nav="notice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+        </svg>
+        알림 발송
+      </a>
+      <a class="e-admin-side-link" href="#sectionMonitor" data-admin-nav="monitor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h4l2.5-6 4 12 2.5-6h5"/>
+        </svg>
+        서버 모니터링
+      </a>
+
+      <p class="e-admin-side-label">바로가기</p>
+      <a class="e-admin-side-link" href="admin-test.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M8 12h8"/>
+        </svg>
+        개발/테스트 화면
+      </a>
+      <a class="e-admin-side-link" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/>
+        </svg>
+        서비스 홈
+      </a>
+    </nav>
+
+    <!-- 하단 상태 -->
+    <div class="p-4 border-t border-white/10 flex-none">
+      <div class="flex items-center gap-2">
+        <span class="e-status e-status--on e-status--live !text-[12px] !text-[var(--ink-300)]">API 정상</span>
+      </div>
+      <p class="text-[11px] text-[var(--ink-600)] mt-2">v2.1.0 · prod</p>
+    </div>
+  </aside>
+
+  <!-- ============================= 본문 ============================= -->
+  <div class="e-admin-main">
+
+    <!-- 상단바 -->
+    <header class="adm-topbar">
+      <button type="button" class="e-icon-btn lg:hidden flex-none" id="adminSideToggle" data-drawer-open="adminSide" aria-label="메뉴 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+
+      <div class="e-input-wrap has-icon flex-1" style="max-width:380px">
+        <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" class="e-input e-input-sm" id="adminSearchInput" placeholder="회원 이메일 또는 신고 ID 검색" aria-label="관리자 전역 검색">
+      </div>
+
+      <div class="ml-auto flex items-center gap-2">
+        <span class="t-xs hidden md:block">갱신 <b class="t-num" id="adminLastUpdated">14:38:02</b></span>
+
+        <button type="button" class="e-icon-btn" id="adminRefreshBtn" aria-label="데이터 새로고침">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
+
+        <!-- 알림 벨 — eatty-ui.js 의 Eatty.notify 가 패널을 자동 부착합니다 -->
+        <button type="button" class="e-icon-btn" id="adminAlertBtn" data-noti-btn aria-label="알림">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+        </button>
+
+        <div class="e-dropdown">
+          <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
+                  id="adminProfileBtn" data-dropdown-toggle="adminProfileMenu" aria-expanded="false" aria-haspopup="true">
+            <span class="e-avatar e-avatar-sm flex-none" aria-hidden="true">관</span>
+            <span class="hidden md:block text-sm font-bold text-[var(--ink-800)]">운영관리자</span>
+            <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="e-dropdown-menu" id="adminProfileMenu">
+            <div class="e-dropdown-head">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]">운영관리자</p>
+              <p class="text-xs text-[var(--ink-500)] mt-0.5">admin@eattyway.com</p>
+              <span class="e-badge e-badge--dark mt-2">ROLE_ADMIN</span>
+            </div>
+            <a class="e-dropdown-item" href="index.html">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
+              서비스 홈
+            </a>
+            <a class="e-dropdown-item" href="admin-test.html">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M8 12h8"/></svg>
+              개발/테스트 화면
+            </a>
+            <div class="e-dropdown-sep"></div>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="adminLogoutBtn"
+                    data-demo-toast="로그아웃 되었습니다." data-demo-type="success">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="adminMain" class="p-5 md:p-7">
+
+      <!-- ================================================================
+           섹션 1 · 대시보드
+           ================================================================ -->
+      <section class="adm-section" id="sectionDashboard">
+
+        <div class="mb-6">
+          <h1 class="e-page-title">대시보드</h1>
+          <p class="e-page-desc">서비스 전체 현황을 한눈에 확인합니다.</p>
+        </div>
+
+        <!-- KPI 카드 -->
+        <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+          <div class="e-card e-stat">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="e-stat-label">총 회원</p>
+                <p class="e-stat-value !text-[24px]" id="kpiTotalMembers">128,412</p>
+              </div>
+              <span class="e-stat-ico e-stat-ico--brand">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/><path d="M17 11a3 3 0 1 0 0-6"/></svg>
+              </span>
+            </div>
+            <p class="e-stat-sub">
+              <span class="e-trend e-trend--up">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+                4.2%
+              </span>
+              지난주 대비
+            </p>
+          </div>
+
+          <div class="e-card e-stat">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="e-stat-label">오늘 신규</p>
+                <p class="e-stat-value !text-[24px]" id="kpiNewMembers">318</p>
+              </div>
+              <span class="e-stat-ico e-stat-ico--success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </span>
+            </div>
+            <p class="e-stat-sub">일반 <b>291</b> · 사업자 <b>27</b></p>
+          </div>
+
+          <div class="e-card e-stat">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="e-stat-label">활성 회원 (7일)</p>
+                <p class="e-stat-value !text-[24px]" id="kpiActiveMembers">42,907</p>
+              </div>
+              <span class="e-stat-ico e-stat-ico--info">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"/></svg>
+              </span>
+            </div>
+            <p class="e-stat-sub">전체의 <b>33.4%</b></p>
+          </div>
+
+          <div class="e-card e-stat">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="e-stat-label">정지 회원</p>
+                <p class="e-stat-value !text-[24px]" id="kpiSuspendedMembers">64</p>
+              </div>
+              <span class="e-stat-ico e-stat-ico--warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9h2v6H9zM13 9h2v6h-2z"/></svg>
+              </span>
+            </div>
+            <p class="e-stat-sub">이번 주 신규 <b class="t-num">7</b>건</p>
+          </div>
+
+          <div class="e-card e-stat" style="border-color:#fbd5d5">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="e-stat-label">미처리 신고</p>
+                <p class="e-stat-value !text-[24px] !text-[var(--danger)]" id="kpiPendingReports">17</p>
+              </div>
+              <span class="e-stat-ico e-stat-ico--danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
+              </span>
+            </div>
+            <p class="e-stat-sub">가장 오래된 건 <b>2일 경과</b></p>
+          </div>
+
+          <div class="e-card e-stat">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="e-stat-label">총 리뷰</p>
+                <p class="e-stat-value !text-[24px]" id="kpiTotalReviews">42,916</p>
+              </div>
+              <span class="e-stat-ico e-stat-ico--brand">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+              </span>
+            </div>
+            <p class="e-stat-sub">전부 영수증 인증</p>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-[1.5fr_1fr] gap-5 mb-5">
+
+          <!-- 회원 증가 추이 -->
+          <div class="e-card">
+            <div class="e-card-head">
+              <p class="e-card-title">회원 증가 추이</p>
+              <select class="e-select e-input-sm ml-auto" aria-label="기간 선택" style="width:auto">
+                <option value="14d">최근 14일</option>
+                <option value="30d">최근 30일</option>
+                <option value="90d">최근 90일</option>
+              </select>
+            </div>
+            <div class="e-card-body">
+              <div class="adm-bars" id="memberTrendChart" role="img" aria-label="최근 14일 회원 증가 추이 막대 그래프">
+                <span style="height:38%"></span>
+                <span style="height:46%"></span>
+                <span style="height:41%"></span>
+                <span style="height:58%"></span>
+                <span style="height:52%"></span>
+                <span style="height:66%"></span>
+                <span style="height:73%"></span>
+                <span style="height:61%"></span>
+                <span style="height:70%"></span>
+                <span style="height:84%"></span>
+                <span style="height:78%"></span>
+                <span style="height:88%"></span>
+                <span style="height:92%"></span>
+                <span style="height:100%" class="is-peak"></span>
+              </div>
+              <div class="flex justify-between t-xs mt-3">
+                <span>07-18</span><span>07-22</span><span>07-26</span><span>07-31</span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-4 mt-6 pt-5 border-t border-[var(--line)]">
+                <div>
+                  <p class="t-xs">일반 회원</p>
+                  <p class="text-[19px] font-extrabold text-[var(--ink-900)] t-num mt-1">124,806</p>
+                </div>
+                <div>
+                  <p class="t-xs">사업자 회원</p>
+                  <p class="text-[19px] font-extrabold text-[var(--ink-900)] t-num mt-1">3,598</p>
+                </div>
+                <div>
+                  <p class="t-xs">관리자</p>
+                  <p class="text-[19px] font-extrabold text-[var(--ink-900)] t-num mt-1">8</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 신고 유형별 현황 -->
+          <div class="e-card">
+            <div class="e-card-head">
+              <p class="e-card-title">신고 유형별 현황</p>
+              <a href="#sectionReports" class="e-link-brand text-[12.5px] ml-auto" data-admin-nav="reports">전체 보기</a>
+            </div>
+            <div class="e-card-body">
+              <div class="space-y-3.5" id="reportSummaryList">
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[13px] font-bold text-[var(--ink-700)]">허위 · 광고성 리뷰</span>
+                    <span class="t-xs t-num">6건</span>
+                  </div>
+                  <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:35%"></div></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[13px] font-bold text-[var(--ink-700)]">욕설 · 비방 (채팅)</span>
+                    <span class="t-xs t-num">5건</span>
+                  </div>
+                  <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:29%"></div></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[13px] font-bold text-[var(--ink-700)]">도배 · 스팸</span>
+                    <span class="t-xs t-num">3건</span>
+                  </div>
+                  <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:18%"></div></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[13px] font-bold text-[var(--ink-700)]">개인정보 노출</span>
+                    <span class="t-xs t-num">2건</span>
+                  </div>
+                  <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:12%"></div></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[13px] font-bold text-[var(--ink-500)]">기타</span>
+                    <span class="t-xs t-num">1건</span>
+                  </div>
+                  <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:6%;background:var(--ink-300)"></div></div>
+                </div>
+              </div>
+
+              <div class="e-alert e-alert--danger mt-5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                <div>
+                  <p class="e-alert-title">2일 이상 미처리 3건</p>
+                  <p>우선 처리가 필요합니다.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-5">
+          <!-- 빠른 처리 -->
+          <div class="e-card">
+            <div class="e-card-head">
+              <p class="e-card-title">빠른 처리</p>
+            </div>
+            <div class="e-card-body">
+              <div class="grid sm:grid-cols-2 gap-3" id="quickActionList">
+                <a href="#sectionReports" class="e-card e-card-flat border border-[var(--line)] p-4 e-card-hover" data-admin-nav="reports">
+                  <span class="e-stat-ico e-stat-ico--danger mb-3">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
+                  </span>
+                  <p class="text-sm font-extrabold text-[var(--ink-900)]">미처리 신고 17건</p>
+                  <p class="t-xs mt-1">리뷰 11 · 채팅 6</p>
+                </a>
+                <a href="#sectionMembers" class="e-card e-card-flat border border-[var(--line)] p-4 e-card-hover" data-admin-nav="members">
+                  <span class="e-stat-ico e-stat-ico--warning mb-3">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                  </span>
+                  <p class="text-sm font-extrabold text-[var(--ink-900)]">사업자 심사 대기 12건</p>
+                  <p class="t-xs mt-1">증명원 확인 필요</p>
+                </a>
+                <a href="#sectionMembers" class="e-card e-card-flat border border-[var(--line)] p-4 e-card-hover" data-admin-nav="members">
+                  <span class="e-stat-ico e-stat-ico--info mb-3">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/></svg>
+                  </span>
+                  <p class="text-sm font-extrabold text-[var(--ink-900)]">정지 만료 예정 4건</p>
+                  <p class="t-xs mt-1">오늘 자동 해제</p>
+                </a>
+                <a href="#sectionMonitor" class="e-card e-card-flat border border-[var(--line)] p-4 e-card-hover" data-admin-nav="monitor">
+                  <span class="e-stat-ico e-stat-ico--success mb-3">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"/></svg>
+                  </span>
+                  <p class="text-sm font-extrabold text-[var(--ink-900)]">서버 전체 정상</p>
+                  <p class="t-xs mt-1">OCR 응답 지연 주의</p>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- 최근 운영 활동 -->
+          <div class="e-card">
+            <div class="e-card-head">
+              <p class="e-card-title">최근 운영 활동</p>
+              <span class="e-badge e-badge--gray ml-auto">감사 로그</span>
+            </div>
+            <div class="e-card-body">
+              <ul class="space-y-0" id="recentActivityList">
+                <li class="e-row !py-3">
+                  <span class="w-8 h-8 rounded-full grid place-items-center flex-none" style="background:var(--danger-soft);color:var(--danger)">
+                    <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9h2v6H9zM13 9h2v6h-2z"/></svg>
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[13.5px] font-semibold text-[var(--ink-800)]">
+                      <b class="t-strong">spam***@test.com</b> 계정 30일 정지
+                    </p>
+                    <p class="t-xs mt-0.5">허위 리뷰 반복 작성 · 운영관리자</p>
+                  </div>
+                  <span class="t-xs flex-none t-num">14:22</span>
+                </li>
+                <li class="e-row !py-3">
+                  <span class="w-8 h-8 rounded-full grid place-items-center flex-none" style="background:var(--success-soft);color:var(--success)">
+                    <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[13.5px] font-semibold text-[var(--ink-800)]">
+                      신고 <b class="t-strong t-num">#R-2418</b> 처리 완료
+                    </p>
+                    <p class="t-xs mt-0.5">리뷰 비공개 처리 · 운영관리자</p>
+                  </div>
+                  <span class="t-xs flex-none t-num">13:58</span>
+                </li>
+                <li class="e-row !py-3">
+                  <span class="w-8 h-8 rounded-full grid place-items-center flex-none" style="background:var(--info-soft);color:var(--info)">
+                    <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 5 4h14l2 5M3 9h18v11H3V9Z"/><path d="M9 20v-6h6v6"/></svg>
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[13.5px] font-semibold text-[var(--ink-800)]">
+                      사업자 <b class="t-strong">잇티식당 강남점</b> 승인
+                    </p>
+                    <p class="t-xs mt-0.5">증명원 확인 완료 · 운영관리자</p>
+                  </div>
+                  <span class="t-xs flex-none t-num">11:40</span>
+                </li>
+                <li class="e-row !py-3">
+                  <span class="w-8 h-8 rounded-full grid place-items-center flex-none" style="background:var(--bg-muted);color:var(--ink-500)">
+                    <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[13.5px] font-semibold text-[var(--ink-800)]">
+                      신고 <b class="t-strong t-num">#R-2415</b> 반려
+                    </p>
+                    <p class="t-xs mt-0.5">위반 사항 없음 · 운영관리자</p>
+                  </div>
+                  <span class="t-xs flex-none t-num">10:12</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           섹션 2 · 회원 관리
+           ================================================================ -->
+      <section class="adm-section" id="sectionMembers" hidden>
+
+        <div class="mb-6">
+          <h1 class="e-page-title">회원 관리</h1>
+          <p class="e-page-desc">역할과 상태로 회원을 검색하고 정지 · 해제를 처리합니다.</p>
+        </div>
+
+        <!-- 필터 -->
+        <div class="e-card e-card-pad !py-4 mb-5">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="e-input-wrap has-icon flex-1" style="min-width:220px;max-width:320px">
+              <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="search" class="e-input e-input-sm" id="memberSearchInput" placeholder="이메일 또는 닉네임 검색" aria-label="회원 검색">
+            </div>
+
+            <select class="e-select e-input-sm" id="memberRoleFilter" aria-label="역할 필터" style="width:auto">
+              <option value="all">역할 전체</option>
+              <option value="user">일반 회원</option>
+              <option value="business">사업자 회원</option>
+              <option value="admin">관리자</option>
+            </select>
+
+            <select class="e-select e-input-sm" id="memberStatusFilter" aria-label="상태 필터" style="width:auto">
+              <option value="all">상태 전체</option>
+              <option value="active">정상</option>
+              <option value="suspended">정지</option>
+              <option value="pending">심사 대기</option>
+              <option value="withdrawn">탈퇴</option>
+            </select>
+
+            <select class="e-select e-input-sm" id="memberSortSelect" aria-label="정렬" style="width:auto">
+              <option value="recent">최근 가입순</option>
+              <option value="reports">신고 많은순</option>
+              <option value="reviews">리뷰 많은순</option>
+              <option value="lastLogin">최근 접속순</option>
+            </select>
+
+            <div class="ml-auto flex gap-2">
+              <button type="button" class="btn btn-ghost btn-sm" id="memberFilterResetBtn">초기화</button>
+              <button type="button" class="btn btn-outline btn-sm" id="memberExportBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 20h16"/></svg>
+                CSV
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 일괄 처리 바 -->
+        <div class="e-card e-card-pad !py-3 mb-4" id="bulkActionBar" hidden style="border-color:var(--brand-300);background:var(--brand-50)">
+          <div class="flex flex-wrap items-center gap-3">
+            <p class="text-sm font-bold text-[var(--brand-700)]">
+              <b class="t-num" id="selectedCount">0</b>명 선택됨
+            </p>
+            <div class="ml-auto flex gap-2">
+              <button type="button" class="btn btn-danger-soft btn-sm" id="bulkSuspendBtn">일괄 정지</button>
+              <button type="button" class="btn btn-outline btn-sm" id="bulkReleaseBtn">일괄 해제</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 회원 테이블 -->
+        <div class="e-table-wrap">
+          <table class="e-table" id="memberTable">
+            <thead>
+              <tr>
+                <th style="width:44px">
+                  <label class="e-check">
+                    <input type="checkbox" id="memberCheckAll">
+                    <span class="sr-only-e">전체 선택</span>
+                  </label>
+                </th>
+                <th style="min-width:220px">회원</th>
+                <th style="width:110px">역할</th>
+                <th style="width:120px">상태</th>
+                <th style="width:80px" class="!text-right">리뷰</th>
+                <th style="width:80px" class="!text-right">신고</th>
+                <th style="width:120px">가입일</th>
+                <th style="width:130px">최근 접속</th>
+                <th style="width:170px" class="!text-right">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- 정상 일반회원 -->
+              <tr data-member-id="1001">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="memberCheck" value="1001">
+                    <span class="sr-only-e">잇티러버 선택</span>
+                  </label>
+                </td>
+                <td>
+                  <div class="flex items-center gap-2.5">
+                    <span class="e-avatar e-avatar-xs flex-none" aria-hidden="true">잇</span>
+                    <div class="min-w-0">
+                      <p class="cell-strong truncate">잇티러버</p>
+                      <p class="t-xs truncate">eatty@example.com</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="e-badge e-badge--gray">일반</span></td>
+                <td><span class="e-status e-status--on !text-[12.5px]">정상</span></td>
+                <td class="cell-num">18</td>
+                <td class="cell-num">0</td>
+                <td class="t-num t-sm">2025-04-18</td>
+                <td class="t-num t-sm">2026-07-31</td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-ghost btn-xs" data-view-member data-modal-open="memberDetailModal">상세</button>
+                  <button type="button" class="btn btn-danger-soft btn-xs" data-suspend-member data-modal-open="suspendModal">정지</button>
+                </td>
+              </tr>
+
+              <!-- 정지 회원 -->
+              <tr data-member-id="1002">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="memberCheck" value="1002">
+                    <span class="sr-only-e">광고봇 선택</span>
+                  </label>
+                </td>
+                <td>
+                  <div class="flex items-center gap-2.5">
+                    <span class="e-avatar e-avatar-xs e-avatar--gray flex-none" aria-hidden="true">광</span>
+                    <div class="min-w-0">
+                      <p class="cell-strong truncate">광고맛집왕</p>
+                      <p class="t-xs truncate">spam***@test.com</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="e-badge e-badge--gray">일반</span></td>
+                <td>
+                  <span class="e-status e-status--off !text-[12.5px]">정지</span>
+                  <p class="t-xs mt-0.5">~08-21</p>
+                </td>
+                <td class="cell-num">46</td>
+                <td class="cell-num !text-[var(--danger)] font-bold">12</td>
+                <td class="t-num t-sm">2025-11-02</td>
+                <td class="t-num t-sm">2026-07-22</td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-ghost btn-xs" data-view-member data-modal-open="memberDetailModal">상세</button>
+                  <button type="button" class="btn btn-outline btn-xs" data-release-member>해제</button>
+                </td>
+              </tr>
+
+              <!-- 사업자 (승인) -->
+              <tr data-member-id="1003">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="memberCheck" value="1003">
+                    <span class="sr-only-e">잇티식당 강남점 선택</span>
+                  </label>
+                </td>
+                <td>
+                  <div class="flex items-center gap-2.5">
+                    <span class="e-avatar e-avatar-xs flex-none" style="background:var(--ink-700)" aria-hidden="true">잇</span>
+                    <div class="min-w-0">
+                      <p class="cell-strong truncate">잇티식당 강남점</p>
+                      <p class="t-xs truncate">owner@myshop.com</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="e-badge e-badge--info">사업자</span></td>
+                <td><span class="e-status e-status--on !text-[12.5px]">정상</span></td>
+                <td class="cell-num">0</td>
+                <td class="cell-num">1</td>
+                <td class="t-num t-sm">2026-03-11</td>
+                <td class="t-num t-sm">2026-07-31</td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-ghost btn-xs" data-view-member data-modal-open="memberDetailModal">상세</button>
+                  <button type="button" class="btn btn-danger-soft btn-xs" data-suspend-member data-modal-open="suspendModal">정지</button>
+                </td>
+              </tr>
+
+              <!-- 사업자 (심사 대기) -->
+              <tr data-member-id="1004">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="memberCheck" value="1004">
+                    <span class="sr-only-e">청담옥 신사점 선택</span>
+                  </label>
+                </td>
+                <td>
+                  <div class="flex items-center gap-2.5">
+                    <span class="e-avatar e-avatar-xs flex-none" style="background:var(--ink-700)" aria-hidden="true">청</span>
+                    <div class="min-w-0">
+                      <p class="cell-strong truncate">청담옥 신사점</p>
+                      <p class="t-xs truncate">cheongdam@shop.com</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="e-badge e-badge--info">사업자</span></td>
+                <td><span class="e-status e-status--warn !text-[12.5px]">심사 대기</span></td>
+                <td class="cell-num">0</td>
+                <td class="cell-num">0</td>
+                <td class="t-num t-sm">2026-07-30</td>
+                <td class="t-num t-sm">2026-07-31</td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-primary btn-xs" data-view-member data-modal-open="memberDetailModal">심사</button>
+                  <button type="button" class="btn btn-ghost btn-xs">보류</button>
+                </td>
+              </tr>
+
+              <!-- 신고 누적 회원 -->
+              <tr data-member-id="1005">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="memberCheck" value="1005">
+                    <span class="sr-only-e">불사조 선택</span>
+                  </label>
+                </td>
+                <td>
+                  <div class="flex items-center gap-2.5">
+                    <span class="e-avatar e-avatar-xs e-avatar--gray flex-none" aria-hidden="true">불</span>
+                    <div class="min-w-0">
+                      <p class="cell-strong truncate">불사조</p>
+                      <p class="t-xs truncate">fire***@mail.com</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="e-badge e-badge--gray">일반</span></td>
+                <td>
+                  <span class="e-status e-status--warn !text-[12.5px]">경고 2회</span>
+                </td>
+                <td class="cell-num">31</td>
+                <td class="cell-num !text-[var(--warning-ink)] font-bold">4</td>
+                <td class="t-num t-sm">2025-08-14</td>
+                <td class="t-num t-sm">2026-07-30</td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-ghost btn-xs" data-view-member data-modal-open="memberDetailModal">상세</button>
+                  <button type="button" class="btn btn-danger-soft btn-xs" data-suspend-member data-modal-open="suspendModal">정지</button>
+                </td>
+              </tr>
+
+              <!-- 관리자 -->
+              <tr data-member-id="1006">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="memberCheck" value="1006" disabled>
+                    <span class="sr-only-e">관리자 계정은 선택할 수 없습니다</span>
+                  </label>
+                </td>
+                <td>
+                  <div class="flex items-center gap-2.5">
+                    <span class="e-avatar e-avatar-xs flex-none" aria-hidden="true">관</span>
+                    <div class="min-w-0">
+                      <p class="cell-strong truncate">운영관리자</p>
+                      <p class="t-xs truncate">admin@eattyway.com</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="e-badge e-badge--dark">관리자</span></td>
+                <td><span class="e-status e-status--on !text-[12.5px]">정상</span></td>
+                <td class="cell-num">0</td>
+                <td class="cell-num">0</td>
+                <td class="t-num t-sm">2025-03-02</td>
+                <td class="t-num t-sm">2026-07-31</td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-ghost btn-xs" data-view-member data-modal-open="memberDetailModal">상세</button>
+                </td>
+              </tr>
+
+              <!-- 탈퇴 -->
+              <tr data-member-id="1007" class="opacity-60">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="memberCheck" value="1007" disabled>
+                    <span class="sr-only-e">탈퇴 회원은 선택할 수 없습니다</span>
+                  </label>
+                </td>
+                <td>
+                  <div class="flex items-center gap-2.5">
+                    <span class="e-avatar e-avatar-xs e-avatar--gray flex-none" aria-hidden="true">?</span>
+                    <div class="min-w-0">
+                      <p class="cell-strong truncate">(탈퇴한 회원)</p>
+                      <p class="t-xs truncate">deleted_8842</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="e-badge e-badge--gray">일반</span></td>
+                <td><span class="e-status e-status--idle !text-[12.5px]">탈퇴</span></td>
+                <td class="cell-num">7</td>
+                <td class="cell-num">0</td>
+                <td class="t-num t-sm">2025-06-21</td>
+                <td class="t-num t-sm">2026-06-30</td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-ghost btn-xs" data-view-member data-modal-open="memberDetailModal">상세</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 mt-5">
+          <p class="t-sm">전체 <b class="t-strong t-num">128,412</b>명 중 1~7 표시</p>
+          <div class="e-pagination ml-auto" id="memberPagination">
+            <button type="button" class="e-page-btn" disabled aria-label="이전 페이지">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg>
+            </button>
+            <button type="button" class="e-page-btn" aria-current="page">1</button>
+            <button type="button" class="e-page-btn">2</button>
+            <button type="button" class="e-page-btn">3</button>
+            <button type="button" class="e-page-btn">4</button>
+            <span class="px-1 t-xs">…</span>
+            <button type="button" class="e-page-btn">1,284</button>
+            <button type="button" class="e-page-btn" aria-label="다음 페이지">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           섹션 3 · 신고 관리
+           ================================================================ -->
+      <section class="adm-section" id="sectionReports" hidden>
+
+        <div class="mb-6">
+          <h1 class="e-page-title">신고 관리</h1>
+          <p class="e-page-desc">리뷰 및 채팅 신고를 검토하고 처리합니다.</p>
+        </div>
+
+        <!-- 필터 -->
+        <div class="e-card e-card-pad !py-4 mb-5">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="e-input-wrap has-icon flex-1" style="min-width:220px;max-width:320px">
+              <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="search" class="e-input e-input-sm" id="reportSearchInput" placeholder="신고 ID, 신고자, 대상 검색" aria-label="신고 검색">
+            </div>
+
+            <select class="e-select e-input-sm" id="reportTypeFilter" aria-label="신고 유형 필터" style="width:auto">
+              <option value="all">유형 전체</option>
+              <option value="review">리뷰 신고</option>
+              <option value="chat">채팅 신고</option>
+            </select>
+
+            <div class="ml-auto flex items-center gap-2">
+              <span class="e-badge e-badge--danger e-badge-lg">대기 17</span>
+              <span class="e-badge e-badge--success e-badge-lg">완료 2,481</span>
+              <span class="e-badge e-badge--gray e-badge-lg">반려 316</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 상태 탭 -->
+        <div class="e-card" data-tabs id="reportStatusTabs">
+          <div class="px-5 md:px-6 pt-1">
+            <div class="e-tabs" role="tablist" aria-label="신고 처리 상태">
+              <button type="button" class="e-tab" data-tab-target="tabReportPending" role="tab" aria-selected="true">
+                대기중 <span class="e-tab-count">17</span>
+              </button>
+              <button type="button" class="e-tab" data-tab-target="tabReportDone" role="tab" aria-selected="false">
+                처리완료 <span class="e-tab-count">2,481</span>
+              </button>
+              <button type="button" class="e-tab" data-tab-target="tabReportRejected" role="tab" aria-selected="false">
+                반려 <span class="e-tab-count">316</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ---- 대기중 ---- -->
+          <div class="p-5 md:p-6" id="tabReportPending" data-tab-panel>
+            <div class="e-table-wrap">
+              <table class="e-table" id="reportPendingTable">
+                <thead>
+                  <tr>
+                    <th style="width:100px">신고 ID</th>
+                    <th style="width:90px">유형</th>
+                    <th style="min-width:260px">신고 내용</th>
+                    <th style="width:130px">신고자</th>
+                    <th style="width:130px">피신고자</th>
+                    <th style="width:110px">접수일</th>
+                    <th style="width:170px" class="!text-right">처리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-report-id="R-2419">
+                    <td class="cell-strong t-num">#R-2419</td>
+                    <td><span class="e-badge e-badge--brand">리뷰</span></td>
+                    <td>
+                      <p class="cell-strong">허위 · 광고성 리뷰</p>
+                      <p class="t-xs mt-1 t-clamp-2">"이 집 사장님이 리뷰 써주면 서비스 준다고 했어요" 라는 내용이 포함되어 있습니다.</p>
+                    </td>
+                    <td>
+                      <p class="t-sm font-semibold">매콤한김밥</p>
+                      <p class="t-xs">user***@mail.com</p>
+                    </td>
+                    <td>
+                      <p class="t-sm font-semibold">광고맛집왕</p>
+                      <p class="t-xs !text-[var(--danger)]">누적 12건</p>
+                    </td>
+                    <td>
+                      <p class="t-sm t-num">07-29</p>
+                      <span class="e-badge e-badge--danger !text-[10px] mt-1">2일 경과</span>
+                    </td>
+                    <td class="cell-actions">
+                      <button type="button" class="btn btn-primary btn-xs" data-handle-report data-modal-open="handleReportModal">처리</button>
+                      <button type="button" class="btn btn-ghost btn-xs" data-reject-report>반려</button>
+                    </td>
+                  </tr>
+
+                  <tr data-report-id="R-2420">
+                    <td class="cell-strong t-num">#R-2420</td>
+                    <td><span class="e-badge e-badge--info">채팅</span></td>
+                    <td>
+                      <p class="cell-strong">욕설 · 비방</p>
+                      <p class="t-xs mt-1 t-clamp-2">"마라탕 매운맛 도전방"에서 특정 참여자에게 반복적으로 비하 발언을 했습니다.</p>
+                    </td>
+                    <td>
+                      <p class="t-sm font-semibold">조용한김밥</p>
+                      <p class="t-xs">quiet***@mail.com</p>
+                    </td>
+                    <td>
+                      <p class="t-sm font-semibold">불사조</p>
+                      <p class="t-xs !text-[var(--warning-ink)]">누적 4건</p>
+                    </td>
+                    <td>
+                      <p class="t-sm t-num">07-30</p>
+                      <span class="e-badge e-badge--warning !text-[10px] mt-1">1일 경과</span>
+                    </td>
+                    <td class="cell-actions">
+                      <button type="button" class="btn btn-primary btn-xs" data-handle-report data-modal-open="handleReportModal">처리</button>
+                      <button type="button" class="btn btn-ghost btn-xs" data-reject-report>반려</button>
+                    </td>
+                  </tr>
+
+                  <tr data-report-id="R-2421">
+                    <td class="cell-strong t-num">#R-2421</td>
+                    <td><span class="e-badge e-badge--brand">리뷰</span></td>
+                    <td>
+                      <p class="cell-strong">가게와 무관한 내용</p>
+                      <p class="t-xs mt-1 t-clamp-2">음식점 리뷰에 개인 정치적 의견만 작성되어 있습니다.</p>
+                    </td>
+                    <td>
+                      <p class="t-sm font-semibold">잇티식당 강남점</p>
+                      <p class="t-xs">사업자 신고</p>
+                    </td>
+                    <td>
+                      <p class="t-sm font-semibold">한우사랑</p>
+                      <p class="t-xs">누적 1건</p>
+                    </td>
+                    <td>
+                      <p class="t-sm t-num">07-31</p>
+                      <span class="e-badge e-badge--gray !text-[10px] mt-1">오늘</span>
+                    </td>
+                    <td class="cell-actions">
+                      <button type="button" class="btn btn-primary btn-xs" data-handle-report data-modal-open="handleReportModal">처리</button>
+                      <button type="button" class="btn btn-ghost btn-xs" data-reject-report>반려</button>
+                    </td>
+                  </tr>
+
+                  <tr data-report-id="R-2422">
+                    <td class="cell-strong t-num">#R-2422</td>
+                    <td><span class="e-badge e-badge--info">채팅</span></td>
+                    <td>
+                      <p class="cell-strong">개인정보 노출</p>
+                      <p class="t-xs mt-1 t-clamp-2">"혼밥러들의 정보 공유방"에서 제3자의 전화번호를 공개했습니다.</p>
+                    </td>
+                    <td>
+                      <p class="t-sm font-semibold">가성비왕</p>
+                      <p class="t-xs">value***@mail.com</p>
+                    </td>
+                    <td>
+                      <p class="t-sm font-semibold">민초파</p>
+                      <p class="t-xs">누적 0건</p>
+                    </td>
+                    <td>
+                      <p class="t-sm t-num">07-31</p>
+                      <span class="e-badge e-badge--gray !text-[10px] mt-1">오늘</span>
+                    </td>
+                    <td class="cell-actions">
+                      <button type="button" class="btn btn-primary btn-xs" data-handle-report data-modal-open="handleReportModal">처리</button>
+                      <button type="button" class="btn btn-ghost btn-xs" data-reject-report>반려</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="e-pagination mt-5">
+              <button type="button" class="e-page-btn" disabled aria-label="이전 페이지">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg>
+              </button>
+              <button type="button" class="e-page-btn" aria-current="page">1</button>
+              <button type="button" class="e-page-btn">2</button>
+              <button type="button" class="e-page-btn" aria-label="다음 페이지">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- ---- 처리완료 ---- -->
+          <div class="p-5 md:p-6" id="tabReportDone" data-tab-panel hidden>
+            <div class="e-table-wrap">
+              <table class="e-table" id="reportDoneTable">
+                <thead>
+                  <tr>
+                    <th style="width:100px">신고 ID</th>
+                    <th style="width:90px">유형</th>
+                    <th style="min-width:220px">신고 사유</th>
+                    <th style="width:150px">조치 내용</th>
+                    <th style="width:130px">처리자</th>
+                    <th style="width:120px">처리일</th>
+                    <th style="width:90px" class="!text-right">상세</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="cell-strong t-num">#R-2418</td>
+                    <td><span class="e-badge e-badge--brand">리뷰</span></td>
+                    <td>
+                      <p class="cell-strong">허위 · 광고성 리뷰</p>
+                      <p class="t-xs mt-1">피신고자: 광고맛집왕</p>
+                    </td>
+                    <td><span class="e-badge e-badge--success">리뷰 비공개</span></td>
+                    <td class="t-sm">운영관리자</td>
+                    <td class="t-num t-sm">2026-07-31</td>
+                    <td class="cell-actions">
+                      <button type="button" class="btn btn-ghost btn-xs" data-modal-open="handleReportModal">보기</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell-strong t-num">#R-2417</td>
+                    <td><span class="e-badge e-badge--info">채팅</span></td>
+                    <td>
+                      <p class="cell-strong">도배 · 스팸</p>
+                      <p class="t-xs mt-1">피신고자: promo***@mail.com</p>
+                    </td>
+                    <td><span class="e-badge e-badge--danger">계정 30일 정지</span></td>
+                    <td class="t-sm">운영관리자</td>
+                    <td class="t-num t-sm">2026-07-30</td>
+                    <td class="cell-actions">
+                      <button type="button" class="btn btn-ghost btn-xs" data-modal-open="handleReportModal">보기</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell-strong t-num">#R-2416</td>
+                    <td><span class="e-badge e-badge--brand">리뷰</span></td>
+                    <td>
+                      <p class="cell-strong">욕설 · 비방</p>
+                      <p class="t-xs mt-1">피신고자: angry***@mail.com</p>
+                    </td>
+                    <td><span class="e-badge e-badge--warning">경고 발송</span></td>
+                    <td class="t-sm">운영관리자</td>
+                    <td class="t-num t-sm">2026-07-29</td>
+                    <td class="cell-actions">
+                      <button type="button" class="btn btn-ghost btn-xs" data-modal-open="handleReportModal">보기</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ---- 반려 ---- -->
+          <div class="p-5 md:p-6" id="tabReportRejected" data-tab-panel hidden>
+            <div class="e-table-wrap">
+              <table class="e-table" id="reportRejectedTable">
+                <thead>
+                  <tr>
+                    <th style="width:100px">신고 ID</th>
+                    <th style="width:90px">유형</th>
+                    <th style="min-width:220px">신고 사유</th>
+                    <th style="min-width:200px">반려 사유</th>
+                    <th style="width:130px">처리자</th>
+                    <th style="width:120px">반려일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="cell-strong t-num">#R-2415</td>
+                    <td><span class="e-badge e-badge--brand">리뷰</span></td>
+                    <td>
+                      <p class="cell-strong">허위 리뷰 의심</p>
+                      <p class="t-xs mt-1">신고자: 잇티식당 강남점 (사업자)</p>
+                    </td>
+                    <td class="t-sm">영수증 인증이 정상 확인되어 위반 사항 없음</td>
+                    <td class="t-sm">운영관리자</td>
+                    <td class="t-num t-sm">2026-07-31</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-strong t-num">#R-2412</td>
+                    <td><span class="e-badge e-badge--info">채팅</span></td>
+                    <td>
+                      <p class="cell-strong">비방</p>
+                      <p class="t-xs mt-1">신고자: user***@mail.com</p>
+                    </td>
+                    <td class="t-sm">일반적인 의견 표현 범위로 판단</td>
+                    <td class="t-sm">운영관리자</td>
+                    <td class="t-num t-sm">2026-07-28</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-strong t-num">#R-2409</td>
+                    <td><span class="e-badge e-badge--brand">리뷰</span></td>
+                    <td>
+                      <p class="cell-strong">낮은 별점 부당</p>
+                      <p class="t-xs mt-1">신고자: 사업자 신고</p>
+                    </td>
+                    <td class="t-sm">별점만으로는 신고 대상이 아님</td>
+                    <td class="t-sm">운영관리자</td>
+                    <td class="t-num t-sm">2026-07-26</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           섹션 4 · 리뷰 관리
+           ----------------------------------------------------------------
+           ★ GET    /api/admin/reviews?q=&rating=&period=&sort=&page=
+             DELETE /api/admin/reviews/{reviewId}
+
+           [필터]
+             #reviewSearchInput      가게명 · 작성자 · 내용 검색
+             #reviewRatingFilter     별점 필터 (all|5|4|3|2|1)
+             #reviewPeriodFilter     기간 필터 (all|1m|3m|1y)
+             #reviewReportedOnly     신고 접수된 리뷰만 보기
+             #reviewSortSelect       정렬 (recent|rating-low|reports)
+             #adminReviewResetBtn    필터 초기화
+
+           [목록]
+             #adminReviewTable       테이블
+             #reviewCheckAll         전체 선택
+             input[name="reviewCheck"]
+             #reviewBulkBar          일괄 처리 바 (기본 hidden)
+             #reviewBulkDeleteBtn / #reviewSelectedCount
+             [data-view-review]      원문 보기 (data-modal-open="adminReviewModal")
+             [data-delete-review]    삭제 (data-modal-open="deleteReviewModal")
+
+           [모달]
+             #adminReviewModal       리뷰 원문 모달
+             #deleteReviewModal      삭제 확인 (#deleteReviewTarget, #deleteReviewConfirmBtn)
+           ================================================================ -->
+      <section class="adm-section" id="sectionReviews" hidden>
+
+        <div class="mb-6">
+          <h1 class="e-page-title">리뷰 관리</h1>
+          <p class="e-page-desc">영수증 인증 리뷰를 검색하고 부적절한 리뷰를 삭제합니다.</p>
+        </div>
+
+        <!-- 요약 -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="e-card e-stat">
+            <p class="e-stat-label">전체 리뷰</p>
+            <p class="e-stat-value !text-[24px]">42,916</p>
+            <p class="e-stat-sub">전부 영수증 인증</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">평균 별점</p>
+            <p class="e-stat-value !text-[24px]">4.3</p>
+            <p class="e-stat-sub">1점 리뷰 <b class="t-num">412</b>건</p>
+          </div>
+          <div class="e-card e-stat" style="border-color:#fbd5d5">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="e-stat-label">신고 접수된 리뷰</p>
+                <p class="e-stat-value !text-[24px] !text-[var(--danger)]">11</p>
+              </div>
+              <span class="e-stat-ico e-stat-ico--danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
+              </span>
+            </div>
+            <p class="e-stat-sub">신고 관리에서 함께 처리 가능</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">비공개 처리</p>
+            <p class="e-stat-value !text-[24px]">86</p>
+            <p class="e-stat-sub">누적 기준</p>
+          </div>
+        </div>
+
+        <!-- 필터 -->
+        <div class="e-card e-card-pad !py-4 mb-5">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="e-input-wrap has-icon flex-1" style="min-width:220px;max-width:320px">
+              <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="search" class="e-input e-input-sm" id="reviewSearchInput" placeholder="가게명 · 작성자 · 내용 검색" aria-label="리뷰 검색">
+            </div>
+
+            <select class="e-select e-input-sm" id="reviewRatingFilter" aria-label="별점 필터" style="width:auto">
+              <option value="all">별점 전체</option>
+              <option value="5">5점</option>
+              <option value="4">4점</option>
+              <option value="3">3점</option>
+              <option value="2">2점</option>
+              <option value="1">1점</option>
+            </select>
+
+            <select class="e-select e-input-sm" id="reviewPeriodFilter" aria-label="기간 필터" style="width:auto">
+              <option value="all">전체 기간</option>
+              <option value="1m">최근 1개월</option>
+              <option value="3m">최근 3개월</option>
+              <option value="1y">최근 1년</option>
+            </select>
+
+            <select class="e-select e-input-sm" id="reviewSortSelect" aria-label="정렬" style="width:auto">
+              <option value="recent">최신순</option>
+              <option value="rating-low">별점 낮은순</option>
+              <option value="reports">신고 많은순</option>
+            </select>
+
+            <label class="e-switch" for="reviewReportedOnly">
+              <input type="checkbox" id="reviewReportedOnly">
+              <span class="e-switch-track"></span>
+              <span class="text-[13px] font-bold text-[var(--ink-700)] whitespace-nowrap">신고된 것만</span>
+            </label>
+
+            <button type="button" class="btn btn-ghost btn-sm ml-auto" id="adminReviewResetBtn">초기화</button>
+          </div>
+        </div>
+
+        <!-- 일괄 처리 -->
+        <div class="e-card e-card-pad !py-3 mb-4" id="reviewBulkBar" hidden style="border-color:#fbd5d5;background:var(--danger-soft)">
+          <div class="flex flex-wrap items-center gap-3">
+            <p class="text-sm font-bold" style="color:var(--danger-ink)">
+              <b class="t-num" id="reviewSelectedCount">0</b>건 선택됨
+            </p>
+            <button type="button" class="btn btn-danger btn-sm ml-auto" id="reviewBulkDeleteBtn">선택 삭제</button>
+          </div>
+        </div>
+
+        <!-- 목록 -->
+        <div class="e-table-wrap">
+          <table class="e-table" id="adminReviewTable">
+            <thead>
+              <tr>
+                <th style="width:44px">
+                  <label class="e-check">
+                    <input type="checkbox" id="reviewCheckAll">
+                    <span class="sr-only-e">전체 선택</span>
+                  </label>
+                </th>
+                <th style="width:90px">리뷰 ID</th>
+                <th style="min-width:180px">가게</th>
+                <th style="width:130px">작성자</th>
+                <th style="width:80px">별점</th>
+                <th style="min-width:240px">내용</th>
+                <th style="width:70px" class="!text-right">신고</th>
+                <th style="width:110px">작성일</th>
+                <th style="width:100px">상태</th>
+                <th style="width:130px" class="!text-right">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-review-id="8842" data-shop-name="잇티식당 강남점">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="reviewCheck" value="8842">
+                    <span class="sr-only-e">리뷰 8842 선택</span>
+                  </label>
+                </td>
+                <td class="cell-strong t-num">#8842</td>
+                <td class="cell-strong">잇티식당 강남점</td>
+                <td>
+                  <p class="t-sm font-semibold">광고맛집왕</p>
+                  <p class="t-xs">spam***@test.com</p>
+                </td>
+                <td>
+                  <span class="e-rating">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <span class="e-rating-score">5.0</span>
+                  </span>
+                </td>
+                <td>
+                  <p class="t-sm t-clamp-2">여기 진짜 최고예요!! 사장님이 리뷰 써주면 음료수 서비스 준다고 하셔서 썼는데 음식도 맛있고 좋네요~</p>
+                </td>
+                <td class="cell-num !text-[var(--danger)] font-bold">3</td>
+                <td class="t-num t-sm">07-28</td>
+                <td><span class="e-status e-status--off !text-[12.5px]">비공개</span></td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-ghost btn-xs" data-view-review data-modal-open="adminReviewModal">원문</button>
+                  <button type="button" class="btn btn-danger-soft btn-xs" data-delete-review>삭제</button>
+                </td>
+              </tr>
+
+              <tr data-review-id="8901" data-shop-name="라 스텔라 파스타">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="reviewCheck" value="8901">
+                    <span class="sr-only-e">리뷰 8901 선택</span>
+                  </label>
+                </td>
+                <td class="cell-strong t-num">#8901</td>
+                <td class="cell-strong">라 스텔라 파스타</td>
+                <td>
+                  <p class="t-sm font-semibold">매콤한김밥</p>
+                  <p class="t-xs">user***@mail.com</p>
+                </td>
+                <td>
+                  <span class="e-rating">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <span class="e-rating-score">5.0</span>
+                  </span>
+                </td>
+                <td>
+                  <p class="t-sm t-clamp-2">테이블 간격이 넓어서 대화하기 좋았어요. 트러플 크림 파스타 강력 추천합니다.</p>
+                </td>
+                <td class="cell-num">0</td>
+                <td class="t-num t-sm">07-30</td>
+                <td><span class="e-status e-status--on !text-[12.5px]">공개</span></td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-ghost btn-xs" data-view-review data-modal-open="adminReviewModal">원문</button>
+                  <button type="button" class="btn btn-danger-soft btn-xs" data-delete-review>삭제</button>
+                </td>
+              </tr>
+
+              <tr data-review-id="8877" data-shop-name="청담옥 강남점">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="reviewCheck" value="8877">
+                    <span class="sr-only-e">리뷰 8877 선택</span>
+                  </label>
+                </td>
+                <td class="cell-strong t-num">#8877</td>
+                <td class="cell-strong">청담옥 강남점</td>
+                <td>
+                  <p class="t-sm font-semibold">한우사랑</p>
+                  <p class="t-xs">meat***@mail.com</p>
+                </td>
+                <td>
+                  <span class="e-rating">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <span class="e-rating-score">1.0</span>
+                  </span>
+                </td>
+                <td>
+                  <p class="t-sm t-clamp-2">(가게와 무관한 개인 의견만 작성된 리뷰 — 신고 접수됨)</p>
+                </td>
+                <td class="cell-num !text-[var(--warning-ink)] font-bold">1</td>
+                <td class="t-num t-sm">07-31</td>
+                <td><span class="e-status e-status--warn !text-[12.5px]">검토 대기</span></td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-ghost btn-xs" data-view-review data-modal-open="adminReviewModal">원문</button>
+                  <button type="button" class="btn btn-danger-soft btn-xs" data-delete-review>삭제</button>
+                </td>
+              </tr>
+
+              <tr data-review-id="8830" data-shop-name="호무랑 라멘">
+                <td>
+                  <label class="e-check">
+                    <input type="checkbox" name="reviewCheck" value="8830">
+                    <span class="sr-only-e">리뷰 8830 선택</span>
+                  </label>
+                </td>
+                <td class="cell-strong t-num">#8830</td>
+                <td class="cell-strong">호무랑 라멘</td>
+                <td>
+                  <p class="t-sm font-semibold">불사조</p>
+                  <p class="t-xs">fire***@mail.com</p>
+                </td>
+                <td>
+                  <span class="e-rating">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <span class="e-rating-score">4.0</span>
+                  </span>
+                </td>
+                <td>
+                  <p class="t-sm t-clamp-2">카운터석이 있어서 혼밥하기 편했어요. 점심시간엔 사람이 많아 좀 시끄럽지만 회전이 빨라요.</p>
+                </td>
+                <td class="cell-num">0</td>
+                <td class="t-num t-sm">07-22</td>
+                <td><span class="e-status e-status--on !text-[12.5px]">공개</span></td>
+                <td class="cell-actions">
+                  <button type="button" class="btn btn-ghost btn-xs" data-view-review data-modal-open="adminReviewModal">원문</button>
+                  <button type="button" class="btn btn-danger-soft btn-xs" data-delete-review>삭제</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 mt-5">
+          <p class="t-sm">전체 <b class="t-strong t-num">42,916</b>건 중 1~4 표시</p>
+          <div class="e-pagination ml-auto">
+            <button type="button" class="e-page-btn" disabled aria-label="이전 페이지">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg>
+            </button>
+            <button type="button" class="e-page-btn" aria-current="page">1</button>
+            <button type="button" class="e-page-btn">2</button>
+            <button type="button" class="e-page-btn">3</button>
+            <span class="px-1 t-xs">…</span>
+            <button type="button" class="e-page-btn">4,292</button>
+            <button type="button" class="e-page-btn" aria-label="다음 페이지">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           섹션 5 · 알림 발송
+           ----------------------------------------------------------------
+           ★ 광고성 알림(이벤트/광고)은 마케팅 수신 동의자에게만 발송됩니다.
+             유형을 EVENT / AD 로 고르면 대상이 자동으로 "마케팅 동의자"로
+             고정되고 나머지 대상 옵션이 비활성화됩니다.
+
+           [발송 폼]
+             #noticeForm             폼 루트  ★ POST /api/admin/notifications
+             #noticeTypeSelect       알림 유형 (NOTICE|SERVICE|EVENT|AD)
+             #noticeTitleInput       제목 (name="title", 40자)
+             #noticeBodyInput        내용 (name="body", 200자)
+             #noticeLinkInput        연결 링크 (name="link")
+             #noticeScheduleRadio    발송 시점 (#sendNow / #sendLater)
+             #noticeScheduleAt       예약 일시 (name="scheduledAt")
+             #noticePushSwitch       푸시 동시 발송 (name="withPush")
+
+           [대상]
+             input[name="target"]    #targetAll #targetUser #targetBusiness
+                                     #targetMarketing #targetInactive
+             #targetCountText        예상 수신자 수
+             #consentLockBox         마케팅 동의 강제 안내 (광고성일 때 노출)
+
+           [미리보기]
+             #previewIcon #previewType #previewTitle #previewBody #previewTime
+
+           [발송 이력]  ★ GET /api/admin/notifications
+             #noticeHistoryTable
+             [data-cancel-notice]    예약 취소 ★ DELETE /api/admin/notifications/{id}
+             [data-view-notice]      상세 보기
+
+           [모달]
+             #sendNoticeModal        발송 확인 (#confirmTargetText #confirmCountText)
+             #sendNoticeConfirmBtn
+           ================================================================ -->
+      <section class="adm-section" id="sectionNotice" hidden>
+
+        <div class="mb-6">
+          <h1 class="e-page-title">알림 발송</h1>
+          <p class="e-page-desc">회원에게 공지 · 서비스 안내 · 이벤트 알림을 발송합니다.</p>
+        </div>
+
+        <!-- 수신 동의 현황 -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="e-card e-stat">
+            <p class="e-stat-label">전체 회원</p>
+            <p class="e-stat-value !text-[24px]">128,412</p>
+            <p class="e-stat-sub">알림 발송 가능 대상</p>
+          </div>
+          <div class="e-card e-stat">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="e-stat-label">마케팅 수신 동의</p>
+                <p class="e-stat-value !text-[24px]">46,208</p>
+              </div>
+              <span class="e-stat-ico e-stat-ico--brand">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
+              </span>
+            </div>
+            <p class="e-stat-sub">동의율 <b>36.0%</b> · 광고성 발송 대상</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">이번 달 발송</p>
+            <p class="e-stat-value !text-[24px]">12</p>
+            <p class="e-stat-sub">공지 7 · 이벤트 5</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">평균 열람률</p>
+            <p class="e-stat-value !text-[24px]">42.6<span class="text-[15px] font-bold t-muted ml-1">%</span></p>
+            <p class="e-stat-sub">최근 30일 기준</p>
+          </div>
+        </div>
+
+        <form id="noticeForm" novalidate>
+          <div class="grid lg:grid-cols-[1fr_380px] gap-6">
+
+            <!-- ============ 좌: 작성 ============ -->
+            <div>
+              <section class="e-card e-card-pad mb-5">
+                <h2 class="e-form-section-title">알림 내용</h2>
+                <p class="e-form-section-desc">회원의 알림 목록에 표시되는 내용입니다.</p>
+
+                <div class="e-field">
+                  <label class="e-label" for="noticeTypeSelect">알림 유형 <span class="req">*</span></label>
+                  <select class="e-select" id="noticeTypeSelect" name="type" required>
+                    <option value="NOTICE">공지 — 점검 · 정책 변경 등 (전체 발송 가능)</option>
+                    <option value="SERVICE">서비스 안내 — 기능 추가 · 변경 (전체 발송 가능)</option>
+                    <option value="EVENT">이벤트 — 프로모션 · 경품 (마케팅 동의자만)</option>
+                    <option value="AD">광고 — 제휴 · 유료 홍보 (마케팅 동의자만)</option>
+                  </select>
+                  <p class="e-hint">
+                    공지 · 서비스 안내는 서비스 운영에 필요한 정보라 전체 회원에게 보낼 수 있습니다.
+                    이벤트 · 광고는 정보통신망법에 따라 <b>수신 동의자에게만</b> 발송됩니다.
+                  </p>
+                </div>
+
+                <div class="e-field">
+                  <label class="e-label" for="noticeTitleInput">
+                    제목 <span class="req">*</span>
+                    <span class="e-label-side"><span id="noticeTitleCounter" data-counter="noticeTitleInput">0 / 40</span></span>
+                  </label>
+                  <input type="text" class="e-input" id="noticeTitleInput" name="title" maxlength="40"
+                         placeholder="예) 7월 30일 서버 점검 안내" required>
+                </div>
+
+                <div class="e-field">
+                  <label class="e-label" for="noticeBodyInput">
+                    내용 <span class="req">*</span>
+                    <span class="e-label-side"><span id="noticeBodyCounter" data-counter="noticeBodyInput">0 / 200</span></span>
+                  </label>
+                  <textarea class="e-textarea" id="noticeBodyInput" name="body" maxlength="200"
+                            placeholder="알림 목록에서는 2줄까지 보입니다. 핵심을 앞쪽에 배치해주세요." required></textarea>
+                </div>
+
+                <div class="e-field !mb-0">
+                  <label class="e-label" for="noticeLinkInput">연결 링크 <span class="e-label-side">선택</span></label>
+                  <select class="e-select" id="noticeLinkInput" name="link">
+                    <option value="">이동 없음</option>
+                    <option value="support.html">고객센터</option>
+                    <option value="explore.html">지도 탐색</option>
+                    <option value="recommend.html">AI 추천</option>
+                    <option value="receipt-upload.html">영수증 리뷰</option>
+                    <option value="taste-quiz.html">음BTI 테스트</option>
+                    <option value="chat.html">잇티챗</option>
+                    <option value="terms-service.html">이용약관</option>
+                  </select>
+                  <p class="e-hint">알림을 누르면 이동할 화면입니다.</p>
+                </div>
+              </section>
+
+              <!-- 발송 대상 -->
+              <section class="e-card e-card-pad mb-5">
+                <div class="flex items-center gap-2 mb-1">
+                  <h2 class="e-form-section-title !mb-0">발송 대상</h2>
+                  <span class="e-badge e-badge--brand ml-auto">
+                    예상 수신 <b class="t-num" id="targetCountText">128,412</b>명
+                  </span>
+                </div>
+                <p class="e-form-section-desc">알림 수신을 끈 회원은 자동으로 제외됩니다.</p>
+
+                <!-- 광고성 강제 안내 -->
+                <div class="mb-4" id="consentLockBox" hidden>
+                  <div class="e-consent-lock">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+                    </svg>
+                    <div>
+                      <b>광고성 알림은 대상을 변경할 수 없습니다.</b><br>
+                      회원가입 또는 마이페이지에서 <b>마케팅 수신에 동의한 46,208명</b>에게만 발송됩니다.
+                      동의하지 않은 회원에게 발송하면 정보통신망법 위반이 됩니다.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="space-y-2.5">
+                  <label class="e-target-card" for="targetAll">
+                    <input type="radio" id="targetAll" name="target" value="ALL" data-target-count="128412" checked>
+                    <span class="e-target-body">
+                      <span class="e-stat-ico e-stat-ico--info flex-none">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/><path d="M17 11a3 3 0 1 0 0-6"/></svg>
+                      </span>
+                      <span class="min-w-0">
+                        <span class="block text-[14.5px] font-extrabold text-[var(--ink-900)]">전체 회원</span>
+                        <span class="block t-xs mt-0.5">일반 + 사업자 회원 모두</span>
+                      </span>
+                      <span class="e-target-count">128,412</span>
+                    </span>
+                  </label>
+
+                  <label class="e-target-card" for="targetUser">
+                    <input type="radio" id="targetUser" name="target" value="USER" data-target-count="124806">
+                    <span class="e-target-body">
+                      <span class="e-stat-ico e-stat-ico--brand flex-none">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+                      </span>
+                      <span class="min-w-0">
+                        <span class="block text-[14.5px] font-extrabold text-[var(--ink-900)]">일반 회원</span>
+                        <span class="block t-xs mt-0.5">사업자 계정 제외</span>
+                      </span>
+                      <span class="e-target-count">124,806</span>
+                    </span>
+                  </label>
+
+                  <label class="e-target-card" for="targetBusiness">
+                    <input type="radio" id="targetBusiness" name="target" value="BUSINESS" data-target-count="3598">
+                    <span class="e-target-body">
+                      <span class="e-stat-ico e-stat-ico--success flex-none">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 5 4h14l2 5M3 9h18v11H3V9Z"/><path d="M9 20v-6h6v6"/></svg>
+                      </span>
+                      <span class="min-w-0">
+                        <span class="block text-[14.5px] font-extrabold text-[var(--ink-900)]">사업자 회원</span>
+                        <span class="block t-xs mt-0.5">승인 완료된 매장 관리자</span>
+                      </span>
+                      <span class="e-target-count">3,598</span>
+                    </span>
+                  </label>
+
+                  <label class="e-target-card" for="targetMarketing">
+                    <input type="radio" id="targetMarketing" name="target" value="MARKETING_AGREED" data-target-count="46208">
+                    <span class="e-target-body">
+                      <span class="e-stat-ico e-stat-ico--warning flex-none">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
+                      </span>
+                      <span class="min-w-0">
+                        <span class="block text-[14.5px] font-extrabold text-[var(--ink-900)]">
+                          마케팅 수신 동의자
+                          <span class="e-badge e-badge--brand ml-1">광고성 필수</span>
+                        </span>
+                        <span class="block t-xs mt-0.5">가입 시 또는 마이페이지에서 동의한 회원</span>
+                      </span>
+                      <span class="e-target-count">46,208</span>
+                    </span>
+                  </label>
+
+                  <label class="e-target-card" for="targetInactive">
+                    <input type="radio" id="targetInactive" name="target" value="INACTIVE_30D" data-target-count="18942">
+                    <span class="e-target-body">
+                      <span class="e-stat-ico e-stat-ico--danger flex-none">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3.5 2"/></svg>
+                      </span>
+                      <span class="min-w-0">
+                        <span class="block text-[14.5px] font-extrabold text-[var(--ink-900)]">30일 미접속 회원</span>
+                        <span class="block t-xs mt-0.5">재방문 유도용</span>
+                      </span>
+                      <span class="e-target-count">18,942</span>
+                    </span>
+                  </label>
+                </div>
+              </section>
+
+              <!-- 발송 시점 -->
+              <section class="e-card e-card-pad mb-5">
+                <h2 class="e-form-section-title">발송 시점</h2>
+                <p class="e-form-section-desc">예약 발송은 서버 시간 기준으로 처리됩니다.</p>
+
+                <div class="grid sm:grid-cols-2 gap-2.5 mb-4" id="noticeScheduleRadio">
+                  <label class="e-choice" for="sendNow">
+                    <input type="radio" id="sendNow" name="schedule" value="NOW" checked>
+                    <span class="e-choice-body !p-4 text-center">
+                      <span class="block text-[14.5px] font-extrabold text-[var(--ink-900)]">즉시 발송</span>
+                      <span class="block t-xs mt-1">확인 후 바로 전송</span>
+                    </span>
+                  </label>
+                  <label class="e-choice" for="sendLater">
+                    <input type="radio" id="sendLater" name="schedule" value="SCHEDULED">
+                    <span class="e-choice-body !p-4 text-center">
+                      <span class="block text-[14.5px] font-extrabold text-[var(--ink-900)]">예약 발송</span>
+                      <span class="block t-xs mt-1">지정한 시각에 전송</span>
+                    </span>
+                  </label>
+                </div>
+
+                <div class="e-field" id="scheduleAtField" hidden>
+                  <label class="e-label" for="noticeScheduleAt">예약 일시 <span class="req">*</span></label>
+                  <input type="datetime-local" class="e-input" id="noticeScheduleAt" name="scheduledAt">
+                  <p class="e-hint">광고성 알림은 밤 9시~오전 8시에는 발송할 수 없습니다.</p>
+                </div>
+
+                <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]">
+                  <div>
+                    <p class="text-sm font-bold text-[var(--ink-900)]">푸시 알림도 함께 발송</p>
+                    <p class="t-xs mt-0.5">앱 푸시를 허용한 회원에게만 전송됩니다.</p>
+                  </div>
+                  <label class="e-switch" for="noticePushSwitch">
+                    <input type="checkbox" id="noticePushSwitch" name="withPush">
+                    <span class="e-switch-track"></span>
+                    <span class="sr-only-e">푸시 알림 함께 발송</span>
+                  </label>
+                </div>
+              </section>
+
+              <div class="flex flex-col sm:flex-row gap-3">
+                <button type="reset" class="btn btn-outline sm:w-40" id="noticeResetBtn">초기화</button>
+                <button type="submit" class="btn btn-primary flex-1" id="noticeSubmitBtn">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l19-8-8 19-2-9-9-2Z"/></svg>
+                  발송하기
+                </button>
+              </div>
+            </div>
+
+            <!-- ============ 우: 미리보기 ============ -->
+            <aside>
+              <div class="e-card lg:sticky lg:top-[calc(64px+16px)]">
+                <div class="e-card-head !py-3.5">
+                  <p class="e-card-title !text-[14.5px]">미리보기</p>
+                  <span class="e-badge e-badge--gray ml-auto">회원 알림 목록</span>
+                </div>
+                <div class="e-card-body">
+                  <div class="e-noti-preview">
+                    <div class="e-noti-preview-inner">
+                      <div class="e-noti-head !py-3 !px-4">
+                        <p class="e-noti-title !text-[14px]">알림</p>
+                        <span class="e-noti-count !static !border-0 ml-auto">1</span>
+                      </div>
+                      <div class="e-noti-item is-unread !px-4">
+                        <span class="e-noti-ico e-noti-ico--notice" id="previewIcon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M17 9a4 4 0 0 1 0 6"/>
+                          </svg>
+                        </span>
+                        <span class="e-noti-body">
+                          <span class="e-noti-item-title">
+                            <span class="e-noti-unread-dot" aria-hidden="true"></span>
+                            <span id="previewTitle">제목이 여기에 표시됩니다</span>
+                          </span>
+                          <span class="e-noti-item-text" id="previewBody">내용이 여기에 표시됩니다. 알림 목록에서는 두 줄까지 보입니다.</span>
+                          <span class="e-noti-item-meta">
+                            <span class="e-badge e-badge--gray !text-[10.5px] !px-2 !py-0.5" id="previewType">공지</span>
+                            <span id="previewTime">방금 전</span>
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="e-alert e-alert--info mt-4">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    <div>
+                      <p class="e-alert-title">발송 전 확인</p>
+                      <p>발송한 알림은 회수할 수 없습니다. 예약 발송만 취소가 가능합니다.</p>
+                    </div>
+                  </div>
+
+                  <!-- 발송 규칙 요약 -->
+                  <div class="mt-4 p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
+                    <p class="text-[13px] font-extrabold text-[var(--ink-900)] mb-2.5">발송 규칙</p>
+                    <ul class="space-y-2">
+                      <li class="flex gap-2 t-xs">
+                        <span class="w-4 h-4 rounded-full grid place-items-center flex-none mt-0.5" style="background:var(--brand-50);color:var(--brand-600)">
+                          <svg style="width:10px;height:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        </span>
+                        <span>이벤트 · 광고는 <b>마케팅 동의자</b>에게만 발송</span>
+                      </li>
+                      <li class="flex gap-2 t-xs">
+                        <span class="w-4 h-4 rounded-full grid place-items-center flex-none mt-0.5" style="background:var(--brand-50);color:var(--brand-600)">
+                          <svg style="width:10px;height:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        </span>
+                        <span>광고성은 <b>21:00~08:00 발송 금지</b></span>
+                      </li>
+                      <li class="flex gap-2 t-xs">
+                        <span class="w-4 h-4 rounded-full grid place-items-center flex-none mt-0.5" style="background:var(--brand-50);color:var(--brand-600)">
+                          <svg style="width:10px;height:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        </span>
+                        <span>알림 수신을 끈 회원은 <b>자동 제외</b></span>
+                      </li>
+                      <li class="flex gap-2 t-xs">
+                        <span class="w-4 h-4 rounded-full grid place-items-center flex-none mt-0.5" style="background:var(--brand-50);color:var(--brand-600)">
+                          <svg style="width:10px;height:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        </span>
+                        <span>모든 발송은 <b>감사 로그</b>에 기록</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </form>
+
+        <!-- 발송 이력 -->
+        <section class="e-card mt-6">
+          <div class="e-card-head">
+            <p class="e-card-title">발송 이력</p>
+            <select class="e-select e-input-sm ml-auto" aria-label="이력 필터" style="width:auto">
+              <option value="all">전체</option>
+              <option value="NOTICE">공지</option>
+              <option value="EVENT">이벤트</option>
+              <option value="AD">광고</option>
+              <option value="SCHEDULED">예약 대기</option>
+            </select>
+          </div>
+
+          <div class="e-table-wrap !border-0 !rounded-none">
+            <table class="e-table e-table-compact" id="noticeHistoryTable">
+              <thead>
+                <tr>
+                  <th style="width:96px">유형</th>
+                  <th style="min-width:240px">제목</th>
+                  <th style="width:150px">대상</th>
+                  <th style="width:100px" class="!text-right">수신자</th>
+                  <th style="width:90px" class="!text-right">열람률</th>
+                  <th style="width:140px">발송 시각</th>
+                  <th style="width:100px">상태</th>
+                  <th style="width:110px" class="!text-right">관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-notice-id="N-1042">
+                  <td><span class="e-badge e-badge--brand-solid">이벤트</span></td>
+                  <td>
+                    <p class="cell-strong">영수증 리뷰 이벤트가 시작됐어요</p>
+                    <p class="t-xs mt-1 t-clamp-1">이번 주 리뷰 3건 작성 시 추첨을 통해 커피 쿠폰을 드립니다.</p>
+                  </td>
+                  <td>
+                    <span class="e-badge e-badge--warning">마케팅 동의자</span>
+                  </td>
+                  <td class="cell-num">46,208</td>
+                  <td class="cell-num">51.2%</td>
+                  <td class="t-num t-sm">07-30 11:00</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">발송 완료</span></td>
+                  <td class="cell-actions">
+                    <button type="button" class="btn btn-ghost btn-xs" data-view-notice>상세</button>
+                  </td>
+                </tr>
+
+                <tr data-notice-id="N-1041">
+                  <td><span class="e-badge e-badge--gray">공지</span></td>
+                  <td>
+                    <p class="cell-strong">[공지] 7월 30일 서버 점검 안내</p>
+                    <p class="t-xs mt-1 t-clamp-1">02:00~04:00 사이 일부 기능 이용이 제한될 수 있습니다.</p>
+                  </td>
+                  <td><span class="e-badge e-badge--info">전체 회원</span></td>
+                  <td class="cell-num">128,412</td>
+                  <td class="cell-num">38.4%</td>
+                  <td class="t-num t-sm">07-29 18:00</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">발송 완료</span></td>
+                  <td class="cell-actions">
+                    <button type="button" class="btn btn-ghost btn-xs" data-view-notice>상세</button>
+                  </td>
+                </tr>
+
+                <tr data-notice-id="N-1040">
+                  <td><span class="e-badge e-badge--success">서비스</span></td>
+                  <td>
+                    <p class="cell-strong">사업자 매장 관리 기능이 개선됐어요</p>
+                    <p class="t-xs mt-1 t-clamp-1">리뷰 태그 분포와 시간대별 방문 통계를 확인할 수 있습니다.</p>
+                  </td>
+                  <td><span class="e-badge e-badge--success">사업자 회원</span></td>
+                  <td class="cell-num">3,598</td>
+                  <td class="cell-num">64.8%</td>
+                  <td class="t-num t-sm">07-28 10:30</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">발송 완료</span></td>
+                  <td class="cell-actions">
+                    <button type="button" class="btn btn-ghost btn-xs" data-view-notice>상세</button>
+                  </td>
+                </tr>
+
+                <tr data-notice-id="N-1043">
+                  <td><span class="e-badge e-badge--brand-solid">광고</span></td>
+                  <td>
+                    <p class="cell-strong">제휴 카페 할인 쿠폰 안내</p>
+                    <p class="t-xs mt-1 t-clamp-1">잇티웨이 제휴 카페에서 사용 가능한 20% 쿠폰을 드립니다.</p>
+                  </td>
+                  <td><span class="e-badge e-badge--warning">마케팅 동의자</span></td>
+                  <td class="cell-num">46,208</td>
+                  <td class="cell-num t-muted">-</td>
+                  <td class="t-num t-sm">08-02 10:00</td>
+                  <td><span class="e-status e-status--warn !text-[12.5px]">예약 대기</span></td>
+                  <td class="cell-actions">
+                    <button type="button" class="btn btn-ghost btn-xs" data-view-notice>상세</button>
+                    <button type="button" class="btn btn-ghost btn-xs !text-[var(--danger)]" data-cancel-notice>취소</button>
+                  </td>
+                </tr>
+
+                <tr data-notice-id="N-1039">
+                  <td><span class="e-badge e-badge--gray">공지</span></td>
+                  <td>
+                    <p class="cell-strong">[공지] 개인정보처리방침 개정 안내 (v2.1)</p>
+                    <p class="t-xs mt-1 t-clamp-1">2026년 5월 1일부터 개정된 방침이 적용됩니다.</p>
+                  </td>
+                  <td><span class="e-badge e-badge--info">전체 회원</span></td>
+                  <td class="cell-num">126,880</td>
+                  <td class="cell-num">44.1%</td>
+                  <td class="t-num t-sm">04-24 09:00</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">발송 완료</span></td>
+                  <td class="cell-actions">
+                    <button type="button" class="btn btn-ghost btn-xs" data-view-notice>상세</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <!-- ================================================================
+           섹션 4 · API 서버 모니터링
+           ================================================================ -->
+      <section class="adm-section" id="sectionMonitor" hidden>
+
+        <div class="flex flex-wrap items-end gap-4 mb-6">
+          <div>
+            <h1 class="e-page-title">API 서버 모니터링</h1>
+            <p class="e-page-desc">서비스별 상태와 응답 시간을 확인합니다.</p>
+          </div>
+          <div class="ml-auto flex items-center gap-4">
+            <label class="e-switch" for="monitorAutoRefreshSwitch">
+              <input type="checkbox" id="monitorAutoRefreshSwitch" checked>
+              <span class="e-switch-track"></span>
+              <span class="text-[13px] font-bold text-[var(--ink-700)] whitespace-nowrap">10초 자동 갱신</span>
+            </label>
+            <span class="e-badge e-badge--success e-badge-lg" id="monitorOverallStatus">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              전체 정상
+            </span>
+          </div>
+        </div>
+
+        <!-- 요약 -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+          <div class="e-card e-stat">
+            <p class="e-stat-label">평균 응답시간</p>
+            <p class="e-stat-value !text-[24px]">128<span class="text-[15px] font-bold t-muted ml-1">ms</span></p>
+            <p class="e-stat-sub">최근 5분 기준</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">에러율</p>
+            <p class="e-stat-value !text-[24px]">0.14<span class="text-[15px] font-bold t-muted ml-1">%</span></p>
+            <p class="e-stat-sub">임계값 1% 이하</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">WebSocket 연결</p>
+            <p class="e-stat-value !text-[24px]" id="monitorWsStatus">1,842</p>
+            <p class="e-stat-sub">STOMP 세션 수</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">DB 커넥션</p>
+            <p class="e-stat-value !text-[24px]" id="monitorDbStatus">18<span class="text-[15px] font-bold t-muted ml-1">/ 50</span></p>
+            <p class="e-stat-sub">HikariCP 풀</p>
+          </div>
+        </div>
+
+        <!-- 서비스별 상태 -->
+        <div class="e-card mb-5">
+          <div class="e-card-head">
+            <p class="e-card-title">서비스별 상태</p>
+            <span class="t-xs ml-auto">/api/admin/health 응답 기준</span>
+          </div>
+          <div class="e-table-wrap !border-0 !rounded-none">
+            <table class="e-table e-table-compact" id="monitorTable">
+              <thead>
+                <tr>
+                  <th style="min-width:200px">서비스</th>
+                  <th style="width:110px">상태</th>
+                  <th style="width:110px" class="!text-right">응답시간</th>
+                  <th style="width:110px" class="!text-right">에러율</th>
+                  <th style="width:110px" class="!text-right">가동률</th>
+                  <th style="min-width:180px">비고</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="svc-row" data-service="api">
+                  <td class="cell-strong">Spring Boot REST API</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">정상</span></td>
+                  <td class="cell-num">96ms</td>
+                  <td class="cell-num">0.08%</td>
+                  <td class="cell-num">99.98%</td>
+                  <td class="t-sm t-muted">-</td>
+                </tr>
+                <tr class="svc-row" data-service="websocket">
+                  <td class="cell-strong">WebSocket (STOMP)</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">정상</span></td>
+                  <td class="cell-num">42ms</td>
+                  <td class="cell-num">0.02%</td>
+                  <td class="cell-num">99.99%</td>
+                  <td class="t-sm t-muted">활성 세션 1,842</td>
+                </tr>
+                <tr class="svc-row" data-service="database">
+                  <td class="cell-strong">Database (MySQL)</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">정상</span></td>
+                  <td class="cell-num">12ms</td>
+                  <td class="cell-num">0.00%</td>
+                  <td class="cell-num">100%</td>
+                  <td class="t-sm t-muted">슬로우 쿼리 0건</td>
+                </tr>
+                <tr class="svc-row" data-service="ocr">
+                  <td class="cell-strong">OCR 서비스 (영수증)</td>
+                  <td><span class="e-status e-status--warn !text-[12.5px]">지연</span></td>
+                  <td class="cell-num !text-[var(--warning-ink)] font-bold">1,842ms</td>
+                  <td class="cell-num">0.42%</td>
+                  <td class="cell-num">99.72%</td>
+                  <td class="t-sm !text-[var(--warning-ink)]">평시 대비 3배 지연</td>
+                </tr>
+                <tr class="svc-row" data-service="ai">
+                  <td class="cell-strong">AI 추천 엔진</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">정상</span></td>
+                  <td class="cell-num">684ms</td>
+                  <td class="cell-num">0.21%</td>
+                  <td class="cell-num">99.91%</td>
+                  <td class="t-sm t-muted">-</td>
+                </tr>
+                <tr class="svc-row" data-service="naver-map">
+                  <td class="cell-strong">Naver Maps API</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">정상</span></td>
+                  <td class="cell-num">148ms</td>
+                  <td class="cell-num">0.05%</td>
+                  <td class="cell-num">99.96%</td>
+                  <td class="t-sm t-muted">일 호출 42,180 / 100,000</td>
+                </tr>
+                <tr class="svc-row" data-service="mail">
+                  <td class="cell-strong">메일 발송 (SMTP)</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">정상</span></td>
+                  <td class="cell-num">312ms</td>
+                  <td class="cell-num">0.11%</td>
+                  <td class="cell-num">99.89%</td>
+                  <td class="t-sm t-muted">대기 큐 3건</td>
+                </tr>
+                <tr class="svc-row" data-service="sms">
+                  <td class="cell-strong">SMS 인증 발송</td>
+                  <td><span class="e-status e-status--on !text-[12.5px]">정상</span></td>
+                  <td class="cell-num">268ms</td>
+                  <td class="cell-num">0.09%</td>
+                  <td class="cell-num">99.94%</td>
+                  <td class="t-sm t-muted">-</td>
+                </tr>
+                <tr class="svc-row" data-service="oauth">
+                  <td class="cell-strong">소셜 로그인 (OAuth)</td>
+                  <td><span class="e-status e-status--off !text-[12.5px]">장애</span></td>
+                  <td class="cell-num !text-[var(--danger)] font-bold">timeout</td>
+                  <td class="cell-num !text-[var(--danger)] font-bold">12.4%</td>
+                  <td class="cell-num">98.21%</td>
+                  <td class="t-sm !text-[var(--danger)]">네이버 OAuth 응답 없음</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ==================== 외부 데이터 동기화 ====================
+             ★ POST /api/admin/parking-lots/sync
+               공영주차장 공공데이터를 내려받아 DB 를 갱신합니다.
+               실행 시간이 길 수 있으므로 버튼에 .is-loading 을 붙여 중복 클릭을 막습니다. -->
+        <div class="e-card mb-5">
+          <div class="e-card-head">
+            <p class="e-card-title">외부 데이터 동기화</p>
+            <span class="t-xs ml-auto">공공데이터 기반</span>
+          </div>
+          <div class="e-card-body">
+            <div class="e-file-item !items-start">
+              <span class="e-stat-ico e-stat-ico--info flex-none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 17h14M4 17V11l2-5h12l2 5v6"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/>
+                </svg>
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="text-sm font-extrabold text-[var(--ink-900)]">공영주차장 데이터</p>
+                  <span class="e-badge e-badge--success" id="parkingSyncStatus">최신</span>
+                </div>
+                <p class="t-xs mt-1 leading-relaxed">
+                  지도 탐색의 <b>주변 주차장</b> 목록에 사용됩니다.
+                  현재 <b class="t-num" id="parkingSyncCount">12,486</b>건 ·
+                  마지막 동기화 <b class="t-num" id="parkingSyncedAt">2026-07-29 03:10</b>
+                </p>
+              </div>
+              <button type="button" class="btn btn-outline btn-sm flex-none" id="parkingSyncBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+                지금 동기화
+              </button>
+            </div>
+
+            <div class="e-alert e-alert--info mt-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+              <div>
+                <p>동기화는 매일 03:00에 자동 실행됩니다. 수동 실행은 데이터 누락이 확인된 경우에만 사용해주세요. 완료까지 수 분이 걸릴 수 있습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-5">
+          <!-- 응답시간 추이 -->
+          <div class="e-card">
+            <div class="e-card-head">
+              <p class="e-card-title">응답시간 추이 (1시간)</p>
+              <span class="e-badge e-badge--gray ml-auto">평균 128ms</span>
+            </div>
+            <div class="e-card-body">
+              <div class="adm-bars" id="monitorLatencyChart" role="img" aria-label="최근 1시간 응답시간 추이">
+                <span style="height:32%"></span>
+                <span style="height:28%"></span>
+                <span style="height:35%"></span>
+                <span style="height:30%"></span>
+                <span style="height:41%"></span>
+                <span style="height:38%"></span>
+                <span style="height:52%"></span>
+                <span style="height:100%" class="is-peak"></span>
+                <span style="height:46%"></span>
+                <span style="height:34%"></span>
+                <span style="height:29%"></span>
+                <span style="height:33%"></span>
+              </div>
+              <div class="flex justify-between t-xs mt-3">
+                <span>13:40</span><span>14:00</span><span>14:20</span><span>14:38</span>
+              </div>
+              <div class="e-alert e-alert--warning mt-4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.6 2.7h15.8A1.8 1.8 0 0 0 21.5 18L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+                <div>
+                  <p class="e-alert-title">14:06 응답시간 급증 (1,842ms)</p>
+                  <p>OCR 서비스 요청이 몰린 시점과 일치합니다.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 에러 로그 -->
+          <div class="e-card">
+            <div class="e-card-head">
+              <p class="e-card-title">최근 에러 로그</p>
+              <button type="button" class="e-link-brand text-[12.5px] ml-auto" data-demo-toast="전체 로그를 불러왔습니다.">전체 보기</button>
+            </div>
+            <div class="e-card-body">
+              <div class="adm-log e-scroll" id="monitorErrorLogList">
+<span class="ts">14:38:01</span> <span class="lv-error">ERROR</span> [oauth-naver] Connection timed out after 5000ms
+<span class="ts">14:37:44</span> <span class="lv-error">ERROR</span> [oauth-naver] Retry 3/3 failed — circuit breaker OPEN
+<span class="ts">14:36:12</span> <span class="lv-warn">WARN </span> [ocr-service] Slow response: 1842ms (threshold 800ms)
+<span class="ts">14:34:58</span> <span class="lv-warn">WARN </span> [ocr-service] Queue depth 24 (threshold 10)
+<span class="ts">14:31:07</span> <span class="lv-info">INFO </span> [scheduler] Suspended member auto-release: 4 accounts
+<span class="ts">14:22:33</span> <span class="lv-error">ERROR</span> [review-api] Duplicate receipt hash rejected (memberId=1002)
+<span class="ts">14:18:02</span> <span class="lv-warn">WARN </span> [naver-map] Daily quota 42% used
+<span class="ts">14:05:41</span> <span class="lv-info">INFO </span> [websocket] Session peak 1,842 (max 5,000)
+<span class="ts">13:58:19</span> <span class="lv-info">INFO </span> [admin-audit] Report R-2418 handled by admin@eattyway.com
+<span class="ts">13:52:06</span> <span class="lv-error">ERROR</span> [mail-service] SMTP 421 Too many concurrent connections
+              </div>
+
+              <div class="flex gap-2 mt-4">
+                <button type="button" class="btn btn-outline btn-sm flex-1" data-demo-toast="OAuth 서비스 재시도를 요청했습니다.">
+                  OAuth 재연결 시도
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm flex-1" data-demo-toast="로그를 다운로드합니다.">
+                  로그 다운로드
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- ==================== 회원 정지 모달 ==================== -->
+<div class="e-modal" id="suspendModal" role="dialog" aria-modal="true" aria-labelledby="suspendTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel">
+    <div class="e-modal-head">
+      <div>
+        <span class="e-modal-icon e-modal-icon--danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9h2v6H9zM13 9h2v6h-2z"/></svg>
+        </span>
+        <h2 class="e-modal-title" id="suspendTitle">회원 정지 처리</h2>
+        <p class="e-modal-desc">
+          <b class="t-strong" id="suspendTargetName">광고맛집왕</b> 계정의 서비스 이용을 제한합니다.
+          정지 기간 동안 로그인이 차단됩니다.
+        </p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-body">
+      <div class="e-field">
+        <label class="e-label" for="suspendPeriodSelect">정지 기간 <span class="req">*</span></label>
+        <select class="e-select" id="suspendPeriodSelect" name="period" required>
+          <option value="7">7일</option>
+          <option value="14">14일</option>
+          <option value="30" selected>30일</option>
+          <option value="90">90일</option>
+          <option value="permanent">영구 정지</option>
+        </select>
+      </div>
+
+      <div class="e-field">
+        <label class="e-label" for="suspendReasonSelect">정지 사유 <span class="req">*</span></label>
+        <select class="e-select" id="suspendReasonSelect" name="reason" required>
+          <option value="">사유를 선택해주세요</option>
+          <option value="FAKE_REVIEW">허위 · 광고성 리뷰 반복 작성</option>
+          <option value="FAKE_RECEIPT">영수증 위조 · 변조</option>
+          <option value="ABUSE">욕설 · 비방 · 혐오 표현</option>
+          <option value="SPAM">도배 · 스팸 행위</option>
+          <option value="PRIVACY">타인 개인정보 유포</option>
+          <option value="IMPERSONATION">타인 사칭</option>
+          <option value="ILLEGAL">불법 거래 유도</option>
+          <option value="ETC">기타</option>
+        </select>
+      </div>
+
+      <div class="e-field">
+        <label class="e-label" for="suspendDetail">
+          상세 내용 <span class="req">*</span>
+          <span class="e-label-side"><span data-counter="suspendDetail">0 / 500</span></span>
+        </label>
+        <textarea class="e-textarea" id="suspendDetail" name="detail" maxlength="500"
+                  placeholder="회원에게 안내될 내용입니다. 위반 근거를 구체적으로 적어주세요."></textarea>
+      </div>
+
+      <div class="e-field !mb-0">
+        <label class="e-check" for="suspendNotifyCheck">
+          <input type="checkbox" id="suspendNotifyCheck" checked>
+          <span>정지 안내 메일을 발송합니다</span>
+        </label>
+      </div>
+
+      <div class="e-alert e-alert--warning mt-4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.6 2.7h15.8A1.8 1.8 0 0 0 21.5 18L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <div>
+          <p>정지 처리는 감사 로그에 기록됩니다. 회원은 14일 내에 이의를 제기할 수 있습니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-danger" id="suspendConfirmBtn">정지 처리</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 회원 상세 모달 ==================== -->
+<div class="e-modal" id="memberDetailModal" role="dialog" aria-modal="true" aria-labelledby="memberDetailTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--lg">
+    <div class="e-modal-head">
+      <div>
+        <h2 class="e-modal-title" id="memberDetailTitle">회원 상세</h2>
+        <p class="e-modal-desc">계정 정보와 활동 이력을 확인합니다.</p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-body">
+      <!-- 프로필 -->
+      <div class="flex items-center gap-4 pb-5 border-b border-[var(--line)]">
+        <span class="e-avatar e-avatar-lg flex-none" id="memberDetailAvatar" aria-hidden="true">잇</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <p class="text-[17px] font-extrabold text-[var(--ink-900)]" id="memberDetailName">잇티러버</p>
+            <span class="e-badge e-badge--gray" id="memberDetailRole">일반 회원</span>
+            <span class="e-status e-status--on !text-[12.5px]" id="memberDetailStatus">정상</span>
+          </div>
+          <p class="t-sm mt-1" id="memberDetailEmail">eatty@example.com</p>
+        </div>
+      </div>
+
+      <!-- 요약 정보 -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 py-5 border-b border-[var(--line)]">
+        <div>
+          <p class="t-xs">가입일</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] t-num mt-1">2025-04-18</p>
+        </div>
+        <div>
+          <p class="t-xs">최근 접속</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] t-num mt-1">2026-07-31</p>
+        </div>
+        <div>
+          <p class="t-xs">로그인 방식</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] mt-1">이메일</p>
+        </div>
+        <div>
+          <p class="t-xs">음BTI</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] mt-1">매콤탐험가</p>
+        </div>
+      </div>
+
+      <!-- 알림 수신 동의 현황 -->
+      <div class="py-5 border-b border-[var(--line)]">
+        <p class="t-h4 mb-3">알림 수신 설정</p>
+        <div class="flex flex-wrap gap-2" id="memberDetailNotiConsent">
+          <span class="e-badge e-badge--success e-badge-lg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            추천 알림 동의
+          </span>
+          <span class="e-badge e-badge--success e-badge-lg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            채팅 알림 동의
+          </span>
+          <span class="e-badge e-badge--gray e-badge-lg" id="memberDetailMarketing">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            마케팅 수신 미동의
+          </span>
+        </div>
+        <p class="e-hint">마케팅 미동의 회원에게는 이벤트 · 광고 알림을 발송할 수 없습니다.</p>
+      </div>
+
+      <!-- 활동 통계 -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-5 border-b border-[var(--line)]">
+        <div class="e-card e-card-flat bg-[var(--bg-soft)] p-3.5">
+          <p class="t-xs">작성 리뷰</p>
+          <p class="text-[19px] font-extrabold text-[var(--ink-900)] t-num mt-1">18</p>
+        </div>
+        <div class="e-card e-card-flat bg-[var(--bg-soft)] p-3.5">
+          <p class="t-xs">받은 신고</p>
+          <p class="text-[19px] font-extrabold text-[var(--ink-900)] t-num mt-1">0</p>
+        </div>
+        <div class="e-card e-card-flat bg-[var(--bg-soft)] p-3.5">
+          <p class="t-xs">즐겨찾기</p>
+          <p class="text-[19px] font-extrabold text-[var(--ink-900)] t-num mt-1">24</p>
+        </div>
+        <div class="e-card e-card-flat bg-[var(--bg-soft)] p-3.5">
+          <p class="t-xs">참여 채팅방</p>
+          <p class="text-[19px] font-extrabold text-[var(--ink-900)] t-num mt-1">3</p>
+        </div>
+      </div>
+
+      <!-- 제재 이력 -->
+      <div class="pt-5">
+        <p class="t-h4 mb-3">제재 이력</p>
+        <div class="e-empty !py-8">
+          <div class="e-empty-icon !w-14 !h-14">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.3 3.4 9.4 8 11 4.6-1.6 8-5.7 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <p class="e-empty-title !text-[14px]">제재 이력이 없습니다</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>닫기</button>
+      <button type="button" class="btn btn-danger-soft" data-modal-close data-modal-open="suspendModal">정지 처리</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 리뷰 원문 모달 ==================== -->
+<div class="e-modal" id="adminReviewModal" role="dialog" aria-modal="true" aria-labelledby="adminReviewTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--lg">
+    <div class="e-modal-head">
+      <div>
+        <h2 class="e-modal-title" id="adminReviewTitle">리뷰 원문 <span class="t-num t-brand" id="adminReviewId">#8842</span></h2>
+        <p class="e-modal-desc">영수증 인증 정보와 함께 확인합니다.</p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-body">
+      <div class="grid sm:grid-cols-3 gap-4 pb-5 border-b border-[var(--line)]">
+        <div>
+          <p class="t-xs">가게</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] mt-1" id="adminReviewShop">잇티식당 강남점</p>
+        </div>
+        <div>
+          <p class="t-xs">작성자</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] mt-1" id="adminReviewAuthor">광고맛집왕</p>
+        </div>
+        <div>
+          <p class="t-xs">작성일</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] t-num mt-1" id="adminReviewDate">2026-07-28</p>
+        </div>
+      </div>
+
+      <div class="py-5 border-b border-[var(--line)]">
+        <div class="flex items-center gap-2.5 mb-3">
+          <span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true">광</span>
+          <span class="e-rating">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+            <span class="e-rating-score">5.0</span>
+          </span>
+          <span class="e-badge e-badge--success ml-auto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            영수증 인증
+          </span>
+        </div>
+
+        <p class="t-body leading-relaxed" id="adminReviewContent">
+          여기 진짜 최고예요!! 사장님이 리뷰 써주면 음료수 서비스 준다고 하셔서 썼는데
+          음식도 맛있고 좋네요~ 다들 꼭 가보세요!!
+        </p>
+
+        <div class="flex flex-wrap gap-1.5 mt-3" id="adminReviewTags">
+          <span class="e-tag e-tag--pos">맛이 좋아요</span>
+          <span class="e-tag e-tag--pos">친절해요</span>
+        </div>
+      </div>
+
+      <div class="py-5 border-b border-[var(--line)]">
+        <p class="t-xs mb-2">영수증 인증 정보</p>
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div>
+            <p class="t-xs">방문일시</p>
+            <p class="text-sm font-bold text-[var(--ink-900)] t-num mt-1">2026-07-27 19:24</p>
+          </div>
+          <div>
+            <p class="t-xs">결제금액</p>
+            <p class="text-sm font-bold text-[var(--ink-900)] t-num mt-1">44,000원</p>
+          </div>
+          <div>
+            <p class="t-xs">영수증 이미지</p>
+            <p class="text-sm font-bold text-[var(--ink-900)] mt-1">보관 중 (90일)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-5">
+        <div class="e-alert e-alert--danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <div>
+            <p class="e-alert-title">이 리뷰에 신고 3건이 접수되어 있습니다</p>
+            <p>사유: 허위 · 광고성 리뷰 (3건). 신고 관리에서 함께 처리할 수 있습니다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>닫기</button>
+      <button type="button" class="btn btn-danger" id="adminReviewDeleteBtn">리뷰 삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 리뷰 삭제 확인 모달 ==================== -->
+<div class="e-modal" id="deleteReviewModal" role="dialog" aria-modal="true" aria-labelledby="deleteReviewTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--sm">
+    <div class="e-modal-head">
+      <div>
+        <span class="e-modal-icon e-modal-icon--danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>
+        </span>
+        <h2 class="e-modal-title" id="deleteReviewTitle">리뷰를 삭제할까요?</h2>
+        <p class="e-modal-desc">
+          <b class="t-strong" id="deleteReviewTarget">#8842 · 잇티식당 강남점</b><br>
+          삭제하면 복구할 수 없고, 매장 평균 별점이 다시 계산됩니다. 작성자에게는 삭제 사유가 안내됩니다.
+        </p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-body">
+      <div class="e-field !mb-0">
+        <label class="e-label" for="deleteReviewReason">삭제 사유 <span class="req">*</span></label>
+        <select class="e-select" id="deleteReviewReason" required>
+          <option value="">사유를 선택해주세요</option>
+          <option value="FAKE">허위 · 광고성 리뷰</option>
+          <option value="ABUSE">욕설 · 비방</option>
+          <option value="PRIVACY">개인정보 노출</option>
+          <option value="IRRELEVANT">가게와 무관한 내용</option>
+          <option value="DUPLICATE">중복 · 도배</option>
+          <option value="ETC">기타</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-danger" id="deleteReviewConfirmBtn">삭제하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 알림 발송 확인 모달 ==================== -->
+<div class="e-modal" id="sendNoticeModal" role="dialog" aria-modal="true" aria-labelledby="sendNoticeTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel">
+    <div class="e-modal-head">
+      <div>
+        <span class="e-modal-icon e-modal-icon--brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+        </span>
+        <h2 class="e-modal-title" id="sendNoticeTitle">알림을 발송할까요?</h2>
+        <p class="e-modal-desc">발송된 알림은 회수할 수 없습니다. 내용을 다시 확인해주세요.</p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-body">
+      <div class="e-card e-card-flat bg-[var(--bg-soft)] p-4 space-y-2.5">
+        <div class="flex items-start justify-between gap-3">
+          <span class="t-sm font-semibold flex-none">알림 유형</span>
+          <span class="text-sm font-bold text-[var(--ink-900)] text-right" id="confirmTypeText">공지</span>
+        </div>
+        <div class="flex items-start justify-between gap-3">
+          <span class="t-sm font-semibold flex-none">제목</span>
+          <span class="text-sm font-bold text-[var(--ink-900)] text-right" id="confirmTitleText">-</span>
+        </div>
+        <div class="flex items-start justify-between gap-3 pt-3 border-t border-[var(--line)]">
+          <span class="t-sm font-semibold flex-none">발송 대상</span>
+          <span class="text-sm font-bold text-[var(--ink-900)] text-right" id="confirmTargetText">전체 회원</span>
+        </div>
+        <div class="flex items-start justify-between gap-3">
+          <span class="t-sm font-semibold flex-none">예상 수신자</span>
+          <span class="text-sm font-extrabold text-[var(--brand-600)] t-num text-right" id="confirmCountText">128,412명</span>
+        </div>
+        <div class="flex items-start justify-between gap-3">
+          <span class="t-sm font-semibold flex-none">발송 시점</span>
+          <span class="text-sm font-bold text-[var(--ink-900)] text-right" id="confirmScheduleText">즉시 발송</span>
+        </div>
+      </div>
+
+      <!-- 광고성일 때만 노출 -->
+      <div class="e-alert e-alert--warning mt-4" id="confirmConsentAlert" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.6 2.7h15.8A1.8 1.8 0 0 0 21.5 18L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <div>
+          <p class="e-alert-title">광고성 정보 발송</p>
+          <p>마케팅 수신에 동의한 회원에게만 발송됩니다. 제목에 <b>(광고)</b> 표기가 자동으로 붙습니다.</p>
+        </div>
+      </div>
+
+      <div class="e-field !mb-0 mt-4">
+        <label class="e-check" for="confirmSendCheck">
+          <input type="checkbox" id="confirmSendCheck">
+          <span>내용과 발송 대상을 확인했습니다.</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-primary" id="sendNoticeConfirmBtn">발송하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 신고 처리 모달 ==================== -->
+<div class="e-modal" id="handleReportModal" role="dialog" aria-modal="true" aria-labelledby="handleReportTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--lg">
+    <div class="e-modal-head">
+      <div>
+        <h2 class="e-modal-title" id="handleReportTitle">신고 처리 <span class="t-num t-brand" id="handleReportId">#R-2419</span></h2>
+        <p class="e-modal-desc">신고 내용을 확인하고 조치를 선택해주세요.</p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-body">
+
+      <!-- 신고 정보 -->
+      <div class="grid sm:grid-cols-3 gap-4 pb-5 border-b border-[var(--line)]">
+        <div>
+          <p class="t-xs">신고 유형</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] mt-1">리뷰 신고</p>
+        </div>
+        <div>
+          <p class="t-xs">신고자</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] mt-1">매콤한김밥</p>
+        </div>
+        <div>
+          <p class="t-xs">접수일</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] t-num mt-1">2026-07-29 21:14</p>
+        </div>
+      </div>
+
+      <!-- 신고 사유 -->
+      <div class="py-5 border-b border-[var(--line)]">
+        <p class="t-xs mb-2">신고 사유</p>
+        <span class="e-badge e-badge--danger e-badge-lg">허위 · 광고성 리뷰</span>
+        <p class="t-sm mt-3 leading-relaxed">
+          "이 집 사장님이 리뷰 써주면 서비스 준다고 했어요" 라는 내용이 포함되어 있습니다.
+          대가성 리뷰로 보입니다.
+        </p>
+      </div>
+
+      <!-- 신고 대상 콘텐츠 -->
+      <div class="py-5 border-b border-[var(--line)]">
+        <p class="t-xs mb-2.5">신고 대상 콘텐츠</p>
+        <div class="p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]" id="reportTargetContent">
+          <div class="flex items-center gap-2.5 mb-3">
+            <span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true">광</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-bold text-[var(--ink-900)]">광고맛집왕</p>
+              <div class="flex items-center gap-2">
+                <span class="e-rating">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                </span>
+                <span class="t-xs t-num">2026-07-28</span>
+              </div>
+            </div>
+            <span class="e-badge e-badge--gray flex-none">리뷰 ID 8842</span>
+          </div>
+          <p class="t-sm leading-relaxed">
+            여기 진짜 최고예요!! 사장님이 리뷰 써주면 음료수 서비스 준다고 하셔서 썼는데
+            음식도 맛있고 좋네요~ 다들 꼭 가보세요!!
+          </p>
+          <div class="flex flex-wrap gap-1.5 mt-3">
+            <span class="e-tag e-tag--pos">맛이 좋아요</span>
+            <span class="e-tag e-tag--pos">친절해요</span>
+          </div>
+        </div>
+
+        <!-- 피신고자 이력 -->
+        <div class="e-alert e-alert--danger mt-4">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <div>
+            <p class="e-alert-title">피신고자 누적 신고 12건 · 정지 이력 1회</p>
+            <p>동일 유형(허위 리뷰) 신고가 8건 있습니다. 상향 조치를 검토해주세요.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 조치 선택 -->
+      <div class="pt-5">
+        <div class="e-field">
+          <label class="e-label" for="reportActionSelect">조치 내용 <span class="req">*</span></label>
+          <select class="e-select" id="reportActionSelect" name="action" required>
+            <option value="">조치를 선택해주세요</option>
+            <option value="NO_ACTION">조치 없음 (신고 반려)</option>
+            <option value="HIDE_CONTENT">콘텐츠 비공개 처리</option>
+            <option value="DELETE_CONTENT">콘텐츠 삭제</option>
+            <option value="WARN">작성자 경고 발송</option>
+            <option value="HIDE_AND_WARN" selected>콘텐츠 비공개 + 경고</option>
+            <option value="SUSPEND_7">콘텐츠 삭제 + 7일 정지</option>
+            <option value="SUSPEND_30">콘텐츠 삭제 + 30일 정지</option>
+            <option value="SUSPEND_PERMANENT">콘텐츠 삭제 + 영구 정지</option>
+          </select>
+        </div>
+
+        <div class="e-field">
+          <label class="e-label" for="reportMemo">
+            처리 메모 <span class="req">*</span>
+            <span class="e-label-side"><span data-counter="reportMemo">0 / 500</span></span>
+          </label>
+          <textarea class="e-textarea" id="reportMemo" name="memo" maxlength="500"
+                    placeholder="판단 근거를 기록해주세요. 감사 로그에 남습니다."></textarea>
+        </div>
+
+        <div class="e-field !mb-0 space-y-2.5">
+          <label class="e-check" for="reportNotifyReporter">
+            <input type="checkbox" id="reportNotifyReporter" checked>
+            <span>신고자에게 처리 결과를 안내합니다</span>
+          </label>
+          <label class="e-check" for="reportNotifyTarget">
+            <input type="checkbox" id="reportNotifyTarget" checked>
+            <span>피신고자에게 조치 사유를 안내합니다</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-primary" id="handleReportConfirmBtn">처리 완료</button>
+    </div>
+  </div>
+</div>
+
 <script>
-const API_BASE = '';
-const h = React.createElement;
-const DS = window.AdminDesignSystem_daf0d7;
-const REASON_LABELS = { SPAM:'스팸/도배', ABUSE:'욕설/비방', FALSE_INFO:'허위 사실', PRIVACY:'개인정보 노출', ETC:'기타' };
-function reasonLabel(code){ return REASON_LABELS[code] || code || '-'; }
-function fmtDate(iso){ return iso ? iso.slice(0,10).replace(/-/g,'.') : ''; }
-const STATUS_MAP_TO_MOCK = { PENDING:'received', RESOLVED:'done', REJECTED:'rejected' };
+/* ---------------------------------------------------------------------------
+   admin 시안 데모 스크립트 — 실제 연동 시 admin.js 로 대체
+   --------------------------------------------------------------------------- */
+(function () {
+  var SECTIONS = {
+    dashboard: document.getElementById('sectionDashboard'),
+    members: document.getElementById('sectionMembers'),
+    reports: document.getElementById('sectionReports'),
+    reviews: document.getElementById('sectionReviews'),
+    notice: document.getElementById('sectionNotice'),
+    monitor: document.getElementById('sectionMonitor')
+  };
 
-/* ---- 실 백엔드 DTO를 원본 디자인의 mock 데이터 모양(data.js)으로 맞추는 어댑터 ---- */
-function mapMember(m){
-  return { id:m.memberId, name:m.nickname, email:m.email,
-    type: m.role === 'BUSINESS' ? '사업자' : m.role === 'ADMIN' ? '관리자' : '일반',
-    status: m.status === 'SUSPENDED' ? 'suspended' : 'active',
-    joined: fmtDate(m.createdAt), raw:m };
-}
-function mapReview(r, membersById){
-  const author = membersById[r.memberId];
-  return { id:r.reviewId, author:r.nickname, email: author ? author.email : '',
-    place: r.restaurantName || r.restaurantId, rating:r.rating, content:r.content,
-    date: fmtDate(r.createdAt), raw:r };
-}
-function mapReviewReport(r){
-  return { id:'review-' + r.reviewId, kind:'review', category: reasonLabel(r.latestReasonCode),
-    content: `신고 ${r.reportCount}건 · 최근 사유: ${reasonLabel(r.latestReasonCode)}`,
-    target: r.content, targetUser: r.authorNickname, reporter: '',
-    status: STATUS_MAP_TO_MOCK[r.status] || 'received', date: fmtDate(r.latestReportedAt), raw:r };
-}
-function mapChatReport(c){
-  const isRoom = c.targetType === 'ROOM';
-  return { id:(isRoom ? 'chatroom-' : 'chat-') + c.chatReportId, kind: isRoom ? 'chatroom' : 'chat',
-    category: reasonLabel(c.reasonCode), content: c.detail || '(상세 내용 없음)',
-    target: isRoom ? (c.roomTitle || '-') : (c.contentSnapshot || '-'), targetUser:'',
-    reporter: c.reporterNickname, status: STATUS_MAP_TO_MOCK[c.status] || 'received',
-    date: fmtDate(c.createdAt), raw:c };
-}
-
-function AuthCard({ children }){
-  return h('div', { style:{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24 } },
-    h('div', { className:'auth-card' }, children));
-}
-
-function DeniedScreen({ message, onBack }){
-  const { Button } = DS;
-  return h(AuthCard, null,
-    h('img', { src:'img/admin/logo.png', alt:'잇티웨이', width:72, height:72, style:{ marginBottom:8, objectFit:'contain' } }),
-    h('h2', null, '접근할 수 없습니다'),
-    h('div', { className:'err', style:{ marginTop:0 } }, message),
-    h(Button, { variant:'outline', fullWidth:true, style:{ marginTop:18 }, onClick:onBack }, '메인으로 돌아가기'));
-}
-
-function App(){
-  const { Sidebar } = DS;
-  const [screen, setScreen] = React.useState('checking'); // checking | denied | app
-  const [deniedMessage, setDeniedMessage] = React.useState('');
-  const [page, setPage] = React.useState(localStorage.getItem('eattway-admin-page') || 'dash');
-
-  const [members, setMembers] = React.useState([]);
-  const [reviews, setReviews] = React.useState([]);
-  const [reports, setReports] = React.useState([]);
-
-  const accessTokenRef = React.useRef(Api.getAccessToken());
-  const authHeaders = React.useCallback(() =>
-    accessTokenRef.current ? { Authorization: 'Bearer ' + accessTokenRef.current } : {}, []);
-
-  React.useEffect(() => { localStorage.setItem('eattway-admin-page', page); }, [page]);
-
-  async function reloadMembers(){
-    const res = await fetch(`${API_BASE}/api/admin/members`, { headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || '회원 목록 조회 실패');
-    setMembers(data.map(mapMember));
-    return data;
-  }
-  async function reloadReviews(membersRaw){
-    const res = await fetch(`${API_BASE}/api/admin/reviews`, { headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || '리뷰 목록 조회 실패');
-    const byId = {};
-    (membersRaw || []).forEach(m => { byId[m.memberId] = m; });
-    setReviews(data.map(r => mapReview(r, byId)));
-  }
-  async function reloadReports(){
-    const statuses = ['PENDING', 'RESOLVED', 'REJECTED'];
-    const calls = [];
-    statuses.forEach(st => {
-      calls.push(fetch(`${API_BASE}/api/admin/reports?status=${st}`, { headers: authHeaders() }).then(r => r.ok ? r.json() : []));
-      calls.push(fetch(`${API_BASE}/api/admin/chat-reports?status=${st}`, { headers: authHeaders() }).then(r => r.ok ? r.json() : []));
+  /* ---- 사이드바 섹션 전환 ---- */
+  function showSection(key) {
+    Object.keys(SECTIONS).forEach(function (k) {
+      SECTIONS[k].hidden = k !== key;
     });
-    const results = await Promise.all(calls);
-    let merged = [];
-    statuses.forEach((st, i) => {
-      merged = merged.concat(results[i * 2].map(mapReviewReport));
-      merged = merged.concat(results[i * 2 + 1].map(mapChatReport));
+    document.querySelectorAll('.e-admin-side-link[data-admin-nav]').forEach(function (a) {
+      a.classList.toggle('is-active', a.getAttribute('data-admin-nav') === key);
     });
-    setReports(merged);
-  }
-  async function reloadAll(){
-    const membersRaw = await reloadMembers();
-    await Promise.all([reloadReviews(membersRaw), reloadReports()]);
+    Eatty.closeDrawer('adminSide');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  async function checkAdminAccess(){
-    if (!accessTokenRef.current) { window.location.href = 'login'; return; }
-    const res = await fetch(`${API_BASE}/api/admin/members`, { headers: authHeaders() });
-    if (res.status === 401) { Api.clearSession(); window.location.href = 'login'; return; }
-    if (res.status === 403) { setDeniedMessage('관리자 권한이 없는 계정입니다. 이 계정은 일반 API는 계속 정상 사용할 수 있고, 관리자 페이지만 막힙니다.'); setScreen('denied'); return; }
-    setScreen('app');
-    await reloadAll();
+  document.addEventListener('click', function (e) {
+    var nav = e.target.closest('[data-admin-nav]');
+    if (!nav) return;
+    e.preventDefault();
+    showSection(nav.getAttribute('data-admin-nav'));
+  });
+
+  /* ---- 회원 체크박스 / 일괄 처리 바 ---- */
+  var checkAll = document.getElementById('memberCheckAll');
+  var bulkBar = document.getElementById('bulkActionBar');
+
+  function memberChecks() {
+    return Array.prototype.slice.call(document.querySelectorAll('input[name="memberCheck"]:not([disabled])'));
+  }
+  function updateBulkBar() {
+    var checked = memberChecks().filter(function (c) { return c.checked; });
+    document.getElementById('selectedCount').textContent = checked.length;
+    bulkBar.hidden = checked.length === 0;
   }
 
-  React.useEffect(() => { checkAdminAccess(); }, []);
+  checkAll.addEventListener('change', function () {
+    memberChecks().forEach(function (c) { c.checked = checkAll.checked; });
+    updateBulkBar();
+  });
+  document.getElementById('memberTable').addEventListener('change', function (e) {
+    if (e.target.name === 'memberCheck') updateBulkBar();
+  });
 
-  function goBackToMain(){
-    window.location.href = Api.landingPageForRole();
-  }
+  document.getElementById('bulkSuspendBtn').addEventListener('click', function () {
+    Eatty.openModal('suspendModal');
+    document.getElementById('suspendTargetName').textContent =
+      document.getElementById('selectedCount').textContent + '명 (일괄)';
+  });
+  document.getElementById('bulkReleaseBtn').addEventListener('click', function () {
+    /* ★ 실제로는 POST /api/admin/members/release (bulk) */
+    Eatty.toast('선택한 회원의 정지를 해제했습니다.', 'success');
+    memberChecks().forEach(function (c) { c.checked = false; });
+    checkAll.checked = false;
+    updateBulkBar();
+  });
 
-  function findMemberById(id){ return members.find(m => m.id === id); }
-  function findMemberByEmail(email){ return members.find(m => m.email === email); }
-  function findMemberByName(name){ return members.find(m => m.name === name); }
+  /* ---- 회원 정지 / 해제 ---- */
+  document.getElementById('memberTable').addEventListener('click', function (e) {
+    var row = e.target.closest('tr[data-member-id]');
+    if (!row) return;
 
-  async function onToggleStatus(memberId){
-    const m = findMemberById(memberId);
-    if (!m) return;
-    const suspend = m.status === 'active';
-    const res = await fetch(`${API_BASE}/api/admin/members/${memberId}/${suspend ? 'suspend' : 'unsuspend'}`, { method:'PATCH', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '처리 실패'); return; }
-    await reloadAll();
-  }
-  async function onDeleteReview(reviewId){
-    const res = await fetch(`${API_BASE}/api/admin/reviews/${reviewId}`, { method:'DELETE', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '삭제 실패'); return; }
-    await reloadAll();
-  }
-  async function onSuspendMember(email){
-    const m = findMemberByEmail(email);
-    if (!m) { alert('이 이메일의 회원을 찾을 수 없습니다.'); return; }
-    await onToggleStatus(m.id);
-  }
-  function parseReportId(id){
-    const idx = id.indexOf('-');
-    return { kind: id.slice(0, idx), realId: id.slice(idx + 1) };
-  }
-  async function onDeleteReport(id){
-    const { kind, realId } = parseReportId(id);
-    let res;
-    if (kind === 'review') res = await fetch(`${API_BASE}/api/admin/reviews/${realId}`, { method:'DELETE', headers: authHeaders() });
-    else if (kind === 'chatroom') res = await fetch(`${API_BASE}/api/admin/chat-rooms/${realId}`, { method:'DELETE', headers: authHeaders() });
-    else {
-      const row = reports.find(r => r.id === id);
-      const chatMessageId = row && row.raw && row.raw.chatMessageId;
-      if (!chatMessageId) { alert('삭제할 메시지를 찾을 수 없습니다.'); return; }
-      res = await fetch(`${API_BASE}/api/admin/chat-messages/${chatMessageId}`, { method:'DELETE', headers: authHeaders() });
+    var suspendBtn = e.target.closest('[data-suspend-member]');
+    if (suspendBtn) {
+      var name = row.querySelector('.cell-strong').textContent.trim();
+      document.getElementById('suspendTargetName').textContent = name;
+      return;
     }
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '삭제 실패'); return; }
-    await reloadAll();
+
+    var releaseBtn = e.target.closest('[data-release-member]');
+    if (releaseBtn) {
+      /* ★ 실제로는 POST /api/admin/members/{id}/release */
+      var statusCell = row.children[3];
+      statusCell.innerHTML = '<span class="e-status e-status--on !text-[12.5px]">정상</span>';
+      releaseBtn.outerHTML =
+        '<button type="button" class="btn btn-danger-soft btn-xs" data-suspend-member data-modal-open="suspendModal">정지</button>';
+      Eatty.toast('정지를 해제했습니다.', 'success');
+      return;
+    }
+
+    var viewBtn = e.target.closest('[data-view-member]');
+    if (viewBtn) {
+      /* ★ 실제로는 GET /api/admin/members/{id} 로 상세 채우기 */
+      var nm = row.querySelector('.cell-strong').textContent.trim();
+      var em = row.querySelector('.t-xs').textContent.trim();
+      document.getElementById('memberDetailName').textContent = nm;
+      document.getElementById('memberDetailEmail').textContent = em;
+      document.getElementById('memberDetailAvatar').textContent = nm.charAt(0);
+    }
+  });
+
+  document.getElementById('suspendConfirmBtn').addEventListener('click', function () {
+    if (!document.getElementById('suspendReasonSelect').value) {
+      Eatty.toast('정지 사유를 선택해주세요.', 'error');
+      return;
+    }
+    if (!document.getElementById('suspendDetail').value.trim()) {
+      Eatty.toast('상세 내용을 입력해주세요.', 'error');
+      return;
+    }
+    /* ★ 실제로는 POST /api/admin/members/{id}/suspend */
+    Eatty.closeModal('suspendModal');
+    Eatty.toast('정지 처리가 완료되었습니다.', 'success');
+  });
+
+  /* ---- 신고 처리 ---- */
+  document.addEventListener('click', function (e) {
+    var handleBtn = e.target.closest('[data-handle-report]');
+    if (handleBtn) {
+      var row = handleBtn.closest('tr[data-report-id]');
+      if (row) document.getElementById('handleReportId').textContent = '#' + row.getAttribute('data-report-id');
+      return;
+    }
+
+    var rejectBtn = e.target.closest('[data-reject-report]');
+    if (rejectBtn) {
+      /* ★ 실제로는 POST /api/admin/reports/{id}/reject */
+      var r = rejectBtn.closest('tr[data-report-id]');
+      if (r) r.remove();
+      Eatty.toast('신고를 반려했습니다.');
+    }
+  });
+
+  document.getElementById('handleReportConfirmBtn').addEventListener('click', function () {
+    if (!document.getElementById('reportActionSelect').value) {
+      Eatty.toast('조치 내용을 선택해주세요.', 'error');
+      return;
+    }
+    if (!document.getElementById('reportMemo').value.trim()) {
+      Eatty.toast('처리 메모를 입력해주세요.', 'error');
+      return;
+    }
+    /* ★ 실제로는 POST /api/admin/reports/{id}/handle */
+    var id = document.getElementById('handleReportId').textContent.replace('#', '').trim();
+    var row = document.querySelector('tr[data-report-id="' + id + '"]');
+    if (row) row.remove();
+    Eatty.closeModal('handleReportModal');
+    Eatty.toast('신고 처리가 완료되었습니다.', 'success');
+  });
+
+  /* ---- 필터 초기화 ---- */
+  document.getElementById('memberFilterResetBtn').addEventListener('click', function () {
+    document.getElementById('memberSearchInput').value = '';
+    document.getElementById('memberRoleFilter').value = 'all';
+    document.getElementById('memberStatusFilter').value = 'all';
+    document.getElementById('memberSortSelect').value = 'recent';
+    Eatty.toast('필터를 초기화했습니다.');
+  });
+
+  document.getElementById('memberExportBtn').addEventListener('click', function () {
+    Eatty.toast('CSV 파일을 생성합니다.');
+  });
+
+  /* ---- 갱신 시각 ---- */
+  function stamp() {
+    var d = new Date();
+    document.getElementById('adminLastUpdated').textContent =
+      [d.getHours(), d.getMinutes(), d.getSeconds()]
+        .map(function (n) { return String(n).padStart(2, '0'); }).join(':');
   }
-  async function onSuspendMemberByName(name){
-    if (!name) { alert('채팅 신고는 백엔드 응답에 신고당한 사람의 신원이 포함되지 않아(신고자만 알 수 있음) 이 화면에서 회원 정지를 걸 수 없습니다. 메시지 삭제/방 폭파로 조치해 주세요.'); return; }
-    const m = findMemberByName(name);
-    if (!m) { alert('이 닉네임의 회원을 찾을 수 없습니다.'); return; }
-    await onToggleStatus(m.id);
+  document.getElementById('adminRefreshBtn').addEventListener('click', function () {
+    stamp();
+    Eatty.toast('데이터를 새로 불러왔습니다.', 'success');
+  });
+  stamp();
+
+  /* ---- 자동 갱신 (모니터링) ---- */
+  var autoSwitch = document.getElementById('monitorAutoRefreshSwitch');
+  var timer = setInterval(stamp, 10000);
+  autoSwitch.addEventListener('change', function () {
+    clearInterval(timer);
+    if (autoSwitch.checked) {
+      timer = setInterval(stamp, 10000);
+      Eatty.toast('자동 갱신을 켰습니다.');
+    } else {
+      Eatty.toast('자동 갱신을 껐습니다.');
+    }
+  });
+
+  /* ==========================================================
+     알림 발송
+     ---------------------------------------------------------- */
+  var TYPE_META = {
+    NOTICE:  { label: '공지',      icoClass: 'e-noti-ico--notice',
+               ico: '<path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M17 9a4 4 0 0 1 0 6"/>',
+               marketing: false },
+    SERVICE: { label: '서비스',    icoClass: 'e-noti-ico--business',
+               ico: '<path d="M12 2 4 5v6c0 5.3 3.4 9.4 8 11 4.6-1.6 8-5.7 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/>',
+               marketing: false },
+    EVENT:   { label: '이벤트',    icoClass: 'e-noti-ico--event',
+               ico: '<path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7"/>',
+               marketing: true },
+    AD:      { label: '광고',      icoClass: 'e-noti-ico--ad',
+               ico: '<path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/>',
+               marketing: true }
+  };
+
+  var TARGET_LABEL = {
+    ALL: '전체 회원',
+    USER: '일반 회원',
+    BUSINESS: '사업자 회원',
+    MARKETING_AGREED: '마케팅 수신 동의자',
+    INACTIVE_30D: '30일 미접속 회원'
+  };
+
+  var typeSel = document.getElementById('noticeTypeSelect');
+  var titleIn = document.getElementById('noticeTitleInput');
+  var bodyIn = document.getElementById('noticeBodyInput');
+  var consentLock = document.getElementById('consentLockBox');
+
+  function currentType() { return typeSel.value; }
+  function isMarketingType() {
+    var m = TYPE_META[currentType()];
+    return !!(m && m.marketing);
   }
-  async function reportAction(id, action){
-    const { kind, realId } = parseReportId(id);
-    if (kind !== 'review') { await chatReportAction(realId, action); return; }
-    const res = await fetch(`${API_BASE}/api/admin/reports/${realId}/${action}`, { method:'PATCH', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '처리 실패'); return; }
-    await reloadReports();
-  }
-  async function chatReportAction(chatReportId, action){
-    const res = await fetch(`${API_BASE}/api/admin/chat-reports/${chatReportId}/${action}`, { method:'PATCH', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '처리 실패'); return; }
-    await reloadReports();
+  function checkedTarget() {
+    return document.querySelector('input[name="target"]:checked');
   }
 
-  if (screen === 'checking') return h(AuthCard, null, h('h2', null, '확인 중...'));
-  if (screen === 'denied') return h(DeniedScreen, { message: deniedMessage, onBack: goBackToMain });
+  /* 유형에 따라 대상 옵션 잠금 — 광고성이면 마케팅 동의자로 강제 */
+  function applyConsentRule() {
+    var lock = isMarketingType();
+    consentLock.hidden = !lock;
 
-  const ic = (paths) => h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, fill:'none', stroke:'currentColor', strokeWidth:1.75, strokeLinecap:'round', strokeLinejoin:'round' },
-    paths.map((d, i) => h('path', { key:i, d })));
-  // 실제 번들 코드를 까보니 Sidebar는 logoSrc를 주면 사이드바 폭 전체를 채우는 정사각 배너 이미지로
-  // 렌더링한다(원본 zip의 "작은 아이콘+텍스트" 헤더와는 다른, 더 최신 버전). 2026-07-26 실제 로고
-  // (1024×1024 정사각) 전달받아 적용.
-  const logoSrc = 'img/admin/logo.png';
-  const dashIcon = h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, fill:'none', stroke:'currentColor', strokeWidth:1.75, strokeLinecap:'round', strokeLinejoin:'round' },
-    h('rect', { x:3, y:3, width:8, height:8, rx:1.5 }), h('rect', { x:13, y:3, width:8, height:8, rx:1.5 }),
-    h('rect', { x:3, y:13, width:8, height:8, rx:1.5 }), h('rect', { x:13, y:13, width:8, height:8, rx:1.5 }));
-  const personIcon = h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, stroke:'var(--brand-navy)', fill:'none', strokeWidth:1.75, strokeLinecap:'round' },
-    h('circle', { cx:12, cy:8, r:4 }), h('path', { d:'M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5' }));
-  const reviewIcon = ic(['M12 20s-7-4.35-9.5-8.5C.8 8.1 2.2 4.5 5.7 4.5c2 0 3.4 1.1 4.3 2.6C10.9 5.6 12.3 4.5 14.3 4.5c3.5 0 4.9 3.6 3.2 7C15 15.65 12 20 12 20z']);
-  const reportIcon = ic(['M4 21V4', 'M4 4h13l-2.5 4L17 12H4']);
+    document.querySelectorAll('input[name="target"]').forEach(function (r) {
+      if (r.value === 'MARKETING_AGREED') {
+        r.disabled = false;
+        if (lock) r.checked = true;
+      } else {
+        r.disabled = lock;
+        if (lock) r.checked = false;
+      }
+    });
 
-  const exitIcon = ic(['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'M16 17l5-5-5-5', 'M21 12H9']);
+    /* 예약 발송 시 광고성 시간 제한 안내 */
+    updateTargetCount();
+    updatePreview();
+  }
 
-  return h('div', { style:{ display:'flex', minHeight:'100vh' } },
-    h(Sidebar, {
-      logoSrc, brand:'잇티웨이', active: page,
-      onSelect: id => id === 'exit' ? goBackToMain() : setPage(id),
-      items: [
-        { id:'dash', label:'대시보드', icon: dashIcon },
-        { id:'members', label:'회원 관리', icon: personIcon },
-        { id:'reviews', label:'리뷰 관리', icon: reviewIcon },
-        { id:'reports', label:'신고 관리', icon: reportIcon },
-        { id:'exit', label:'메인으로 돌아가기', icon: exitIcon },
-      ],
-    }),
-    h('main', { style:{ flex:1, minWidth:0, padding:'var(--page-pad-y) var(--page-pad-x)' } },
-      page === 'dash' && h(window.DashboardScreen, { members, reports }),
-      page === 'members' && h(window.MembersScreen, { members, onToggleStatus }),
-      page === 'reviews' && h(window.ReviewsScreen, { reviews, members, onDeleteReview, onSuspendMember }),
-      page === 'reports' && h(window.ReportsScreen, {
-        reports, members, onDeleteReport, onSuspendMemberByName,
-        onResolveReport: id => reportAction(id, 'resolve'),
-        onRejectReport: id => reportAction(id, 'reject'),
-      })));
-}
+  function updateTargetCount() {
+    var r = checkedTarget();
+    var n = r ? Number(r.getAttribute('data-target-count')) : 0;
+    document.getElementById('targetCountText').textContent = Eatty.formatNumber(n);
+  }
 
-ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+  /* 미리보기 실시간 갱신 */
+  function updatePreview() {
+    var meta = TYPE_META[currentType()] || TYPE_META.NOTICE;
+    var prefix = meta.marketing ? '(광고) ' : '';
+
+    document.getElementById('previewType').textContent = meta.label;
+    document.getElementById('previewTitle').textContent =
+      titleIn.value.trim() ? prefix + titleIn.value.trim() : '제목이 여기에 표시됩니다';
+    document.getElementById('previewBody').textContent =
+      bodyIn.value.trim() || '내용이 여기에 표시됩니다. 알림 목록에서는 두 줄까지 보입니다.';
+
+    var ico = document.getElementById('previewIcon');
+    ico.className = 'e-noti-ico ' + meta.icoClass;
+    ico.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round">' + meta.ico + '</svg>';
+  }
+
+  typeSel.addEventListener('change', applyConsentRule);
+  titleIn.addEventListener('input', updatePreview);
+  bodyIn.addEventListener('input', updatePreview);
+  document.querySelectorAll('input[name="target"]').forEach(function (r) {
+    r.addEventListener('change', updateTargetCount);
+  });
+
+  /* 예약 발송 토글 */
+  document.querySelectorAll('input[name="schedule"]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      document.getElementById('scheduleAtField').hidden = r.value !== 'SCHEDULED' || !r.checked;
+    });
+  });
+
+  /* 발송 → 확인 모달 */
+  document.getElementById('noticeForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    if (!titleIn.value.trim()) {
+      Eatty.toast('제목을 입력해주세요.', 'error');
+      titleIn.focus();
+      return;
+    }
+    if (!bodyIn.value.trim()) {
+      Eatty.toast('내용을 입력해주세요.', 'error');
+      bodyIn.focus();
+      return;
+    }
+
+    var scheduled = document.getElementById('sendLater').checked;
+    var scheduleAt = document.getElementById('noticeScheduleAt').value;
+    if (scheduled && !scheduleAt) {
+      Eatty.toast('예약 일시를 선택해주세요.', 'error');
+      document.getElementById('noticeScheduleAt').focus();
+      return;
+    }
+
+    /* 광고성 야간 발송 차단 (21:00~08:00) */
+    if (isMarketingType() && scheduled) {
+      var hour = new Date(scheduleAt).getHours();
+      if (hour >= 21 || hour < 8) {
+        Eatty.toast('광고성 알림은 21시~8시에 발송할 수 없습니다.', 'error');
+        return;
+      }
+    }
+
+    var meta = TYPE_META[currentType()];
+    var r = checkedTarget();
+    document.getElementById('confirmTypeText').textContent = meta.label;
+    document.getElementById('confirmTitleText').textContent =
+      (meta.marketing ? '(광고) ' : '') + titleIn.value.trim();
+    document.getElementById('confirmTargetText').textContent = TARGET_LABEL[r.value] || r.value;
+    document.getElementById('confirmCountText').textContent =
+      Eatty.formatNumber(Number(r.getAttribute('data-target-count'))) + '명';
+    document.getElementById('confirmScheduleText').textContent =
+      scheduled ? scheduleAt.replace('T', ' ') + ' 예약' : '즉시 발송';
+    document.getElementById('confirmConsentAlert').hidden = !meta.marketing;
+    document.getElementById('confirmSendCheck').checked = false;
+
+    Eatty.openModal('sendNoticeModal');
+  });
+
+  document.getElementById('sendNoticeConfirmBtn').addEventListener('click', function () {
+    if (!document.getElementById('confirmSendCheck').checked) {
+      Eatty.toast('내용 확인에 체크해주세요.', 'error');
+      return;
+    }
+
+    /* ★ 실제로는 POST /api/admin/notifications
+         body: { type, title, body, link, target, scheduledAt, withPush } */
+    var meta = TYPE_META[currentType()];
+    var r = checkedTarget();
+    var scheduled = document.getElementById('sendLater').checked;
+
+    /* 이력 테이블 맨 위에 행 추가 (데모) */
+    var tbody = document.querySelector('#noticeHistoryTable tbody');
+    var tr = document.createElement('tr');
+    var badgeClass = meta.marketing ? 'e-badge--brand-solid'
+      : (currentType() === 'SERVICE' ? 'e-badge--success' : 'e-badge--gray');
+    var targetBadge = r.value === 'MARKETING_AGREED' ? 'e-badge--warning'
+      : (r.value === 'BUSINESS' ? 'e-badge--success' : 'e-badge--info');
+
+    tr.setAttribute('data-notice-id', 'N-' + Math.floor(1044 + Math.random() * 50));
+    tr.innerHTML =
+      '<td><span class="e-badge ' + badgeClass + '"></span></td>' +
+      '<td><p class="cell-strong js-t"></p><p class="t-xs mt-1 t-clamp-1 js-b"></p></td>' +
+      '<td><span class="e-badge ' + targetBadge + ' js-target"></span></td>' +
+      '<td class="cell-num js-cnt"></td>' +
+      '<td class="cell-num t-muted">-</td>' +
+      '<td class="t-num t-sm js-time"></td>' +
+      '<td>' + (scheduled
+        ? '<span class="e-status e-status--warn !text-[12.5px]">예약 대기</span>'
+        : '<span class="e-status e-status--on !text-[12.5px]">발송 완료</span>') + '</td>' +
+      '<td class="cell-actions"><button type="button" class="btn btn-ghost btn-xs" data-view-notice>상세</button>' +
+      (scheduled ? '<button type="button" class="btn btn-ghost btn-xs !text-[var(--danger)]" data-cancel-notice>취소</button>' : '') +
+      '</td>';
+
+    tr.querySelector('.e-badge').textContent = meta.label;
+    tr.querySelector('.js-t').textContent = (meta.marketing ? '(광고) ' : '') + titleIn.value.trim();
+    tr.querySelector('.js-b').textContent = bodyIn.value.trim();
+    tr.querySelector('.js-target').textContent = TARGET_LABEL[r.value];
+    tr.querySelector('.js-cnt').textContent = Eatty.formatNumber(Number(r.getAttribute('data-target-count')));
+    var d = new Date();
+    tr.querySelector('.js-time').textContent =
+      String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' +
+      String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+
+    tbody.insertBefore(tr, tbody.firstChild);
+
+    /* 관리자 본인 알림 목록에도 반영 (시안 확인용) */
+    if (window.Eatty && Eatty.notify) {
+      Eatty.notify.add({
+        type: currentType() === 'AD' ? 'ad' : currentType() === 'EVENT' ? 'event'
+             : currentType() === 'SERVICE' ? 'business' : 'notice',
+        title: (meta.marketing ? '(광고) ' : '') + titleIn.value.trim(),
+        body: bodyIn.value.trim(),
+        link: document.getElementById('noticeLinkInput').value,
+        marketing: meta.marketing
+      });
+    }
+
+    Eatty.closeModal('sendNoticeModal');
+    Eatty.toast(scheduled
+      ? '알림 발송이 예약되었습니다.'
+      : Eatty.formatNumber(Number(r.getAttribute('data-target-count'))) + '명에게 발송했습니다.', 'success');
+
+    document.getElementById('noticeForm').reset();
+    applyConsentRule();
+  });
+
+  /* 초기화 버튼 */
+  document.getElementById('noticeResetBtn').addEventListener('click', function () {
+    setTimeout(function () {
+      document.getElementById('scheduleAtField').hidden = true;
+      applyConsentRule();
+    }, 0);
+  });
+
+  /* 예약 취소 / 상세 */
+  document.getElementById('noticeHistoryTable').addEventListener('click', function (e) {
+    var cancel = e.target.closest('[data-cancel-notice]');
+    if (cancel) {
+      /* ★ DELETE /api/admin/notifications/{id} */
+      var row = cancel.closest('tr');
+      row.children[6].innerHTML = '<span class="e-status e-status--idle !text-[12.5px]">취소됨</span>';
+      cancel.remove();
+      Eatty.toast('예약 발송을 취소했습니다.');
+      return;
+    }
+    if (e.target.closest('[data-view-notice]')) {
+      Eatty.toast('발송 상세를 불러왔습니다.');
+    }
+  });
+
+  applyConsentRule();
+
+  /* ==========================================================
+     리뷰 관리
+     ★ GET    /api/admin/reviews?q=&rating=&period=&sort=&page=
+       DELETE /api/admin/reviews/{reviewId}
+     ---------------------------------------------------------- */
+  var reviewTable = document.getElementById('adminReviewTable');
+  var reviewCheckAll = document.getElementById('reviewCheckAll');
+  var reviewBulkBar = document.getElementById('reviewBulkBar');
+  var deleteTargetIds = [];
+
+  function reviewChecks() {
+    return Array.prototype.slice.call(
+      document.querySelectorAll('input[name="reviewCheck"]:not([disabled])'));
+  }
+  function updateReviewBulkBar() {
+    var checked = reviewChecks().filter(function (c) { return c.checked; });
+    document.getElementById('reviewSelectedCount').textContent = checked.length;
+    reviewBulkBar.hidden = checked.length === 0;
+  }
+
+  reviewCheckAll.addEventListener('change', function () {
+    reviewChecks().forEach(function (c) { c.checked = reviewCheckAll.checked; });
+    updateReviewBulkBar();
+  });
+  reviewTable.addEventListener('change', function (e) {
+    if (e.target.name === 'reviewCheck') updateReviewBulkBar();
+  });
+
+  /* 원문 보기 · 개별 삭제 */
+  reviewTable.addEventListener('click', function (e) {
+    var row = e.target.closest('tr[data-review-id]');
+    if (!row) return;
+    var id = row.getAttribute('data-review-id');
+    var shop = row.getAttribute('data-shop-name');
+
+    if (e.target.closest('[data-view-review]')) {
+      /* ★ 실제로는 GET /api/admin/reviews/{id} 로 상세를 채웁니다. */
+      document.getElementById('adminReviewId').textContent = '#' + id;
+      document.getElementById('adminReviewShop').textContent = shop;
+      return;
+    }
+
+    if (e.target.closest('[data-delete-review]')) {
+      deleteTargetIds = [id];
+      document.getElementById('deleteReviewTarget').textContent = '#' + id + ' · ' + shop;
+      document.getElementById('deleteReviewReason').value = '';
+      Eatty.openModal('deleteReviewModal');
+    }
+  });
+
+  /* 모달 안 삭제 버튼 → 삭제 확인 모달로 */
+  document.getElementById('adminReviewDeleteBtn').addEventListener('click', function () {
+    var id = document.getElementById('adminReviewId').textContent.replace('#', '').trim();
+    var shop = document.getElementById('adminReviewShop').textContent.trim();
+    deleteTargetIds = [id];
+    document.getElementById('deleteReviewTarget').textContent = '#' + id + ' · ' + shop;
+    document.getElementById('deleteReviewReason').value = '';
+    Eatty.closeModal('adminReviewModal');
+    Eatty.openModal('deleteReviewModal');
+  });
+
+  /* 일괄 삭제 */
+  document.getElementById('reviewBulkDeleteBtn').addEventListener('click', function () {
+    deleteTargetIds = reviewChecks().filter(function (c) { return c.checked; })
+      .map(function (c) { return c.value; });
+    if (!deleteTargetIds.length) return;
+    document.getElementById('deleteReviewTarget').textContent =
+      deleteTargetIds.length + '건 (일괄 삭제)';
+    document.getElementById('deleteReviewReason').value = '';
+    Eatty.openModal('deleteReviewModal');
+  });
+
+  /* 삭제 확정 */
+  document.getElementById('deleteReviewConfirmBtn').addEventListener('click', function () {
+    if (!document.getElementById('deleteReviewReason').value) {
+      Eatty.toast('삭제 사유를 선택해주세요.', 'error');
+      return;
+    }
+    /* ★ 실제로는 각 id 마다 DELETE /api/admin/reviews/{reviewId} */
+    deleteTargetIds.forEach(function (id) {
+      var row = reviewTable.querySelector('tr[data-review-id="' + id + '"]');
+      if (row) row.remove();
+    });
+    Eatty.closeModal('deleteReviewModal');
+    Eatty.toast(deleteTargetIds.length + '건의 리뷰를 삭제했습니다.', 'success');
+    deleteTargetIds = [];
+    reviewCheckAll.checked = false;
+    updateReviewBulkBar();
+  });
+
+  /* 필터 초기화 */
+  document.getElementById('adminReviewResetBtn').addEventListener('click', function () {
+    document.getElementById('reviewSearchInput').value = '';
+    document.getElementById('reviewRatingFilter').value = 'all';
+    document.getElementById('reviewPeriodFilter').value = 'all';
+    document.getElementById('reviewSortSelect').value = 'recent';
+    document.getElementById('reviewReportedOnly').checked = false;
+    Eatty.toast('필터를 초기화했습니다.');
+  });
+
+  /* ==========================================================
+     주차장 데이터 동기화
+     ★ POST /api/admin/parking-lots/sync
+     ---------------------------------------------------------- */
+  document.getElementById('parkingSyncBtn').addEventListener('click', function () {
+    var btn = this;
+    var statusEl = document.getElementById('parkingSyncStatus');
+
+    btn.classList.add('is-loading');
+    btn.disabled = true;
+    statusEl.className = 'e-badge e-badge--warning';
+    statusEl.textContent = '동기화 중';
+
+    /* ---- 실제 연동 (주석 해제 후 아래 데모 블록 삭제) ----
+    fetch('/api/admin/parking-lots/sync', { method: 'POST', credentials: 'include' })
+      .then(function (res) { return res.json(); })
+      .then(function (r) {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+        statusEl.className = 'e-badge e-badge--success';
+        statusEl.textContent = '최신';
+        document.getElementById('parkingSyncCount').textContent = Eatty.formatNumber(r.total);
+        document.getElementById('parkingSyncedAt').textContent = r.syncedAt;
+        Eatty.toast('주차장 데이터를 동기화했습니다. (' + Eatty.formatNumber(r.total) + '건)', 'success');
+      })
+      .catch(function () {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+        statusEl.className = 'e-badge e-badge--danger';
+        statusEl.textContent = '실패';
+        Eatty.toast('동기화에 실패했습니다. 로그를 확인해주세요.', 'error');
+      });
+    ---------------------------------------------------------- */
+
+    /* ---- 데모 (실제 연동 시 삭제) ---- */
+    setTimeout(function () {
+      btn.classList.remove('is-loading');
+      btn.disabled = false;
+      statusEl.className = 'e-badge e-badge--success';
+      statusEl.textContent = '최신';
+      document.getElementById('parkingSyncCount').textContent = '12,531';
+      var d = new Date();
+      document.getElementById('parkingSyncedAt').textContent =
+        d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0') + ' ' +
+        String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      Eatty.toast('주차장 데이터를 동기화했습니다. (12,531건)', 'success');
+    }, 1800);
+  });
+
+  /* ---- 해시로 직접 진입 지원 (#sectionMembers 등) ---- */
+  var hash = (location.hash || '').replace('#section', '').toLowerCase();
+  if (hash && SECTIONS[hash]) showSection(hash);
+})();
 </script>
 </body>
 </html>

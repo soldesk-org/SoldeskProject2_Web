@@ -126,7 +126,7 @@
 
   function requireLogin(redirectTo) {
     if (!isLoggedIn()) {
-      window.location.href = redirectTo || "login";
+      window.location.href = redirectTo || "login.html";
       return false;
     }
     return true;
@@ -135,43 +135,45 @@
   function requireRole(role, redirectTo) {
     if (!requireLogin()) return false;
     if (getRole() !== role) {
-      window.location.href = redirectTo || "explore";
+      window.location.href = redirectTo || "explore.html";
       return false;
     }
     return true;
   }
 
   function landingPageForRole() {
-    return getRole() === "BUSINESS" ? "business-mypage" : "explore";
+    if (getRole() === "ADMIN") return "admin.html";
+    return getRole() === "BUSINESS" ? "business-mypage.html" : "explore.html";
   }
 
   var AVATAR_PLACEHOLDER = '<img src="assets/images/default-avatar.png" alt="기본 프로필 이미지" class="size-full object-cover" />';
 
   var PHOTO_PLACEHOLDER = '<img src="assets/images/default-photo.svg" alt="이미지 없음" class="size-full object-contain bg-[#f7f7f7] p-6" />';
 
+  /**
+   * 2026-08-01 리디자인: [data-auth-view] 표시/숨김 자체는 eatty-ui.js의 Eatty.setAuth()/applyAuth()가
+   * 담당한다(el.hidden 토글 방식이라 Tailwind 클래스가 안 깨짐, data-devbar 개발용 상태 전환도 같이 관리).
+   * 여기서는 그 상태를 "실제 로그인 여부"로 한 번 덮어써주기만 하면 된다 — 두 스크립트가 같은 로직을
+   * 중복 구현하면 서로 다른 방식(style.display vs hidden)으로 충돌하므로 반드시 이렇게 위임할 것.
+   */
   function initNavAuthUI() {
+    if (!global.Eatty || typeof global.Eatty.setAuth !== "function") return;
     var loggedIn = isLoggedIn();
     var role = getRole();
+    var state = "guest";
+    if (loggedIn) {
+      if (role === "BUSINESS") state = "business";
+      else if (role === "ADMIN") state = "admin";
+      else state = "user";
+    }
+    global.Eatty.setAuth(state);
 
-    document.querySelectorAll("[data-auth='in']").forEach(function (el) {
-      el.style.display = loggedIn ? "" : "none";
-    });
-    document.querySelectorAll("[data-auth='out']").forEach(function (el) {
-      el.style.display = loggedIn ? "none" : "";
-    });
-    document.querySelectorAll("[data-role='BUSINESS']").forEach(function (el) {
-      el.style.display = role === "BUSINESS" ? "" : "none";
-    });
-    document.querySelectorAll("[data-role='ADMIN']").forEach(function (el) {
-      el.style.display = role === "ADMIN" ? "" : "none";
-    });
-    document.querySelectorAll("[data-role='USER']").forEach(function (el) {
-      el.style.display = !loggedIn || role !== "BUSINESS" ? "" : "none";
-    });
-    document.querySelectorAll("[data-logout-btn]").forEach(function (el) {
+    // 페이지마다 로그아웃 버튼 id가 다름(headerLogoutBtn/adminLogoutBtn/bizLogoutBtn/drawerLogoutBtn/logoutBtn 등)
+    // — "LogoutBtn"으로 끝나거나 정확히 "logoutBtn"인 요소를 전부 잡아서 공통 처리.
+    document.querySelectorAll("[id$='LogoutBtn'], #logoutBtn").forEach(function (el) {
       el.addEventListener("click", function (e) {
         e.preventDefault();
-        logout().then(function () { window.location.href = "index"; });
+        logout().then(function () { window.location.href = "index.html"; });
       });
     });
   }

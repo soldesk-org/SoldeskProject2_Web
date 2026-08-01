@@ -1,109 +1,944 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="user">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>내 리뷰 | 잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>내 리뷰 — 잇티웨이</title>
+<meta name="description" content="내가 작성한 영수증 인증 리뷰를 확인하고 수정·삭제합니다.">
+
+<!--
+================================================================================
+ mypage-reviews.html — 내가 쓴 리뷰 목록 (수정 / 삭제)
+--------------------------------------------------------------------------------
+ [요약 통계]  ★ GET /api/members/me/reviews/summary
+   #summaryTotal          총 리뷰 수
+   #summaryAvgRating      평균 별점
+   #summaryHelpful        받은 도움됨 수
+   #summaryThisMonth      이번 달 작성 수
+
+ [툴바 / 필터]
+   #reviewSearchInput     리뷰 내용·가게명 검색
+   #reviewSortSelect      정렬 (recent | rating-high | rating-low | helpful)
+   #reviewRatingFilter    별점 필터 (all | 5 | 4 | 3 | 2 | 1)
+   #reviewPeriodFilter    기간 필터 (all | 1m | 3m | 1y)
+   #reviewFilterResetBtn  필터 초기화
+
+ [탭]
+   #reviewTabs            탭 그룹 (data-tabs)
+   #tabPublished          작성한 리뷰 패널 · #publishedCount
+   #tabDraft              임시저장 패널   · #draftCount
+   ※ 해시로 직접 진입 가능: mypage-reviews.html#tabDraft
+
+ [임시저장]  ※ 서버에 별도 상태가 없어 localStorage('eatty.reviewDrafts') 사용
+   #draftList                      목록 컨테이너
+   .rv-draft[data-draft-id]        항목 [data-shop-id][data-shop-name]
+   [data-continue-draft]           이어서 쓰기 → receipt-upload.html?draft=…
+   [data-discard-draft]            삭제 → #discardDraftModal
+   #draftEmpty                     빈 상태 (기본 hidden)
+   #draftClearAllBtn               전체 삭제
+   #discardDraftModal              삭제 확인 (#discardDraftTarget, #discardDraftConfirmBtn)
+
+ [목록]  ★ GET /api/members/me/reviews
+   #reviewList                     목록 컨테이너
+   .rv-item[data-review-id]        리뷰 카드
+   [data-edit-review]              수정 → 편집 모달 열기
+   [data-delete-review]            삭제 → 삭제 확인 모달
+   [data-goto-shop]                가게 상세로 이동
+   #reviewEmpty                    빈 상태 (기본 hidden)
+   #reviewLoading                  로딩 스켈레톤 (기본 hidden)
+   #reviewPagination               페이지네이션
+
+ [리뷰 수정 모달]  ★ PATCH /api/reviews/{id}
+   #editReviewModal
+   #editReviewId                   대상 리뷰 id hidden
+   #editReviewShopName             대상 가게명 표시
+   #editRatingInput                별점 입력 (data-rating-input)
+   #editReviewScore                별점 hidden (name="rating")
+   #editReviewScoreText            별점 표시
+   #editPositiveTagList            긍정 태그 10종
+   #editNegativeTagList            부정 태그 10종
+   #editReviewContent              내용 (name="content")
+   #editReviewContentCounter       글자수
+   #editReviewSaveBtn              저장
+
+ [삭제 확인 모달]  ★ DELETE /api/reviews/{id}
+   #deleteReviewModal
+   #deleteReviewShopName           대상 가게명
+   #deleteReviewConfirmBtn         삭제 확정
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/eatty-ui.js"></script>
 </head>
-<body>
-<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
-  <aside class="relative z-10 flex w-[280px] shrink-0 flex-col bg-white">
-    <a href="explore" class="flex justify-center">
-      <img src="assets/images/logo-full.png" alt="잇티웨이 로고" class="size-[220px] object-contain" />
+
+<body class="has-tabbar bg-[var(--bg-soft)]">
+<a href="#mainContent" class="skip-link">본문으로 건너뛰기</a>
+
+<!-- ============================== 헤더 ============================== -->
+<header class="e-header" id="siteHeader">
+  <div class="e-container e-container-wide e-header-inner">
+    <a href="index.html" class="e-logo" id="logoHome">
+      <span class="e-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+        </svg>
+      </span>
+      <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
     </a>
-    <nav class="mt-2 flex flex-col gap-4 overflow-y-auto px-6 pb-6">
-      <a href="explore" data-nav="explore" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">탐색</span>
-      </a>
-      <a href="recommend" data-nav="recommend" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">추천</span>
-      </a>
-      <a href="mypage?tab=favorites" data-nav="mypage?tab=favorites" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">즐겨찾기</span>
-      </a>
-      <a href="taste-quiz" data-nav="taste-quiz" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">입맛 유형 찾기</span>
-      </a>
-      <a href="mypage" data-nav="mypage" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">마이페이지</span>
-      </a>
-      <a href="chat" data-nav="chat" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">잇티챗</span>
-      </a>
-      <a href="business-mypage" data-nav="business-mypage" data-role="BUSINESS" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">사업자</span>
-      </a>
-      <a href="admin" data-nav="admin" data-role="ADMIN" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M12 2a5 5 0 0 0-5 5v2a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2V7a5 5 0 0 0-5-5Z"/><path d="M9 7a3 3 0 0 1 6 0v2H9Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">관리자 전용</span>
-      </a>
-      <button type="button" data-logout-btn class="flex items-center gap-4 rounded-[10px] px-3 py-3 text-left transition-colors text-[rgba(37,55,75,0.6)] hover:bg-[rgba(254,162,85,0.1)]">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">로그아웃</span>
-      </button>
+
+    <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
+      <a class="e-nav-link" href="explore.html" data-nav-page="explore.html">지도 탐색</a>
+      <a class="e-nav-link" href="recommend.html" data-nav-page="recommend.html">AI 추천</a>
+      <a class="e-nav-link" href="receipt-upload.html" data-nav-page="receipt-upload.html">영수증 리뷰</a>
+      <a class="e-nav-link" href="chat.html" data-nav-page="chat.html">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz.html" data-nav-page="taste-quiz.html">음BTI</a>
+      <a class="e-nav-link" href="business-mypage.html" data-auth-view="business" data-nav-page="business-mypage.html" hidden>내 매장</a>
+      <a class="e-nav-link" href="admin.html" data-auth-view="admin" data-nav-page="admin.html" hidden>관리자</a>
     </nav>
-  </aside>
 
-  <div class="flex-1 overflow-y-auto p-10">
-    <div class="flex items-center justify-between">
-      <h1 class="text-[40px] font-bold tracking-[-2px] text-[#25374b] opacity-90">내 리뷰</h1>
-      <a href="mypage" aria-label="닫기" class="flex size-[40px] items-center justify-center rounded-full text-[rgba(37,55,75,0.5)] hover:bg-[rgba(37,55,75,0.06)] hover:text-[#25374b]">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    <div class="e-header-actions">
+      <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest" hidden>
+        <a href="login.html" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
+        <a href="signup.html" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
+      </div>
+
+      <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth">
+        <button type="button" class="e-icon-btn" id="headerNotiBtn" aria-label="알림">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+          <span class="e-dot"></span>
+        </button>
+        <div class="e-dropdown">
+          <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
+                  id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
+            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
+            <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="e-dropdown-menu" id="headerProfileMenu">
+            <div class="e-dropdown-head">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
+              <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
+            </div>
+            <a class="e-dropdown-item" href="mypage.html">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews.html">내 리뷰</a>
+            <a class="e-dropdown-item" href="mypage-edit.html">프로필 수정</a>
+            <div class="e-dropdown-sep"></div>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn"
+                    data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="e-header-burger" id="drawerOpenBtn" data-drawer-open="mainDrawer" aria-label="메뉴 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- 모바일 드로어 -->
+<div class="e-drawer-backdrop" data-drawer-backdrop="mainDrawer"></div>
+<aside class="e-drawer" id="mainDrawer" aria-hidden="true" aria-label="모바일 메뉴">
+  <div class="e-drawer-head">
+    <span class="e-logo-text">잇티<em>웨이</em></span>
+    <button type="button" class="e-modal-close" data-drawer-close="mainDrawer" aria-label="메뉴 닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="e-drawer-body">
+    <a class="e-drawer-link" href="explore.html">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend.html">AI 추천</a>
+    <a class="e-drawer-link" href="receipt-upload.html">영수증 리뷰</a>
+    <a class="e-drawer-link" href="chat.html">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz.html">음BTI</a>
+    <div class="e-drawer-sep"></div>
+    <a class="e-drawer-link" href="mypage.html">마이페이지</a>
+    <a class="e-drawer-link" href="mypage-reviews.html" data-nav-page="mypage-reviews.html">내 리뷰</a>
+    <a class="e-drawer-link" href="mypage-edit.html">프로필 수정</a>
+  </div>
+</aside>
+
+<main id="mainContent" class="py-8 md:py-12">
+  <div class="e-container">
+
+    <!-- 페이지 헤딩 -->
+    <div class="flex flex-wrap items-end gap-4 mb-7">
+      <div>
+        <nav class="e-breadcrumb" aria-label="현재 위치">
+          <a href="index.html">홈</a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          <a href="mypage.html">마이페이지</a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          <span class="font-semibold text-[var(--ink-600)]">내 리뷰</span>
+        </nav>
+        <h1 class="e-page-title">내가 쓴 리뷰</h1>
+        <p class="e-page-desc">영수증으로 인증된 리뷰만 표시됩니다. 언제든 수정하거나 삭제할 수 있어요.</p>
+      </div>
+      <a href="receipt-upload.html" class="btn btn-primary ml-auto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        새 리뷰 쓰기
       </a>
     </div>
 
-    <div class="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-      <div class="rounded-[12px] border border-[rgba(37,55,75,0.1)] p-5 shadow-[0px_4px_4px_0px_rgba(0,0,0,0.05)]">
-        <div class="flex items-center justify-between">
-          <p class="text-[16px] font-semibold text-[rgba(37,55,75,0.6)]">총 리뷰 수</p>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[#fd6d4a]"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-        </div>
-        <p id="mr-stat-count" class="mt-2 text-[28px] font-bold text-[#25374b]">-</p>
+    <!-- ==================== 요약 통계 ==================== -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" aria-label="리뷰 통계">
+      <div class="e-card e-stat">
+        <p class="e-stat-label">총 리뷰</p>
+        <p class="e-stat-value" id="summaryTotal">18</p>
       </div>
-      <div class="rounded-[12px] border border-[rgba(37,55,75,0.1)] p-5 shadow-[0px_4px_4px_0px_rgba(0,0,0,0.05)]">
-        <div class="flex items-center justify-between">
-          <p class="text-[16px] font-semibold text-[rgba(37,55,75,0.6)]">평균 별점</p>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="text-[#fd6d4a]"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01Z"/></svg>
-        </div>
-        <p id="mr-stat-rating" class="mt-2 text-[28px] font-bold text-[#25374b]">-</p>
+      <div class="e-card e-stat">
+        <p class="e-stat-label">평균 별점</p>
+        <p class="e-stat-value" id="summaryAvgRating">4.2</p>
       </div>
-      <div class="rounded-[12px] border border-[rgba(37,55,75,0.1)] p-5 shadow-[0px_4px_4px_0px_rgba(0,0,0,0.05)]">
-        <div class="flex items-center justify-between">
-          <p class="text-[16px] font-semibold text-[rgba(37,55,75,0.6)]">영수증 인증</p>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[#fd6d4a]"><path d="M20 6 9 17l-5-5"/></svg>
-        </div>
-        <p id="mr-stat-verified" class="mt-2 text-[28px] font-bold text-[#25374b]">-</p>
+      <div class="e-card e-stat">
+        <p class="e-stat-label">받은 도움됨</p>
+        <p class="e-stat-value" id="summaryHelpful">146</p>
       </div>
-      <div class="rounded-[12px] border border-[rgba(37,55,75,0.1)] p-5 shadow-[0px_4px_4px_0px_rgba(0,0,0,0.05)]">
-        <div class="flex items-center justify-between">
-          <p class="text-[16px] font-semibold text-[rgba(37,55,75,0.6)]">최근 작성</p>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[#fd6d4a]"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
-        </div>
-        <p id="mr-stat-recent" class="mt-2 text-[28px] font-bold text-[#25374b]">-</p>
+      <div class="e-card e-stat">
+        <p class="e-stat-label">이번 달 작성</p>
+        <p class="e-stat-value" id="summaryThisMonth">3</p>
       </div>
+    </section>
+
+    <!-- ==================== 탭 ====================
+         #reviewTabs   탭 그룹 (data-tabs)
+         #tabPublished 작성 완료된 리뷰 (GET /api/mypage/reviews)
+         #tabDraft     임시저장 — 서버에 별도 상태가 없어 localStorage 기반입니다.
+         ============================================ -->
+    <div class="e-tabs mb-5" id="reviewTabs" data-tabs role="tablist" aria-label="리뷰 목록">
+      <button type="button" class="e-tab" data-tab-target="tabPublished" role="tab" aria-selected="true">
+        작성한 리뷰 <span class="e-tab-count" id="publishedCount">18</span>
+      </button>
+      <button type="button" class="e-tab" data-tab-target="tabDraft" role="tab" aria-selected="false">
+        임시저장 <span class="e-tab-count" id="draftCount">1</span>
+      </button>
     </div>
 
-    <div class="mt-6 flex flex-wrap items-center gap-3">
-      <button id="mr-tab-all" class="rounded-full px-5 py-2 text-[16px] font-semibold transition-colors">전체</button>
-      <button id="mr-tab-done" class="rounded-full px-5 py-2 text-[16px] font-semibold transition-colors">작성 완료</button>
-      <button id="mr-tab-draft" class="rounded-full px-5 py-2 text-[16px] font-semibold transition-colors">임시저장</button>
-      <a id="mr-tab-write" href="receipt-upload" class="ml-auto rounded-full border border-[rgba(37,55,75,0.15)] px-5 py-2 text-[16px] font-semibold text-[#25374b] transition-colors hover:border-[#fd6d4a] hover:text-[#fd6d4a]">리뷰 쓰기</a>
-    </div>
+    <!-- ================================================================
+         탭 1 · 작성한 리뷰
+         ================================================================ -->
+    <div id="tabPublished" data-tab-panel>
 
-    <p id="mr-count" class="mt-6 text-[18px] font-medium text-[rgba(37,55,75,0.6)]">불러오는 중...</p>
-    <div id="mr-list" class="mt-4 flex flex-col gap-6"></div>
+    <!-- ==================== 툴바 ==================== -->
+    <section class="e-card e-card-pad !py-4 mb-5">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <div class="e-input-wrap has-icon flex-1" style="min-width:220px;max-width:340px">
+          <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" class="e-input e-input-sm" id="reviewSearchInput" placeholder="가게명 또는 리뷰 내용 검색" aria-label="리뷰 검색">
+        </div>
+
+        <select class="e-select e-input-sm" id="reviewRatingFilter" aria-label="별점 필터" style="width:auto">
+          <option value="all">별점 전체</option>
+          <option value="5">5점</option>
+          <option value="4">4점</option>
+          <option value="3">3점</option>
+          <option value="2">2점</option>
+          <option value="1">1점</option>
+        </select>
+
+        <select class="e-select e-input-sm" id="reviewPeriodFilter" aria-label="기간 필터" style="width:auto">
+          <option value="all">전체 기간</option>
+          <option value="1m">최근 1개월</option>
+          <option value="3m">최근 3개월</option>
+          <option value="1y">최근 1년</option>
+        </select>
+
+        <div class="ml-auto flex items-center gap-2.5">
+          <select class="e-select e-input-sm" id="reviewSortSelect" aria-label="정렬" style="width:auto">
+            <option value="recent">최신순</option>
+            <option value="rating-high">별점 높은순</option>
+            <option value="rating-low">별점 낮은순</option>
+            <option value="helpful">도움됨 많은순</option>
+          </select>
+          <button type="button" class="e-chip e-chip-sm" id="reviewFilterResetBtn" aria-label="필터 초기화">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            초기화
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 리뷰 목록 ==================== -->
+    <section>
+      <ul class="space-y-4" id="reviewList">
+
+        <!-- 리뷰 1 -->
+        <li class="rv-item" data-review-id="101" data-shop-name="라 스텔라 파스타">
+          <article class="e-card e-card-pad">
+            <div class="flex items-start gap-3.5">
+              <a href="explore.html" class="w-16 h-16 rounded-[var(--r)] e-img-ph flex-none" data-goto-shop aria-label="라 스텔라 파스타 상세 보기">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+              </a>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <a href="explore.html" class="text-[16px] font-extrabold text-[var(--ink-900)] hover:text-[var(--brand-600)]" data-goto-shop>라 스텔라 파스타</a>
+                  <span class="e-badge e-badge--gray">양식</span>
+                  <span class="e-badge e-badge--success">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    영수증 인증
+                  </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                  <span class="e-rating">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <span class="e-rating-score">5.0</span>
+                  </span>
+                  <span class="t-xs t-num">2026-07-29 방문 · 2026-07-30 작성</span>
+                </div>
+              </div>
+
+              <!-- 더보기 -->
+              <div class="e-dropdown flex-none">
+                <button type="button" class="e-icon-btn !w-9 !h-9" data-dropdown-toggle="rvMenu101" aria-expanded="false" aria-label="리뷰 관리 메뉴">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="5" r=".5"/><circle cx="12" cy="12" r=".5"/><circle cx="12" cy="19" r=".5"/></svg>
+                </button>
+                <div class="e-dropdown-menu !min-w-[168px]" id="rvMenu101">
+                  <button type="button" class="e-dropdown-item" data-edit-review>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.5a2.1 2.1 0 0 1 3 3L7.5 14.2l-3.8 1 1-3.8 7.5-7.9Z"/><path d="M20 21H4"/></svg>
+                    수정하기
+                  </button>
+                  <a class="e-dropdown-item" href="explore.html">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    가게 보기
+                  </a>
+                  <div class="e-dropdown-sep"></div>
+                  <button type="button" class="e-dropdown-item e-dropdown-item--danger" data-delete-review>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>
+                    삭제하기
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 태그 -->
+            <div class="flex flex-wrap gap-1.5 mt-4">
+              <span class="e-tag e-tag--pos">조용해요</span>
+              <span class="e-tag e-tag--pos">맛이 좋아요</span>
+              <span class="e-tag e-tag--pos">재방문 의사</span>
+            </div>
+
+            <!-- 내용 -->
+            <p class="t-body mt-3 leading-relaxed">
+              테이블 간격이 넓어서 대화하기 좋았어요. 트러플 크림 파스타 강력 추천합니다.
+              직원분들도 친절하셨고, 예약 없이 갔는데 바로 자리가 났습니다.
+            </p>
+
+            <!-- 사진 -->
+            <div class="flex gap-2 mt-3.5">
+              <span class="w-20 h-20 rounded-[var(--r)] e-img-ph">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+              </span>
+              <span class="w-20 h-20 rounded-[var(--r)] e-img-ph">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+              </span>
+            </div>
+
+            <!-- 하단 액션 -->
+            <div class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-[var(--line-soft)]">
+              <span class="t-xs flex items-center gap-1.5">
+                <svg style="width:15px;height:15px" class="text-[var(--brand-500)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V10l4-8h1.5a2 2 0 0 1 2 2.3L14 8h5a2 2 0 0 1 2 2.4l-1.6 8A2 2 0 0 1 17.4 20H7Z"/><path d="M7 10H4v12h3"/></svg>
+                도움됨 <b class="t-num">24</b>
+              </span>
+              <span class="t-xs flex items-center gap-1.5">
+                <svg style="width:15px;height:15px" class="text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                조회 <b class="t-num">312</b>
+              </span>
+              <div class="ml-auto flex gap-2">
+                <button type="button" class="btn btn-outline btn-sm" data-edit-review>수정</button>
+                <button type="button" class="btn btn-ghost btn-sm !text-[var(--danger)]" data-delete-review>삭제</button>
+              </div>
+            </div>
+          </article>
+        </li>
+
+        <!-- 리뷰 2 -->
+        <li class="rv-item" data-review-id="102" data-shop-name="호무랑 라멘">
+          <article class="e-card e-card-pad">
+            <div class="flex items-start gap-3.5">
+              <a href="explore.html" class="w-16 h-16 rounded-[var(--r)] e-img-ph flex-none" data-goto-shop aria-label="호무랑 라멘 상세 보기">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+              </a>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <a href="explore.html" class="text-[16px] font-extrabold text-[var(--ink-900)] hover:text-[var(--brand-600)]" data-goto-shop>호무랑 라멘</a>
+                  <span class="e-badge e-badge--gray">일식</span>
+                  <span class="e-badge e-badge--success">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    영수증 인증
+                  </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                  <span class="e-rating">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <span class="e-rating-score">4.0</span>
+                  </span>
+                  <span class="t-xs t-num">2026-07-22 방문 · 2026-07-22 작성</span>
+                </div>
+              </div>
+
+              <div class="e-dropdown flex-none">
+                <button type="button" class="e-icon-btn !w-9 !h-9" data-dropdown-toggle="rvMenu102" aria-expanded="false" aria-label="리뷰 관리 메뉴">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="5" r=".5"/><circle cx="12" cy="12" r=".5"/><circle cx="12" cy="19" r=".5"/></svg>
+                </button>
+                <div class="e-dropdown-menu !min-w-[168px]" id="rvMenu102">
+                  <button type="button" class="e-dropdown-item" data-edit-review>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.5a2.1 2.1 0 0 1 3 3L7.5 14.2l-3.8 1 1-3.8 7.5-7.9Z"/><path d="M20 21H4"/></svg>
+                    수정하기
+                  </button>
+                  <a class="e-dropdown-item" href="explore.html">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    가게 보기
+                  </a>
+                  <div class="e-dropdown-sep"></div>
+                  <button type="button" class="e-dropdown-item e-dropdown-item--danger" data-delete-review>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>
+                    삭제하기
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5 mt-4">
+              <span class="e-tag e-tag--pos">혼밥 좋아요</span>
+              <span class="e-tag e-tag--pos">가성비 좋아요</span>
+              <span class="e-tag e-tag--neg">시끄러워요</span>
+            </div>
+
+            <p class="t-body mt-3 leading-relaxed">
+              카운터석이 있어서 혼밥하기 편했어요. 점심시간엔 사람이 많아 좀 시끄럽지만
+              회전이 빨라서 오래 기다리진 않았습니다.
+            </p>
+
+            <div class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-[var(--line-soft)]">
+              <span class="t-xs flex items-center gap-1.5">
+                <svg style="width:15px;height:15px" class="text-[var(--brand-500)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V10l4-8h1.5a2 2 0 0 1 2 2.3L14 8h5a2 2 0 0 1 2 2.4l-1.6 8A2 2 0 0 1 17.4 20H7Z"/><path d="M7 10H4v12h3"/></svg>
+                도움됨 <b class="t-num">11</b>
+              </span>
+              <span class="t-xs flex items-center gap-1.5">
+                <svg style="width:15px;height:15px" class="text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                조회 <b class="t-num">89</b>
+              </span>
+              <div class="ml-auto flex gap-2">
+                <button type="button" class="btn btn-outline btn-sm" data-edit-review>수정</button>
+                <button type="button" class="btn btn-ghost btn-sm !text-[var(--danger)]" data-delete-review>삭제</button>
+              </div>
+            </div>
+          </article>
+        </li>
+
+        <!-- 리뷰 3 (신고 처리로 블라인드된 예시) -->
+        <li class="rv-item" data-review-id="103" data-shop-name="청담옥 강남점">
+          <article class="e-card e-card-pad" style="border-color:#fbd5d5;background:#fffafa">
+            <div class="e-alert e-alert--danger mb-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+              <div class="flex-1">
+                <p class="e-alert-title">신고로 노출이 제한된 리뷰입니다</p>
+                <p>운영팀 검토 결과 "가게와 무관한 내용" 사유로 비공개 처리되었습니다. 수정하면 재검토됩니다.</p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-3.5">
+              <a href="explore.html" class="w-16 h-16 rounded-[var(--r)] e-img-ph e-img-ph--gray flex-none" data-goto-shop aria-label="청담옥 강남점 상세 보기">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+              </a>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <a href="explore.html" class="text-[16px] font-extrabold text-[var(--ink-900)] hover:text-[var(--brand-600)]" data-goto-shop>청담옥 강남점</a>
+                  <span class="e-badge e-badge--gray">한식</span>
+                  <span class="e-badge e-badge--danger">비공개</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                  <span class="e-rating">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <span class="e-rating-score">2.0</span>
+                  </span>
+                  <span class="t-xs t-num">2026-06-14 방문 · 2026-06-15 작성</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="t-body mt-4 leading-relaxed t-muted">
+              (비공개 처리된 리뷰 내용)
+            </p>
+
+            <div class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-[#fbd5d5]">
+              <a href="terms-service.html" class="t-xs e-link underline">리뷰 정책 확인</a>
+              <div class="ml-auto flex gap-2">
+                <button type="button" class="btn btn-primary btn-sm" data-edit-review>수정 후 재검토 요청</button>
+                <button type="button" class="btn btn-ghost btn-sm !text-[var(--danger)]" data-delete-review>삭제</button>
+              </div>
+            </div>
+          </article>
+        </li>
+      </ul>
+
+      <!-- 로딩 -->
+      <div id="reviewLoading" hidden>
+        <div class="e-card e-card-pad mt-4">
+          <div class="flex gap-3.5">
+            <span class="e-skeleton w-16 h-16 rounded-[var(--r)] flex-none"></span>
+            <span class="flex-1 space-y-2.5">
+              <span class="e-skeleton block h-4 w-2/5 rounded"></span>
+              <span class="e-skeleton block h-3 w-1/3 rounded"></span>
+              <span class="e-skeleton block h-12 w-full rounded"></span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 빈 상태 -->
+      <div class="e-card e-card-pad" id="reviewEmpty" hidden>
+        <div class="e-empty">
+          <div class="e-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </div>
+          <p class="e-empty-title">작성한 리뷰가 없어요</p>
+          <p class="e-empty-desc">영수증을 업로드하면 방문 인증 리뷰를 남길 수 있습니다.</p>
+          <a href="receipt-upload.html" class="btn btn-primary btn-sm mt-5">첫 리뷰 쓰기</a>
+        </div>
+      </div>
+
+      <!-- 페이지네이션 -->
+      <div class="e-pagination mt-8" id="reviewPagination">
+        <button type="button" class="e-page-btn" disabled aria-label="이전 페이지">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg>
+        </button>
+        <button type="button" class="e-page-btn" aria-current="page">1</button>
+        <button type="button" class="e-page-btn">2</button>
+        <button type="button" class="e-page-btn">3</button>
+        <button type="button" class="e-page-btn" aria-label="다음 페이지">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+    </section>
+    </div><!-- /#tabPublished -->
+
+    <!-- ================================================================
+         탭 2 · 임시저장
+         ----------------------------------------------------------------
+         리뷰 임시저장은 서버에 별도 상태가 없습니다. 작성 화면에서
+         localStorage 에 담아 두고 여기서 이어 쓰는 구조입니다.
+
+         #draftList              목록 컨테이너
+         .rv-draft               항목 1건 [data-draft-id][data-shop-id][data-shop-name]
+         [data-continue-draft]   이어서 쓰기 → receipt-upload.html?draft=…
+         [data-discard-draft]    삭제 (#discardDraftModal)
+         #draftEmpty             빈 상태 (기본 hidden)
+         #draftClearAllBtn       전체 삭제
+         ================================================================ -->
+    <div id="tabDraft" data-tab-panel hidden>
+      <div class="e-alert e-alert--info mb-5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div>
+          <p class="e-alert-title">임시저장은 이 브라우저에만 보관됩니다</p>
+          <p>다른 기기나 시크릿 창에서는 보이지 않고, 30일이 지나면 자동으로 지워집니다.</p>
+        </div>
+      </div>
+
+      <ul class="space-y-4" id="draftList">
+        <li class="rv-draft" data-draft-id="d1" data-shop-id="6" data-shop-name="쏨땀 방콕">
+          <article class="e-card e-card-pad">
+            <div class="flex items-start gap-3.5">
+              <span class="w-16 h-16 rounded-[var(--r)] e-img-ph e-img-ph--gray flex-none">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+              </span>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="text-[15px] font-extrabold text-[var(--ink-900)]">쏨땀 방콕</p>
+                  <span class="e-badge e-badge--warning">임시저장</span>
+                </div>
+                <p class="t-xs mt-1 t-num">2026-07-15 방문 · 마지막 저장 07-30 22:14</p>
+
+                <div class="flex items-center gap-2 mt-2.5">
+                  <span class="e-rating">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <span class="e-rating-score">4.0</span>
+                  </span>
+                </div>
+
+                <p class="t-body t-clamp-2 mt-2.5">
+                  팟타이가 생각보다 안 매워서 좋았고 쏨땀은 산미가 강한 편이에요. 직원분이 매운 정도를
+                </p>
+
+                <div class="flex flex-wrap gap-1.5 mt-2.5">
+                  <span class="e-tag e-tag--pos">맛이 좋아요</span>
+                  <span class="e-tag e-tag--pos">양이 많아요</span>
+                </div>
+
+                <div class="e-progress e-progress-sm mt-3.5" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" aria-label="작성 진행률">
+                  <span class="e-progress-bar" style="width:70%"></span>
+                </div>
+                <p class="t-xs mt-1.5">작성 진행률 <b>70%</b> · 자유 텍스트만 마무리하면 됩니다</p>
+              </div>
+
+              <div class="flex flex-col gap-2 flex-none">
+                <button type="button" class="btn btn-primary btn-sm" data-continue-draft>이어서 쓰기</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-discard-draft>삭제</button>
+              </div>
+            </div>
+          </article>
+        </li>
+      </ul>
+
+      <!-- 빈 상태 -->
+      <div class="e-card e-card-pad" id="draftEmpty" hidden>
+        <div class="e-empty">
+          <div class="e-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 8h6M9 12h6"/></svg>
+          </div>
+          <p class="e-empty-title">임시저장된 리뷰가 없어요</p>
+          <p class="e-empty-desc">리뷰를 쓰다가 중간에 나가면 여기에 자동으로 보관됩니다.</p>
+          <a href="receipt-upload.html" class="btn btn-primary btn-sm mt-5">리뷰 쓰러 가기</a>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-ghost btn-sm mt-5" id="draftClearAllBtn">임시저장 전체 삭제</button>
+    </div><!-- /#tabDraft -->
+  </div>
+</main>
+
+<!-- ==================== 임시저장 삭제 확인 모달 ==================== -->
+<div class="e-modal" id="discardDraftModal" role="dialog" aria-modal="true" aria-labelledby="discardDraftTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--sm">
+    <div class="e-modal-head">
+      <div>
+        <span class="e-modal-icon e-modal-icon--danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>
+        </span>
+        <h2 class="e-modal-title" id="discardDraftTitle">임시저장을 삭제할까요?</h2>
+        <p class="e-modal-desc">
+          <b class="t-strong" id="discardDraftTarget">쏨땀 방콕</b><br>
+          작성 중이던 내용은 복구할 수 없습니다. 방문 인증 기록은 그대로 남아 다시 쓸 수 있어요.
+        </p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-danger" id="discardDraftConfirmBtn">삭제하기</button>
+    </div>
   </div>
 </div>
-<script src="assets/js/api.js"></script>
-<script src="assets/js/sidebar.js"></script>
-<script src="assets/js/mypage-reviews.js"></script>
+
+<!-- ==================== 리뷰 수정 모달 ==================== -->
+<div class="e-modal e-modal--sheet" id="editReviewModal" role="dialog" aria-modal="true" aria-labelledby="editReviewTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--lg">
+    <div class="e-modal-head">
+      <div>
+        <h2 class="e-modal-title" id="editReviewTitle">리뷰 수정</h2>
+        <p class="e-modal-desc">
+          <b class="t-strong" id="editReviewShopName">라 스텔라 파스타</b> 리뷰를 수정합니다.
+        </p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-body">
+      <input type="hidden" id="editReviewId" name="reviewId" value="">
+
+      <!-- 별점 -->
+      <div class="e-field">
+        <span class="e-label">별점 <span class="req">*</span></span>
+        <div class="flex items-center gap-3">
+          <div class="e-rating-input" id="editRatingInput" data-rating-input
+               data-rating-target="editReviewScore" data-rating-output="editReviewScoreText"
+               data-rating-default="5" role="radiogroup" aria-label="별점 선택">
+            <button type="button" data-rating-value="1" role="radio" aria-checked="false" aria-label="1점">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+            </button>
+            <button type="button" data-rating-value="2" role="radio" aria-checked="false" aria-label="2점">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+            </button>
+            <button type="button" data-rating-value="3" role="radio" aria-checked="false" aria-label="3점">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+            </button>
+            <button type="button" data-rating-value="4" role="radio" aria-checked="false" aria-label="4점">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+            </button>
+            <button type="button" data-rating-value="5" role="radio" aria-checked="false" aria-label="5점">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+            </button>
+          </div>
+          <span class="text-[15px] font-extrabold text-[var(--ink-900)]" id="editReviewScoreText">5.0</span>
+        </div>
+        <input type="hidden" id="editReviewScore" name="rating" value="5">
+      </div>
+
+      <!-- 긍정 태그 -->
+      <div class="e-field">
+        <span class="e-label">좋았던 점</span>
+        <div class="flex flex-wrap gap-2" id="editPositiveTagList">
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="TASTE_GOOD" checked><span class="e-tag-pick e-tag-pick--pos">맛이 좋아요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="KIND"><span class="e-tag-pick e-tag-pick--pos">친절해요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="CLEAN"><span class="e-tag-pick e-tag-pick--pos">청결해요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="VALUE"><span class="e-tag-pick e-tag-pick--pos">가성비 좋아요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="PORTION_BIG"><span class="e-tag-pick e-tag-pick--pos">양이 많아요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="MOOD_GOOD"><span class="e-tag-pick e-tag-pick--pos">분위기 좋아요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="QUIET" checked><span class="e-tag-pick e-tag-pick--pos">조용해요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="PARKING_EASY"><span class="e-tag-pick e-tag-pick--pos">주차 편해요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="REVISIT" checked><span class="e-tag-pick e-tag-pick--pos">재방문 의사</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="NO_WAIT"><span class="e-tag-pick e-tag-pick--pos">웨이팅 짧아요</span></label>
+        </div>
+      </div>
+
+      <!-- 부정 태그 -->
+      <div class="e-field">
+        <span class="e-label">아쉬운 점</span>
+        <div class="flex flex-wrap gap-2" id="editNegativeTagList">
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="TASTE_BAD"><span class="e-tag-pick e-tag-pick--neg">맛이 아쉬워요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="UNKIND"><span class="e-tag-pick e-tag-pick--neg">불친절해요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="DIRTY"><span class="e-tag-pick e-tag-pick--neg">위생이 아쉬워요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="EXPENSIVE"><span class="e-tag-pick e-tag-pick--neg">가격이 비싸요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="PORTION_SMALL"><span class="e-tag-pick e-tag-pick--neg">양이 적어요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="NOISY"><span class="e-tag-pick e-tag-pick--neg">시끄러워요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="NARROW"><span class="e-tag-pick e-tag-pick--neg">좁아요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="PARKING_HARD"><span class="e-tag-pick e-tag-pick--neg">주차 불편해요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="LONG_WAIT"><span class="e-tag-pick e-tag-pick--neg">웨이팅 길어요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="SLOW_SERVICE"><span class="e-tag-pick e-tag-pick--neg">서비스가 느려요</span></label>
+        </div>
+      </div>
+
+      <!-- 내용 -->
+      <div class="e-field !mb-0">
+        <label class="e-label" for="editReviewContent">
+          리뷰 내용
+          <span class="e-label-side"><span id="editReviewContentCounter" data-counter="editReviewContent">0 / 1000</span></span>
+        </label>
+        <textarea class="e-textarea !min-h-[140px]" id="editReviewContent" name="content" maxlength="1000">테이블 간격이 넓어서 대화하기 좋았어요. 트러플 크림 파스타 강력 추천합니다. 직원분들도 친절하셨고, 예약 없이 갔는데 바로 자리가 났습니다.</textarea>
+        <p class="e-hint">수정하면 작성일이 "수정됨"으로 표시됩니다.</p>
+      </div>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-primary" id="editReviewSaveBtn">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 삭제 확인 모달 ==================== -->
+<div class="e-modal" id="deleteReviewModal" role="dialog" aria-modal="true" aria-labelledby="deleteReviewTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--sm">
+    <div class="e-modal-head">
+      <div>
+        <span class="e-modal-icon e-modal-icon--danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>
+        </span>
+        <h2 class="e-modal-title" id="deleteReviewTitle">리뷰를 삭제할까요?</h2>
+        <p class="e-modal-desc">
+          <b class="t-strong" id="deleteReviewShopName">라 스텔라 파스타</b> 리뷰가 삭제됩니다.
+          삭제한 리뷰는 복구할 수 없고, 같은 영수증으로 다시 작성할 수 없습니다.
+        </p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-danger" id="deleteReviewConfirmBtn">삭제하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 모바일 하단 탭바 -->
+<nav class="e-tabbar" aria-label="모바일 주요 메뉴">
+  <a class="e-tabbar-item" href="index.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
+    홈
+  </a>
+  <a class="e-tabbar-item" href="explore.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    탐색
+  </a>
+  <a class="e-tabbar-item" href="recommend.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+    AI추천
+  </a>
+  <a class="e-tabbar-item" href="chat.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+    잇티챗
+  </a>
+  <a class="e-tabbar-item" href="mypage.html" data-nav-page="mypage.html,mypage-reviews.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    내정보
+  </a>
+</nav>
+
+<div data-devbar></div>
+
+<script>
+/* ---------------------------------------------------------------------------
+   mypage-reviews 시안 데모 스크립트 — 실제 연동 시 mypage-reviews.js 로 대체
+   --------------------------------------------------------------------------- */
+(function () {
+  var targetId = null;
+
+  /* 수정 / 삭제 버튼 위임 */
+  document.getElementById('reviewList').addEventListener('click', function (e) {
+    var editBtn = e.target.closest('[data-edit-review]');
+    var delBtn = e.target.closest('[data-delete-review]');
+    var item = e.target.closest('.rv-item');
+    if (!item) return;
+
+    if (editBtn) {
+      targetId = item.getAttribute('data-review-id');
+      document.getElementById('editReviewId').value = targetId;
+      document.getElementById('editReviewShopName').textContent = item.getAttribute('data-shop-name');
+      /* ★ 실제로는 GET /api/reviews/{id} 로 기존 값 채우기 */
+      Eatty.openModal('editReviewModal');
+      return;
+    }
+
+    if (delBtn) {
+      targetId = item.getAttribute('data-review-id');
+      document.getElementById('deleteReviewShopName').textContent = item.getAttribute('data-shop-name');
+      Eatty.openModal('deleteReviewModal');
+    }
+  });
+
+  /* 저장 */
+  document.getElementById('editReviewSaveBtn').addEventListener('click', function () {
+    /* ★ 실제로는 PATCH /api/reviews/{id} */
+    Eatty.closeModal('editReviewModal');
+    Eatty.toast('리뷰를 수정했습니다.', 'success');
+  });
+
+  /* 삭제 */
+  document.getElementById('deleteReviewConfirmBtn').addEventListener('click', function () {
+    /* ★ 실제로는 DELETE /api/reviews/{id} */
+    var item = document.querySelector('.rv-item[data-review-id="' + targetId + '"]');
+    if (item) item.remove();
+    Eatty.closeModal('deleteReviewModal');
+    Eatty.toast('리뷰를 삭제했습니다.', 'success');
+
+    if (!document.querySelectorAll('#reviewList .rv-item').length) {
+      document.getElementById('reviewList').hidden = true;
+      document.getElementById('reviewPagination').hidden = true;
+      document.getElementById('reviewEmpty').hidden = false;
+    }
+  });
+
+  /* 필터 초기화 */
+  document.getElementById('reviewFilterResetBtn').addEventListener('click', function () {
+    document.getElementById('reviewSearchInput').value = '';
+    document.getElementById('reviewRatingFilter').value = 'all';
+    document.getElementById('reviewPeriodFilter').value = 'all';
+    document.getElementById('reviewSortSelect').value = 'recent';
+    Eatty.toast('필터를 초기화했습니다.');
+  });
+
+  /* ==========================================================
+     임시저장 탭
+     ----------------------------------------------------------
+     서버에 임시저장 상태가 없어 localStorage 에 보관합니다.
+     리뷰 작성 화면(receipt-upload.html)에서 같은 키로 저장하면
+     여기서 목록으로 보여주고 이어서 쓸 수 있습니다.
+
+       localStorage['eatty.reviewDrafts'] = [{
+         draftId, shopId, shopName, visitedAt, savedAt,
+         rating, content, tags: [], progress
+       }, ...]
+     ---------------------------------------------------------- */
+  var DRAFT_KEY = 'eatty.reviewDrafts';
+  var draftList = document.getElementById('draftList');
+  var draftEmpty = document.getElementById('draftEmpty');
+  var draftCountEl = document.getElementById('draftCount');
+  var draftClearAllBtn = document.getElementById('draftClearAllBtn');
+  var discardTargetId = null;
+
+  function readDrafts() {
+    try {
+      var raw = localStorage.getItem(DRAFT_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+  function writeDrafts(list) {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(list)); } catch (e) { /* 용량 초과 무시 */ }
+  }
+
+  /* 목록 상태 갱신 — 남은 항목 수에 맞춰 빈 상태 / 배지 / 전체삭제 버튼 정리 */
+  function syncDraftView() {
+    var items = draftList.querySelectorAll('.rv-draft');
+    var n = items.length;
+    draftCountEl.textContent = n;
+    draftList.hidden = n === 0;
+    draftEmpty.hidden = n !== 0;
+    draftClearAllBtn.hidden = n === 0;
+  }
+  syncDraftView();
+
+  /* 이어서 쓰기 · 삭제 */
+  draftList.addEventListener('click', function (e) {
+    var row = e.target.closest('.rv-draft');
+    if (!row) return;
+
+    if (e.target.closest('[data-continue-draft]')) {
+      /* 작성 화면에서 draft 파라미터를 읽어 폼을 복원합니다. */
+      location.href = 'receipt-upload.html?draft=' + encodeURIComponent(row.getAttribute('data-draft-id'));
+      return;
+    }
+
+    if (e.target.closest('[data-discard-draft]')) {
+      discardTargetId = row.getAttribute('data-draft-id');
+      document.getElementById('discardDraftTarget').textContent = row.getAttribute('data-shop-name');
+      Eatty.openModal('discardDraftModal');
+    }
+  });
+
+  /* 삭제 확정 */
+  document.getElementById('discardDraftConfirmBtn').addEventListener('click', function () {
+    if (discardTargetId) {
+      writeDrafts(readDrafts().filter(function (d) { return d.draftId !== discardTargetId; }));
+      var row = draftList.querySelector('.rv-draft[data-draft-id="' + discardTargetId + '"]');
+      if (row) row.remove();
+    }
+    Eatty.closeModal('discardDraftModal');
+    Eatty.toast('임시저장을 삭제했습니다.', 'success');
+    discardTargetId = null;
+    syncDraftView();
+  });
+
+  /* 전체 삭제 */
+  draftClearAllBtn.addEventListener('click', function () {
+    writeDrafts([]);
+    draftList.innerHTML = '';
+    Eatty.toast('임시저장을 모두 삭제했습니다.', 'success');
+    syncDraftView();
+  });
+})();
+</script>
 </body>
 </html>

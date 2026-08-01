@@ -1,89 +1,409 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>서비스 이용약관 | 잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>이용약관 — 잇티웨이</title>
+<meta name="description" content="잇티웨이 서비스 이용약관">
+
+<!--
+================================================================================
+ terms-service.html — 이용약관 (긴 문서 스타일)
+--------------------------------------------------------------------------------
+ [구조]
+   #termsToc          좌측 스티키 목차 (a[href="#chapterN"])
+   #termsBody         본문 (.e-doc)
+   #chapter1 ~ #chapter8   각 장 앵커
+   #termsVersion      현재 버전 표시
+   #termsEffectiveAt  시행일
+   #termsHistorySelect  이전 버전 선택 select  ★ 버전별 문서 로딩 시 사용
+   #printTermsBtn     인쇄
+   #agreeAndSignupBtn 동의하고 가입하기 → signup.html
+   #privacyLink       → terms-privacy.html
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/eatty-ui.js"></script>
+<style>
+  .toc-link {
+    display: block; padding: 8px 12px; border-radius: var(--r-sm);
+    font-size: 13.5px; font-weight: 600; color: var(--ink-500);
+    border-left: 2px solid transparent;
+  }
+  .toc-link:hover { background: var(--bg-soft); color: var(--ink-900); }
+  .toc-link.is-active {
+    color: var(--brand-600); background: var(--brand-50); border-left-color: var(--brand-500);
+  }
+</style>
 </head>
-<body>
-<div class="flex min-h-screen w-full flex-col items-center bg-white px-6 py-10 font-['Inter','Noto_Sans_KR',sans-serif]">
-  <div class="mb-8 flex w-full max-w-[820px] items-center gap-3">
-    <a href="index" class="flex items-center gap-3">
-      <div class="relative size-16 shrink-0 overflow-hidden">
-        <img src="assets/images/logo-icon.png" alt="Eatty way 로고" class="absolute left-[-36.79%] top-[-24.44%] size-[173.11%] max-w-none object-cover" />
-      </div>
-      <span class="bg-gradient-to-r from-[#fd6d4a] to-[#fea255] bg-clip-text text-[36px] font-bold tracking-[-1.8px] text-transparent">Eatty way</span>
+
+<body class="min-h-screen flex flex-col">
+
+<!-- ============================== 헤더 ============================== -->
+<header class="e-header e-header--solid">
+  <div class="e-container e-header-inner">
+    <a href="index.html" class="e-logo">
+      <span class="e-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+        </svg>
+      </span>
+      <span class="e-logo-text">잇티<em>웨이</em></span>
     </a>
-  </div>
-
-  <div class="flex h-[70vh] w-full max-w-[820px] flex-col rounded-[10px] border border-[rgba(37,55,75,0.7)]">
-    <div class="border-b border-[rgba(37,55,75,0.15)] px-8 py-5">
-      <h1 class="text-[20px] font-semibold tracking-[-1px] text-[#25374b]">Eattyway 서비스 이용약관</h1>
-      <p class="mt-1 text-[14px] font-medium tracking-[-0.7px] text-[rgba(37,55,75,0.7)]">시행일자: 2026년 8월 1일</p>
+    <nav class="e-nav">
+      <a class="e-nav-link is-active" href="terms-service.html">이용약관</a>
+      <a class="e-nav-link" href="terms-privacy.html" id="privacyLink">개인정보처리방침</a>
+    </nav>
+    <div class="e-header-actions">
+      <button type="button" class="btn btn-outline btn-sm no-print" id="printTermsBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-6h16v6h-2"/><rect x="6" y="14" width="12" height="7"/></svg>
+        인쇄
+      </button>
+      <a href="index.html" class="btn btn-ghost btn-sm">홈으로</a>
     </div>
-    <div class="flex-1 overflow-y-auto px-8 py-6 text-[14px] font-medium leading-relaxed tracking-[-0.7px] text-[#25374b]">
-      <p class="mb-6 whitespace-pre-wrap">Eattyway는 회사가 아닌 프로젝트형 서비스이며, Eattyway 프로젝트 운영팀(이하 "운영팀")이 서비스를 운영합니다.</p>
+  </div>
+</header>
 
-      <p class="mb-3 font-semibold">제1장 총칙</p>
-      <div class="mb-6">
-        <p class="mb-2 font-semibold text-[#25374b]">제 1 조 (목적)</p>
-        <p class="mb-1 whitespace-pre-wrap">본 약관은 Eattyway 프로젝트 운영팀이 제공하는 Eattyway 서비스(이하 “서비스”라 합니다)를 이용하는 데 있어, 운영팀과 이용자 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
-      </div>
-      <div class="mb-6">
-        <p class="mb-2 font-semibold text-[#25374b]">제 2 조 (정의)</p>
-        <p class="mb-1 whitespace-pre-wrap">1. “서비스”란 음식점 검색, 지도 표시, 즐겨찾기, 리뷰 작성, 사업자 회원의 음식점 정보 등록·관리 등을 제공하는 웹 기반 음식점 검색 서비스를 의미합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">2. “운영팀”이란 Eattyway 프로젝트를 기획·개발하고 서비스를 운영하는 Eattyway 프로젝트 운영팀을 의미합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">3. “이용자”란 본 약관에 동의하고 서비스를 이용하는 자를 의미합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">4. “회원”이란 서비스에 가입하여 아이디와 비밀번호(또는 소셜 로그인 연동 정보)를 부여받고 서비스를 지속적으로 이용할 수 있는 이용자를 의미합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">5. “일반 회원”이란 음식점을 검색·조회하고 즐겨찾기·리뷰 작성 등의 기능을 이용하는 회원을 의미합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">6. “사업자 회원”이란 사업자등록증명원 제출 및 진위확인 절차를 거쳐, 본인이 운영하는 음식점의 정보(전화번호, 영업시간, 메뉴, 사진 등)를 등록·관리하는 회원을 의미합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">7. “게시물”이란 회원이 서비스에 게시한 리뷰, 사진 등 모든 형태의 콘텐츠를 의미합니다.</p>
-      </div>
-      <div class="mb-6">
-        <p class="mb-2 font-semibold text-[#25374b]">제 3 조 (약관의 효력 및 변경)</p>
-        <p class="mb-1 whitespace-pre-wrap">1. 본 약관은 서비스 화면에 게시하거나 이용자에게 공지함으로써 효력이 발생합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">2. 운영팀은 관련 법령을 위배하지 않는 범위에서 본 약관을 변경할 수 있습니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">3. 약관이 변경되는 경우 운영팀은 변경 내용을 시행일 7일 전부터 서비스 내 공지사항 또는 이메일을 통해 이용자에게 고지합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">4. 변경된 약관에 동의하지 않는 이용자는 회원 탈퇴를 통해 서비스 이용을 중단할 수 있습니다. 고지 이후 계속하여 서비스를 이용하는 경우 변경 약관에 동의한 것으로 봅니다.</p>
-      </div>
+<main class="flex-1 bg-[var(--bg-soft)]">
 
-      <p class="mb-3 font-semibold">제2장 회원가입 및 관리</p>
-      <div class="mb-6">
-        <p class="mb-2 font-semibold text-[#25374b]">제 4 조 (회원가입)</p>
-        <p class="mb-1 whitespace-pre-wrap">1. 이용자는 서비스가 정한 가입 양식에 따라 이메일, 비밀번호, 닉네임, 휴대폰 번호 등의 정보를 기입하거나, 카카오·네이버·구글의 외부 인증을 통해 회원가입을 신청합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">2. 운영팀은 회원가입 시 이메일 인증 및 휴대폰 본인인증을 요구할 수 있습니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">3. 카카오·네이버·구글 소셜 로그인은 각 플랫폼의 외부 인증 서비스를 이용하는 방식으로 제공됩니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">- 허위 정보를 기재한 경우</p>
-        <p class="mb-1 whitespace-pre-wrap">- 사업자 회원 신청 시 제출한 사업자등록 정보가 국세청 진위확인 결과와 일치하지 않는 경우</p>
-        <p class="mb-1 whitespace-pre-wrap">- 이전에 서비스 이용 제한을 받은 적이 있는 경우</p>
-      </div>
-      <div class="mb-6">
-        <p class="mb-2 font-semibold text-[#25374b]">제 5 조 (회원정보 관리)</p>
-        <p class="mb-1 whitespace-pre-wrap">1. 회원은 가입 시 등록한 정보를 최신 상태로 유지할 책임이 있으며, 마이페이지를 통해 언제든지 열람·수정할 수 있습니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">2. 아이디와 비밀번호의 관리 책임은 회원에게 있으며, 제3자에게 양도하거나 대여할 수 없습니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">3. 계정 도용이나 무단 사용이 확인된 경우 즉시 운영팀에 통보하여야 합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">4. 운영팀은 로그인 실패가 반복되는 경우(5회 이상) 일정 시간(30분) 동안 계정 접근을 제한할 수 있습니다.</p>
-      </div>
-      <div class="mb-6">
-        <p class="mb-2 font-semibold text-[#25374b]">제 6 조 (회원 탈퇴)</p>
-        <p class="mb-1 whitespace-pre-wrap">1. 회원은 언제든지 마이페이지를 통해 탈퇴를 요청할 수 있습니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">2. 탈퇴 시 회원의 개인정보는 관련 법령이 정하는 기간을 제외하고 지체 없이 삭제됩니다.</p>
-      </div>
+  <!-- 문서 헤딩 -->
+  <div class="bg-white border-b border-[var(--line)]">
+    <div class="e-container py-10 md:py-14">
+      <nav class="e-breadcrumb" aria-label="현재 위치">
+        <a href="index.html">홈</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        <span class="font-semibold text-[var(--ink-600)]">이용약관</span>
+      </nav>
 
-      <p class="mb-3 font-semibold">제3장 서비스 이용</p>
-      <div class="mb-6">
-        <p class="mb-2 font-semibold text-[#25374b]">제 7 조 (서비스 제공)</p>
-        <p class="mb-1 whitespace-pre-wrap">1. 운영팀은 다음과 같은 기능을 제공합니다.</p>
-        <p class="mb-1 whitespace-pre-wrap">- 음식점 검색(키워드, 카테고리, 가격대) 및 지도 기반 위치 검색</p>
-        <p class="mb-1 whitespace-pre-wrap">- 이용자가 현재 위치 버튼을 누르고 위치 권한을 허용한 경우에 한한 현재 위치 기반 주변 음식점 검색</p>
-        <p class="mb-1 whitespace-pre-wrap">- 음식점 상세정보(메뉴, 영업시간, 전화번호, 사진 등) 조회</p>
+      <h1 class="t-h2">잇티웨이 서비스 이용약관</h1>
+
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5">
+        <span class="e-badge e-badge--brand e-badge-lg" id="termsVersion">v2.1</span>
+        <p class="t-sm">시행일 <b class="t-strong t-num" id="termsEffectiveAt">2026년 5월 1일</b></p>
+        <label class="flex items-center gap-2 ml-auto no-print">
+          <span class="t-xs font-bold">이전 버전</span>
+          <select class="e-select e-input-sm" id="termsHistorySelect" style="width:auto;min-width:150px">
+            <option value="2.1" selected>v2.1 (2026-05-01)</option>
+            <option value="2.0">v2.0 (2025-11-15)</option>
+            <option value="1.0">v1.0 (2025-03-02)</option>
+          </select>
+        </label>
       </div>
     </div>
   </div>
 
-  <button onclick="history.back()" class="mt-8 h-[52px] w-full max-w-[820px] rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">돌아가기</button>
-</div>
-<script src="assets/js/api.js"></script>
+  <div class="e-container py-10 md:py-14">
+    <div class="grid lg:grid-cols-[240px_1fr] gap-8 lg:gap-12">
+
+      <!-- ==================== 좌측 목차 ==================== -->
+      <aside class="no-print">
+        <nav class="e-sticky-top" id="termsToc" aria-label="약관 목차">
+          <p class="text-[11px] font-extrabold text-[var(--ink-400)] tracking-wider uppercase px-3 mb-2">목차</p>
+          <a class="toc-link is-active" href="#chapter1">제1장 총칙</a>
+          <a class="toc-link" href="#chapter2">제2장 이용계약 체결</a>
+          <a class="toc-link" href="#chapter3">제3장 서비스 이용</a>
+          <a class="toc-link" href="#chapter4">제4장 리뷰 및 게시물</a>
+          <a class="toc-link" href="#chapter5">제5장 오픈채팅</a>
+          <a class="toc-link" href="#chapter6">제6장 사업자 회원</a>
+          <a class="toc-link" href="#chapter7">제7장 계약 해지 및 제재</a>
+          <a class="toc-link" href="#chapter8">제8장 기타</a>
+
+          <div class="mt-6 p-4 rounded-[var(--r-md)]" style="background:var(--brand-grad-soft);border:1px solid var(--brand-100)">
+            <p class="text-[13px] font-extrabold text-[var(--brand-700)] mb-1.5">아직 회원이 아니신가요?</p>
+            <p class="t-xs mb-3">약관 확인 후 바로 가입할 수 있어요.</p>
+            <a href="signup.html" class="btn btn-primary btn-sm btn-block" id="agreeAndSignupBtn">회원가입</a>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- ==================== 본문 ==================== -->
+      <article class="e-card e-card-pad">
+        <div class="e-doc" id="termsBody">
+
+          <div class="e-doc-note">
+            본 약관은 잇티웨이(이하 "회사")가 제공하는 AI 기반 맛집 검색·추천 및 커뮤니티 서비스의
+            이용 조건과 절차, 회사와 회원의 권리·의무 및 책임사항을 정합니다.
+            서비스를 이용하기 전에 반드시 읽어주세요.
+          </div>
+
+          <!-- 제1장 -->
+          <h2 id="chapter1">제1장 총칙</h2>
+
+          <h3>제1조 (목적)</h3>
+          <p>
+            이 약관은 회사가 온라인으로 제공하는 잇티웨이 서비스(이하 "서비스")를 이용함에 있어
+            회사와 이용자의 권리, 의무 및 책임사항, 서비스 이용 조건과 절차 등 기본적인 사항을
+            규정함을 목적으로 합니다.
+          </p>
+
+          <h3>제2조 (용어의 정의)</h3>
+          <p>이 약관에서 사용하는 용어의 정의는 다음과 같습니다.</p>
+          <ol>
+            <li><strong>서비스</strong>: 회사가 제공하는 맛집 검색, AI 추천, 영수증 인증 리뷰, 오픈채팅, 음식 취향 테스트(음BTI) 등 일체의 서비스를 말합니다.</li>
+            <li><strong>회원</strong>: 이 약관에 동의하고 회사와 이용계약을 체결하여 서비스를 이용하는 자를 말하며, 일반 회원과 사업자 회원으로 구분합니다.</li>
+            <li><strong>일반 회원</strong>: 맛집 검색·추천, 리뷰 작성, 오픈채팅 등 개인 이용을 목적으로 가입한 회원을 말합니다.</li>
+            <li><strong>사업자 회원</strong>: 사업자등록번호 및 사업자등록증명원 인증을 완료하고, 본인이 운영하는 매장 정보를 관리할 수 있는 권한을 부여받은 회원을 말합니다.</li>
+            <li><strong>영수증 인증 리뷰</strong>: 회원이 실제 결제한 영수증 이미지를 업로드하고 OCR(광학문자인식)을 통해 방문 사실이 확인된 후 작성하는 리뷰를 말합니다.</li>
+            <li><strong>음BTI</strong>: 회사가 제공하는 12문항의 음식 취향 진단 테스트 및 그 결과 유형을 말합니다.</li>
+            <li><strong>잇티챗</strong>: 회원 간 실시간 메시지 교환이 가능한 오픈채팅 기능을 말합니다.</li>
+            <li><strong>참가코드</strong>: 오픈채팅방에 입장하기 위해 방장이 발급하는 고유 코드를 말합니다.</li>
+          </ol>
+
+          <h3>제3조 (약관의 게시와 개정)</h3>
+          <ol>
+            <li>회사는 이 약관의 내용을 회원이 쉽게 확인할 수 있도록 서비스 초기 화면 또는 연결 화면에 게시합니다.</li>
+            <li>회사는 관련 법령을 위배하지 않는 범위에서 이 약관을 개정할 수 있습니다.</li>
+            <li>회사가 약관을 개정할 경우 적용일자 및 개정사유를 명시하여 적용일자 7일 전부터 공지합니다. 다만 회원에게 불리한 변경의 경우에는 30일 전부터 공지하고, 이메일 등으로 개별 통지합니다.</li>
+            <li>회원이 개정 약관의 적용일까지 거부 의사를 표시하지 않으면 개정 약관에 동의한 것으로 봅니다. 개정 약관에 동의하지 않는 회원은 이용계약을 해지할 수 있습니다.</li>
+          </ol>
+
+          <!-- 제2장 -->
+          <h2 id="chapter2">제2장 이용계약 체결</h2>
+
+          <h3>제4조 (이용계약의 성립)</h3>
+          <ol>
+            <li>이용계약은 이용자가 이 약관에 동의하고 회원가입을 신청한 후, 회사가 이를 승낙함으로써 성립합니다.</li>
+            <li>회사는 다음 각 호에 해당하는 신청에 대하여는 승낙을 거부하거나 사후에 이용계약을 해지할 수 있습니다.
+              <ul>
+                <li>타인의 명의 또는 정보를 이용하여 신청한 경우</li>
+                <li>허위 정보를 기재하거나 필수 항목을 기재하지 않은 경우</li>
+                <li>만 14세 미만인 경우</li>
+                <li>이전에 이용약관 위반으로 이용계약이 해지된 이력이 있는 경우</li>
+                <li>기술적 설비 여유가 없는 등 회사의 사정상 곤란한 경우</li>
+              </ul>
+            </li>
+          </ol>
+
+          <h3>제5조 (회원가입 및 본인 확인)</h3>
+          <ol>
+            <li>일반 회원가입 시 회사는 이메일 인증 및 전화번호 인증(SMS)을 통해 본인 확인 절차를 진행합니다.</li>
+            <li>사업자 회원가입 시 회사는 사업자등록번호 진위 확인 및 사업자등록증명원 OCR 인증 절차를 추가로 진행하며, 운영팀 심사를 거쳐 승인합니다.</li>
+            <li>회원은 소셜 계정(카카오·네이버·구글)을 이용하여 가입 및 로그인할 수 있습니다. 소셜 계정으로 가입한 회원은 별도의 비밀번호를 보유하지 않습니다.</li>
+          </ol>
+
+          <h3>제6조 (회원정보의 변경)</h3>
+          <ol>
+            <li>회원은 마이페이지에서 닉네임, 전화번호, 프로필 사진 등 자신의 정보를 열람하고 수정할 수 있습니다.</li>
+            <li>보안을 위해 회원정보 수정 화면 진입 시 비밀번호 재인증이 요구될 수 있습니다.</li>
+            <li>회원은 정보가 변경된 경우 지체 없이 수정해야 하며, 미수정으로 발생한 불이익에 대해 회사는 책임지지 않습니다.</li>
+          </ol>
+
+          <!-- 제3장 -->
+          <h2 id="chapter3">제3장 서비스 이용</h2>
+
+          <h3>제7조 (서비스의 제공)</h3>
+          <p>회사가 제공하는 서비스는 다음과 같습니다.</p>
+          <table>
+            <thead>
+              <tr><th style="width:32%">구분</th><th>내용</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>지도 기반 탐색</td><td>지도상에서 가게명·메뉴명 검색, 카테고리 및 가격대 필터, 즐겨찾기, 길찾기 연동</td></tr>
+              <tr><td>AI 자연어 추천</td><td>이용자가 입력한 문장을 해석하여 조건에 부합하는 매장을 추천하고, 추천 이유와 후속 활동을 제안</td></tr>
+              <tr><td>영수증 인증 리뷰</td><td>영수증 이미지 OCR 인증 후 별점, 긍정·부정 태그, 자유 텍스트로 리뷰 작성</td></tr>
+              <tr><td>잇티챗</td><td>참가코드 기반 실시간 오픈채팅방 생성 및 참여</td></tr>
+              <tr><td>음BTI</td><td>12문항 음식 취향 진단 및 결과 기반 메뉴 추천</td></tr>
+            </tbody>
+          </table>
+
+          <h3>제8조 (AI 추천 결과에 관한 고지)</h3>
+          <ol>
+            <li>AI 추천 결과는 회원이 입력한 조건, 공개된 리뷰 데이터 및 통계를 바탕으로 생성된 <strong>참고 정보</strong>이며, 특정 매장의 품질·위생·서비스를 회사가 보증하는 것은 아닙니다.</li>
+            <li>회원은 추천 결과에 대해 좋아요·싫어요 피드백을 제공할 수 있으며, 이는 추천 품질 개선에 활용됩니다.</li>
+            <li>알레르기, 종교적 제약, 건강 상태 등 개인적 사유로 인한 음식 선택은 회원의 책임입니다. 방문 전 매장에 직접 확인하시기 바랍니다.</li>
+          </ol>
+
+          <h3>제9조 (서비스의 중단)</h3>
+          <ol>
+            <li>회사는 설비 점검·보수·교체, 통신 장애, 천재지변 등 불가피한 사유가 있는 경우 서비스 제공을 일시 중단할 수 있습니다.</li>
+            <li>예정된 점검의 경우 사전에 공지하며, 긴급한 경우 사후에 공지할 수 있습니다.</li>
+            <li>회사는 무료로 제공되는 서비스의 일부 또는 전부를 회사의 정책에 따라 수정·중단할 수 있으며, 이에 대해 별도의 보상을 하지 않습니다.</li>
+          </ol>
+
+          <h3>제10조 (회원의 의무)</h3>
+          <p>회원은 다음 행위를 하여서는 안 됩니다.</p>
+          <ol>
+            <li>타인의 계정·개인정보를 도용하거나 부정하게 사용하는 행위</li>
+            <li>실제 방문하지 않은 매장에 대해 허위 리뷰를 작성하거나, 대가를 받고 리뷰를 작성·거래하는 행위</li>
+            <li>위조 또는 변조된 영수증을 업로드하는 행위</li>
+            <li>타인을 비방·모욕하거나 명예를 훼손하는 게시물 또는 메시지를 작성하는 행위</li>
+            <li>음란물, 폭력적 표현, 차별·혐오 표현을 게시하는 행위</li>
+            <li>자동화된 수단(크롤러, 봇 등)으로 서비스에 접근하거나 데이터를 대량 수집하는 행위</li>
+            <li>서비스의 소스코드, API를 무단으로 역분석·복제·배포하는 행위</li>
+            <li>기타 관련 법령 또는 이 약관에 위반되는 행위</li>
+          </ol>
+
+          <!-- 제4장 -->
+          <h2 id="chapter4">제4장 리뷰 및 게시물</h2>
+
+          <h3>제11조 (리뷰 작성 요건)</h3>
+          <ol>
+            <li>리뷰는 영수증 OCR 인증을 통해 방문이 확인된 회원만 작성할 수 있습니다.</li>
+            <li>하나의 영수증으로는 1건의 리뷰만 작성할 수 있으며, 동일 영수증의 재사용은 제한됩니다.</li>
+            <li>리뷰는 별점(1~5점), 긍정 태그 및 부정 태그(각 10종 중 선택), 자유 텍스트로 구성됩니다.</li>
+            <li>회원은 자신이 작성한 리뷰를 마이페이지에서 수정 또는 삭제할 수 있습니다.</li>
+          </ol>
+
+          <h3>제12조 (게시물의 권리와 이용 허락)</h3>
+          <ol>
+            <li>회원이 작성한 리뷰 등 게시물의 저작권은 해당 회원에게 있습니다.</li>
+            <li>회원은 회사가 서비스 운영·홍보·개선 목적으로 게시물을 서비스 내에 노출하고, 통계 및 AI 추천 학습에 활용하는 것을 허락합니다. 이 경우 회사는 회원의 개인정보를 식별할 수 없는 형태로 처리합니다.</li>
+            <li>회원이 이용계약을 해지하더라도 이미 게시된 리뷰는 서비스 운영을 위해 익명화 처리 후 유지될 수 있습니다.</li>
+          </ol>
+
+          <h3>제13조 (게시물의 신고와 조치)</h3>
+          <ol>
+            <li>회원은 부적절한 리뷰나 채팅 메시지를 신고할 수 있습니다.</li>
+            <li>회사는 신고를 접수한 후 <strong>대기중 → 처리완료 또는 반려</strong> 단계로 처리하며, 처리 결과를 신고자에게 안내할 수 있습니다.</li>
+            <li>회사는 명백한 법령 위반 또는 타인의 권리 침해가 인정되는 게시물에 대해 사전 통지 없이 삭제 또는 노출 제한 조치를 할 수 있습니다.</li>
+          </ol>
+
+          <!-- 제5장 -->
+          <h2 id="chapter5">제5장 오픈채팅 (잇티챗)</h2>
+
+          <h3>제14조 (채팅방 개설과 참여)</h3>
+          <ol>
+            <li>회원은 채팅방을 개설할 수 있으며, 개설 시 방 제목과 최대 참여 인원을 설정합니다.</li>
+            <li>다른 회원은 방장이 발급한 참가코드를 입력하여 채팅방에 입장합니다.</li>
+            <li>최대 인원에 도달한 채팅방에는 추가 입장이 제한됩니다.</li>
+          </ol>
+
+          <h3>제15조 (방장의 권한과 책임)</h3>
+          <ol>
+            <li>채팅방을 개설한 회원(방장)은 해당 채팅방을 삭제("방 폭파")할 수 있습니다. 삭제 시 대화 내용은 복구되지 않습니다.</li>
+            <li>방장은 채팅방 내 질서 유지를 위해 노력해야 하며, 방 내에서 발생한 분쟁에 대해 회사는 개입 의무를 지지 않습니다.</li>
+          </ol>
+
+          <h3>제16조 (채팅 이용 제한)</h3>
+          <ol>
+            <li>도배, 스팸, 광고, 개인정보 유포, 불법 거래 유도 등의 메시지는 금지됩니다.</li>
+            <li>신고가 누적된 회원에 대해 회사는 채팅 기능 이용을 일시적 또는 영구적으로 제한할 수 있습니다.</li>
+          </ol>
+
+          <!-- 제6장 -->
+          <h2 id="chapter6">제6장 사업자 회원</h2>
+
+          <h3>제17조 (사업자 인증)</h3>
+          <ol>
+            <li>사업자 회원은 사업자등록번호 진위 확인 및 사업자등록증명원 제출을 통해 인증을 완료해야 합니다.</li>
+            <li>회사는 제출된 서류를 영업일 기준 1~2일 내에 심사하며, 서류 부실 또는 정보 불일치 시 보완을 요청하거나 반려할 수 있습니다.</li>
+            <li>사업자 회원은 본인이 실제로 운영하는 매장에 한하여 관리 권한을 신청할 수 있습니다.</li>
+          </ol>
+
+          <h3>제18조 (사업자 회원의 의무)</h3>
+          <ol>
+            <li>매장 정보(영업시간, 주소, 연락처, 가격대 등)를 사실에 부합하도록 유지해야 합니다.</li>
+            <li>자신의 매장에 허위·과장 리뷰를 작성하거나 제3자에게 이를 유도·대가 지급하는 행위는 금지됩니다.</li>
+            <li>리뷰 작성자에게 리뷰 삭제나 수정을 강요하거나, 리뷰를 이유로 불이익을 주는 행위는 금지됩니다.</li>
+            <li>사업 양도·폐업 등으로 운영 주체가 변경된 경우 지체 없이 회사에 알려야 합니다.</li>
+          </ol>
+
+          <!-- 제7장 -->
+          <h2 id="chapter7">제7장 계약 해지 및 제재</h2>
+
+          <h3>제19조 (회원의 해지)</h3>
+          <ol>
+            <li>회원은 언제든지 마이페이지를 통해 이용계약 해지(회원 탈퇴)를 신청할 수 있습니다.</li>
+            <li>해지 시 회원의 개인정보는 개인정보처리방침에 따라 처리됩니다.</li>
+          </ol>
+
+          <h3>제20조 (이용 제한 및 제재 단계)</h3>
+          <p>회사는 위반 정도에 따라 아래와 같이 단계적으로 조치할 수 있습니다.</p>
+          <table>
+            <thead>
+              <tr><th style="width:26%">단계</th><th>조치 내용</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1단계 · 경고</td><td>위반 사실 통지 및 시정 요청</td></tr>
+              <tr><td>2단계 · 기능 제한</td><td>리뷰 작성 또는 채팅 이용 7~30일 제한</td></tr>
+              <tr><td>3단계 · 계정 정지</td><td>로그인 및 서비스 이용 정지 (기간은 사안에 따라 결정)</td></tr>
+              <tr><td>4단계 · 계약 해지</td><td>이용계약 해지 및 재가입 제한</td></tr>
+            </tbody>
+          </table>
+          <p>
+            다만 영수증 위조, 타인 사칭, 불법 거래 등 중대한 위반의 경우 단계를 생략하고 즉시
+            계정 정지 또는 계약 해지를 할 수 있습니다.
+          </p>
+
+          <h3>제21조 (이의 제기)</h3>
+          <p>
+            제재를 받은 회원은 통지받은 날로부터 14일 이내에
+            <a href="mailto:support@eattyway.com" class="e-link-brand">support@eattyway.com</a>
+            으로 이의를 제기할 수 있으며, 회사는 접수 후 7일 이내에 검토 결과를 안내합니다.
+          </p>
+
+          <!-- 제8장 -->
+          <h2 id="chapter8">제8장 기타</h2>
+
+          <h3>제22조 (책임의 제한)</h3>
+          <ol>
+            <li>회사는 매장이 제공하는 음식·서비스의 품질, 위생 상태, 가격 정보의 정확성에 대해 보증하지 않으며, 회원과 매장 간 거래에 직접 개입하지 않습니다.</li>
+            <li>회사는 회원이 게시한 리뷰 및 채팅 메시지의 내용에 대해 책임을 지지 않습니다. 다만 회사가 신고를 인지하고도 정당한 사유 없이 조치하지 않은 경우에는 그러하지 않습니다.</li>
+            <li>회사는 천재지변, 통신사 장애, 제3자 서비스(지도·OCR·소셜 로그인 등) 장애로 인한 손해에 대해 책임을 지지 않습니다.</li>
+          </ol>
+
+          <h3>제23조 (분쟁의 해결)</h3>
+          <ol>
+            <li>회사와 회원 간 발생한 분쟁은 상호 협의를 통해 해결하도록 노력합니다.</li>
+            <li>협의가 이루어지지 않을 경우 관련 법령에 따른 관할 법원에 소를 제기할 수 있습니다.</li>
+            <li>이 약관과 관련하여 회사와 회원 간에 제기된 소송에는 대한민국 법을 적용합니다.</li>
+          </ol>
+
+          <h3>부칙</h3>
+          <p>이 약관은 2026년 5월 1일부터 시행합니다. 종전 약관(v2.0)은 이 약관의 시행일부터 효력을 상실합니다.</p>
+
+          <div class="e-doc-note">
+            <strong>문의</strong><br>
+            서비스명: 잇티웨이 (Eatty way)<br>
+            문의 이메일: <a href="mailto:support@eattyway.com" class="e-link-brand">support@eattyway.com</a><br>
+            <span class="t-xs">※ 본 서비스는 학습/포트폴리오 목적의 프로젝트이며, 약관 내용은 예시입니다.</span>
+          </div>
+        </div>
+
+        <!-- 하단 액션 -->
+        <div class="mt-10 pt-8 border-t border-[var(--line)] flex flex-col sm:flex-row gap-3 no-print">
+          <a href="terms-privacy.html" class="btn btn-outline flex-1">개인정보처리방침 보기</a>
+          <a href="signup.html" class="btn btn-primary flex-1">동의하고 회원가입</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</main>
+
+<footer class="e-footer">
+  <div class="e-container">
+    <div class="e-footer-bottom !mt-0 !border-0 !pt-0">
+      <p>&copy; 2026 Eatty way. All rights reserved.</p>
+      <nav class="flex gap-5">
+        <a href="terms-service.html">이용약관</a>
+        <a href="terms-privacy.html">개인정보처리방침</a>
+        <a href="index.html">홈</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* 목차 활성화 + 인쇄 */
+(function () {
+  document.getElementById('printTermsBtn').addEventListener('click', function () { window.print(); });
+
+  var links = Array.prototype.slice.call(document.querySelectorAll('#termsToc .toc-link'));
+  var sections = links.map(function (l) { return document.querySelector(l.getAttribute('href')); });
+
+  function onScroll() {
+    var y = window.scrollY + 140;
+    var idx = 0;
+    sections.forEach(function (s, i) { if (s && s.offsetTop <= y) idx = i; });
+    links.forEach(function (l, i) { l.classList.toggle('is-active', i === idx); });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
 </body>
 </html>

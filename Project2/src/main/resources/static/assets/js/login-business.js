@@ -1,16 +1,18 @@
 (function () {
-  var form = document.getElementById("loginForm");
+  var form = document.getElementById("bizLoginForm");
   if (!form) return;
 
-  var emailInput = document.getElementById("loginEmail");
-  var passwordInput = document.getElementById("loginPassword");
-  var rememberInput = document.getElementById("rememberMe");
-  var submitBtn = document.getElementById("loginSubmitBtn");
-  var alertBox = document.getElementById("loginAlert");
-  var alertText = document.getElementById("loginAlertText");
-  var emailError = document.getElementById("loginEmailError");
-  var passwordError = document.getElementById("loginPasswordError");
+  var emailInput = document.getElementById("bizLoginEmail");
+  var passwordInput = document.getElementById("bizLoginPassword");
+  var rememberInput = document.getElementById("bizRememberMe");
+  var submitBtn = document.getElementById("bizLoginSubmitBtn");
+  var alertBox = document.getElementById("bizLoginAlert");
+  var alertText = document.getElementById("bizLoginAlertText");
+  var emailError = document.getElementById("bizLoginEmailError");
+  var passwordError = document.getElementById("bizLoginPasswordError");
 
+  // 사업자/일반 회원 로그인은 백엔드에서 같은 API(/api/members/login)를 쓰고, role 클레임으로
+  // 구분한다(별도의 "/business" 로그인 엔드포인트는 없음).
   var ERROR_MESSAGES = {
     INVALID_CREDENTIALS: "이메일 또는 비밀번호가 올바르지 않습니다.",
     ACCOUNT_LOCKED: "로그인 5회 실패로 계정이 30분간 잠겼습니다.",
@@ -48,7 +50,12 @@
     submitBtn.disabled = true;
     Api.login(email, password, !!(rememberInput && rememberInput.checked))
       .then(function () {
-        window.location.href = Api.landingPageForRole();
+        if (Api.getRole() !== "BUSINESS") {
+          showAlert("일반 회원 계정입니다. 일반 로그인을 이용해주세요.");
+          Api.clearSession();
+          return;
+        }
+        window.location.href = "business-mypage.html";
       })
       .catch(function (err) {
         showAlert(ERROR_MESSAGES[err.code] || err.message || "로그인에 실패했습니다.");
@@ -63,23 +70,4 @@
       window.location.href = "/api/auth/" + provider + "/authorize";
     });
   });
-
-  (function handleOAuthRedirectParams() {
-    var params = new URLSearchParams(window.location.search);
-    var accessToken = params.get("accessToken");
-    var refreshToken = params.get("refreshToken");
-    var memberId = params.get("memberId");
-    var error = params.get("error");
-    var errorMessage = params.get("errorMessage");
-
-    if (accessToken && refreshToken && memberId) {
-      Api.setSession({ accessToken: accessToken, refreshToken: refreshToken, memberId: memberId });
-      window.location.replace(Api.landingPageForRole());
-      return;
-    }
-    if (error) {
-      showAlert(errorMessage || "소셜 로그인에 실패했습니다.");
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  })();
 })();

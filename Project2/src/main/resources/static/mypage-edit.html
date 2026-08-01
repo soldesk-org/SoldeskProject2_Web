@@ -1,138 +1,737 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="user" data-account-type="local">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>회원정보 수정 | 잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>프로필 수정 — 잇티웨이</title>
+<meta name="description" content="닉네임, 전화번호, 비밀번호, 프로필 사진을 수정합니다.">
+
+<!--
+================================================================================
+ mypage-edit.html — 프로필 수정 (비밀번호 재인증 게이트 포함)
+--------------------------------------------------------------------------------
+ 화면은 2단계입니다.
+   #gateSection (재인증)  →  #editSection (수정 폼)
+
+ [계정 유형 분기]  <html data-account-type="local|social">
+   [data-account-view="local"]   일반 계정 전용 UI  (비밀번호 입력 / 변경)
+   [data-account-view="social"]  소셜 계정 전용 UI  (비밀번호 UI 없음)
+   ※ 서버에서 계정 유형을 받아 <html> 의 data-account-type 만 바꾸면 전환됩니다.
+      Eatty 없이도 동작하도록 아래 인라인 스크립트에서 처리합니다.
+
+ ┌ STEP 1 · 재인증 게이트 ─────────────────────────────────────────────
+   #gateSection            섹션 루트
+   #gateForm               재인증 폼
+   #gatePassword           현재 비밀번호 (name="currentPassword")  [local]
+   #gatePasswordToggleBtn  표시 토글
+   #gatePasswordError      불일치 에러
+   #gateSubmitBtn          확인 ★ POST /api/auth/verify-password
+   #gateSocialBtn          소셜 재인증 버튼 [social] ★ OAuth 재인증
+   #gateFailCount          남은 시도 횟수 표시
+   #gateCancelBtn          취소 → mypage.html
+ └──────────────────────────────────────────────────────────────────────
+
+ ┌ STEP 2 · 수정 폼 ───────────────────────────────────────────────────
+   #editSection            섹션 루트 (기본 hidden)
+   #editForm               폼 루트  ★ PATCH /api/members/me
+
+   [프로필 사진]
+     #avatarDrop           드롭존 (data-dropzone)
+     #avatarInput          파일 입력 (name="profileImage")
+     #avatarPreview        미리보기 래퍼 (data-dropzone-preview)
+     #avatarPreviewImg     미리보기 img (data-dropzone-img)
+     #avatarRemoveBtn      기본 이미지로 되돌리기
+     #avatarFileName       파일명/용량 안내
+
+   [기본 정보]
+     #editEmail            이메일 (읽기 전용 · 변경 불가)
+     #editNickname         닉네임 (name="nickname")
+     #checkNicknameBtn     중복확인 ★ GET /api/members/check-nickname
+     #nicknameError / #nicknameOk
+     #editPhone            전화번호 (name="phone")
+     #sendPhoneCodeBtn     인증번호 발송 ★ POST /api/auth/sms/send
+     #phoneCodeRow         인증번호 행 (기본 hidden)
+     #editPhoneCode        인증번호 (name="phoneCode")
+     #phoneCodeTimer       타이머 (data-timer="180")
+     #verifyPhoneCodeBtn   확인 ★ POST /api/auth/sms/verify
+     #phoneOk              인증 완료 메시지
+
+   [비밀번호 변경]  [local 전용]
+     #passwordChangeBox    영역 루트
+     #newPassword          새 비밀번호 (name="newPassword")
+     #newPasswordConfirm   새 비밀번호 확인 (name="newPasswordConfirm")
+     #newPwToggleBtn / #newPwConfirmToggleBtn
+     #newPwStrengthBar / #newPwStrengthText
+     #newPasswordConfirmError
+
+   [취향 정보]
+     input[name="favoriteCategory"]  선호 카테고리 칩
+     #editSpicyLevel / #editSpicyLevelText   매운맛 선호도
+
+   [알림]
+     #notifyRecommend / #notifyChat / #notifyMarketing
+
+   [제출]
+     #editCancelBtn        취소 → mypage.html
+     #editSubmitBtn        저장하기
+     #editSuccessAlert     저장 완료 배너 (hidden 해제)
+ └──────────────────────────────────────────────────────────────────────
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/eatty-ui.js"></script>
+<style>
+  /* 계정 유형별 표시 제어 */
+  [data-account-view] { display: none; }
+  html[data-account-type="local"]  [data-account-view="local"]  { display: block; }
+  html[data-account-type="social"] [data-account-view="social"] { display: block; }
+</style>
 </head>
-<body>
-<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
-  <aside class="relative z-10 flex w-[280px] shrink-0 flex-col bg-white">
-    <a href="explore" class="flex justify-center">
-      <img src="assets/images/logo-full.png" alt="잇티웨이 로고" class="size-[220px] object-contain" />
+
+<body class="has-tabbar bg-[var(--bg-soft)]">
+<a href="#mainContent" class="skip-link">본문으로 건너뛰기</a>
+
+<!-- ============================== 헤더 ============================== -->
+<header class="e-header" id="siteHeader">
+  <div class="e-container e-container-wide e-header-inner">
+    <a href="index.html" class="e-logo" id="logoHome">
+      <span class="e-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+        </svg>
+      </span>
+      <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
     </a>
-    <nav class="mt-2 flex flex-col gap-4 overflow-y-auto px-6 pb-6">
-      <a href="explore" data-nav="explore" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">탐색</span>
-      </a>
-      <a href="recommend" data-nav="recommend" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">추천</span>
-      </a>
-      <a href="mypage?tab=favorites" data-nav="mypage?tab=favorites" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">즐겨찾기</span>
-      </a>
-      <a href="taste-quiz" data-nav="taste-quiz" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">입맛 유형 찾기</span>
-      </a>
-      <a href="mypage" data-nav="mypage" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">마이페이지</span>
-      </a>
-      <a href="chat" data-nav="chat" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">잇티챗</span>
-      </a>
-      <a href="business-mypage" data-nav="business-mypage" data-role="BUSINESS" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">사업자</span>
-      </a>
-      <a href="admin" data-nav="admin" data-role="ADMIN" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M12 2a5 5 0 0 0-5 5v2a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2V7a5 5 0 0 0-5-5Z"/><path d="M9 7a3 3 0 0 1 6 0v2H9Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">관리자 전용</span>
-      </a>
-      <button type="button" data-logout-btn class="flex items-center gap-4 rounded-[10px] px-3 py-3 text-left transition-colors text-[rgba(37,55,75,0.6)] hover:bg-[rgba(254,162,85,0.1)]">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">로그아웃</span>
-      </button>
+
+    <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
+      <a class="e-nav-link" href="explore.html" data-nav-page="explore.html">지도 탐색</a>
+      <a class="e-nav-link" href="recommend.html" data-nav-page="recommend.html">AI 추천</a>
+      <a class="e-nav-link" href="receipt-upload.html" data-nav-page="receipt-upload.html">영수증 리뷰</a>
+      <a class="e-nav-link" href="chat.html" data-nav-page="chat.html">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz.html" data-nav-page="taste-quiz.html">음BTI</a>
     </nav>
-  </aside>
 
-  <div class="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#fafafa] p-8">
-    <!-- 비밀번호 확인 게이트 -->
-    <div id="gate-view" class="w-full max-w-[420px] rounded-[16px] border border-[rgba(37,55,75,0.1)] bg-white p-8 shadow-[0px_4px_20px_0px_rgba(0,0,0,0.06)]">
-      <h1 class="text-[26px] font-semibold tracking-[-1.3px] text-[#25374b]">본인 확인</h1>
-      <p class="mt-2 text-[16px] font-medium text-[rgba(37,55,75,0.6)]">회원정보 수정을 위해 비밀번호를 다시 입력해주세요.</p>
-      <form id="gate-form" class="mt-6 flex flex-col gap-3">
-        <input id="gate-password" type="password" placeholder="비밀번호" class="h-[48px] w-full rounded-[10px] border border-[rgba(37,55,75,0.2)] bg-white px-5 text-[16px] font-medium text-[#25374b] outline-none focus:border-[#fd6d4a]" />
-        <p id="gate-error" class="text-[14px] font-medium text-red-500" style="display:none"></p>
-        <button type="submit" id="gate-submit-btn" class="h-[48px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[17px] font-semibold text-white transition-opacity hover:opacity-90">확인</button>
-        <a href="mypage" class="text-center text-[15px] font-medium text-[rgba(37,55,75,0.5)] hover:text-[#25374b]">취소하고 돌아가기</a>
-      </form>
-    </div>
-
-    <!-- 정보 수정 폼 -->
-    <div id="edit-view" style="display:none" class="grid w-full max-w-[820px] grid-cols-1 gap-6 rounded-[16px] border border-[rgba(37,55,75,0.1)] bg-white p-8 shadow-[0px_4px_20px_0px_rgba(0,0,0,0.06)] md:grid-cols-[auto_1fr]">
-      <div class="flex flex-col items-center gap-3 md:w-[140px]">
-        <div id="edit-avatar" class="relative size-[110px] shrink-0 overflow-hidden rounded-full"></div>
-        <input id="avatar-input" type="file" accept="image/png,image/jpeg" class="hidden" />
-        <button type="button" id="avatar-change-btn" class="w-full rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 py-1.5 text-[13px] font-semibold text-[#25374b] hover:bg-[rgba(254,162,85,0.08)]">사진 변경</button>
-        <button type="button" id="avatar-remove-btn" class="w-full rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[rgba(37,55,75,0.5)] hover:text-red-500">사진 삭제</button>
+    <div class="e-header-actions">
+      <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth">
+        <button type="button" class="e-icon-btn" id="headerNotiBtn" aria-label="알림">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+        </button>
+        <div class="e-dropdown">
+          <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
+                  id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
+            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
+            <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="e-dropdown-menu" id="headerProfileMenu">
+            <div class="e-dropdown-head">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
+              <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
+            </div>
+            <a class="e-dropdown-item" href="mypage.html">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews.html">내 리뷰</a>
+            <a class="e-dropdown-item" href="support.html">고객센터</a>
+            <div class="e-dropdown-sep"></div>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn"
+                    data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
+          </div>
+        </div>
       </div>
 
-      <div class="min-w-0">
-        <div class="flex items-center justify-between">
-          <h1 class="text-[24px] font-semibold tracking-[-1.2px] text-[#25374b]">회원정보 수정</h1>
-          <a href="mypage" class="text-[15px] font-medium text-[rgba(37,55,75,0.5)] hover:text-[#25374b]">✕ 닫기</a>
-        </div>
-
-        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label class="text-[13px] font-semibold text-[rgba(37,55,75,0.5)]">닉네임</label>
-            <input id="edit-nickname" class="mt-1 h-[42px] w-full rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[15px] font-medium text-[#25374b] outline-none focus:border-[#fd6d4a]" />
-          </div>
-          <div>
-            <label class="text-[13px] font-semibold text-[rgba(37,55,75,0.5)]">전화번호</label>
-            <div class="mt-1 flex gap-2">
-              <input id="edit-phone" class="h-[42px] w-full rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[15px] font-medium text-[#25374b] outline-none focus:border-[#fd6d4a]" />
-              <button type="button" id="phone-send-btn" class="shrink-0 rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[13px] font-semibold text-[#25374b] hover:bg-[rgba(254,162,85,0.08)]">인증</button>
-            </div>
-            <div id="phone-code-group" style="display:none" class="mt-1 flex gap-2">
-              <input id="edit-phone-code" placeholder="인증코드" class="h-[38px] w-full rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[14px] outline-none" />
-              <button type="button" id="phone-confirm-btn" class="shrink-0 rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[13px] font-semibold text-[#25374b]">확인</button>
-            </div>
-            <p id="phone-status" class="mt-1 text-[12px] font-medium text-[rgba(37,55,75,0.5)]"></p>
-          </div>
-        </div>
-
-        <div class="mt-3">
-          <label class="text-[13px] font-semibold text-[rgba(37,55,75,0.5)]">이메일</label>
-          <div class="mt-1 flex gap-2">
-            <input id="edit-email" type="email" class="h-[42px] w-full rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[15px] font-medium text-[#25374b] outline-none focus:border-[#fd6d4a]" />
-            <button type="button" id="email-send-btn" class="shrink-0 rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[13px] font-semibold text-[#25374b] hover:bg-[rgba(254,162,85,0.08)]">인증</button>
-          </div>
-          <div id="email-code-group" style="display:none" class="mt-1 flex gap-2">
-            <input id="edit-email-code" placeholder="인증코드" class="h-[38px] w-full rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[14px] outline-none" />
-            <button type="button" id="email-confirm-btn" class="shrink-0 rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[13px] font-semibold text-[#25374b]">확인</button>
-          </div>
-          <p id="email-status" class="mt-1 text-[12px] font-medium text-[rgba(37,55,75,0.5)]"></p>
-        </div>
-
-        <div id="password-section" class="mt-3">
-          <button type="button" id="password-toggle-btn" class="text-[14px] font-semibold text-[#fd6d4a]">비밀번호 변경하기</button>
-          <div id="password-fields" style="display:none" class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <input id="edit-password" type="password" placeholder="새 비밀번호" class="h-[42px] w-full rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[15px] outline-none" />
-            <input id="edit-password-confirm" type="password" placeholder="새 비밀번호 확인" class="h-[42px] w-full rounded-[8px] border border-[rgba(37,55,75,0.2)] px-3 text-[15px] outline-none" />
-          </div>
-        </div>
-
-        <p id="edit-error" class="mt-3 text-[14px] font-medium text-red-500" style="display:none"></p>
-        <p id="edit-success" class="mt-3 text-[14px] font-medium text-[#22a55e]" style="display:none"></p>
-
-        <div class="mt-4 flex gap-3">
-          <button type="button" id="edit-save-btn" class="h-[46px] flex-1 rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[16px] font-semibold text-white transition-opacity hover:opacity-90">저장하기</button>
-          <a href="mypage" class="flex h-[46px] flex-1 items-center justify-center rounded-[10px] border border-[rgba(37,55,75,0.2)] text-[16px] font-medium text-[#25374b] hover:bg-[rgba(37,55,75,0.04)]">취소</a>
-        </div>
-      </div>
+      <button type="button" class="e-header-burger" id="drawerOpenBtn" data-drawer-open="mainDrawer" aria-label="메뉴 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
     </div>
   </div>
-</div>
-<script src="assets/js/api.js"></script>
-<script src="assets/js/sidebar.js"></script>
-<script src="assets/js/mypage-edit.js"></script>
+</header>
+
+<!-- 모바일 드로어 -->
+<div class="e-drawer-backdrop" data-drawer-backdrop="mainDrawer"></div>
+<aside class="e-drawer" id="mainDrawer" aria-hidden="true" aria-label="모바일 메뉴">
+  <div class="e-drawer-head">
+    <span class="e-logo-text">잇티<em>웨이</em></span>
+    <button type="button" class="e-modal-close" data-drawer-close="mainDrawer" aria-label="메뉴 닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="e-drawer-body">
+    <a class="e-drawer-link" href="explore.html">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend.html">AI 추천</a>
+    <a class="e-drawer-link" href="receipt-upload.html">영수증 리뷰</a>
+    <a class="e-drawer-link" href="chat.html">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz.html">음BTI</a>
+    <div class="e-drawer-sep"></div>
+    <a class="e-drawer-link" href="mypage.html">마이페이지</a>
+    <a class="e-drawer-link" href="mypage-reviews.html">내 리뷰</a>
+    <a class="e-drawer-link" href="mypage-edit.html" data-nav-page="mypage-edit.html">프로필 수정</a>
+  </div>
+</aside>
+
+<main id="mainContent" class="py-8 md:py-12">
+  <div class="e-container e-container-narrow">
+
+    <div class="mb-7">
+      <nav class="e-breadcrumb" aria-label="현재 위치">
+        <a href="index.html">홈</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        <a href="mypage.html">마이페이지</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        <span class="font-semibold text-[var(--ink-600)]">프로필 수정</span>
+      </nav>
+      <h1 class="e-page-title">프로필 수정</h1>
+      <p class="e-page-desc">닉네임, 연락처, 프로필 사진과 취향 정보를 변경할 수 있습니다.</p>
+    </div>
+
+    <!-- ==================================================================
+         STEP 1 · 비밀번호 재인증 게이트
+         ================================================================== -->
+    <section id="gateSection">
+      <div class="e-card e-card-pad">
+
+        <div class="text-center py-4 mb-2">
+          <span class="w-16 h-16 rounded-[20px] grid place-items-center mx-auto mb-5" style="background:var(--brand-50);color:var(--brand-500)">
+            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3"/>
+            </svg>
+          </span>
+          <h2 class="t-h3">본인 확인이 필요해요</h2>
+
+          <!-- 일반 계정 안내 -->
+          <div data-account-view="local">
+            <p class="t-sm mt-3 max-w-sm mx-auto leading-relaxed">
+              개인정보를 안전하게 보호하기 위해<br>
+              현재 비밀번호를 한 번 더 확인합니다.
+            </p>
+          </div>
+          <!-- 소셜 계정 안내 -->
+          <div data-account-view="social">
+            <p class="t-sm mt-3 max-w-sm mx-auto leading-relaxed">
+              소셜 로그인 계정은 비밀번호가 없어요.<br>
+              연결된 소셜 계정으로 다시 인증해주세요.
+            </p>
+          </div>
+        </div>
+
+        <!-- 일반 계정: 비밀번호 입력 -->
+        <div data-account-view="local">
+          <form id="gateForm" class="max-w-sm mx-auto" novalidate>
+            <div class="e-field">
+              <label class="e-label" for="gatePassword">
+                현재 비밀번호 <span class="req">*</span>
+                <span class="e-label-side">남은 시도 <b class="t-brand" id="gateFailCount">5</b>회</span>
+              </label>
+              <div class="e-input-wrap has-icon has-suffix">
+                <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+                </svg>
+                <input type="password" class="e-input" id="gatePassword" name="currentPassword"
+                       placeholder="비밀번호 입력" autocomplete="current-password" required data-modal-autofocus>
+                <span class="e-input-suffix">
+                  <button type="button" class="e-eye" id="gatePasswordToggleBtn" data-password-toggle="gatePassword" aria-label="비밀번호 표시">
+                    <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.6 6.2A9.6 9.6 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-2.4 3M6.3 7.8A16.6 16.6 0 0 0 2 12s3.6 6 10 6c1.6 0 3-.3 4.2-.9"/><path d="M3 3l18 18"/></svg>
+                  </button>
+                </span>
+              </div>
+              <p class="e-error" id="gatePasswordError">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                비밀번호가 일치하지 않습니다.
+              </p>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg btn-block" id="gateSubmitBtn">확인</button>
+            <a href="mypage.html" class="btn btn-ghost btn-block mt-2.5" id="gateCancelBtn">취소</a>
+
+            <p class="text-center t-xs mt-5">
+              비밀번호를 잊으셨나요?
+              <a href="find-password.html" class="e-link-brand">비밀번호 찾기</a>
+            </p>
+          </form>
+        </div>
+
+        <!-- 소셜 계정: 소셜 재인증 -->
+        <div data-account-view="social">
+          <div class="max-w-sm mx-auto">
+            <button type="button" class="btn-social btn-social--kakao mb-2.5" id="gateSocialBtn" data-social="kakao">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 3C6.9 3 2.8 6.3 2.8 10.3c0 2.6 1.7 4.9 4.3 6.2-.2.7-.7 2.5-.8 2.9-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.5.1 1.1.1 1.6.1 5.1 0 9.2-3.3 9.2-7.1S17.1 3 12 3Z"/>
+              </svg>
+              카카오 계정으로 인증하기
+            </button>
+            <a href="mypage.html" class="btn btn-ghost btn-block">취소</a>
+
+            <div class="e-alert e-alert--info mt-6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+              <div>
+                <p>연결된 소셜 계정: <b>카카오</b> (eatty@kakao.com)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 시안 확인용 계정 유형 전환 (실배포 시 삭제) -->
+        <div class="mt-8 pt-6 border-t border-dashed border-[var(--line-bold)] text-center">
+          <p class="t-xs mb-2.5">[시안 확인용] 계정 유형 전환</p>
+          <div class="e-segment">
+            <button type="button" class="e-segment-item" data-set-account="local" aria-selected="true">일반 계정</button>
+            <button type="button" class="e-segment-item" data-set-account="social" aria-selected="false">소셜 계정</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         STEP 2 · 수정 폼
+         ================================================================== -->
+    <section id="editSection" hidden>
+
+      <div class="e-alert e-alert--success mb-5" id="editSuccessAlert" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        <div>
+          <p class="e-alert-title">변경 사항을 저장했습니다</p>
+        </div>
+      </div>
+
+      <form id="editForm" novalidate>
+
+        <!-- ---------- 프로필 사진 ---------- -->
+        <section class="e-card e-card-pad mb-5">
+          <h2 class="e-form-section-title">프로필 사진</h2>
+          <p class="e-form-section-desc">리뷰와 오픈채팅에 표시됩니다.</p>
+
+          <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            <div class="relative flex-none">
+              <div class="e-dropzone !p-0 !rounded-full w-[120px] h-[120px] grid place-items-center overflow-hidden"
+                   id="avatarDrop" data-dropzone data-dropzone-preview="avatarPreview" data-dropzone-filename="avatarFileName">
+                <input type="file" id="avatarInput" name="profileImage" accept="image/png,image/jpeg,image/webp" aria-label="프로필 사진 업로드">
+                <div class="text-center pointer-events-none" id="avatarPlaceholder">
+                  <span class="e-avatar e-avatar-xl !bg-none" style="background:var(--brand-grad)" aria-hidden="true">잇</span>
+                </div>
+                <div class="absolute inset-0 pointer-events-none" id="avatarPreview" hidden>
+                  <img alt="프로필 사진 미리보기" data-dropzone-img class="w-full h-full object-cover" style="display:none">
+                </div>
+              </div>
+              <span class="absolute -right-1 -bottom-1 w-9 h-9 rounded-full grid place-items-center text-white pointer-events-none" style="background:var(--brand-grad);box-shadow:var(--sh-sm)">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15V7a2 2 0 0 0-2-2h-3l-1.5-2h-5L8 5H5a2 2 0 0 0-2 2v8"/><circle cx="12" cy="12" r="3"/><path d="M3 15v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="flex-1 min-w-0 text-center sm:text-left">
+              <p class="t-sm leading-relaxed" id="avatarFileName">
+                JPG · PNG · WEBP / 5MB 이하<br>
+                정사각형 이미지를 권장합니다.
+              </p>
+              <div class="flex gap-2 mt-4 justify-center sm:justify-start">
+                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('avatarInput').click()">사진 변경</button>
+                <button type="button" class="btn btn-ghost btn-sm" id="avatarRemoveBtn">기본 이미지로</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- 기본 정보 ---------- -->
+        <section class="e-card e-card-pad mb-5">
+          <h2 class="e-form-section-title">기본 정보</h2>
+          <p class="e-form-section-desc">이메일은 변경할 수 없습니다.</p>
+
+          <div class="e-field">
+            <label class="e-label" for="editEmail">
+              이메일
+              <span class="e-label-side">변경 불가</span>
+            </label>
+            <div class="e-input-wrap has-icon">
+              <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>
+              </svg>
+              <input type="email" class="e-input" id="editEmail" value="eatty@example.com" readonly>
+            </div>
+          </div>
+
+          <div class="e-field">
+            <label class="e-label" for="editNickname">
+              닉네임 <span class="req">*</span>
+              <span class="e-label-side">2~12자</span>
+            </label>
+            <div class="e-input-row">
+              <input type="text" class="e-input" id="editNickname" name="nickname" value="잇티러버" maxlength="12" required>
+              <button type="button" class="btn btn-outline" id="checkNicknameBtn">중복확인</button>
+            </div>
+            <p class="e-error" id="nicknameError">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+              이미 사용 중인 닉네임입니다.
+            </p>
+            <p class="e-ok" id="nicknameOk">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              사용할 수 있는 닉네임입니다.
+            </p>
+          </div>
+
+          <div class="e-field">
+            <label class="e-label" for="editPhone">전화번호 <span class="req">*</span></label>
+            <div class="e-input-row">
+              <div class="e-input-wrap has-icon">
+                <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 3h3l1.5 4.5-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2L21 14v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 5 5.2 2 2 0 0 1 7 3Z"/>
+                </svg>
+                <input type="tel" class="e-input t-num" id="editPhone" name="phone" value="01012345678"
+                       inputmode="numeric" maxlength="11" required>
+              </div>
+              <button type="button" class="btn btn-soft" id="sendPhoneCodeBtn">인증번호 발송</button>
+            </div>
+            <p class="e-hint">번호를 변경하면 다시 인증해야 합니다.</p>
+            <p class="e-ok" id="phoneOk">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              전화번호 인증이 완료되었습니다.
+            </p>
+          </div>
+
+          <div class="e-field !mb-0" id="phoneCodeRow" hidden>
+            <label class="e-label" for="editPhoneCode">
+              인증번호 <span class="req">*</span>
+              <span class="e-label-side"><span class="e-timer" data-timer="180" id="phoneCodeTimer">3:00</span></span>
+            </label>
+            <div class="e-input-row">
+              <input type="text" class="e-input t-num" id="editPhoneCode" name="phoneCode"
+                     placeholder="6자리 숫자" inputmode="numeric" maxlength="6">
+              <button type="button" class="btn btn-primary" id="verifyPhoneCodeBtn">확인</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- 비밀번호 변경 (일반 계정 전용) ---------- -->
+        <div data-account-view="local">
+          <section class="e-card e-card-pad mb-5" id="passwordChangeBox">
+            <h2 class="e-form-section-title">비밀번호 변경</h2>
+            <p class="e-form-section-desc">변경하지 않으려면 비워두세요.</p>
+
+            <div class="e-field">
+              <label class="e-label" for="newPassword">새 비밀번호</label>
+              <div class="e-input-wrap has-icon has-suffix">
+                <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+                </svg>
+                <input type="password" class="e-input" id="newPassword" name="newPassword"
+                       placeholder="영문 · 숫자 · 특수문자 조합 8자 이상" autocomplete="new-password">
+                <span class="e-input-suffix">
+                  <button type="button" class="e-eye" id="newPwToggleBtn" data-password-toggle="newPassword" aria-label="비밀번호 표시">
+                    <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.6 6.2A9.6 9.6 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-2.4 3M6.3 7.8A16.6 16.6 0 0 0 2 12s3.6 6 10 6c1.6 0 3-.3 4.2-.9"/><path d="M3 3l18 18"/></svg>
+                  </button>
+                </span>
+              </div>
+              <div class="flex items-center gap-3 mt-2.5">
+                <div class="e-progress e-progress-sm flex-1">
+                  <div class="e-progress-bar" id="newPwStrengthBar" style="width:0%"></div>
+                </div>
+                <span class="text-[12px] font-bold text-[var(--ink-400)] w-16 text-right" id="newPwStrengthText">-</span>
+              </div>
+            </div>
+
+            <div class="e-field !mb-0">
+              <label class="e-label" for="newPasswordConfirm">새 비밀번호 확인</label>
+              <div class="e-input-wrap has-icon has-suffix">
+                <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+                </svg>
+                <input type="password" class="e-input" id="newPasswordConfirm" name="newPasswordConfirm"
+                       placeholder="새 비밀번호 재입력" autocomplete="new-password">
+                <span class="e-input-suffix">
+                  <button type="button" class="e-eye" id="newPwConfirmToggleBtn" data-password-toggle="newPasswordConfirm" aria-label="비밀번호 표시">
+                    <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.6 6.2A9.6 9.6 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-2.4 3M6.3 7.8A16.6 16.6 0 0 0 2 12s3.6 6 10 6c1.6 0 3-.3 4.2-.9"/><path d="M3 3l18 18"/></svg>
+                  </button>
+                </span>
+              </div>
+              <p class="e-error" id="newPasswordConfirmError">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                비밀번호가 일치하지 않습니다.
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <!-- 소셜 계정 안내 (비밀번호 UI 대체) -->
+        <div data-account-view="social">
+          <section class="e-card e-card-pad mb-5">
+            <h2 class="e-form-section-title">로그인 방식</h2>
+            <p class="e-form-section-desc">소셜 계정으로 로그인 중이라 비밀번호 설정이 없습니다.</p>
+
+            <div class="e-file-item">
+              <span class="w-10 h-10 rounded-[11px] grid place-items-center flex-none" style="background:#fee500;color:#191600">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.9 3 2.8 6.3 2.8 10.3c0 2.6 1.7 4.9 4.3 6.2-.2.7-.7 2.5-.8 2.9-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.5.1 1.1.1 1.6.1 5.1 0 9.2-3.3 9.2-7.1S17.1 3 12 3Z"/></svg>
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-bold text-[var(--ink-900)]">카카오 계정 연결됨</p>
+                <p class="t-xs mt-0.5">eatty@kakao.com</p>
+              </div>
+              <span class="e-badge e-badge--success flex-none">연결 중</span>
+            </div>
+
+            <p class="e-hint mt-3">소셜 연결을 해제하려면 고객센터로 문의해주세요.</p>
+          </section>
+        </div>
+
+        <!-- ---------- 취향 정보 ---------- -->
+        <section class="e-card e-card-pad mb-5">
+          <div class="flex items-center gap-2 mb-1">
+            <h2 class="e-form-section-title !mb-0">음식 취향</h2>
+            <a href="taste-quiz.html" class="e-link-brand text-[12.5px] ml-auto">음BTI 다시하기</a>
+          </div>
+          <p class="e-form-section-desc">AI 추천에 반영됩니다.</p>
+
+          <div class="e-field">
+            <span class="e-label">선호 카테고리 <span class="e-label-side">복수 선택</span></span>
+            <div class="flex flex-wrap gap-2">
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="korean" checked><span class="e-chip">한식</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="western" checked><span class="e-chip">양식</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="chinese"><span class="e-chip">중식</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="japanese" checked><span class="e-chip">일식</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="asian"><span class="e-chip">아시안</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="cafe"><span class="e-chip">카페 · 디저트</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="bunsik"><span class="e-chip">분식</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="chicken"><span class="e-chip">치킨 · 피자</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="meat"><span class="e-chip">고기 · 구이</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="bar"><span class="e-chip">술집 · 바</span></label>
+            </div>
+          </div>
+
+          <div class="e-field !mb-0">
+            <label class="e-label" for="editSpicyLevel">
+              매운맛 선호도
+              <span class="e-label-side" id="editSpicyLevelText">매움</span>
+            </label>
+            <input type="range" class="w-full accent-[var(--brand-500)]" id="editSpicyLevel" name="spicyLevel"
+                   min="0" max="4" step="1" value="3">
+            <div class="flex justify-between t-xs mt-1.5">
+              <span>안 매움</span><span>순한맛</span><span>보통</span><span>매움</span><span>아주 매움</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- 알림 설정 ---------- -->
+        <section class="e-card e-card-pad mb-6">
+          <h2 class="e-form-section-title">알림 설정</h2>
+          <p class="e-form-section-desc">필요한 알림만 켜두세요.</p>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]">
+              <div>
+                <p class="text-sm font-bold text-[var(--ink-900)]">맞춤 맛집 추천 알림</p>
+                <p class="t-xs mt-0.5">취향에 맞는 새 맛집 등록 시</p>
+              </div>
+              <label class="e-switch" for="notifyRecommend">
+                <input type="checkbox" id="notifyRecommend" name="notifyRecommend" checked>
+                <span class="e-switch-track"></span>
+                <span class="sr-only-e">맞춤 맛집 추천 알림</span>
+              </label>
+            </div>
+            <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]">
+              <div>
+                <p class="text-sm font-bold text-[var(--ink-900)]">오픈채팅 메시지 알림</p>
+                <p class="t-xs mt-0.5">참여 중인 방에 새 메시지</p>
+              </div>
+              <label class="e-switch" for="notifyChat">
+                <input type="checkbox" id="notifyChat" name="notifyChat" checked>
+                <span class="e-switch-track"></span>
+                <span class="sr-only-e">오픈채팅 메시지 알림</span>
+              </label>
+            </div>
+            <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]">
+              <div class="min-w-0 pr-4">
+                <p class="text-sm font-bold text-[var(--ink-900)]">
+                  이벤트 · 광고 알림
+                  <span class="e-badge e-badge--gray ml-1">마케팅 수신 동의</span>
+                </p>
+                <p class="t-xs mt-1 leading-relaxed">
+                  끄면 이벤트 · 제휴 혜택 알림을 받지 않습니다.
+                  공지 · 서비스 안내는 계속 받습니다.
+                </p>
+              </div>
+              <label class="e-switch flex-none" for="notifyMarketing">
+                <input type="checkbox" id="notifyMarketing" name="notifyMarketing">
+                <span class="e-switch-track"></span>
+                <span class="sr-only-e">이벤트 광고 알림</span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a href="mypage.html" class="btn btn-outline btn-lg sm:w-40" id="editCancelBtn">취소</a>
+          <button type="submit" class="btn btn-primary btn-lg flex-1" id="editSubmitBtn">변경 사항 저장</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</main>
+
+<!-- 모바일 하단 탭바 -->
+<nav class="e-tabbar" aria-label="모바일 주요 메뉴">
+  <a class="e-tabbar-item" href="index.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
+    홈
+  </a>
+  <a class="e-tabbar-item" href="explore.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    탐색
+  </a>
+  <a class="e-tabbar-item" href="recommend.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+    AI추천
+  </a>
+  <a class="e-tabbar-item" href="chat.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+    잇티챗
+  </a>
+  <a class="e-tabbar-item" href="mypage.html" data-nav-page="mypage.html,mypage-edit.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    내정보
+  </a>
+</nav>
+
+<div data-devbar></div>
+
+<script>
+/* ---------------------------------------------------------------------------
+   mypage-edit 시안 데모 스크립트 — 실제 연동 시 mypage-edit.js 로 대체
+   --------------------------------------------------------------------------- */
+(function () {
+  var gate = document.getElementById('gateSection');
+  var edit = document.getElementById('editSection');
+
+  function openEdit() {
+    gate.hidden = true;
+    edit.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* 재인증 (일반 계정) */
+  document.getElementById('gateForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var pw = document.getElementById('gatePassword');
+    if (!pw.value) {
+      document.getElementById('gatePasswordError').classList.add('is-visible');
+      pw.classList.add('is-error');
+      return;
+    }
+    /* ★ 실제로는 POST /api/auth/verify-password 성공 시 openEdit() */
+    document.getElementById('gatePasswordError').classList.remove('is-visible');
+    pw.classList.remove('is-error');
+    openEdit();
+  });
+
+  /* 재인증 (소셜 계정) */
+  document.getElementById('gateSocialBtn').addEventListener('click', function () {
+    /* ★ 실제로는 소셜 OAuth 재인증 후 openEdit() */
+    openEdit();
+  });
+
+  /* [시안용] 계정 유형 전환 */
+  document.querySelectorAll('[data-set-account]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var type = b.getAttribute('data-set-account');
+      document.documentElement.setAttribute('data-account-type', type);
+      document.querySelectorAll('[data-set-account]').forEach(function (x) {
+        x.setAttribute('aria-selected', x === b ? 'true' : 'false');
+      });
+    });
+  });
+
+  /* 닉네임 중복확인 */
+  document.getElementById('checkNicknameBtn').addEventListener('click', function () {
+    document.getElementById('nicknameError').classList.remove('is-visible');
+    document.getElementById('nicknameOk').classList.add('is-visible');
+  });
+
+  /* 전화번호 인증 */
+  document.getElementById('sendPhoneCodeBtn').addEventListener('click', function () {
+    var row = document.getElementById('phoneCodeRow');
+    row.hidden = false;
+    var t = document.getElementById('phoneCodeTimer');
+    if (t) t.dispatchEvent(new Event('eatty:timer-restart'));
+    Eatty.toast('인증번호를 발송했습니다.', 'success');
+  });
+  document.getElementById('verifyPhoneCodeBtn').addEventListener('click', function () {
+    document.getElementById('phoneOk').classList.add('is-visible');
+    document.getElementById('phoneCodeRow').hidden = true;
+    Eatty.toast('전화번호 인증이 완료되었습니다.', 'success');
+  });
+
+  /* 프로필 사진 */
+  document.getElementById('avatarDrop').addEventListener('eatty:filepicked', function () {
+    document.getElementById('avatarPlaceholder').style.display = 'none';
+  });
+  document.getElementById('avatarRemoveBtn').addEventListener('click', function () {
+    document.getElementById('avatarInput').value = '';
+    document.getElementById('avatarPreview').hidden = true;
+    document.getElementById('avatarPlaceholder').style.display = '';
+    Eatty.toast('기본 이미지로 되돌렸습니다.');
+  });
+
+  /* 비밀번호 강도 */
+  var pw = document.getElementById('newPassword');
+  if (pw) pw.addEventListener('input', function () {
+    var v = pw.value, score = 0;
+    if (v.length >= 8) score++;
+    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+    if (/\d/.test(v)) score++;
+    if (/[^\w\s]/.test(v)) score++;
+    var labels = ['-', '약함', '보통', '양호', '안전'];
+    document.getElementById('newPwStrengthBar').style.width = (score * 25) + '%';
+    document.getElementById('newPwStrengthText').textContent = v ? labels[score] : '-';
+  });
+
+  /* 매운맛 라벨 */
+  var spicy = document.getElementById('editSpicyLevel');
+  var spicyLabels = ['안 매움', '순한맛', '보통', '매움', '아주 매움'];
+  spicy.addEventListener('input', function () {
+    document.getElementById('editSpicyLevelText').textContent = spicyLabels[Number(spicy.value)];
+  });
+
+  /* 마케팅 수신 동의 → 알림 목록의 이벤트/광고 항목 즉시 반영
+     ★ 실제로는 PATCH /api/members/me/notification-settings 성공 후 호출 */
+  var marketingSwitch = document.getElementById('notifyMarketing');
+  if (marketingSwitch) {
+    marketingSwitch.addEventListener('change', function () {
+      if (window.Eatty && Eatty.notify) {
+        Eatty.notify.setMarketingOptIn(marketingSwitch.checked);
+      }
+      Eatty.toast(marketingSwitch.checked
+        ? '이벤트 · 광고 알림을 받습니다.'
+        : '이벤트 · 광고 알림을 더 이상 받지 않습니다.');
+    });
+    /* 초기 상태 반영 */
+    if (window.Eatty && Eatty.notify) {
+      Eatty.notify.setMarketingOptIn(marketingSwitch.checked);
+    }
+  }
+
+  /* 저장 */
+  document.getElementById('editForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    var np = document.getElementById('newPassword');
+    var npc = document.getElementById('newPasswordConfirm');
+    if (np && np.value && np.value !== npc.value) {
+      document.getElementById('newPasswordConfirmError').classList.add('is-visible');
+      npc.classList.add('is-error');
+      Eatty.toast('비밀번호가 일치하지 않습니다.', 'error');
+      return;
+    }
+
+    /* ★ 실제로는 PATCH /api/members/me */
+    document.getElementById('editSuccessAlert').hidden = false;
+    Eatty.toast('변경 사항을 저장했습니다.', 'success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
 </body>
 </html>
