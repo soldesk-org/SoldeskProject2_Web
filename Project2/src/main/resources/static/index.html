@@ -37,9 +37,6 @@
    #ctaSignupBtn / #ctaBusinessBtn 하단 CTA
    #statUsers / #statReviews / #statShops / #statChats   통계 숫자 ★ API 연동 시 교체
 
- [개발 편의]
-   [data-devbar]                   로그인 상태 전환바 (실배포 시 이 요소 삭제)
-   Eatty.setAuth('guest'|'user'|'business'|'admin')
 ================================================================================
 -->
 
@@ -47,6 +44,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 </head>
 
@@ -104,9 +102,9 @@
 
           <div class="e-dropdown-menu" id="headerProfileMenu">
             <div class="e-dropdown-head">
-              <p class="text-sm font-extrabold text-[var(--ink-900)]">잇티러버</p>
+              <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNicknameHead"></p>
               <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
-              <span class="e-badge e-badge--brand mt-2">음BTI · 매콤탐험가</span>
+              <span class="e-badge e-badge--brand mt-2" id="headerFoodBtiBadge" hidden></span>
             </div>
             <a class="e-dropdown-item" href="mypage">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
@@ -172,9 +170,9 @@
       <a href="mypage" class="e-card p-4 mb-4 flex items-center gap-3">
         <span class="e-avatar e-avatar-lg" aria-hidden="true">잇</span>
         <span class="min-w-0">
-          <span class="block text-sm font-extrabold text-[var(--ink-900)]">잇티러버</span>
-          <span class="block text-xs text-[var(--ink-500)] truncate">eatty@example.com</span>
-          <span class="e-badge e-badge--brand mt-1.5">매콤탐험가</span>
+          <span class="block text-sm font-extrabold text-[var(--ink-900)]" id="drawerNickname"></span>
+          <span class="block text-xs text-[var(--ink-500)] truncate" id="drawerEmail"></span>
+          <span class="e-badge e-badge--brand mt-1.5" id="drawerFoodBtiBadge" hidden></span>
         </span>
       </a>
     </div>
@@ -384,25 +382,6 @@
         </div>
       </div>
 
-      <!-- 통계 -->
-      <div class="mt-16 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-8 pt-10 border-t border-[var(--line)]">
-        <div>
-          <p class="text-[28px] md:text-[34px] font-extrabold t-grad t-num leading-none" id="statUsers">128,400</p>
-          <p class="t-sm mt-2 font-semibold">누적 이용자</p>
-        </div>
-        <div>
-          <p class="text-[28px] md:text-[34px] font-extrabold t-grad t-num leading-none" id="statReviews">42,910</p>
-          <p class="t-sm mt-2 font-semibold">영수증 인증 리뷰</p>
-        </div>
-        <div>
-          <p class="text-[28px] md:text-[34px] font-extrabold t-grad t-num leading-none" id="statShops">31,650</p>
-          <p class="t-sm mt-2 font-semibold">등록된 매장</p>
-        </div>
-        <div>
-          <p class="text-[28px] md:text-[34px] font-extrabold t-grad t-num leading-none" id="statChats">2,180</p>
-          <p class="t-sm mt-2 font-semibold">활성 오픈채팅방</p>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -696,9 +675,6 @@
 
     <div class="e-footer-bottom">
       <p>&copy; 2026 Eatty way. All rights reserved.</p>
-      <p class="flex items-center gap-2">
-        <span class="e-status e-status--on e-status--live !text-[var(--ink-300)]">API 정상</span>
-      </p>
     </div>
   </div>
 </footer>
@@ -727,16 +703,32 @@
   </a>
 </nav>
 
-<!-- 개발용 상태 전환바 (실배포 시 이 한 줄 삭제) -->
-
 <script>
-/* 랜딩 전용 데모 스크립트 — 인기 검색 칩 클릭 시 검색창 채우기 (팀 JS로 교체 가능) */
+/* 인기 검색 칩 클릭 시 검색창 채우기 */
 document.addEventListener('click', function (e) {
   var chip = e.target.closest('[data-keyword]');
   if (!chip) return;
   var input = document.getElementById('heroSearchInput');
   if (input) { input.value = chip.getAttribute('data-keyword'); input.focus(); }
 });
+
+/* 헤더 드롭다운/드로어의 닉네임·이메일·음BTI는 api.js가 못 채우는 중복 표시 영역이라 여기서 채운다. */
+if (window.Api && Api.isLoggedIn()) {
+  Api.request('/api/members/me').then(function (me) {
+    ['headerNicknameHead', 'drawerNickname'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = me.nickname || '';
+    });
+    var drawerEmail = document.getElementById('drawerEmail');
+    if (drawerEmail) drawerEmail.textContent = me.email || '';
+    if (me.foodBti) {
+      ['headerFoodBtiBadge', 'drawerFoodBtiBadge'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) { el.textContent = '음BTI · ' + me.foodBti; el.hidden = false; }
+      });
+    }
+  }).catch(function () {});
+}
 </script>
 </body>
 </html>
