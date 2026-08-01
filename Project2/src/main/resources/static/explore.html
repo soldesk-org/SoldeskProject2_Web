@@ -98,7 +98,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
+<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
+<script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/explore.js"></script>
 
 <style>
   /* ===== explore 전용 레이아웃 ===== */
@@ -348,16 +351,6 @@
         <div class="e-scroll-x flex-1">
           <div class="flex items-center gap-2 pb-0.5" id="categoryFilterList" role="group" aria-label="카테고리 필터">
             <button type="button" class="e-chip" data-category="all" data-toggle-press data-toggle-group="category" aria-pressed="true">전체</button>
-            <button type="button" class="e-chip" data-category="korean" data-toggle-press data-toggle-group="category" aria-pressed="false">한식</button>
-            <button type="button" class="e-chip" data-category="western" data-toggle-press data-toggle-group="category" aria-pressed="false">양식</button>
-            <button type="button" class="e-chip" data-category="chinese" data-toggle-press data-toggle-group="category" aria-pressed="false">중식</button>
-            <button type="button" class="e-chip" data-category="japanese" data-toggle-press data-toggle-group="category" aria-pressed="false">일식</button>
-            <button type="button" class="e-chip" data-category="asian" data-toggle-press data-toggle-group="category" aria-pressed="false">아시안</button>
-            <button type="button" class="e-chip" data-category="cafe" data-toggle-press data-toggle-group="category" aria-pressed="false">카페 · 디저트</button>
-            <button type="button" class="e-chip" data-category="bunsik" data-toggle-press data-toggle-group="category" aria-pressed="false">분식</button>
-            <button type="button" class="e-chip" data-category="chicken" data-toggle-press data-toggle-group="category" aria-pressed="false">치킨 · 피자</button>
-            <button type="button" class="e-chip" data-category="meat" data-toggle-press data-toggle-group="category" aria-pressed="false">고기 · 구이</button>
-            <button type="button" class="e-chip" data-category="bar" data-toggle-press data-toggle-group="category" aria-pressed="false">술집 · 바</button>
           </div>
         </div>
 
@@ -542,7 +535,7 @@
           </div>
           <p class="e-empty-title">조건에 맞는 맛집이 없어요</p>
           <p class="e-empty-desc">필터를 줄이거나 지도를 넓게 이동해보세요.</p>
-          <button type="button" class="btn btn-outline btn-sm mt-5" data-demo-toast="필터를 초기화했습니다.">필터 초기화</button>
+          <button type="button" class="btn btn-outline btn-sm mt-5" id="emptyFilterResetBtn">필터 초기화</button>
         </div>
 
         <button type="button" class="btn btn-outline btn-block mt-1" id="loadMoreBtn">
@@ -555,41 +548,8 @@
     <!-- ------- 지도 ------- -->
     <section class="ex-map-wrap" aria-label="지도">
 
-      <!-- ★ 네이버 지도 삽입 영역 -->
-      <div class="e-map w-full h-full" id="naverMap">
-        <div class="e-map-note">
-          네이버 지도(Naver Maps) 삽입 영역
-          <span>#naverMap 요소에 new naver.maps.Map() 을 연결하세요</span>
-        </div>
-
-        <!-- 시안용 마커 레이어 (지도 연동 시 삭제) -->
-        <div id="mapMarkerLayer">
-          <div class="e-marker is-active" data-shop-id="1" style="left:31%;top:40%">
-            <div class="e-marker-pin">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
-              라 스텔라 · 4.6
-            </div>
-          </div>
-          <div class="e-marker" data-shop-id="2" style="left:57%;top:29%">
-            <div class="e-marker-pin">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
-              청담옥 · 4.8
-            </div>
-          </div>
-          <div class="e-marker" data-shop-id="3" style="left:68%;top:62%">
-            <div class="e-marker-pin">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
-              무니 · 4.4
-            </div>
-          </div>
-          <div class="e-marker" data-shop-id="4" style="left:43%;top:71%">
-            <div class="e-marker-pin">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
-              호무랑 · 4.2
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- 네이버 지도 삽입 영역 -->
+      <div class="e-map w-full h-full" id="naverMap"></div>
 
       <!-- 현재 영역 재검색 -->
       <div class="absolute left-1/2 -translate-x-1/2 top-4 z-10">
@@ -922,53 +882,15 @@
               <p class="e-hint">공영주차장 데이터 기준이며, 요금과 잔여 면수는 실제와 다를 수 있습니다.</p>
             </div>
 
-            <!-- 태그 분포 -->
-            <div class="mt-6">
+            <!-- 태그 분포 (실제 리뷰의 keywords 데이터로 클라이언트에서 집계) -->
+            <div class="mt-6" id="detailTagDistWrap" hidden>
               <p class="text-[13px] font-extrabold text-[var(--ink-900)] mb-3">리뷰 태그 분포</p>
-              <div class="space-y-2.5">
-                <div>
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="t-xs font-bold text-[var(--ink-700)]">조용해요</span>
-                    <span class="t-xs t-num">31</span>
-                  </div>
-                  <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:74%"></div></div>
-                </div>
-                <div>
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="t-xs font-bold text-[var(--ink-700)]">맛이 좋아요</span>
-                    <span class="t-xs t-num">28</span>
-                  </div>
-                  <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:66%"></div></div>
-                </div>
-                <div>
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="t-xs font-bold text-[var(--ink-700)]">재방문 의사</span>
-                    <span class="t-xs t-num">22</span>
-                  </div>
-                  <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:52%"></div></div>
-                </div>
-                <div>
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="t-xs font-bold text-[var(--ink-500)]">가격이 비싸요</span>
-                    <span class="t-xs t-num">9</span>
-                  </div>
-                  <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:21%;background:var(--ink-300)"></div></div>
-                </div>
-              </div>
+              <div class="space-y-2.5" id="detailTagDist"></div>
             </div>
           </div>
 
           <!-- 탭: 리뷰 -->
           <div class="p-5" id="detailTabReview" data-tab-panel hidden>
-            <div class="flex items-center gap-2 mb-4">
-              <select class="e-select e-input-sm" aria-label="리뷰 정렬" style="width:auto">
-                <option value="recent">최신순</option>
-                <option value="rating-high">별점 높은순</option>
-                <option value="rating-low">별점 낮은순</option>
-              </select>
-              <span class="e-badge e-badge--brand ml-auto">영수증 인증만</span>
-            </div>
-
             <ul class="space-y-4" id="detailReviewList">
               <li class="pb-4 border-b border-[var(--line-soft)]">
                 <div class="flex items-center gap-2.5">
@@ -1032,8 +954,6 @@
                 </span>
               </li>
             </ul>
-
-            <button type="button" class="btn btn-outline btn-sm btn-block mt-5" data-demo-toast="다음 리뷰를 불러왔습니다.">리뷰 더 보기</button>
           </div>
 
           <!-- 탭: 메뉴 -->
@@ -1177,11 +1097,10 @@
         <label class="e-label" for="reportReasonSelect">신고 사유 <span class="req">*</span></label>
         <select class="e-select" id="reportReasonSelect" name="reason" required>
           <option value="">사유를 선택해주세요</option>
-          <option value="FAKE">허위 · 광고성 리뷰</option>
+          <option value="SPAM">광고 · 도배성 내용</option>
           <option value="ABUSE">욕설 · 비방</option>
+          <option value="FALSE_INFO">허위 사실</option>
           <option value="PRIVACY">개인정보 노출</option>
-          <option value="SPAM">도배 · 스팸</option>
-          <option value="IRRELEVANT">가게와 무관한 내용</option>
           <option value="ETC">기타</option>
         </select>
       </div>
@@ -1197,8 +1116,7 @@
 
     <div class="e-modal-foot">
       <button type="button" class="btn btn-outline" data-modal-close>취소</button>
-      <button type="button" class="btn btn-danger" id="reportSubmitBtn"
-              data-demo-toast="신고가 접수되었습니다." data-demo-type="success" data-modal-close>신고하기</button>
+      <button type="button" class="btn btn-danger" id="reportSubmitBtn">신고하기</button>
     </div>
   </div>
 </div>
@@ -1228,341 +1146,5 @@
 </nav>
 
 
-<script>
-/* ---------------------------------------------------------------------------
-   explore 시안 데모 스크립트 — 실제 연동 시 explore.js 로 대체
-   (지도 SDK, 검색 API, 즐겨찾기 API 는 여기서 호출하지 않음)
-   --------------------------------------------------------------------------- */
-(function () {
-  var panel = document.getElementById('shopDetailPanel');
-
-  function openDetail(shopId) {
-    panel.classList.add('is-open');
-    panel.setAttribute('aria-hidden', 'false');
-
-    document.querySelectorAll('.e-shop-card').forEach(function (c) {
-      c.classList.toggle('is-active', c.getAttribute('data-shop-id') === shopId);
-    });
-    document.querySelectorAll('#mapMarkerLayer .e-marker').forEach(function (m) {
-      m.classList.toggle('is-active', m.getAttribute('data-shop-id') === shopId);
-    });
-
-    /* 이전 매장의 길찾기 결과는 감춥니다. */
-    var rb = document.getElementById('directionsResult');
-    if (rb) rb.hidden = true;
-
-    /* ★ 주변 주차장 조회 — 실제로는 선택된 매장의 좌표를 넘기세요.
-         loadParkingLots(shop.latitude, shop.longitude, radius) */
-    var radiusSel = document.getElementById('parkingRadiusSelect');
-    loadParkingLots(37.4979, 127.0276, radiusSel ? Number(radiusSel.value) : 2000);
-  }
-
-  function closeDetail() {
-    panel.classList.remove('is-open');
-    panel.setAttribute('aria-hidden', 'true');
-  }
-
-  /* 카드 · 마커 클릭 → 상세 열기 */
-  document.addEventListener('click', function (e) {
-    var card = e.target.closest('.e-shop-card[data-shop-id]');
-    if (card) { openDetail(card.getAttribute('data-shop-id')); return; }
-
-    var marker = e.target.closest('.e-marker[data-shop-id]');
-    if (marker) { openDetail(marker.getAttribute('data-shop-id')); return; }
-  });
-
-  document.getElementById('detailCloseBtn').addEventListener('click', closeDetail);
-
-  /* 즐겨찾기 토글 */
-  var favBtn = document.getElementById('favoriteBtn');
-  favBtn.addEventListener('click', function () {
-    var on = favBtn.getAttribute('aria-pressed') === 'true';
-    favBtn.setAttribute('aria-pressed', on ? 'false' : 'true');
-    var icon = document.getElementById('favoriteIcon');
-    if (on) {
-      icon.setAttribute('fill', 'none');
-      icon.style.color = 'var(--ink-300)';
-      Eatty.toast('즐겨찾기에서 제거했습니다.');
-    } else {
-      icon.setAttribute('fill', 'currentColor');
-      icon.style.color = 'var(--brand-500)';
-      Eatty.toast('즐겨찾기에 저장했습니다.', 'brand');
-    }
-  });
-
-  /* 검색어 지우기 / 자동완성 */
-  var input = document.getElementById('exploreSearchInput');
-  var suggest = document.getElementById('searchSuggestBox');
-
-  document.getElementById('searchClearBtn').addEventListener('click', function () {
-    input.value = '';
-    input.focus();
-  });
-  input.addEventListener('focus', function () { suggest.classList.add('is-open'); });
-  input.addEventListener('blur', function () {
-    setTimeout(function () { suggest.classList.remove('is-open'); }, 150);
-  });
-  suggest.addEventListener('click', function (e) {
-    var b = e.target.closest('[data-suggest]');
-    if (!b) return;
-    input.value = b.getAttribute('data-suggest');
-    suggest.classList.remove('is-open');
-  });
-
-  document.getElementById('exploreSearchForm').addEventListener('submit', function (e) {
-    e.preventDefault();  /* ★ 실제로는 GET /api/shops/search 호출 */
-    Eatty.toast('"' + (input.value || '전체') + '" 검색 결과를 불러옵니다.');
-  });
-
-  /* 지도 컨트롤 (데모) */
-  document.getElementById('researchAreaBtn').addEventListener('click', function () {
-    Eatty.toast('현재 지도 영역에서 다시 검색했습니다.');
-  });
-  document.getElementById('myLocationBtn').addEventListener('click', function () {
-    Eatty.toast('현재 위치로 이동합니다.');
-  });
-
-  /* 상세 필터 range 라벨 */
-  var minRating = document.getElementById('filterMinRating');
-  minRating.addEventListener('input', function () {
-    var v = Number(minRating.value);
-    document.getElementById('filterMinRatingText').textContent = v === 0 ? '전체' : v.toFixed(1) + ' 이상';
-  });
-  var dist = document.getElementById('filterDistance');
-  dist.addEventListener('input', function () {
-    var v = Number(dist.value);
-    document.getElementById('filterDistanceText').textContent = v >= 1000 ? (v / 1000) + 'km' : v + 'm';
-  });
-
-  document.getElementById('filterResetBtn').addEventListener('click', function () {
-    document.querySelectorAll('[data-toggle-group="category"], [data-toggle-group="price"]').forEach(function (b) {
-      b.setAttribute('aria-pressed', 'false');
-    });
-    document.querySelector('[data-category="all"]').setAttribute('aria-pressed', 'true');
-    document.querySelector('[data-price="all"]').setAttribute('aria-pressed', 'true');
-    document.getElementById('openNowSwitch').checked = false;
-    setPriceRange(0, PRICE_MAX);
-    Eatty.toast('필터를 초기화했습니다.');
-  });
-
-  /* ==========================================================
-     가격 이중 슬라이더
-     ----------------------------------------------------------
-     칩과 슬라이더가 모두 #filterMinPrice / #filterMaxPrice 를 갱신합니다.
-     검색 요청 시 이 두 값을 minPrice / maxPrice 로 보내면 됩니다.
-     maxPrice 가 상한이면 서버에는 null 로 보내 "상한 없음" 처리하세요.
-     ========================================================== */
-  var PRICE_MAX = 50000;
-  var minHandle = document.getElementById('priceMinHandle');
-  var maxHandle = document.getElementById('priceMaxHandle');
-  var priceFill = document.getElementById('priceRangeFill');
-  var hiddenMin = document.getElementById('filterMinPrice');
-  var hiddenMax = document.getElementById('filterMaxPrice');
-
-  function fmtWon(v) {
-    if (v >= PRICE_MAX) return '5만원+';
-    if (v === 0) return '0원';
-    if (v % 10000 === 0) return (v / 10000) + '만원';
-    return Eatty.formatNumber(v) + '원';
-  }
-
-  function paintPriceRange() {
-    var lo = Number(minHandle.value);
-    var hi = Number(maxHandle.value);
-
-    priceFill.style.left = (lo / PRICE_MAX * 100) + '%';
-    priceFill.style.width = ((hi - lo) / PRICE_MAX * 100) + '%';
-
-    document.getElementById('priceMinValue').textContent = fmtWon(lo);
-    document.getElementById('priceMaxValue').textContent = fmtWon(hi);
-    document.getElementById('priceRangeLabel').textContent =
-      (lo === 0 && hi >= PRICE_MAX) ? '전체' : fmtWon(lo) + ' ~ ' + fmtWon(hi);
-
-    hiddenMin.value = lo;
-    hiddenMax.value = hi;
-  }
-
-  function setPriceRange(lo, hi) {
-    minHandle.value = lo;
-    maxHandle.value = hi;
-    paintPriceRange();
-  }
-
-  /* 두 손잡이가 교차하지 않도록 보정 */
-  minHandle.addEventListener('input', function () {
-    if (Number(minHandle.value) > Number(maxHandle.value)) minHandle.value = maxHandle.value;
-    paintPriceRange();
-    syncChipFromRange();
-  });
-  maxHandle.addEventListener('input', function () {
-    if (Number(maxHandle.value) < Number(minHandle.value)) maxHandle.value = minHandle.value;
-    paintPriceRange();
-    syncChipFromRange();
-  });
-
-  /* 칩 클릭 → 슬라이더 + hidden 값 반영 */
-  document.getElementById('priceFilterList').addEventListener('click', function (e) {
-    var chip = e.target.closest('[data-price-min]');
-    if (!chip) return;
-    setPriceRange(Number(chip.getAttribute('data-price-min')),
-                  Number(chip.getAttribute('data-price-max')));
-  });
-
-  /* 슬라이더 조작 → 일치하는 칩이 있으면 그 칩을, 없으면 전부 해제 */
-  function syncChipFromRange() {
-    var lo = Number(minHandle.value), hi = Number(maxHandle.value);
-    var matched = null;
-    document.querySelectorAll('#priceFilterList [data-price-min]').forEach(function (c) {
-      var same = Number(c.getAttribute('data-price-min')) === lo &&
-                 Number(c.getAttribute('data-price-max')) === hi;
-      c.setAttribute('aria-pressed', same ? 'true' : 'false');
-      if (same) matched = c;
-    });
-    return matched;
-  }
-
-  paintPriceRange();
-
-  /* ==========================================================
-     주변 주차장
-     ★ GET /api/parking-lots/nearby?latitude=&longitude=&radiusM=
-       상세 패널을 열 때 openDetail() 안에서 호출하세요.
-     ========================================================== */
-  function loadParkingLots(lat, lng, radiusM) {
-    var loading = document.getElementById('parkingLoading');
-    var list = document.getElementById('detailParking');
-    var empty = document.getElementById('parkingEmpty');
-    var error = document.getElementById('parkingError');
-
-    loading.hidden = false;
-    list.hidden = true;
-    empty.hidden = true;
-    error.hidden = true;
-
-    /* ---- 실제 연동 코드 (주석 해제 후 아래 데모 블록 삭제) ----
-    Api.request('/api/parking-lots/nearby?latitude=' + lat +
-                '&longitude=' + lng + '&radiusM=' + radiusM, { auth: false })
-      .then(function (lots) {
-        loading.hidden = true;
-        if (!lots || !lots.length) { empty.hidden = false; return; }
-        list.innerHTML = lots.map(renderParkingItem).join('');
-        list.hidden = false;
-        document.getElementById('parkingCountBadge').textContent = lots.length + '곳';
-      })
-      .catch(function () { loading.hidden = true; error.hidden = false; });
-    ---------------------------------------------------------- */
-
-    /* ---- 데모 (실제 연동 시 삭제) ---- */
-    setTimeout(function () {
-      loading.hidden = true;
-      list.hidden = false;
-    }, 500);
-  }
-
-  /* 주차장 1건 마크업 — 서버 응답 필드명에 맞게 조정하세요. */
-  function renderParkingItem(lot) {
-    var free = lot.feeType === 'FREE' || lot.free === true;
-    var name = String(lot.name || '주차장').replace(/[<>&]/g, '');
-    return '' +
-      '<div class="e-parking-item" data-parking-id="' + (lot.id || '') + '">' +
-        '<span class="e-parking-ico" aria-hidden="true">P</span>' +
-        '<div class="min-w-0 flex-1">' +
-          '<p class="e-parking-name">' + name + '</p>' +
-          '<div class="e-parking-meta">' +
-            '<span class="e-parking-tag ' + (free ? 'e-parking-tag--free' : 'e-parking-tag--paid') + '">' +
-              (free ? '무료' : '유료') + '</span>' +
-            '<span>도보 <b>' + (lot.walkMinutes || '-') + '분</b></span>' +
-            '<span><b>' + (lot.distanceM || '-') + 'm</b></span>' +
-            '<span>총 <b>' + (lot.capacity || '-') + '</b>면</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="e-parking-fee">' + (free ? '무료' : (lot.feeText || '-')) +
-          '<small>' + (free ? '' : '10분당') + '</small>' +
-        '</div>' +
-      '</div>';
-  }
-
-  document.getElementById('parkingRadiusSelect').addEventListener('change', function () {
-    /* ★ 실제로는 현재 선택된 매장 좌표를 넘기세요. */
-    loadParkingLots(37.4979, 127.0276, Number(this.value));
-  });
-
-  /* ==========================================================
-     길찾기
-     ★ GET /api/directions?startLat=&startLng=&endLat=&endLng=&mode=
-       start 는 geolocation 현재 위치, end 는 선택된 매장 좌표입니다.
-     ========================================================== */
-  var routeBox = document.getElementById('directionsResult');
-
-  function loadDirections(mode) {
-    var loading = document.getElementById('directionsLoading');
-    var body = document.getElementById('directionsBody');
-    var error = document.getElementById('directionsError');
-
-    routeBox.hidden = false;
-    loading.hidden = false;
-    body.hidden = true;
-    error.hidden = true;
-
-    /* ---- 실제 연동 코드 (주석 해제 후 아래 데모 블록 삭제) ----
-    navigator.geolocation.getCurrentPosition(function (pos) {
-      Api.request('/api/directions?startLat=' + pos.coords.latitude +
-                  '&startLng=' + pos.coords.longitude +
-                  '&endLat=' + shop.latitude + '&endLng=' + shop.longitude +
-                  '&mode=' + mode, { auth: false })
-        .then(function (r) {
-          loading.hidden = true;
-          document.getElementById('routeDuration').textContent = r.durationText;
-          document.getElementById('routeDistance').textContent = r.distanceText;
-          document.getElementById('routeFare').textContent = r.fareText || '-';
-          document.getElementById('routeTransfer').textContent = (r.transferCount || 0) + '회';
-          document.getElementById('routeExtraWrap').hidden = mode !== 'TRANSIT';
-          document.getElementById('routeSummary').textContent = r.summary || '';
-          body.hidden = false;
-        })
-        .catch(function () { loading.hidden = true; error.hidden = false; });
-    }, function () { loading.hidden = true; error.hidden = false; });
-    ---------------------------------------------------------- */
-
-    /* ---- 데모 (실제 연동 시 삭제) ---- */
-    var DEMO = {
-      TRANSIT: { d: '18분', dist: '1.2km', fare: '1,500원', sum: '강남역 2호선 승차 → 역삼역 하차 → 도보 4분' },
-      WALK:    { d: '14분', dist: '1.1km', fare: '-',       sum: '테헤란로 직진 후 우회전' },
-      CAR:     { d: '7분',  dist: '1.6km', fare: '유료도로 없음', sum: '테헤란로 → 역삼로 좌회전' }
-    };
-    setTimeout(function () {
-      var r = DEMO[mode] || DEMO.TRANSIT;
-      loading.hidden = true;
-      document.getElementById('routeDuration').textContent = r.d;
-      document.getElementById('routeDistance').textContent = r.dist;
-      document.getElementById('routeFare').textContent = r.fare;
-      document.getElementById('routeExtraWrap').hidden = mode !== 'TRANSIT';
-      document.getElementById('routeSummary').textContent = r.sum;
-      body.hidden = false;
-    }, 650);
-  }
-
-  /* 길찾기 버튼 */
-  document.getElementById('directionBtn').addEventListener('click', function () {
-    var active = document.querySelector('#routeModeGroup [aria-pressed="true"]');
-    loadDirections(active ? active.getAttribute('data-route-mode') : 'TRANSIT');
-    routeBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  });
-
-  /* 이동수단 전환 */
-  document.getElementById('routeModeGroup').addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-route-mode]');
-    if (!btn) return;
-    this.querySelectorAll('[data-route-mode]').forEach(function (b) {
-      b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
-    });
-    loadDirections(btn.getAttribute('data-route-mode'));
-  });
-
-  document.getElementById('directionsCloseBtn').addEventListener('click', function () {
-    routeBox.hidden = true;
-  });
-})();
-</script>
 </body>
 </html>
