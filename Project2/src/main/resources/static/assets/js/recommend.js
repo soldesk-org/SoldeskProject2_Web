@@ -1,265 +1,324 @@
 (function () {
   var DEFAULT_CENTER = { lat: 37.4979, lng: 127.0276 }; // 강남역
-
-  var input = document.getElementById("recommend-input");
-  var searchBtn = document.getElementById("recommend-search-btn");
-  var resultsList = document.getElementById("results-list");
-  var resultsCount = document.getElementById("results-count");
-
-  var modal = document.getElementById("ai-eval-modal");
-  var modalIcon = document.getElementById("modal-icon");
-  var modalTitle = document.getElementById("modal-title");
-  var feedbackButtons = document.getElementById("feedback-buttons");
-  var feedbackLoginHint = document.getElementById("feedback-login-hint");
-  var upBtn = document.getElementById("feedback-up");
-  var downBtn = document.getElementById("feedback-down");
-  var followupPrompt = document.getElementById("followup-prompt");
-  var followupResults = document.getElementById("followup-results");
-  var continueBtn = document.getElementById("modal-continue");
-  var closeBtn = document.getElementById("modal-close");
-  var xBtn = document.getElementById("modal-x");
-
-  var lastHistoryId = null;
-  var lastFeedback = null;
-  var feedbackLocked = false;
-  var anchorPlace = null;
-  var followupVariant = "CAFE";
-  var FOLLOWUP_LABEL = { CAFE: "카페", PARK: "공원" };
+  var RECENT_KEY = "eatty:recommendRecentQueries";
+  var RULE_LABEL = { CATEGORY_BASED: "카테고리 기반 추천", REVIEW_RATIO_BASED: "리뷰 태그 기반 추천" };
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-
-  function renderFeedbackButtons() {
-    var disabled = feedbackLocked || !lastHistoryId;
-    upBtn.disabled = disabled;
-    downBtn.disabled = disabled;
-    upBtn.className = "flex items-center gap-3 rounded-[10px] border px-4 py-3 text-left transition-colors " +
-      (lastFeedback === true ? "border-[#ff6b00] bg-[#fff7f2]" : "border-[#dfe2e6] bg-white hover:bg-[#fafbfc]") +
-      (feedbackLocked && lastFeedback !== true ? " opacity-40" : "");
-    downBtn.className = "flex items-center gap-3 rounded-[10px] border px-4 py-3 text-left transition-colors " +
-      (lastFeedback === false ? "border-[#ff6b00] bg-[#fff7f2]" : "border-[#dfe2e6] bg-white hover:bg-[#fafbfc]") +
-      (feedbackLocked && lastFeedback !== false ? " opacity-40" : "");
-  }
-
-  function submitFeedback(wasHelpful) {
-    if (!lastHistoryId || feedbackLocked) return;
-    lastFeedback = wasHelpful;
-    feedbackLocked = true;
-    renderFeedbackButtons();
-    Api.request("/api/recommendation/" + lastHistoryId + "/feedback", { method: "PATCH", body: { wasHelpful: wasHelpful } })
-      .catch(function () {});
-  }
-  upBtn.addEventListener("click", function () { submitFeedback(true); });
-  downBtn.addEventListener("click", function () { submitFeedback(false); });
-
-  function placeTags(place) {
-    if (place.matched_keywords && place.matched_keywords.length) return place.matched_keywords;
-    if (place.category_name) return place.category_name.split(">").map(function (s) { return s.trim(); }).filter(Boolean).slice(-2);
-    return [];
-  }
-
-  function distanceLabel(place) {
-    var meters = place.distance ? Number(place.distance) : null;
-    if (!meters) return "";
-    if (meters < 1000) return Math.round(meters) + "m";
-    return (meters / 1000).toFixed(1) + "km";
-  }
-
-  function renderResults(data) {
-    var recommendations = data.recommendations || [];
-    lastHistoryId = data.history_id || null;
-    lastFeedback = null;
-
-    resultsCount.textContent = "총 " + recommendations.length + "개의 결과";
-    resultsList.innerHTML = "";
-
-    if (recommendations.length === 0) {
-      resultsList.innerHTML = '<p class="text-[16px] text-[#74777d]">추천 결과를 찾지 못했어요. 다른 표현으로 다시 시도해보세요.</p>';
-      return;
-    }
-
-    anchorPlace = recommendations[0];
-
-    recommendations.forEach(function (place, i) {
-      var card = document.createElement("div");
-      card.className = "flex items-start gap-4 rounded-[12px] border border-[#dfe2e6] bg-white p-5 transition-shadow hover:shadow-md";
-      var tags = placeTags(place);
-      var dist = distanceLabel(place);
-      card.innerHTML =
-        '<span class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-[#fff4ec] text-[17px] font-bold text-[#ff6b00]">' + (i + 1) + "</span>" +
-        '<div class="min-w-0 flex-1">' +
-        '<h2 class="text-[22px] font-bold text-[#111]">' + escapeHtml(place.place_name) + "</h2>" +
-        '<div class="mt-2 flex flex-wrap gap-2">' +
-        tags.map(function (t) { return '<span class="rounded-full bg-[#f1f2f4] px-3 py-1 text-[14px] text-[#30343a]">' + escapeHtml(t) + "</span>"; }).join("") +
-        "</div>" +
-        (place.reason ? '<p class="mt-3 text-[16px] text-[#30343a]">' + escapeHtml(place.reason) + "</p>" : "") +
-        '<p class="mt-2 text-[14px] text-[#555b63]">' + escapeHtml(place.road_address_name || place.address_name || "") + (dist ? "　·　" + dist : "") + "</p>" +
-        "</div>" +
-        '<button data-fav class="shrink-0 p-1 text-[24px] text-[#fd6d4a]">♡</button>';
-
-      card.querySelector("[data-fav]").addEventListener("click", function (e) {
-        e.stopPropagation();
-        if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
-        var btn = e.currentTarget;
-        var favored = btn.textContent === "♥";
-        Api.request("/api/restaurants/" + encodeURIComponent(place.place_id) + "/favorite", {
-          method: favored ? "DELETE" : "POST",
-          body: { name: place.place_name, address: place.address_name, roadAddress: place.road_address_name, latitude: Number(place.y), longitude: Number(place.x) },
-        })
-          .then(function (res) { btn.textContent = res.favorite ? "♥" : "♡"; })
-          .catch(function () {});
-      });
-
-      resultsList.appendChild(card);
-    });
-
-    openFeedbackModal();
-  }
-
-  function openFeedbackModal() {
-    followupVariant = Math.random() < 0.5 ? "CAFE" : "PARK";
-    modalIcon.textContent = followupVariant === "CAFE" ? "☕" : "🌳";
-    modalTitle.textContent = followupVariant === "CAFE"
-      ? "식사 후 갈 카페도 AI가 추천해드릴까요?"
-      : "식사 후 산책할 공원도 AI가 추천해드릴까요?";
-
-    feedbackLocked = false;
-    feedbackButtons.style.display = lastHistoryId ? "" : "none";
-    feedbackLoginHint.style.display = lastHistoryId ? "none" : "";
-    renderFeedbackButtons();
-
-    followupPrompt.style.display = "";
-    followupResults.style.display = "none";
-    followupResults.innerHTML = "";
-
-    modal.style.display = "flex";
-  }
-
-  function followupDistanceLabel(m) {
-    if (m == null) return "";
+  function distanceLabel(meters) {
+    if (meters == null) return "";
+    var m = Number(meters);
+    if (!m) return "";
     return m < 1000 ? Math.round(m) + "m" : (m / 1000).toFixed(1) + "km";
   }
 
-  function renderFollowupResults(data) {
-    followupPrompt.style.display = "none";
-    followupResults.style.display = "";
-    var places = data.places || [];
-    var label = FOLLOWUP_LABEL[followupVariant] || "장소";
+  var query = document.getElementById("recommendQuery");
+  var emptyBox = document.getElementById("recommendEmpty");
+  var loadingBox = document.getElementById("recommendLoading");
+  var resultBox = document.getElementById("recommendResult");
+  var errorBox = document.getElementById("recommendError");
+  var cardList = document.getElementById("recommendCardList");
+  var lastHistoryId = null;
+  var lastRecommendations = [];
 
-    if (places.length === 0) {
-      followupResults.innerHTML = '<p class="text-[15px] text-[#74777d]">근처에서 갈 만한 ' + escapeHtml(label) + '을 찾지 못했어요.</p>';
-      return;
-    }
-
-    followupResults.innerHTML =
-      '<p class="text-[15px] font-semibold text-[#25374b]">근처 ' + escapeHtml(label) + " " + places.length + '곳을 찾았어요</p>' +
-      '<div class="mt-3 flex flex-col gap-2">' +
-      places.map(function (p, i) {
-        return '<div class="flex items-center gap-3 rounded-[10px] border border-[#eceef1] bg-white p-3 transition-shadow hover:shadow-sm">' +
-          '<span class="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-[#fff4ec] text-[13px] font-bold text-[#ff6b00]">' + (i + 1) + "</span>" +
-          '<div class="min-w-0 flex-1">' +
-          '<p class="truncate text-[15px] font-semibold text-[#25374b]">' + escapeHtml(p.placeName) + "</p>" +
-          '<p class="truncate text-[13px] text-[#8a8f98]">' + escapeHtml(p.roadAddressName || p.addressName || "") + "</p>" +
-          "</div>" +
-          (p.distanceMeters != null ? '<span class="shrink-0 text-[13px] font-semibold text-[#ff6b00]">' + followupDistanceLabel(p.distanceMeters) + "</span>" : "") +
-          "</div>";
-      }).join("") +
-      "</div>";
+  function show(which) {
+    emptyBox.hidden = which !== "empty";
+    loadingBox.hidden = which !== "loading";
+    resultBox.hidden = which !== "result";
+    errorBox.hidden = which !== "error";
   }
 
-  function followupLoadingRow() {
-    return '<div class="flex items-center gap-3 rounded-[10px] border border-[#eceef1] bg-white p-3">' +
-      '<span class="size-[26px] shrink-0 animate-pulse rounded-full bg-[#f1f2f4]"></span>' +
-      '<div class="min-w-0 flex-1">' +
-      '<div class="h-[15px] w-2/3 animate-pulse rounded-[5px] bg-[#f1f2f4]"></div>' +
-      '<div class="mt-1.5 h-[13px] w-1/2 animate-pulse rounded-[5px] bg-[#f1f2f4]"></div>' +
-      "</div></div>";
+  // ---- 최근 질문 (서버에 저장 API가 없어 localStorage로만 관리) ----
+  function loadRecent() {
+    try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch (e) { return []; }
   }
-
-  continueBtn.addEventListener("click", function () {
-    if (!anchorPlace) return;
-    followupResults.style.display = "";
-    followupPrompt.style.display = "none";
-    followupResults.innerHTML =
-      '<div class="mb-1 flex items-center gap-2 text-[14px] font-semibold text-[#ff6b00]">' +
-      '<span class="relative flex size-[14px]">' +
-      '<span class="absolute inline-flex size-full animate-ping rounded-full bg-[#ff6b00] opacity-40"></span>' +
-      '<span class="relative inline-flex size-[14px] rounded-full bg-[#ff6b00]"></span>' +
-      "</span>주변을 찾고 있어요</div>" +
-      '<div class="flex flex-col gap-2">' + followupLoadingRow() + followupLoadingRow() + followupLoadingRow() + "</div>";
-    Api.request("/api/recommendation/nearby-course", {
-      method: "POST",
-      auth: false,
-      body: { type: followupVariant, anchorName: anchorPlace.place_name, x: Number(anchorPlace.x), y: Number(anchorPlace.y) },
-    })
-      .then(renderFollowupResults)
-      .catch(function (err) {
-        followupResults.innerHTML = '<p class="text-[15px] text-red-500">' + escapeHtml(err.message || "추천을 가져오지 못했습니다.") + "</p>";
-      });
+  function saveRecent(list) {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 8)));
+  }
+  function pushRecent(text) {
+    var list = loadRecent().filter(function (q) { return q !== text; });
+    list.unshift(text);
+    saveRecent(list);
+    renderRecent();
+  }
+  function renderRecent() {
+    var el = document.getElementById("recentQueryList");
+    var list = loadRecent();
+    if (!list.length) { el.innerHTML = '<p class="t-xs text-center py-6">최근 질문이 없습니다.</p>'; return; }
+    el.innerHTML = list.map(function (q) {
+      return '<button type="button" class="e-dropdown-item !text-[13px]" data-recent-query="' + escapeHtml(q) + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3.5 2"/></svg>' +
+        '<span class="truncate">' + escapeHtml(q) + '</span></button>';
+    }).join("");
+  }
+  renderRecent();
+  document.getElementById("clearRecentBtn").addEventListener("click", function () {
+    saveRecent([]);
+    renderRecent();
+    Eatty.toast("최근 질문 기록을 삭제했습니다.");
   });
 
-  function closeModal() { modal.style.display = "none"; }
-  closeBtn.addEventListener("click", closeModal);
-  xBtn.addEventListener("click", closeModal);
+  document.addEventListener("click", function (e) {
+    var ex = e.target.closest("[data-example], [data-recent-query]");
+    if (!ex) return;
+    query.value = ex.getAttribute("data-example") || ex.getAttribute("data-recent-query");
+    query.dispatchEvent(new Event("input"));
+    query.focus();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 
-  function loadingCardSkeleton() {
-    return '<div class="flex items-start gap-4 rounded-[12px] border border-[#eceef1] bg-white p-5">' +
-      '<span class="size-[34px] shrink-0 animate-pulse rounded-full bg-[#f1f2f4]"></span>' +
+  // ---- 내 음BTI 표시 (로그인 시) ----
+  if (Api.isLoggedIn()) {
+    Api.request("/api/members/me").then(function (me) {
+      var el = document.getElementById("myFoodBtiText");
+      if (el) el.textContent = me.foodBti || "아직 검사하지 않음";
+    }).catch(function () {});
+  }
+
+  // ---- 지도 ----
+  var map = null;
+  var markers = [];
+  function clearMarkers() { markers.forEach(function (m) { m.setMap(null); }); markers = []; }
+  function numberedIcon(n) {
+    return {
+      content: '<div style="width:26px;height:26px;border-radius:50%;background:#fd6d4a;color:#fff;' +
+        'font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;' +
+        'box-shadow:0 1px 3px rgba(0,0,0,.35)">' + n + '</div>',
+      anchor: new naver.maps.Point(13, 13),
+    };
+  }
+  function renderMapMarkers(list) {
+    if (!map) return;
+    clearMarkers();
+    var bounds = new naver.maps.LatLngBounds();
+    list.forEach(function (place, i) {
+      var lat = Number(place.y), lng = Number(place.x);
+      if (!lat || !lng) return;
+      var pos = new naver.maps.LatLng(lat, lng);
+      var marker = new naver.maps.Marker({ position: pos, map: map, title: place.placeName, icon: numberedIcon(i + 1) });
+      naver.maps.Event.addListener(marker, "click", function () {
+        var card = cardList.querySelector('.rc-card[data-shop-id="' + place.placeId + '"]');
+        if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      markers.push(marker);
+      bounds.extend(pos);
+    });
+    if (list.length) map.fitBounds(bounds);
+  }
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function (pos) { map = new naver.maps.Map("naverMapRecommend", { center: new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude), zoom: 14 }); },
+      function () { map = new naver.maps.Map("naverMapRecommend", { center: new naver.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng), zoom: 14 }); }
+    );
+  } else {
+    map = new naver.maps.Map("naverMapRecommend", { center: new naver.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng), zoom: 14 });
+  }
+
+  // ---- 결과 카드 ----
+  function renderCard(place, index) {
+    var article = document.createElement("article");
+    article.className = "rc-card";
+    article.setAttribute("data-shop-id", place.placeId);
+    if (place.matchedReviewRatio != null) article.setAttribute("data-match-score", Math.round(place.matchedReviewRatio * 100));
+
+    var tags = (place.matchedKeywords && place.matchedKeywords.length)
+      ? place.matchedKeywords
+      : (place.categoryName ? place.categoryName.split(">").map(function (s) { return s.trim(); }).filter(Boolean).slice(-2) : []);
+    var dist = distanceLabel(place.distance);
+    var matchBadge = place.matchedReviewRatio != null
+      ? '<span class="e-badge ' + (index === 0 ? "e-badge--brand" : "e-badge--gray") + '">' + Math.round(place.matchedReviewRatio * 100) + '% 일치</span>'
+      : "";
+
+    article.innerHTML =
+      '<span class="rc-rank" ' + (index === 0 ? "" : 'style="background:var(--ink-' + (index === 1 ? "700" : "400") + ')"') + '>' + (index + 1) + '</span>' +
       '<div class="min-w-0 flex-1">' +
-      '<div class="h-[22px] w-2/5 animate-pulse rounded-[6px] bg-[#f1f2f4]"></div>' +
-      '<div class="mt-3 flex gap-2">' +
-      '<span class="h-[24px] w-[64px] animate-pulse rounded-full bg-[#f1f2f4]"></span>' +
-      '<span class="h-[24px] w-[80px] animate-pulse rounded-full bg-[#f1f2f4]"></span>' +
-      '<span class="h-[24px] w-[56px] animate-pulse rounded-full bg-[#f1f2f4]"></span>' +
+      '<div class="flex items-center gap-2 flex-wrap">' +
+      '<h3 class="text-[17px] font-extrabold text-[var(--ink-900)] truncate">' + escapeHtml(place.placeName) + '</h3>' +
+      matchBadge +
+      (place.categoryGroupName ? '<span class="e-badge e-badge--gray">' + escapeHtml(place.categoryGroupName) + '</span>' : '') +
       '</div>' +
-      '<div class="mt-3 h-[16px] w-full animate-pulse rounded-[6px] bg-[#f1f2f4]"></div>' +
-      '<div class="mt-2 h-[16px] w-3/5 animate-pulse rounded-[6px] bg-[#f1f2f4]"></div>' +
-      '</div>' +
-      '</div>';
+      '<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">' +
+      (place.totalReviewCount != null ? '<span class="t-xs">리뷰 ' + place.totalReviewCount + '</span>' : '') +
+      '<span class="t-xs flex items-center gap-1">' +
+      '<svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>' +
+      escapeHtml(place.roadAddressName || place.addressName || "") + (dist ? " · " + dist : "") +
+      '</span></div>' +
+      (tags.length ? '<div class="flex flex-wrap gap-1.5 mt-2">' + tags.map(function (t) { return '<span class="e-tag">' + escapeHtml(t) + '</span>'; }).join("") + '</div>' : '') +
+      (place.reason ? '<p class="rc-reason"><b class="text-[var(--brand-700)]">추천 이유</b> · ' + escapeHtml(place.reason) + '</p>' : '') +
+      '<div class="flex flex-wrap items-center gap-2 mt-3.5">' +
+      (place.placeUrl ? '<a href="' + escapeHtml(place.placeUrl) + '" target="_blank" rel="noopener" class="btn btn-primary btn-sm">카카오맵에서 보기</a>' : '') +
+      '<button type="button" class="btn btn-outline btn-sm" data-fav="' + escapeHtml(place.placeId) + '">♡ 즐겨찾기</button>' +
+      '<div class="flex items-center gap-1.5 ml-auto" data-feedback-group>' +
+      '<button type="button" class="fb-btn" data-feedback="like" aria-pressed="false" aria-label="좋아요">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V10l4-8h1.5a2 2 0 0 1 2 2.3L14 8h5a2 2 0 0 1 2 2.4l-1.6 8A2 2 0 0 1 17.4 20H7Z"/><path d="M7 10H4v12h3"/></svg>좋아요</button>' +
+      '<button type="button" class="fb-btn" data-feedback="dislike" aria-pressed="false" aria-label="싫어요">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2v12l-4 8h-1.5a2 2 0 0 1-2-2.3L10 16H5a2 2 0 0 1-2-2.4l1.6-8A2 2 0 0 1 6.6 4H17Z"/><path d="M17 14h3V2h-3"/></svg>싫어요</button>' +
+      '</div></div></div>';
+
+    article.querySelector("[data-fav]").addEventListener("click", function () {
+      if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
+      var btn = this;
+      var favored = btn.textContent.indexOf("♥") !== -1;
+      Api.request("/api/restaurants/" + encodeURIComponent(place.placeId) + "/favorite", {
+        method: favored ? "DELETE" : "POST",
+        body: { name: place.placeName, address: place.addressName, roadAddress: place.roadAddressName, latitude: Number(place.y), longitude: Number(place.x) },
+      }).then(function (res) { btn.innerHTML = res.favorite ? "♥ 즐겨찾기됨" : "♡ 즐겨찾기"; })
+        .catch(function (err) { Eatty.toast(err.message || "즐겨찾기 처리에 실패했습니다.", "error"); });
+    });
+
+    var feedbackGroup = article.querySelector("[data-feedback-group]");
+    if (!lastHistoryId) {
+      feedbackGroup.innerHTML = '<span class="t-xs">로그인하면 피드백을 남길 수 있어요</span>';
+    } else {
+      feedbackGroup.querySelectorAll("[data-feedback]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var on = btn.getAttribute("aria-pressed") === "true";
+          feedbackGroup.querySelectorAll("[data-feedback]").forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
+          article.classList.remove("is-liked", "is-disliked");
+          if (on) return;
+          var kind = btn.getAttribute("data-feedback");
+          btn.setAttribute("aria-pressed", "true");
+          article.classList.add(kind === "like" ? "is-liked" : "is-disliked");
+          Api.request("/api/recommendation/" + lastHistoryId + "/feedback", { method: "PATCH", body: { wasHelpful: kind === "like" } })
+            .then(function () { Eatty.toast("피드백 감사합니다.", kind === "like" ? "brand" : "default"); })
+            .catch(function () {});
+        });
+      });
+    }
+    return article;
   }
 
-  function renderLoadingState() {
-    resultsCount.textContent = "";
-    resultsList.innerHTML =
-      '<div class="mb-1 flex items-center gap-2 text-[15px] font-semibold text-[#ff6b00]">' +
-      '<span class="relative flex size-[16px]">' +
-      '<span class="absolute inline-flex size-full animate-ping rounded-full bg-[#ff6b00] opacity-40"></span>' +
-      '<span class="relative inline-flex size-[16px] rounded-full bg-[#ff6b00]"></span>' +
-      '</span>' +
-      'AI가 취향을 분석하고 있어요' +
-      '</div>' +
-      loadingCardSkeleton() + loadingCardSkeleton() + loadingCardSkeleton();
+  function renderResults(data) {
+    lastHistoryId = data.historyId || null;
+    lastRecommendations = data.recommendations || [];
+
+    document.getElementById("recommendResultTitle").textContent = "추천 결과 " + lastRecommendations.length + "곳";
+    cardList.innerHTML = "";
+    if (!lastRecommendations.length) {
+      cardList.innerHTML = '<div class="e-card e-card-pad"><p class="t-sm">조건에 맞는 추천 결과를 찾지 못했어요. 다른 표현으로 다시 시도해보세요.</p></div>';
+    } else {
+      lastRecommendations.forEach(function (place, i) { cardList.appendChild(renderCard(place, i)); });
+    }
+
+    var summaryEl = document.getElementById("aiSummaryText");
+    var tagsEl = document.getElementById("aiSummaryTags");
+    var a = data.analysis;
+    if (a) {
+      var parts = [];
+      if (a.location && a.location.length) parts.push(a.location.join(", ") + " 근처");
+      if (a.category && a.category.length) parts.push(a.category.join(", "));
+      if (a.atmosphereKeywords && a.atmosphereKeywords.length) parts.push(a.atmosphereKeywords.join(", ") + " 분위기");
+      var sentence = (parts.length ? parts.join(" · ") + " 조건으로 " : "") +
+        (RULE_LABEL[data.recommendationRule] || "조건") + "으로 " + lastRecommendations.length + "곳을 골랐어요.";
+      summaryEl.textContent = sentence + (data.dataNotice ? " " + data.dataNotice : "");
+
+      var tagValues = [].concat(a.location || [], a.category || [], a.atmosphereKeywords || [], a.menuKeywords || []);
+      tagsEl.innerHTML = tagValues.slice(0, 6).map(function (t) { return '<span class="e-tag">' + escapeHtml(t) + '</span>'; }).join("");
+    } else {
+      summaryEl.textContent = "조건에 맞는 추천 결과 " + lastRecommendations.length + "곳을 찾았어요.";
+      tagsEl.innerHTML = "";
+    }
+
+    renderMapMarkers(lastRecommendations);
+    resetFollowup();
   }
 
-  function runSearch() {
-    var text = input.value.trim();
-    if (!text) return;
-    renderLoadingState();
+  function buildQueryText() {
+    var text = query.value.trim();
+    var area = document.getElementById("quickArea").value.trim();
+    var peopleSelect = document.getElementById("quickPeople");
+    var budgetSelect = document.getElementById("quickBudget");
+    var extra = [];
+    if (area) extra.push(area);
+    if (peopleSelect.value) extra.push(peopleSelect.selectedOptions[0].textContent + " 방문");
+    if (budgetSelect.value) extra.push("1인 예산 " + budgetSelect.selectedOptions[0].textContent);
+    if (!text && extra.length) return extra.join(", ") + " 맛집 추천해줘";
+    if (extra.length) return text + " (" + extra.join(", ") + ")";
+    return text;
+  }
 
-    function query(center) {
+  function runRecommend() {
+    var text = buildQueryText();
+    if (!text) { Eatty.toast("찾고 있는 조건을 입력해주세요.", "error"); query.focus(); return; }
+    document.getElementById("resultQueryEcho").textContent = query.value.trim() || text;
+    show("loading");
+
+    function request(center) {
+      var useAuth = document.getElementById("useMyBtiSwitch").checked;
       Api.request("/api/recommendation/query", {
         method: "POST",
-        body: { text: text, x: center.lng, y: center.lat, radius: 3000, size: 10 },
-      })
-        .then(renderResults)
-        .catch(function (err) {
-          resultsList.innerHTML = '<p class="text-[16px] text-red-500">' + escapeHtml(err.message || "추천 요청에 실패했습니다.") + "</p>";
-        });
+        auth: useAuth,
+        body: { text: text, x: center ? center.lng : undefined, y: center ? center.lat : undefined, radius: 3000, size: 10 },
+      }).then(function (data) {
+        renderResults(data);
+        show("result");
+        pushRecent(query.value.trim() || text);
+        resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
+      }).catch(function () { show("error"); });
     }
 
-    if (navigator.geolocation) {
+    if (document.getElementById("useMyLocationSwitch").checked && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        function (pos) { query({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
-        function () { query(DEFAULT_CENTER); }
+        function (pos) { request({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
+        function () { request(DEFAULT_CENTER); }
       );
+    } else if (document.getElementById("useMyLocationSwitch").checked) {
+      request(DEFAULT_CENTER);
     } else {
-      query(DEFAULT_CENTER);
+      request(null);
     }
   }
 
-  searchBtn.addEventListener("click", runSearch);
-  input.addEventListener("keydown", function (e) { if (e.key === "Enter") runSearch(); });
+  document.getElementById("recommendForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    runRecommend();
+  });
+  document.getElementById("retryBtn").addEventListener("click", runRecommend);
+  document.querySelectorAll("#recommendError button").forEach(function (btn) { btn.addEventListener("click", runRecommend); });
+
+  document.getElementById("saveAllBtn").addEventListener("click", function () {
+    if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
+    var tasks = lastRecommendations.map(function (place) {
+      return Api.request("/api/restaurants/" + encodeURIComponent(place.placeId) + "/favorite", {
+        method: "POST",
+        body: { name: place.placeName, address: place.addressName, roadAddress: place.roadAddressName, latitude: Number(place.y), longitude: Number(place.x) },
+      }).catch(function () {});
+    });
+    Promise.all(tasks).then(function () {
+      Eatty.toast("추천 " + lastRecommendations.length + "곳을 즐겨찾기에 저장했습니다.", "brand");
+      cardList.querySelectorAll("[data-fav]").forEach(function (btn) { btn.innerHTML = "♥ 즐겨찾기됨"; });
+    });
+  });
+
+  // ---- 식사 후 후속 제안 (공원/카페, 실제 카카오 로컬 API 기반) ----
+  function resetFollowup() {
+    document.querySelectorAll("[data-followup-body]").forEach(function (el) { el.innerHTML = ""; });
+  }
+  document.getElementById("followupSection").addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-followup-load]");
+    if (!btn) return;
+    if (!lastRecommendations.length) return;
+    var anchor = lastRecommendations[0];
+    var type = btn.getAttribute("data-followup-load");
+    var body = btn.closest(".fu-card").querySelector("[data-followup-body]");
+    body.innerHTML = '<p class="t-xs">찾는 중...</p>';
+    Api.request("/api/recommendation/nearby-course", {
+      method: "POST", auth: false,
+      body: { type: type, anchorName: anchor.placeName, x: Number(anchor.x), y: Number(anchor.y) },
+    }).then(function (data) {
+      var places = data.places || [];
+      if (!places.length) { body.innerHTML = '<p class="t-xs">근처에서 찾지 못했어요.</p>'; return; }
+      body.innerHTML = places.slice(0, 5).map(function (p) {
+        return '<div class="flex items-center justify-between gap-2 py-1.5 border-b border-[var(--line-soft)] last:border-0">' +
+          '<span class="text-[13px] font-semibold text-[var(--ink-800)] truncate">' + escapeHtml(p.placeName) + '</span>' +
+          (p.distanceMeters != null ? '<span class="t-xs font-bold text-[var(--brand-600)] flex-none">' + distanceLabel(p.distanceMeters) + '</span>' : '') +
+          '</div>';
+      }).join("");
+    }).catch(function (err) {
+      body.innerHTML = '<p class="t-xs text-red-500">' + escapeHtml(err.message || "불러오지 못했습니다.") + '</p>';
+    });
+  });
 })();
