@@ -176,6 +176,19 @@
         logout().then(function () { window.location.href = "index"; });
       });
     });
+
+    // 공용 헤더의 닉네임/이메일(#headerNickname, #headerEmail)은 거의 모든 페이지에 똑같이
+    // 반복되는 요소라 각 페이지 JS마다 중복으로 GET /api/members/me를 부르지 않도록 여기서 한 번만 채운다.
+    if (loggedIn) {
+      var headerNickname = document.getElementById("headerNickname");
+      var headerEmail = document.getElementById("headerEmail");
+      if (headerNickname || headerEmail) {
+        request("/api/members/me").then(function (data) {
+          if (headerNickname && data.nickname) headerNickname.textContent = data.nickname;
+          if (headerEmail && data.email) headerEmail.textContent = data.email;
+        }).catch(function () {});
+      }
+    }
   }
 
   document.addEventListener("DOMContentLoaded", initNavAuthUI);

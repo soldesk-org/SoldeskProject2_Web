@@ -83,7 +83,9 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/mypage-edit.js"></script>
 <style>
   /* 계정 유형별 표시 제어 */
   [data-account-view] { display: none; }
@@ -137,8 +139,7 @@
             <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
             <a class="e-dropdown-item" href="support">고객센터</a>
             <div class="e-dropdown-sep"></div>
-            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn"
-                    data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn">로그아웃</button>
           </div>
         </div>
       </div>
@@ -274,14 +275,6 @@
           </div>
         </div>
 
-        <!-- 시안 확인용 계정 유형 전환 (실배포 시 삭제) -->
-        <div class="mt-8 pt-6 border-t border-dashed border-[var(--line-bold)] text-center">
-          <p class="t-xs mb-2.5">[시안 확인용] 계정 유형 전환</p>
-          <div class="e-segment">
-            <button type="button" class="e-segment-item" data-set-account="local" aria-selected="true">일반 계정</button>
-            <button type="button" class="e-segment-item" data-set-account="social" aria-selected="false">소셜 계정</button>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -596,140 +589,15 @@
   </a>
 </nav>
 
-<div data-devbar></div>
 
 <script>
-/* ---------------------------------------------------------------------------
-   mypage-edit 시안 데모 스크립트 — 실제 연동 시 mypage-edit.js 로 대체
-   --------------------------------------------------------------------------- */
+/* 순수 UI 동작만(백엔드 저장 대상 아님 — 매운맛 선호도는 이번 리디자인에서 새로 그려졌지만
+   백엔드에 저장할 곳이 아직 없다) */
 (function () {
-  var gate = document.getElementById('gateSection');
-  var edit = document.getElementById('editSection');
-
-  function openEdit() {
-    gate.hidden = true;
-    edit.hidden = false;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  /* 재인증 (일반 계정) */
-  document.getElementById('gateForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var pw = document.getElementById('gatePassword');
-    if (!pw.value) {
-      document.getElementById('gatePasswordError').classList.add('is-visible');
-      pw.classList.add('is-error');
-      return;
-    }
-    /* ★ 실제로는 POST /api/auth/verify-password 성공 시 openEdit() */
-    document.getElementById('gatePasswordError').classList.remove('is-visible');
-    pw.classList.remove('is-error');
-    openEdit();
-  });
-
-  /* 재인증 (소셜 계정) */
-  document.getElementById('gateSocialBtn').addEventListener('click', function () {
-    /* ★ 실제로는 소셜 OAuth 재인증 후 openEdit() */
-    openEdit();
-  });
-
-  /* [시안용] 계정 유형 전환 */
-  document.querySelectorAll('[data-set-account]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var type = b.getAttribute('data-set-account');
-      document.documentElement.setAttribute('data-account-type', type);
-      document.querySelectorAll('[data-set-account]').forEach(function (x) {
-        x.setAttribute('aria-selected', x === b ? 'true' : 'false');
-      });
-    });
-  });
-
-  /* 닉네임 중복확인 */
-  document.getElementById('checkNicknameBtn').addEventListener('click', function () {
-    document.getElementById('nicknameError').classList.remove('is-visible');
-    document.getElementById('nicknameOk').classList.add('is-visible');
-  });
-
-  /* 전화번호 인증 */
-  document.getElementById('sendPhoneCodeBtn').addEventListener('click', function () {
-    var row = document.getElementById('phoneCodeRow');
-    row.hidden = false;
-    var t = document.getElementById('phoneCodeTimer');
-    if (t) t.dispatchEvent(new Event('eatty:timer-restart'));
-    Eatty.toast('인증번호를 발송했습니다.', 'success');
-  });
-  document.getElementById('verifyPhoneCodeBtn').addEventListener('click', function () {
-    document.getElementById('phoneOk').classList.add('is-visible');
-    document.getElementById('phoneCodeRow').hidden = true;
-    Eatty.toast('전화번호 인증이 완료되었습니다.', 'success');
-  });
-
-  /* 프로필 사진 */
-  document.getElementById('avatarDrop').addEventListener('eatty:filepicked', function () {
-    document.getElementById('avatarPlaceholder').style.display = 'none';
-  });
-  document.getElementById('avatarRemoveBtn').addEventListener('click', function () {
-    document.getElementById('avatarInput').value = '';
-    document.getElementById('avatarPreview').hidden = true;
-    document.getElementById('avatarPlaceholder').style.display = '';
-    Eatty.toast('기본 이미지로 되돌렸습니다.');
-  });
-
-  /* 비밀번호 강도 */
-  var pw = document.getElementById('newPassword');
-  if (pw) pw.addEventListener('input', function () {
-    var v = pw.value, score = 0;
-    if (v.length >= 8) score++;
-    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
-    if (/\d/.test(v)) score++;
-    if (/[^\w\s]/.test(v)) score++;
-    var labels = ['-', '약함', '보통', '양호', '안전'];
-    document.getElementById('newPwStrengthBar').style.width = (score * 25) + '%';
-    document.getElementById('newPwStrengthText').textContent = v ? labels[score] : '-';
-  });
-
-  /* 매운맛 라벨 */
   var spicy = document.getElementById('editSpicyLevel');
   var spicyLabels = ['안 매움', '순한맛', '보통', '매움', '아주 매움'];
-  spicy.addEventListener('input', function () {
+  if (spicy) spicy.addEventListener('input', function () {
     document.getElementById('editSpicyLevelText').textContent = spicyLabels[Number(spicy.value)];
-  });
-
-  /* 마케팅 수신 동의 → 알림 목록의 이벤트/광고 항목 즉시 반영
-     ★ 실제로는 PATCH /api/members/me/notification-settings 성공 후 호출 */
-  var marketingSwitch = document.getElementById('notifyMarketing');
-  if (marketingSwitch) {
-    marketingSwitch.addEventListener('change', function () {
-      if (window.Eatty && Eatty.notify) {
-        Eatty.notify.setMarketingOptIn(marketingSwitch.checked);
-      }
-      Eatty.toast(marketingSwitch.checked
-        ? '이벤트 · 광고 알림을 받습니다.'
-        : '이벤트 · 광고 알림을 더 이상 받지 않습니다.');
-    });
-    /* 초기 상태 반영 */
-    if (window.Eatty && Eatty.notify) {
-      Eatty.notify.setMarketingOptIn(marketingSwitch.checked);
-    }
-  }
-
-  /* 저장 */
-  document.getElementById('editForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    var np = document.getElementById('newPassword');
-    var npc = document.getElementById('newPasswordConfirm');
-    if (np && np.value && np.value !== npc.value) {
-      document.getElementById('newPasswordConfirmError').classList.add('is-visible');
-      npc.classList.add('is-error');
-      Eatty.toast('비밀번호가 일치하지 않습니다.', 'error');
-      return;
-    }
-
-    /* ★ 실제로는 PATCH /api/members/me */
-    document.getElementById('editSuccessAlert').hidden = false;
-    Eatty.toast('변경 사항을 저장했습니다.', 'success');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 })();
 </script>

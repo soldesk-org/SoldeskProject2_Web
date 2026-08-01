@@ -73,7 +73,9 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/mypage.js"></script>
 </head>
 
 <body class="has-tabbar bg-[var(--bg-soft)]">
@@ -129,8 +131,7 @@
             <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
             <a class="e-dropdown-item" href="mypage-edit">프로필 수정</a>
             <div class="e-dropdown-sep"></div>
-            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn"
-                    data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn">로그아웃</button>
           </div>
         </div>
       </div>
@@ -692,8 +693,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
           비밀번호 변경
         </a>
-        <button type="button" class="btn btn-outline flex-1" id="logoutBtn"
-                data-demo-toast="로그아웃 되었습니다." data-demo-type="success">
+        <button type="button" class="btn btn-outline flex-1" id="logoutBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
           로그아웃
         </button>
@@ -758,11 +758,20 @@
         </select>
       </div>
 
-      <div class="e-field !mb-0">
+      <div class="e-field">
         <label class="e-label" for="withdrawConfirmInput">
           확인을 위해 <b class="t-brand">탈퇴합니다</b> 를 입력해주세요 <span class="req">*</span>
         </label>
         <input type="text" class="e-input" id="withdrawConfirmInput" placeholder="탈퇴합니다" autocomplete="off">
+      </div>
+
+      <div class="e-field !mb-0">
+        <label class="e-label" for="withdrawPassword">현재 비밀번호 <span class="req">*</span></label>
+        <input type="password" class="e-input" id="withdrawPassword" placeholder="비밀번호 확인" autocomplete="current-password">
+        <p class="e-error" id="withdrawPasswordError">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          비밀번호를 확인해주세요.
+        </p>
       </div>
     </div>
 
@@ -797,58 +806,6 @@
   </a>
 </nav>
 
-<div data-devbar></div>
 
-<script>
-/* ---------------------------------------------------------------------------
-   mypage 시안 데모 스크립트 — 실제 연동 시 mypage.js 로 대체
-   --------------------------------------------------------------------------- */
-(function () {
-  /* 즐겨찾기 해제 */
-  document.getElementById('favoriteList').addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-remove-favorite]');
-    if (!btn) return;
-    var item = btn.closest('.fav-item');
-    item.remove();   /* ★ 실제로는 DELETE /api/favorites/{shopId} 성공 후 제거 */
-    Eatty.toast('즐겨찾기에서 해제했습니다.');
-    if (!document.querySelectorAll('#favoriteList .fav-item').length) {
-      document.getElementById('favoriteList').hidden = true;
-      document.getElementById('favoriteEmpty').hidden = false;
-    }
-  });
-
-  /* 검색기록 개별 삭제 */
-  document.getElementById('searchHistoryList').addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-remove-history]');
-    if (!btn) return;
-    btn.closest('.sh-item').remove();   /* ★ DELETE /api/members/me/search-history/{id} */
-    if (!document.querySelectorAll('#searchHistoryList .sh-item').length) {
-      document.getElementById('searchHistoryList').hidden = true;
-      document.getElementById('searchHistoryEmpty').hidden = false;
-    }
-  });
-
-  /* 검색기록 전체 삭제 */
-  document.getElementById('clearHistoryConfirmBtn').addEventListener('click', function () {
-    document.getElementById('searchHistoryList').innerHTML = '';
-    document.getElementById('searchHistoryList').hidden = true;
-    document.getElementById('searchHistoryEmpty').hidden = false;
-    Eatty.closeModal('clearHistoryModal');
-    Eatty.toast('검색기록을 모두 삭제했습니다.', 'success');
-  });
-
-  /* 탈퇴 확인 문구 검증 */
-  document.getElementById('withdrawConfirmBtn').addEventListener('click', function () {
-    var v = document.getElementById('withdrawConfirmInput').value.trim();
-    if (v !== '탈퇴합니다') {
-      Eatty.toast('확인 문구를 정확히 입력해주세요.', 'error');
-      return;
-    }
-    /* ★ 실제로는 DELETE /api/members/me */
-    Eatty.closeModal('withdrawModal');
-    Eatty.toast('탈퇴 처리되었습니다.', 'success');
-  });
-})();
-</script>
 </body>
 </html>

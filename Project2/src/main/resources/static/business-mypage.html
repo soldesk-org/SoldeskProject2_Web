@@ -74,7 +74,9 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/business-mypage.js"></script>
 </head>
 
 <body class="has-tabbar bg-[var(--bg-soft)]">
@@ -130,8 +132,7 @@
               계정 정보 수정
             </a>
             <div class="e-dropdown-sep"></div>
-            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="bizLogoutBtn"
-                    data-demo-toast="로그아웃 되었습니다." data-demo-type="success">
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="bizLogoutBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
               로그아웃
             </button>
@@ -170,7 +171,7 @@
     <a class="e-drawer-link" href="chat">잇티챗</a>
     <div class="e-drawer-sep"></div>
     <a class="e-drawer-link" href="mypage-edit">계정 정보 수정</a>
-    <button type="button" class="e-drawer-link w-full text-left" data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
+    <button type="button" class="e-drawer-link w-full text-left" id="drawerLogoutBtn">로그아웃</button>
   </div>
 </aside>
 
@@ -983,7 +984,6 @@
   </a>
 </nav>
 
-<div data-devbar></div>
 
 <script>
 /* ---------------------------------------------------------------------------

@@ -214,8 +214,7 @@
               내 리뷰
             </a>
             <div class="e-dropdown-sep"></div>
-            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn"
-                    data-demo-toast="로그아웃 되었습니다." data-demo-type="success">
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
               로그아웃
             </button>
@@ -267,7 +266,7 @@
       <div class="e-drawer-sep"></div>
       <a class="e-drawer-link" href="mypage">마이페이지</a>
       <a class="e-drawer-link" href="mypage-reviews">내 리뷰</a>
-      <button type="button" class="e-drawer-link w-full text-left" data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
+      <button type="button" class="e-drawer-link w-full text-left" id="drawerLogoutBtn">로그아웃</button>
     </div>
   </div>
 </aside>
@@ -1228,7 +1227,6 @@
   </a>
 </nav>
 
-<div data-devbar></div>
 
 <script>
 /* ---------------------------------------------------------------------------
