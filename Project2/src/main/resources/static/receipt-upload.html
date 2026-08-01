@@ -8,7 +8,7 @@
 
 <!--
 ================================================================================
- receipt-upload.html — 영수증 업로드 → OCR 확인 → 리뷰 작성
+ receipt-upload — 영수증 업로드 → OCR 확인 → 리뷰 작성
 --------------------------------------------------------------------------------
  [3단계 진행]  #receiptSteps
    step1 업로드 → step2 OCR 확인 → step3 리뷰 작성 → (완료 화면)
@@ -24,10 +24,10 @@
    #recentVisitsCount     건수 배지
    #recentVisitsLoading   로딩 스켈레톤 (기본 hidden)
    #recentVisitsEmpty     빈 상태 (기본 hidden)
-   #recentVisitsMoreBtn   방문기록 전체 보기 → mypage.html#tabVisits
+   #recentVisitsMoreBtn   방문기록 전체 보기 → mypage#tabVisits
 
    ─ 임시저장 이어쓰기 ─
-   receipt-upload.html?draft=<draftId> 로 들어오면
+   receipt-upload?draft=<draftId> 로 들어오면
    localStorage['eatty.reviewDrafts'] 에서 찾아 STEP 3 폼을 복원합니다.
    (내 리뷰 > 임시저장 탭의 [data-continue-draft] 에서 넘어옴)
 
@@ -81,7 +81,7 @@
 
  [완료]
    #doneSection           완료 화면 (기본 hidden)
-   #goMyReviewsBtn        내 리뷰 보기 → mypage-reviews.html
+   #goMyReviewsBtn        내 리뷰 보기 → mypage-reviews
    #writeAnotherBtn       또 작성하기 (step1 복귀)
 ================================================================================
 -->
@@ -99,7 +99,7 @@
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header" id="siteHeader">
   <div class="e-container e-container-wide e-header-inner">
-    <a href="index.html" class="e-logo" id="logoHome">
+    <a href="index" class="e-logo" id="logoHome">
       <span class="e-logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
@@ -109,19 +109,19 @@
     </a>
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
-      <a class="e-nav-link" href="explore.html" data-nav-page="explore.html">지도 탐색</a>
-      <a class="e-nav-link" href="recommend.html" data-nav-page="recommend.html">AI 추천</a>
-      <a class="e-nav-link" href="receipt-upload.html" data-nav-page="receipt-upload.html">영수증 리뷰</a>
-      <a class="e-nav-link" href="chat.html" data-nav-page="chat.html">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz.html" data-nav-page="taste-quiz.html">음BTI</a>
-      <a class="e-nav-link" href="business-mypage.html" data-auth-view="business" data-nav-page="business-mypage.html" hidden>내 매장</a>
-      <a class="e-nav-link" href="admin.html" data-auth-view="admin" data-nav-page="admin.html" hidden>관리자</a>
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+      <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
+      <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
 
     <div class="e-header-actions">
       <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest" hidden>
-        <a href="login.html" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
-        <a href="signup.html" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
+        <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
+        <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
       </div>
 
       <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth">
@@ -142,8 +142,8 @@
               <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
               <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
             </div>
-            <a class="e-dropdown-item" href="mypage.html">마이페이지</a>
-            <a class="e-dropdown-item" href="mypage-reviews.html">내 리뷰</a>
+            <a class="e-dropdown-item" href="mypage">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
             <div class="e-dropdown-sep"></div>
             <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn"
                     data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
@@ -168,15 +168,15 @@
     </button>
   </div>
   <div class="e-drawer-body">
-    <a class="e-drawer-link" href="explore.html" data-nav-page="explore.html">지도 탐색</a>
-    <a class="e-drawer-link" href="recommend.html" data-nav-page="recommend.html">AI 추천</a>
-    <a class="e-drawer-link" href="receipt-upload.html" data-nav-page="receipt-upload.html">영수증 리뷰</a>
-    <a class="e-drawer-link" href="chat.html" data-nav-page="chat.html">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz.html" data-nav-page="taste-quiz.html">음BTI</a>
+    <a class="e-drawer-link" href="explore" data-nav-page="explore">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+    <a class="e-drawer-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+    <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
     <div data-auth-view="auth">
       <div class="e-drawer-sep"></div>
-      <a class="e-drawer-link" href="mypage.html">마이페이지</a>
-      <a class="e-drawer-link" href="mypage-reviews.html">내 리뷰</a>
+      <a class="e-drawer-link" href="mypage">마이페이지</a>
+      <a class="e-drawer-link" href="mypage-reviews">내 리뷰</a>
     </div>
   </div>
 </aside>
@@ -187,7 +187,7 @@
     <!-- 페이지 헤딩 -->
     <div class="mb-7">
       <nav class="e-breadcrumb" aria-label="현재 위치">
-        <a href="index.html">홈</a>
+        <a href="index">홈</a>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
         <span class="font-semibold text-[var(--ink-600)]">영수증 인증 리뷰</span>
       </nav>
@@ -668,7 +668,7 @@
             <input type="checkbox" id="agreeReviewPolicy" name="agreePolicy" required>
             <span>
               작성한 리뷰가 서비스에 공개되며, 허위 리뷰 작성 시 이용이 제한될 수 있음을 확인했습니다.
-              <a href="terms-service.html" target="_blank" rel="noopener" class="e-link-brand">리뷰 정책 보기</a>
+              <a href="terms-service" target="_blank" rel="noopener" class="e-link-brand">리뷰 정책 보기</a>
             </span>
           </label>
         </div>
@@ -713,7 +713,7 @@
         </div>
 
         <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-          <a href="mypage-reviews.html" class="btn btn-primary btn-lg flex-1" id="goMyReviewsBtn">내 리뷰 보기</a>
+          <a href="mypage-reviews" class="btn btn-primary btn-lg flex-1" id="goMyReviewsBtn">내 리뷰 보기</a>
           <button type="button" class="btn btn-outline btn-lg sm:w-40" id="writeAnotherBtn">또 작성하기</button>
         </div>
       </div>
@@ -793,23 +793,23 @@
 
 <!-- 모바일 하단 탭바 -->
 <nav class="e-tabbar" aria-label="모바일 주요 메뉴">
-  <a class="e-tabbar-item" href="index.html">
+  <a class="e-tabbar-item" href="index">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
     홈
   </a>
-  <a class="e-tabbar-item" href="explore.html">
+  <a class="e-tabbar-item" href="explore">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
     탐색
   </a>
-  <a class="e-tabbar-item" href="receipt-upload.html" data-nav-page="receipt-upload.html">
+  <a class="e-tabbar-item" href="receipt-upload" data-nav-page="receipt-upload">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6"/></svg>
     리뷰
   </a>
-  <a class="e-tabbar-item" href="chat.html">
+  <a class="e-tabbar-item" href="chat">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
     잇티챗
   </a>
-  <a class="e-tabbar-item" href="mypage.html">
+  <a class="e-tabbar-item" href="mypage">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
     내정보
   </a>
@@ -948,11 +948,11 @@
 
   /* 방문기록 전체 보기 */
   document.getElementById('recentVisitsMoreBtn').addEventListener('click', function () {
-    location.href = 'mypage.html#tabVisits';
+    location.href = 'mypage#tabVisits';
   });
 
   /* ==========================================================
-     임시저장 이어서 쓰기 — receipt-upload.html?draft=<draftId>
+     임시저장 이어서 쓰기 — receipt-upload?draft=<draftId>
      내 리뷰 > 임시저장 탭에서 넘어옵니다.
      localStorage['eatty.reviewDrafts'] 에 담긴 항목을 STEP 3 폼에 복원합니다.
      ---------------------------------------------------------- */

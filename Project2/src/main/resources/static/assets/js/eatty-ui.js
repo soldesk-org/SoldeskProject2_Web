@@ -52,8 +52,8 @@
      마크업 예)
        <div data-auth-view="guest">  ... 로그인/회원가입 버튼 ... </div>
        <div data-auth-view="auth">   ... 프로필/로그아웃 ...      </div>
-       <a   data-auth-view="business" href="business-mypage.html">내 매장</a>
-       <a   data-auth-view="admin"    href="admin.html">관리자</a>
+       <a   data-auth-view="business" href="business-mypage">내 매장</a>
+       <a   data-auth-view="admin"    href="admin">관리자</a>
 
      "auth" 는 user/business/admin 전부에서 노출된다.
      실제 서비스에서는 서버 렌더링 또는 세션 확인 후
@@ -220,7 +220,7 @@
     }));
   }
 
-  /* 해시로 탭 직접 진입 — 예: mypage.html#tabVisits
+  /* 해시로 탭 직접 진입 — 예: mypage#tabVisits
      다른 페이지에서 특정 탭으로 보낼 때 사용합니다. */
   function activateTabFromHash() {
     var id = (location.hash || '').replace('#', '');
@@ -505,22 +505,22 @@
     items: [
       { id: 'n1', type: 'review', title: '리뷰에 도움됐어요가 달렸어요',
         body: '"라 스텔라 파스타" 리뷰가 3명에게 도움이 되었습니다.',
-        link: 'mypage-reviews.html', at: Date.now() - 1000 * 60 * 8, read: false },
+        link: 'mypage-reviews', at: Date.now() - 1000 * 60 * 8, read: false },
       { id: 'n2', type: 'chat', title: '잇티챗 새 메시지 3건',
         body: '강남 맛집 같이 갈 사람 · 민초파: 그럼 7시에 3번 출구에서 만나요!',
-        link: 'chat.html', at: Date.now() - 1000 * 60 * 26, read: false },
+        link: 'chat', at: Date.now() - 1000 * 60 * 26, read: false },
       { id: 'n3', type: 'recommend', title: '취향에 맞는 새 맛집이 등록됐어요',
         body: '매콤탐험가 유형이 좋아할 "홍대 마라공방"이 추가되었습니다.',
-        link: 'recommend.html', at: Date.now() - 1000 * 60 * 90, read: false },
+        link: 'recommend', at: Date.now() - 1000 * 60 * 90, read: false },
       { id: 'n4', type: 'notice', title: '[공지] 7월 30일 서버 점검 안내',
         body: '02:00~04:00 사이 일부 기능 이용이 제한될 수 있습니다.',
-        link: 'support.html', at: Date.now() - 1000 * 60 * 60 * 20, read: true },
+        link: 'support', at: Date.now() - 1000 * 60 * 60 * 20, read: true },
       { id: 'n5', type: 'event', title: '영수증 리뷰 이벤트가 시작됐어요',
         body: '이번 주 리뷰 3건 작성 시 추첨을 통해 커피 쿠폰을 드립니다.',
-        link: 'receipt-upload.html', at: Date.now() - 1000 * 60 * 60 * 30, read: true, marketing: true },
+        link: 'receipt-upload', at: Date.now() - 1000 * 60 * 60 * 30, read: true, marketing: true },
       { id: 'n6', type: 'admin', title: '리뷰 신고 처리 결과 안내',
         body: '신고하신 리뷰(#8842)가 비공개 처리되었습니다.',
-        link: 'support.html', at: Date.now() - 1000 * 60 * 60 * 52, read: true }
+        link: 'support', at: Date.now() - 1000 * 60 * 60 * 52, read: true }
     ],
     filter: 'all',
     marketingOptIn: true,
@@ -654,8 +654,8 @@
       '</div>' +
       '<div class="e-noti-list e-scroll"></div>' +
       '<div class="e-noti-foot">' +
-        '<a href="mypage-edit.html" class="text-[12.5px] font-bold text-[var(--ink-600)] hover:text-[var(--brand-600)]">알림 설정</a>' +
-        '<a href="support.html" class="text-[12.5px] font-bold text-[var(--ink-600)] hover:text-[var(--brand-600)] ml-auto">고객센터</a>' +
+        '<a href="mypage-edit" class="text-[12.5px] font-bold text-[var(--ink-600)] hover:text-[var(--brand-600)]">알림 설정</a>' +
+        '<a href="support" class="text-[12.5px] font-bold text-[var(--ink-600)] hover:text-[var(--brand-600)] ml-auto">고객센터</a>' +
       '</div>';
 
     var backdrop = document.createElement('div');
@@ -901,7 +901,7 @@
     });
 
     /* 현재 페이지 네비게이션 활성화 */
-    var page = location.pathname.split('/').pop() || 'index.html';
+    var page = location.pathname.split('/').pop() || 'index';
     $$('[data-nav-page]').forEach(function (link) {
       var pages = (link.getAttribute('data-nav-page') || '').split(/[\s,]+/);
       if (pages.indexOf(page) > -1) link.setAttribute('aria-current', 'page');

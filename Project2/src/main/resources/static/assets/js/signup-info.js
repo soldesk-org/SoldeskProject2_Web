@@ -26,7 +26,7 @@
     var phone = sessionStorage.getItem("signup_phone");
     if (!email || !password || !phone) {
       Eatty.toast("가입 정보가 만료되었습니다. 처음부터 다시 진행해주세요.", "error");
-      window.location.href = "signup.html";
+      window.location.href = "signup";
       return;
     }
 
@@ -65,7 +65,7 @@
         sessionStorage.removeItem("signup_password");
         sessionStorage.removeItem("signup_phone");
         sessionStorage.removeItem("signup_marketing");
-        window.location.href = "signup-done.html";
+        window.location.href = "signup-done";
       })
       .catch(function (err) {
         if (err.code === "DUPLICATE_NICKNAME" || (err.message || "").indexOf("닉네임") > -1) {

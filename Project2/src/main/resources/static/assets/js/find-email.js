@@ -39,7 +39,7 @@
           body: { verificationToken: data.verificationToken, phone: phone },
         });
       })
-      .then(function () { window.location.href = "find-email-verify.html"; })
+      .then(function () { window.location.href = "find-email-verify"; })
       .catch(function (err) {
         if (err.code === "MEMBER_NOT_FOUND") {
           alertBox.hidden = false;

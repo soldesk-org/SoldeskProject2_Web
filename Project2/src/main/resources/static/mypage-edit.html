@@ -8,7 +8,7 @@
 
 <!--
 ================================================================================
- mypage-edit.html — 프로필 수정 (비밀번호 재인증 게이트 포함)
+ mypage-edit — 프로필 수정 (비밀번호 재인증 게이트 포함)
 --------------------------------------------------------------------------------
  화면은 2단계입니다.
    #gateSection (재인증)  →  #editSection (수정 폼)
@@ -28,7 +28,7 @@
    #gateSubmitBtn          확인 ★ POST /api/auth/verify-password
    #gateSocialBtn          소셜 재인증 버튼 [social] ★ OAuth 재인증
    #gateFailCount          남은 시도 횟수 표시
-   #gateCancelBtn          취소 → mypage.html
+   #gateCancelBtn          취소 → mypage
  └──────────────────────────────────────────────────────────────────────
 
  ┌ STEP 2 · 수정 폼 ───────────────────────────────────────────────────
@@ -72,7 +72,7 @@
      #notifyRecommend / #notifyChat / #notifyMarketing
 
    [제출]
-     #editCancelBtn        취소 → mypage.html
+     #editCancelBtn        취소 → mypage
      #editSubmitBtn        저장하기
      #editSuccessAlert     저장 완료 배너 (hidden 해제)
  └──────────────────────────────────────────────────────────────────────
@@ -98,7 +98,7 @@
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header" id="siteHeader">
   <div class="e-container e-container-wide e-header-inner">
-    <a href="index.html" class="e-logo" id="logoHome">
+    <a href="index" class="e-logo" id="logoHome">
       <span class="e-logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
@@ -108,11 +108,11 @@
     </a>
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
-      <a class="e-nav-link" href="explore.html" data-nav-page="explore.html">지도 탐색</a>
-      <a class="e-nav-link" href="recommend.html" data-nav-page="recommend.html">AI 추천</a>
-      <a class="e-nav-link" href="receipt-upload.html" data-nav-page="receipt-upload.html">영수증 리뷰</a>
-      <a class="e-nav-link" href="chat.html" data-nav-page="chat.html">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz.html" data-nav-page="taste-quiz.html">음BTI</a>
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
     </nav>
 
     <div class="e-header-actions">
@@ -133,9 +133,9 @@
               <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
               <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
             </div>
-            <a class="e-dropdown-item" href="mypage.html">마이페이지</a>
-            <a class="e-dropdown-item" href="mypage-reviews.html">내 리뷰</a>
-            <a class="e-dropdown-item" href="support.html">고객센터</a>
+            <a class="e-dropdown-item" href="mypage">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
+            <a class="e-dropdown-item" href="support">고객센터</a>
             <div class="e-dropdown-sep"></div>
             <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn"
                     data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
@@ -160,15 +160,15 @@
     </button>
   </div>
   <div class="e-drawer-body">
-    <a class="e-drawer-link" href="explore.html">지도 탐색</a>
-    <a class="e-drawer-link" href="recommend.html">AI 추천</a>
-    <a class="e-drawer-link" href="receipt-upload.html">영수증 리뷰</a>
-    <a class="e-drawer-link" href="chat.html">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz.html">음BTI</a>
+    <a class="e-drawer-link" href="explore">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend">AI 추천</a>
+    <a class="e-drawer-link" href="receipt-upload">영수증 리뷰</a>
+    <a class="e-drawer-link" href="chat">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz">음BTI</a>
     <div class="e-drawer-sep"></div>
-    <a class="e-drawer-link" href="mypage.html">마이페이지</a>
-    <a class="e-drawer-link" href="mypage-reviews.html">내 리뷰</a>
-    <a class="e-drawer-link" href="mypage-edit.html" data-nav-page="mypage-edit.html">프로필 수정</a>
+    <a class="e-drawer-link" href="mypage">마이페이지</a>
+    <a class="e-drawer-link" href="mypage-reviews">내 리뷰</a>
+    <a class="e-drawer-link" href="mypage-edit" data-nav-page="mypage-edit">프로필 수정</a>
   </div>
 </aside>
 
@@ -177,9 +177,9 @@
 
     <div class="mb-7">
       <nav class="e-breadcrumb" aria-label="현재 위치">
-        <a href="index.html">홈</a>
+        <a href="index">홈</a>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
-        <a href="mypage.html">마이페이지</a>
+        <a href="mypage">마이페이지</a>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
         <span class="font-semibold text-[var(--ink-600)]">프로필 수정</span>
       </nav>
@@ -245,11 +245,11 @@
             </div>
 
             <button type="submit" class="btn btn-primary btn-lg btn-block" id="gateSubmitBtn">확인</button>
-            <a href="mypage.html" class="btn btn-ghost btn-block mt-2.5" id="gateCancelBtn">취소</a>
+            <a href="mypage" class="btn btn-ghost btn-block mt-2.5" id="gateCancelBtn">취소</a>
 
             <p class="text-center t-xs mt-5">
               비밀번호를 잊으셨나요?
-              <a href="find-password.html" class="e-link-brand">비밀번호 찾기</a>
+              <a href="find-password" class="e-link-brand">비밀번호 찾기</a>
             </p>
           </form>
         </div>
@@ -263,7 +263,7 @@
               </svg>
               카카오 계정으로 인증하기
             </button>
-            <a href="mypage.html" class="btn btn-ghost btn-block">취소</a>
+            <a href="mypage" class="btn btn-ghost btn-block">취소</a>
 
             <div class="e-alert e-alert--info mt-6">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -482,7 +482,7 @@
         <section class="e-card e-card-pad mb-5">
           <div class="flex items-center gap-2 mb-1">
             <h2 class="e-form-section-title !mb-0">음식 취향</h2>
-            <a href="taste-quiz.html" class="e-link-brand text-[12.5px] ml-auto">음BTI 다시하기</a>
+            <a href="taste-quiz" class="e-link-brand text-[12.5px] ml-auto">음BTI 다시하기</a>
           </div>
           <p class="e-form-section-desc">AI 추천에 반영됩니다.</p>
 
@@ -564,7 +564,7 @@
         </section>
 
         <div class="flex flex-col sm:flex-row gap-3">
-          <a href="mypage.html" class="btn btn-outline btn-lg sm:w-40" id="editCancelBtn">취소</a>
+          <a href="mypage" class="btn btn-outline btn-lg sm:w-40" id="editCancelBtn">취소</a>
           <button type="submit" class="btn btn-primary btn-lg flex-1" id="editSubmitBtn">변경 사항 저장</button>
         </div>
       </form>
@@ -574,23 +574,23 @@
 
 <!-- 모바일 하단 탭바 -->
 <nav class="e-tabbar" aria-label="모바일 주요 메뉴">
-  <a class="e-tabbar-item" href="index.html">
+  <a class="e-tabbar-item" href="index">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
     홈
   </a>
-  <a class="e-tabbar-item" href="explore.html">
+  <a class="e-tabbar-item" href="explore">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
     탐색
   </a>
-  <a class="e-tabbar-item" href="recommend.html">
+  <a class="e-tabbar-item" href="recommend">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
     AI추천
   </a>
-  <a class="e-tabbar-item" href="chat.html">
+  <a class="e-tabbar-item" href="chat">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
     잇티챗
   </a>
-  <a class="e-tabbar-item" href="mypage.html" data-nav-page="mypage.html,mypage-edit.html">
+  <a class="e-tabbar-item" href="mypage" data-nav-page="mypage,mypage-edit">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
     내정보
   </a>

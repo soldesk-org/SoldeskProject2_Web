@@ -8,7 +8,7 @@
 
 <!--
 ================================================================================
- login.html — 일반 회원 로그인
+ login — 일반 회원 로그인
 --------------------------------------------------------------------------------
  [폼]
    #loginForm                   로그인 폼 (submit 시 POST /api/auth/login)
@@ -28,10 +28,10 @@
    #googleLoginBtn  data-social="google"
 
  [링크]
-   #signupLink         → signup.html
-   #findEmailLink      → find-email.html
-   #findPasswordLink   → find-password.html
-   #businessLoginLink  → login-business.html
+   #signupLink         → signup
+   #findEmailLink      → find-email
+   #findPasswordLink   → find-password
+   #businessLoginLink  → login-business
 ================================================================================
 -->
 
@@ -49,7 +49,7 @@
 
   <!-- ========================= 좌측 브랜드 비주얼 ========================= -->
   <aside class="e-auth-aside">
-    <a href="index.html" class="e-logo relative z-10">
+    <a href="index" class="e-logo relative z-10">
       <span class="e-logo-mark !bg-white/20" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
@@ -95,7 +95,7 @@
 
     <!-- 모바일 상단 바 -->
     <div class="flex items-center justify-between lg:hidden mb-10">
-      <a href="index.html" class="e-logo">
+      <a href="index" class="e-logo">
         <span class="e-logo-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
@@ -103,15 +103,15 @@
         </span>
         <span class="e-logo-text">잇티<em>웨이</em></span>
       </a>
-      <a href="index.html" class="btn btn-ghost btn-sm">홈으로</a>
+      <a href="index" class="btn btn-ghost btn-sm">홈으로</a>
     </div>
 
     <div class="e-auth-card">
 
       <!-- 회원 유형 전환 -->
       <div class="e-segment w-full mb-8" role="tablist" aria-label="회원 유형 선택">
-        <a href="login.html" class="e-segment-item flex-1 text-center" role="tab" aria-selected="true">일반 회원</a>
-        <a href="login-business.html" class="e-segment-item flex-1 text-center" role="tab" aria-selected="false" id="businessLoginLink">사업자 회원</a>
+        <a href="login" class="e-segment-item flex-1 text-center" role="tab" aria-selected="true">일반 회원</a>
+        <a href="login-business" class="e-segment-item flex-1 text-center" role="tab" aria-selected="false" id="businessLoginLink">사업자 회원</a>
       </div>
 
       <h1 class="e-auth-title">로그인</h1>
@@ -146,7 +146,7 @@
         <div class="e-field">
           <label class="e-label" for="loginPassword">
             비밀번호 <span class="req">*</span>
-            <a href="find-password.html" class="e-label-side hover:text-[var(--brand-600)]" id="findPasswordLink">비밀번호를 잊으셨나요?</a>
+            <a href="find-password" class="e-label-side hover:text-[var(--brand-600)]" id="findPasswordLink">비밀번호를 잊으셨나요?</a>
           </label>
           <div class="e-input-wrap has-icon has-suffix">
             <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -172,7 +172,7 @@
             <input type="checkbox" id="rememberMe" name="rememberMe" value="true">
             <span>로그인 상태 유지</span>
           </label>
-          <a href="find-email.html" class="e-link text-[13px]" id="findEmailLink">이메일 찾기</a>
+          <a href="find-email" class="e-link text-[13px]" id="findEmailLink">이메일 찾기</a>
         </div>
 
         <button type="submit" class="btn btn-primary btn-lg btn-block" id="loginSubmitBtn">로그인</button>
@@ -208,13 +208,13 @@
 
       <p class="text-center text-sm text-[var(--ink-500)] mt-8">
         아직 계정이 없으신가요?
-        <a href="signup.html" class="e-link-brand ml-1" id="signupLink">회원가입</a>
+        <a href="signup" class="e-link-brand ml-1" id="signupLink">회원가입</a>
       </p>
 
       <div class="mt-8 pt-6 border-t border-[var(--line)] text-center">
         <p class="t-xs">
-          로그인 시 <a href="terms-service.html" class="e-link underline">이용약관</a> 및
-          <a href="terms-privacy.html" class="e-link underline">개인정보처리방침</a>에 동의한 것으로 간주됩니다.
+          로그인 시 <a href="terms-service" class="e-link underline">이용약관</a> 및
+          <a href="terms-privacy" class="e-link underline">개인정보처리방침</a>에 동의한 것으로 간주됩니다.
         </p>
       </div>
     </div>

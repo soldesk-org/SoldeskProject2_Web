@@ -18,7 +18,7 @@
     Api.request("/api/members/password-reset/request", { method: "POST", auth: false, body: { email: email } })
       .then(function () {
         sessionStorage.setItem("fp_email", email);
-        window.location.href = "find-password-sent.html";
+        window.location.href = "find-password-sent";
       })
       .catch(function (err) {
         if (err.code === "INVALID_INPUT") {
@@ -29,7 +29,7 @@
         // 형식 오류 외에는 항상 성공으로 응답하는 API라 이 분기는 사실상 발생하지 않지만,
         // 만약을 대비해 계정 존재 여부 비노출 원칙에 맞춰 동일하게 발송 완료 화면으로 보낸다.
         sessionStorage.setItem("fp_email", email);
-        window.location.href = "find-password-sent.html";
+        window.location.href = "find-password-sent";
       })
       .finally(function () { submitBtn.disabled = false; });
   });

@@ -1,6 +1,6 @@
 (function () {
   var email = sessionStorage.getItem("fe_email");
-  if (!email) { window.location.href = "find-email.html"; return; }
+  if (!email) { window.location.href = "find-email"; return; }
 
   document.querySelectorAll(".js-found-email").forEach(function (el) {
     el.textContent = email;

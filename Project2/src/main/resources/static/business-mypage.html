@@ -8,7 +8,7 @@
 
 <!--
 ================================================================================
- business-mypage.html — 사업자 전용 마이페이지 (내 매장 관리)
+ business-mypage — 사업자 전용 마이페이지 (내 매장 관리)
 --------------------------------------------------------------------------------
  [매장 헤더]  ★ GET /api/business/me/shop
    #shopStatusBadge        승인 상태 배지 (승인완료 / 심사중 / 반려)
@@ -18,7 +18,7 @@
    #shopBizNumberText      사업자등록번호
    #shopOpenStatus         현재 영업 상태 (영업중 / 영업종료 / 브레이크타임)
    #toggleOpenSwitch       임시 휴업 토글 ★ PATCH /api/business/me/shop/open
-   #viewPublicPageBtn      고객 화면으로 보기 → explore.html
+   #viewPublicPageBtn      고객 화면으로 보기 → explore
    #approvalPendingAlert   심사중 안내 배너 (기본 hidden)
 
  [통계]  ★ GET /api/business/me/stats
@@ -83,7 +83,7 @@
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header" id="siteHeader">
   <div class="e-container e-container-wide e-header-inner">
-    <a href="index.html" class="e-logo" id="logoHome">
+    <a href="index" class="e-logo" id="logoHome">
       <span class="e-logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
@@ -94,10 +94,10 @@
     </a>
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
-      <a class="e-nav-link" href="business-mypage.html" data-nav-page="business-mypage.html">내 매장</a>
-      <a class="e-nav-link" href="explore.html" data-nav-page="explore.html">지도 탐색</a>
-      <a class="e-nav-link" href="recommend.html" data-nav-page="recommend.html">AI 추천</a>
-      <a class="e-nav-link" href="chat.html" data-nav-page="chat.html">잇티챗</a>
+      <a class="e-nav-link" href="business-mypage" data-nav-page="business-mypage">내 매장</a>
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
     </nav>
 
     <div class="e-header-actions">
@@ -121,11 +121,11 @@
               <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">owner@myshop.com</p>
               <span class="e-badge e-badge--success mt-2">사업자 인증 완료</span>
             </div>
-            <a class="e-dropdown-item" href="business-mypage.html">
+            <a class="e-dropdown-item" href="business-mypage">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 5 4h14l2 5M3 9h18v11H3V9Z"/><path d="M9 20v-6h6v6"/></svg>
               내 매장 관리
             </a>
-            <a class="e-dropdown-item" href="mypage-edit.html">
+            <a class="e-dropdown-item" href="mypage-edit">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.5a2.1 2.1 0 0 1 3 3L7.5 14.2l-3.8 1 1-3.8 7.5-7.9Z"/><path d="M20 21H4"/></svg>
               계정 정보 수정
             </a>
@@ -164,12 +164,12 @@
         <span class="e-badge e-badge--success mt-1.5">인증 완료</span>
       </span>
     </div>
-    <a class="e-drawer-link" href="business-mypage.html" data-nav-page="business-mypage.html">내 매장 관리</a>
-    <a class="e-drawer-link" href="explore.html">지도 탐색</a>
-    <a class="e-drawer-link" href="recommend.html">AI 추천</a>
-    <a class="e-drawer-link" href="chat.html">잇티챗</a>
+    <a class="e-drawer-link" href="business-mypage" data-nav-page="business-mypage">내 매장 관리</a>
+    <a class="e-drawer-link" href="explore">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend">AI 추천</a>
+    <a class="e-drawer-link" href="chat">잇티챗</a>
     <div class="e-drawer-sep"></div>
-    <a class="e-drawer-link" href="mypage-edit.html">계정 정보 수정</a>
+    <a class="e-drawer-link" href="mypage-edit">계정 정보 수정</a>
     <button type="button" class="e-drawer-link w-full text-left" data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
   </div>
 </aside>
@@ -210,7 +210,7 @@
             </div>
 
             <div class="flex flex-col gap-2.5 flex-none">
-              <a href="explore.html" class="btn btn-outline btn-sm" id="viewPublicPageBtn">
+              <a href="explore" class="btn btn-outline btn-sm" id="viewPublicPageBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                 고객 화면으로 보기
               </a>
@@ -961,23 +961,23 @@
 
 <!-- 모바일 하단 탭바 -->
 <nav class="e-tabbar" aria-label="모바일 주요 메뉴">
-  <a class="e-tabbar-item" href="index.html">
+  <a class="e-tabbar-item" href="index">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
     홈
   </a>
-  <a class="e-tabbar-item" href="business-mypage.html" data-nav-page="business-mypage.html">
+  <a class="e-tabbar-item" href="business-mypage" data-nav-page="business-mypage">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 5 4h14l2 5M3 9h18v11H3V9Z"/><path d="M9 20v-6h6v6"/></svg>
     내 매장
   </a>
-  <a class="e-tabbar-item" href="explore.html">
+  <a class="e-tabbar-item" href="explore">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
     탐색
   </a>
-  <a class="e-tabbar-item" href="chat.html">
+  <a class="e-tabbar-item" href="chat">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
     잇티챗
   </a>
-  <a class="e-tabbar-item" href="mypage-edit.html">
+  <a class="e-tabbar-item" href="mypage-edit">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
     내정보
   </a>

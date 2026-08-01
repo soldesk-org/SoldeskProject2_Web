@@ -14,7 +14,7 @@
   if (token) tokenInput.value = token;
   else alertBox.hidden = false;
 
-  // 토큰만으로는 어느 계정인지 서버에 별도로 물어볼 API가 없다 — 방금 전 화면(find-password.html)에서
+  // 토큰만으로는 어느 계정인지 서버에 별도로 물어볼 API가 없다 — 방금 전 화면(find-password)에서
   // 입력했던 이메일을 참고용으로만 보여준다(실제 검증은 제출 시 토큰으로 서버가 수행).
   var emailInput = document.getElementById("resetTargetEmail");
   var savedEmail = sessionStorage.getItem("fp_email");
@@ -64,7 +64,7 @@
       body: { token: token, newPassword: newPassword, newPasswordConfirm: newPasswordConfirm },
     })
       .then(function () {
-        window.location.href = "find-password-done.html";
+        window.location.href = "find-password-done";
       })
       .catch(function (err) {
         if (err.code === "INVALID_RESET_TOKEN") {

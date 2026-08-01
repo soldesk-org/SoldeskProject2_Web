@@ -8,7 +8,7 @@
 
 <!--
 ================================================================================
- support.html — 고객센터 + 잇티웨이 AI 챗봇 상담
+ support — 고객센터 + 잇티웨이 AI 챗봇 상담
 --------------------------------------------------------------------------------
  ★ 서버 연동 (SupportChatController — 이미 구현되어 있음)
    백엔드 위치 : Project2/src/main/java/.../SupportChatController.java
@@ -51,7 +51,7 @@
      sessionId/timestamp/type 은 평문입니다. 프런트는 조회 수단을 갖지 않습니다.
 
 --------------------------------------------------------------------------------
- [공통 헤더]  index.html 과 동일 규격
+ [공통 헤더]  index 과 동일 규격
    #siteHeader #logoHome #mainNav
    #headerGuestArea (data-auth-view="guest") / #headerAuthArea (data-auth-view="auth")
    #headerNotiBtn  알림 벨 (eatty-ui.js 의 Eatty.notify 가 패널 자동 생성)
@@ -75,7 +75,7 @@
 
  [기타 문의]
    #contactEmailBtn  메일 문의
-   #reportAbuseLink  신고 안내 → terms-service.html
+   #reportAbuseLink  신고 안내 → terms-service
 ================================================================================
 -->
 
@@ -92,7 +92,7 @@
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header" id="siteHeader">
   <div class="e-container e-container-wide e-header-inner">
-    <a href="index.html" class="e-logo" id="logoHome">
+    <a href="index" class="e-logo" id="logoHome">
       <span class="e-logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
@@ -102,20 +102,20 @@
     </a>
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
-      <a class="e-nav-link" href="explore.html" data-nav-page="explore.html">지도 탐색</a>
-      <a class="e-nav-link" href="recommend.html" data-nav-page="recommend.html">AI 추천</a>
-      <a class="e-nav-link" href="receipt-upload.html" data-nav-page="receipt-upload.html">영수증 리뷰</a>
-      <a class="e-nav-link" href="chat.html" data-nav-page="chat.html">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz.html" data-nav-page="taste-quiz.html">음BTI</a>
-      <a class="e-nav-link" href="support.html" data-nav-page="support.html">고객센터</a>
-      <a class="e-nav-link" href="business-mypage.html" data-auth-view="business" data-nav-page="business-mypage.html" hidden>내 매장</a>
-      <a class="e-nav-link" href="admin.html" data-auth-view="admin" data-nav-page="admin.html" hidden>관리자</a>
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
+      <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
+      <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
 
     <div class="e-header-actions">
       <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest">
-        <a href="login.html" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
-        <a href="signup.html" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
+        <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
+        <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
       </div>
 
       <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth" hidden>
@@ -135,9 +135,9 @@
               <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
               <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
             </div>
-            <a class="e-dropdown-item" href="mypage.html">마이페이지</a>
-            <a class="e-dropdown-item" href="mypage-reviews.html">내 리뷰</a>
-            <a class="e-dropdown-item" href="support.html">고객센터</a>
+            <a class="e-dropdown-item" href="mypage">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
+            <a class="e-dropdown-item" href="support">고객센터</a>
             <div class="e-dropdown-sep"></div>
             <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn"
                     data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
@@ -162,16 +162,16 @@
     </button>
   </div>
   <div class="e-drawer-body">
-    <a class="e-drawer-link" href="explore.html">지도 탐색</a>
-    <a class="e-drawer-link" href="recommend.html">AI 추천</a>
-    <a class="e-drawer-link" href="receipt-upload.html">영수증 리뷰</a>
-    <a class="e-drawer-link" href="chat.html">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz.html">음BTI</a>
+    <a class="e-drawer-link" href="explore">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend">AI 추천</a>
+    <a class="e-drawer-link" href="receipt-upload">영수증 리뷰</a>
+    <a class="e-drawer-link" href="chat">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz">음BTI</a>
     <div class="e-drawer-sep"></div>
-    <a class="e-drawer-link" href="support.html" data-nav-page="support.html">고객센터</a>
+    <a class="e-drawer-link" href="support" data-nav-page="support">고객센터</a>
     <div data-auth-view="auth" hidden>
-      <a class="e-drawer-link" href="mypage.html">마이페이지</a>
-      <a class="e-drawer-link" href="mypage-reviews.html">내 리뷰</a>
+      <a class="e-drawer-link" href="mypage">마이페이지</a>
+      <a class="e-drawer-link" href="mypage-reviews">내 리뷰</a>
     </div>
   </div>
 </aside>
@@ -345,7 +345,7 @@
                 <input type="checkbox" id="agreeChatPrivacy" required>
                 <span>
                   상담 내용이 암호화되어 보관되는 것에 동의합니다. <span class="req">*</span>
-                  <a href="terms-privacy.html" target="_blank" rel="noopener" class="e-link-brand">개인정보처리방침</a>
+                  <a href="terms-privacy" target="_blank" rel="noopener" class="e-link-brand">개인정보처리방침</a>
                 </span>
               </label>
               <p class="e-error" id="agreeChatError">
@@ -361,7 +361,7 @@
 
             <p class="text-center t-xs mt-4" data-auth-view="guest">
               로그인 없이도 문의할 수 있어요.
-              <a href="login.html" class="e-link-brand">로그인</a>하면 계정 정보를 확인해 더 정확하게 답변합니다.
+              <a href="login" class="e-link-brand">로그인</a>하면 계정 정보를 확인해 더 정확하게 답변합니다.
             </p>
           </div>
         </div>
@@ -551,7 +551,7 @@
                   <li>감열지가 변색되어 글자가 흐려진 경우</li>
                 </ul>
                 <p>가게명, 방문일시, 결제금액 세 항목이 모두 보이도록 밝은 곳에서 다시 촬영해주세요.
-                  그래도 실패하면 <a href="receipt-upload.html">영수증 리뷰</a> 화면에서 인식 결과를 직접 수정할 수 있습니다.</p>
+                  그래도 실패하면 <a href="receipt-upload">영수증 리뷰</a> 화면에서 인식 결과를 직접 수정할 수 있습니다.</p>
               </div>
             </div>
 
@@ -603,7 +603,7 @@
               </button>
               <div class="e-accordion-body" id="faqBody5" hidden>
                 <p>신고가 접수되어 운영팀 검토 결과 비공개 처리된 경우일 수 있습니다.
-                  <a href="mypage-reviews.html">내 리뷰</a> 화면에서 해당 리뷰에 비공개 안내가 표시됩니다.</p>
+                  <a href="mypage-reviews">내 리뷰</a> 화면에서 해당 리뷰에 비공개 안내가 표시됩니다.</p>
                 <p>내용을 수정하면 재검토를 요청할 수 있습니다. 판단에 이견이 있으면 통지받은 날로부터
                   14일 내에 이의를 제기할 수 있습니다.</p>
               </div>
@@ -616,7 +616,7 @@
                 <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
               </button>
               <div class="e-accordion-body" id="faqBody6" hidden>
-                <p>이미 참여 중인 방이라면 <a href="chat.html">잇티챗</a> 상단의 방 메뉴에서
+                <p>이미 참여 중인 방이라면 <a href="chat">잇티챗</a> 상단의 방 메뉴에서
                   "참가코드 복사"로 다시 확인할 수 있습니다.</p>
                 <p>방을 나간 뒤라면 코드를 조회할 수 없습니다. 방장에게 다시 요청해주세요.</p>
               </div>
@@ -631,7 +631,7 @@
               <div class="e-accordion-body" id="faqBody7" hidden>
                 <p>추천 정확도를 높이는 방법은 세 가지입니다.</p>
                 <ol>
-                  <li><a href="taste-quiz.html">음BTI 테스트</a>를 완료해 취향 유형을 등록합니다.</li>
+                  <li><a href="taste-quiz">음BTI 테스트</a>를 완료해 취향 유형을 등록합니다.</li>
                   <li>추천 카드의 <strong>좋아요 / 싫어요</strong> 피드백을 눌러줍니다.</li>
                   <li>질문에 지역 · 인원 · 예산 · 분위기를 함께 적습니다.</li>
                 </ol>
@@ -664,7 +664,7 @@
                   다만 이미 게시된 리뷰는 서비스 신뢰도 유지를 위해
                   <strong>익명화 처리 후 유지</strong>될 수 있습니다.</p>
                 <p>리뷰까지 완전히 삭제하려면 탈퇴 전에
-                  <a href="mypage-reviews.html">내 리뷰</a>에서 개별 삭제해주세요.</p>
+                  <a href="mypage-reviews">내 리뷰</a>에서 개별 삭제해주세요.</p>
               </div>
             </div>
 
@@ -676,7 +676,7 @@
               </button>
               <div class="e-accordion-body" id="faqBody10" hidden>
                 <p>아직 등록되지 않은 매장일 수 있습니다.
-                  <a href="signup-business.html">사업자 회원가입</a> 후 매장 정보를 등록하면
+                  <a href="signup-business">사업자 회원가입</a> 후 매장 정보를 등록하면
                   심사 승인 시점부터 지도와 검색 결과에 노출됩니다.</p>
                 <p>이미 승인된 매장인데 노출되지 않으면 임시 휴업 설정 여부를 확인해주세요.</p>
               </div>
@@ -728,7 +728,7 @@
               </button>
               <div class="e-accordion-body" id="faqAcc3" hidden>
                 <p>재설정 링크는 발송 후 30분간 유효합니다.
-                  만료되었으면 <a href="find-password.html">비밀번호 찾기</a>를 다시 진행해주세요.</p>
+                  만료되었으면 <a href="find-password">비밀번호 찾기</a>를 다시 진행해주세요.</p>
                 <p>비밀번호를 변경하면 보안을 위해 모든 기기에서 로그아웃됩니다.</p>
               </div>
             </div>
@@ -853,7 +853,7 @@
               <div class="e-accordion-body" id="faqChat3" hidden>
                 <p>신고는 <strong>대기중 → 처리완료 또는 반려</strong> 순으로 검토됩니다.
                   결과는 신고자에게 안내되며, 위반이 확인되면 경고 · 기능 제한 · 계정 정지가 단계적으로 적용됩니다.</p>
-                <p>자세한 기준은 <a href="terms-service.html">이용약관 제20조</a>를 확인해주세요.</p>
+                <p>자세한 기준은 <a href="terms-service">이용약관 제20조</a>를 확인해주세요.</p>
               </div>
             </div>
           </div>
@@ -904,7 +904,7 @@
         <p class="t-sm mt-2 leading-relaxed">
           제재 통지를 받은 날로부터 14일 내에 이의를 제기할 수 있습니다.
         </p>
-        <a href="terms-service.html" class="btn btn-outline btn-sm mt-4" id="reportAbuseLink">
+        <a href="terms-service" class="btn btn-outline btn-sm mt-4" id="reportAbuseLink">
           제재 기준 보기
         </a>
       </div>
@@ -1055,18 +1055,18 @@
       <div>
         <p class="e-footer-title">서비스</p>
         <nav class="e-footer-list">
-          <a href="explore.html">지도 탐색</a>
-          <a href="recommend.html">AI 추천</a>
-          <a href="receipt-upload.html">영수증 리뷰</a>
-          <a href="taste-quiz.html">음BTI 테스트</a>
-          <a href="chat.html">잇티챗</a>
+          <a href="explore">지도 탐색</a>
+          <a href="recommend">AI 추천</a>
+          <a href="receipt-upload">영수증 리뷰</a>
+          <a href="taste-quiz">음BTI 테스트</a>
+          <a href="chat">잇티챗</a>
         </nav>
       </div>
 
       <div>
         <p class="e-footer-title">고객지원</p>
         <nav class="e-footer-list">
-          <a href="support.html">고객센터</a>
+          <a href="support">고객센터</a>
           <a href="mailto:support@eattyway.com">메일 문의</a>
           <a href="mailto:privacy@eattyway.com">개인정보 문의</a>
         </nav>
@@ -1075,8 +1075,8 @@
       <div>
         <p class="e-footer-title">약관 · 정책</p>
         <nav class="e-footer-list">
-          <a href="terms-service.html">이용약관</a>
-          <a href="terms-privacy.html">개인정보처리방침</a>
+          <a href="terms-service">이용약관</a>
+          <a href="terms-privacy">개인정보처리방침</a>
         </nav>
       </div>
     </div>
@@ -1092,23 +1092,23 @@
 
 <!-- ========================= 모바일 하단 탭바 ========================= -->
 <nav class="e-tabbar" aria-label="모바일 주요 메뉴">
-  <a class="e-tabbar-item" href="index.html">
+  <a class="e-tabbar-item" href="index">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
     홈
   </a>
-  <a class="e-tabbar-item" href="explore.html">
+  <a class="e-tabbar-item" href="explore">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
     탐색
   </a>
-  <a class="e-tabbar-item" href="recommend.html">
+  <a class="e-tabbar-item" href="recommend">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
     AI추천
   </a>
-  <a class="e-tabbar-item" href="support.html" data-nav-page="support.html">
+  <a class="e-tabbar-item" href="support" data-nav-page="support">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/></svg>
     고객센터
   </a>
-  <a class="e-tabbar-item" href="mypage.html">
+  <a class="e-tabbar-item" href="mypage">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
     내정보
   </a>
@@ -1118,7 +1118,7 @@
 
 <script>
 /* ============================================================================
-   support.html — AI 챗봇 상담 스크립트
+   support — AI 챗봇 상담 스크립트
    ----------------------------------------------------------------------------
    ★ NO-PERSIST 원칙
      대화는 state.messages(메모리) 에만 존재합니다.

@@ -126,7 +126,7 @@
 
   function requireLogin(redirectTo) {
     if (!isLoggedIn()) {
-      window.location.href = redirectTo || "login.html";
+      window.location.href = redirectTo || "login";
       return false;
     }
     return true;
@@ -135,15 +135,15 @@
   function requireRole(role, redirectTo) {
     if (!requireLogin()) return false;
     if (getRole() !== role) {
-      window.location.href = redirectTo || "explore.html";
+      window.location.href = redirectTo || "explore";
       return false;
     }
     return true;
   }
 
   function landingPageForRole() {
-    if (getRole() === "ADMIN") return "admin.html";
-    return getRole() === "BUSINESS" ? "business-mypage.html" : "explore.html";
+    if (getRole() === "ADMIN") return "admin";
+    return getRole() === "BUSINESS" ? "business-mypage" : "explore";
   }
 
   var AVATAR_PLACEHOLDER = '<img src="assets/images/default-avatar.png" alt="기본 프로필 이미지" class="size-full object-cover" />';
@@ -173,7 +173,7 @@
     document.querySelectorAll("[id$='LogoutBtn'], #logoutBtn").forEach(function (el) {
       el.addEventListener("click", function (e) {
         e.preventDefault();
-        logout().then(function () { window.location.href = "index.html"; });
+        logout().then(function () { window.location.href = "index"; });
       });
     });
   }

@@ -55,7 +55,7 @@
           Api.clearSession();
           return;
         }
-        window.location.href = "business-mypage.html";
+        window.location.href = "business-mypage";
       })
       .catch(function (err) {
         showAlert(ERROR_MESSAGES[err.code] || err.message || "로그인에 실패했습니다.");

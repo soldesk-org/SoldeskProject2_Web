@@ -8,7 +8,7 @@
 
 <!--
 ================================================================================
- find-email-verify.html — 이메일 찾기 STEP 2 : 전화번호 인증
+ find-email-verify — 이메일 찾기 STEP 2 : 전화번호 인증
 --------------------------------------------------------------------------------
  [스테퍼]  #findEmailSteps  (1 완료 / 2 현재 / 3 대기)
 
@@ -21,11 +21,11 @@
    #verifyCodeTimer       남은 시간 (data-timer="180")
    #verifyCodeError       인증 실패 에러
    #resendCodeBtn         인증번호 재발송  ★ POST /api/auth/sms/send
-   #verifySubmitBtn       확인 → find-email-result.html
+   #verifySubmitBtn       확인 → find-email-result
                           ★ POST /api/auth/find-email/verify
 
  [링크]
-   #backToFindEmailLink   ← find-email.html
+   #backToFindEmailLink   ← find-email
 ================================================================================
 -->
 
@@ -42,7 +42,7 @@
 
 <header class="e-header e-header--solid">
   <div class="e-container e-header-inner">
-    <a href="index.html" class="e-logo">
+    <a href="index" class="e-logo">
       <span class="e-logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
@@ -51,7 +51,7 @@
       <span class="e-logo-text">잇티<em>웨이</em></span>
     </a>
     <div class="e-header-actions">
-      <a href="login.html" class="btn btn-outline btn-sm">로그인</a>
+      <a href="login" class="btn btn-outline btn-sm">로그인</a>
     </div>
   </div>
 </header>
@@ -119,7 +119,7 @@
       </div>
 
       <div class="mt-6 pt-5 border-t border-[var(--line)]">
-        <a href="find-email.html" class="btn btn-ghost btn-sm btn-block" id="backToFindEmailLink">
+        <a href="find-email" class="btn btn-ghost btn-sm btn-block" id="backToFindEmailLink">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
           정보 다시 입력하기
         </a>
@@ -140,8 +140,8 @@
   <div class="e-container flex flex-wrap items-center justify-between gap-3">
     <p class="t-xs">&copy; 2026 Eatty way.</p>
     <nav class="flex gap-4 t-xs">
-      <a href="terms-service.html" class="e-link">이용약관</a>
-      <a href="terms-privacy.html" class="e-link">개인정보처리방침</a>
+      <a href="terms-service" class="e-link">이용약관</a>
+      <a href="terms-privacy" class="e-link">개인정보처리방침</a>
     </nav>
   </div>
 </footer>

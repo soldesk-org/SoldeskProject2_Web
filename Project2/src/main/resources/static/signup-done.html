@@ -8,18 +8,18 @@
 
 <!--
 ================================================================================
- signup-done.html — 일반 회원가입 STEP 3 (완료)
+ signup-done — 일반 회원가입 STEP 3 (완료)
 --------------------------------------------------------------------------------
  [출력 값]  ★ 가입 결과로 서버에서 받은 값으로 채워주세요
    #doneNickname       가입한 닉네임
    #doneEmail          가입한 이메일
 
  [다음 행동]
-   #goLoginBtn         로그인하러 가기 → login.html
-   #goQuizBtn          음BTI 테스트    → taste-quiz.html
-   #goExploreBtn       지도 탐색       → explore.html
-   #goRecommendBtn     AI 추천         → recommend.html
-   #goHomeLink         홈으로          → index.html
+   #goLoginBtn         로그인하러 가기 → login
+   #goQuizBtn          음BTI 테스트    → taste-quiz
+   #goExploreBtn       지도 탐색       → explore
+   #goRecommendBtn     AI 추천         → recommend
+   #goHomeLink         홈으로          → index
 ================================================================================
 -->
 
@@ -36,7 +36,7 @@
 
 <header class="e-header e-header--solid">
   <div class="e-container e-header-inner">
-    <a href="index.html" class="e-logo">
+    <a href="index" class="e-logo">
       <span class="e-logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
@@ -45,7 +45,7 @@
       <span class="e-logo-text">잇티<em>웨이</em></span>
     </a>
     <div class="e-header-actions">
-      <a href="index.html" class="btn btn-ghost btn-sm" id="goHomeLink">홈으로</a>
+      <a href="index" class="btn btn-ghost btn-sm" id="goHomeLink">홈으로</a>
     </div>
   </div>
 </header>
@@ -96,8 +96,8 @@
       </div>
 
       <div class="mt-9 flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-        <a href="login.html" class="btn btn-primary btn-lg flex-1" id="goLoginBtn">로그인하러 가기</a>
-        <a href="index.html" class="btn btn-outline btn-lg sm:w-36">홈으로</a>
+        <a href="login" class="btn btn-primary btn-lg flex-1" id="goLoginBtn">로그인하러 가기</a>
+        <a href="index" class="btn btn-outline btn-lg sm:w-36">홈으로</a>
       </div>
     </section>
 
@@ -107,7 +107,7 @@
       <p class="t-sm mb-6">가입 직후에 하면 추천이 훨씬 정확해집니다.</p>
 
       <div class="grid md:grid-cols-3 gap-4">
-        <a href="taste-quiz.html" class="e-card e-card-pad e-card-hover block" id="goQuizBtn">
+        <a href="taste-quiz" class="e-card e-card-pad e-card-hover block" id="goQuizBtn">
           <span class="e-badge e-badge--brand-solid">추천</span>
           <span class="w-11 h-11 rounded-[13px] grid place-items-center mt-4 mb-4" style="background:var(--brand-50);color:var(--brand-500)">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/></svg>
@@ -116,7 +116,7 @@
           <p class="t-sm mt-2 leading-relaxed">12문항으로 내 음식 취향 유형을 진단합니다. 2분이면 끝나요.</p>
         </a>
 
-        <a href="explore.html" class="e-card e-card-pad e-card-hover block" id="goExploreBtn">
+        <a href="explore" class="e-card e-card-pad e-card-hover block" id="goExploreBtn">
           <span class="w-11 h-11 rounded-[13px] grid place-items-center mt-[38px] mb-4" style="background:var(--info-soft);color:var(--info)">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           </span>
@@ -124,7 +124,7 @@
           <p class="t-sm mt-2 leading-relaxed">지도에서 카테고리와 가격대로 걸러 지금 갈 만한 곳을 봅니다.</p>
         </a>
 
-        <a href="recommend.html" class="e-card e-card-pad e-card-hover block" id="goRecommendBtn">
+        <a href="recommend" class="e-card e-card-pad e-card-hover block" id="goRecommendBtn">
           <span class="w-11 h-11 rounded-[13px] grid place-items-center mt-[38px] mb-4" style="background:var(--warning-soft);color:var(--warning)">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
           </span>
@@ -140,8 +140,8 @@
   <div class="e-container flex flex-wrap items-center justify-between gap-3">
     <p class="t-xs">&copy; 2026 Eatty way.</p>
     <nav class="flex gap-4 t-xs">
-      <a href="terms-service.html" class="e-link">이용약관</a>
-      <a href="terms-privacy.html" class="e-link">개인정보처리방침</a>
+      <a href="terms-service" class="e-link">이용약관</a>
+      <a href="terms-privacy" class="e-link">개인정보처리방침</a>
     </nav>
   </div>
 </footer>

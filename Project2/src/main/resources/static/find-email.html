@@ -8,7 +8,7 @@
 
 <!--
 ================================================================================
- find-email.html — 이메일(아이디) 찾기 STEP 1 : 본인 정보 입력
+ find-email — 이메일(아이디) 찾기 STEP 1 : 본인 정보 입력
 --------------------------------------------------------------------------------
  [스테퍼]  #findEmailSteps  (1 정보입력 / 2 인증 / 3 결과)
 
@@ -19,15 +19,15 @@
    #findNameError         이름 에러
    #findPhoneError        전화번호 에러
    #findEmailAlert        일치 계정 없음 배너 (hidden 해제)
-   #findEmailNextBtn      다음 → find-email-verify.html
+   #findEmailNextBtn      다음 → find-email-verify
                           ★ POST /api/auth/find-email/request
 
  [계정 유형 선택]
    input[name="memberType"]  #typeNormal(일반) / #typeBusiness(사업자)
 
  [링크]
-   #toLoginLink           → login.html
-   #toFindPasswordLink    → find-password.html
+   #toLoginLink           → login
+   #toFindPasswordLink    → find-password
 ================================================================================
 -->
 
@@ -44,7 +44,7 @@
 
 <header class="e-header e-header--solid">
   <div class="e-container e-header-inner">
-    <a href="index.html" class="e-logo">
+    <a href="index" class="e-logo">
       <span class="e-logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
@@ -53,7 +53,7 @@
       <span class="e-logo-text">잇티<em>웨이</em></span>
     </a>
     <div class="e-header-actions">
-      <a href="login.html" class="btn btn-outline btn-sm" id="toLoginLink">로그인</a>
+      <a href="login" class="btn btn-outline btn-sm" id="toLoginLink">로그인</a>
     </div>
   </div>
 </header>
@@ -155,8 +155,8 @@
       <div class="e-divider">또는</div>
 
       <div class="flex flex-col gap-2.5">
-        <a href="find-password.html" class="btn btn-outline btn-block" id="toFindPasswordLink">비밀번호 찾기</a>
-        <a href="signup.html" class="btn btn-ghost btn-block">회원가입</a>
+        <a href="find-password" class="btn btn-outline btn-block" id="toFindPasswordLink">비밀번호 찾기</a>
+        <a href="signup" class="btn btn-ghost btn-block">회원가입</a>
       </div>
     </div>
 
@@ -170,8 +170,8 @@
   <div class="e-container flex flex-wrap items-center justify-between gap-3">
     <p class="t-xs">&copy; 2026 Eatty way.</p>
     <nav class="flex gap-4 t-xs">
-      <a href="terms-service.html" class="e-link">이용약관</a>
-      <a href="terms-privacy.html" class="e-link">개인정보처리방침</a>
+      <a href="terms-service" class="e-link">이용약관</a>
+      <a href="terms-privacy" class="e-link">개인정보처리방침</a>
     </nav>
   </div>
 </footer>

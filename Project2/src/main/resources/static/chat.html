@@ -8,7 +8,7 @@
 
 <!--
 ================================================================================
- chat.html — 잇티챗 오픈채팅 (WebSocket / STOMP 연결 지점)
+ chat — 잇티챗 오픈채팅 (WebSocket / STOMP 연결 지점)
 --------------------------------------------------------------------------------
  ★ WebSocket 연결 지점
    구독:  /topic/rooms/{roomId}          — 메시지 수신
@@ -118,7 +118,7 @@
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header e-header--solid" id="siteHeader">
   <div class="e-container e-container-wide e-header-inner">
-    <a href="index.html" class="e-logo" id="logoHome">
+    <a href="index" class="e-logo" id="logoHome">
       <span class="e-logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
@@ -128,21 +128,21 @@
     </a>
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
-      <a class="e-nav-link" href="explore.html" data-nav-page="explore.html">지도 탐색</a>
-      <a class="e-nav-link" href="recommend.html" data-nav-page="recommend.html">AI 추천</a>
-      <a class="e-nav-link" href="receipt-upload.html" data-nav-page="receipt-upload.html">영수증 리뷰</a>
-      <a class="e-nav-link" href="chat.html" data-nav-page="chat.html">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz.html" data-nav-page="taste-quiz.html">음BTI</a>
-      <a class="e-nav-link" href="business-mypage.html" data-auth-view="business" data-nav-page="business-mypage.html" hidden>내 매장</a>
-      <a class="e-nav-link" href="admin.html" data-auth-view="admin" data-nav-page="admin.html" hidden>관리자</a>
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+      <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
+      <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
 
     <div class="e-header-actions">
       <span class="e-status e-status--on e-status--live hidden md:flex !text-[12px] mr-1" id="connectionStatus">실시간 연결됨</span>
 
       <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest" hidden>
-        <a href="login.html" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
-        <a href="signup.html" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
+        <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
+        <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
       </div>
 
       <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth">
@@ -162,9 +162,9 @@
               <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
               <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
             </div>
-            <a class="e-dropdown-item" href="mypage.html">마이페이지</a>
-            <a class="e-dropdown-item" href="mypage-reviews.html">내 리뷰</a>
-            <a class="e-dropdown-item" href="support.html">고객센터</a>
+            <a class="e-dropdown-item" href="mypage">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
+            <a class="e-dropdown-item" href="support">고객센터</a>
             <div class="e-dropdown-sep"></div>
             <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn"
                     data-demo-toast="로그아웃 되었습니다." data-demo-type="success">로그아웃</button>
@@ -189,15 +189,15 @@
     </button>
   </div>
   <div class="e-drawer-body">
-    <a class="e-drawer-link" href="explore.html">지도 탐색</a>
-    <a class="e-drawer-link" href="recommend.html">AI 추천</a>
-    <a class="e-drawer-link" href="receipt-upload.html">영수증 리뷰</a>
-    <a class="e-drawer-link" href="chat.html" data-nav-page="chat.html">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz.html">음BTI</a>
+    <a class="e-drawer-link" href="explore">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend">AI 추천</a>
+    <a class="e-drawer-link" href="receipt-upload">영수증 리뷰</a>
+    <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz">음BTI</a>
     <div class="e-drawer-sep"></div>
-    <a class="e-drawer-link" href="support.html">고객센터</a>
-    <a class="e-drawer-link" href="mypage.html">마이페이지</a>
-    <a class="e-drawer-link" href="mypage-reviews.html">내 리뷰</a>
+    <a class="e-drawer-link" href="support">고객센터</a>
+    <a class="e-drawer-link" href="mypage">마이페이지</a>
+    <a class="e-drawer-link" href="mypage-reviews">내 리뷰</a>
   </div>
 </aside>
 
@@ -545,7 +545,7 @@
             <p class="e-msg-name">민초파</p>
             <div class="flex items-end gap-1.5">
               <div class="e-msg-bubble !p-2.5">
-                <a href="explore.html" class="flex gap-2.5 items-center">
+                <a href="explore" class="flex gap-2.5 items-center">
                   <span class="w-12 h-12 rounded-[10px] e-img-ph flex-none">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
                   </span>

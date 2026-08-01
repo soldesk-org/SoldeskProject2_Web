@@ -1,7 +1,7 @@
 (function () {
   var token = sessionStorage.getItem("fe_verification_token");
   var phone = sessionStorage.getItem("fe_phone");
-  if (!token || !phone) { window.location.href = "find-email.html"; return; }
+  if (!token || !phone) { window.location.href = "find-email"; return; }
 
   var maskedPhoneEl = document.getElementById("maskedPhone");
   if (maskedPhoneEl) maskedPhoneEl.textContent = phone.replace(/^(\d{3})-(\d{2})\d{2}-(\d{4})$/, "$1-$2**-$3");
@@ -30,7 +30,7 @@
       })
       .then(function (data) {
         sessionStorage.setItem("fe_email", data.email);
-        window.location.href = "find-email-result.html";
+        window.location.href = "find-email-result";
       })
       .catch(function (err) {
         errorEl.textContent = err.message || "인증번호가 일치하지 않습니다.";

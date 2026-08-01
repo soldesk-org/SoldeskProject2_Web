@@ -6,7 +6,7 @@
   var resendBtn = document.getElementById("resendResetMailBtn");
   if (resendBtn) {
     resendBtn.addEventListener("click", function () {
-      if (!email) { window.location.href = "find-password.html"; return; }
+      if (!email) { window.location.href = "find-password"; return; }
       resendBtn.disabled = true;
       Api.request("/api/members/password-reset/request", { method: "POST", auth: false, body: { email: email } })
         .then(function () {

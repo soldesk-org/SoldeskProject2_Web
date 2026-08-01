@@ -139,6 +139,6 @@
     sessionStorage.setItem("signup_password", passwordInput.value);
     sessionStorage.setItem("signup_phone", formatPhone(phoneInput.value.trim()));
     sessionStorage.setItem("signup_marketing", document.getElementById("agreeMarketing").checked ? "1" : "0");
-    window.location.href = "signup-info.html";
+    window.location.href = "signup-info";
   });
 })();

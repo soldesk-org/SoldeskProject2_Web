@@ -158,7 +158,7 @@
     Api.request("/api/members/signup/business", { method: "POST", auth: false, isForm: true, body: formData })
       .then(function () {
         sessionStorage.setItem("biz_signup_email", email);
-        window.location.href = "signup-business-info.html";
+        window.location.href = "signup-business-info";
       })
       .catch(function (err) { Eatty.toast(err.message || "사업자 회원가입에 실패했습니다.", "error"); })
       .finally(function () { submitBtn.disabled = false; });
