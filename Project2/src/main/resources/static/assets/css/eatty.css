@@ -175,13 +175,12 @@ html { scroll-behavior: smooth; }
 /* 로고 */
 .e-logo { display: inline-flex; align-items: center; gap: 9px; flex: none; }
 .e-logo-mark {
-  width: 34px; height: 34px; border-radius: 11px;
-  background: var(--brand-grad);
+  width: 34px; height: 34px;
   display: grid; place-items: center;
-  box-shadow: var(--sh-brand-sm);
   flex: none;
 }
 .e-logo-mark svg { width: 19px; height: 19px; color: #fff; }
+.e-logo-img { width: 100%; height: 100%; object-fit: contain; }
 .e-logo-text {
   font-size: 19px; font-weight: 800; letter-spacing: -.035em;
   color: var(--ink-900);
@@ -2382,4 +2381,8 @@ body.is-modal-open { overflow: hidden; }
 .e-route-mode[aria-pressed="true"] {
   background: var(--brand-grad); border-color: transparent; color: #fff;
   box-shadow: var(--sh-brand-sm);
+}
+
+.gap-x-8 {
+  column-gap: 1rem;
 }
