@@ -16,6 +16,10 @@ pipeline {
 
     environment {
         PROJECT_DIR = 'Project2'
+        // VM 메모리가 846MB로 작아 JVM 기본 힙(전체 메모리의 1/4)으로는 WAR 패키징 중
+        // "Java heap space" OOM이 발생함(2026-08-03 빌드 #60~#62 실패로 확인) — 명시적으로 늘려줌.
+        // 2GB 스왑이 있어 물리 메모리를 다소 넘겨도 버틸 수 있음(docs/00.공통/CI-CD-Jenkins-구축-가이드.md 3장).
+        MAVEN_OPTS = '-Xmx640m -XX:+UseSerialGC'
     }
 
     stages {
