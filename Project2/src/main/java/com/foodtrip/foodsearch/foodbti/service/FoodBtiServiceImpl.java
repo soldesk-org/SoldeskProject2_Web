@@ -68,13 +68,13 @@ public class FoodBtiServiceImpl implements FoodBtiService {
 
         // 세번째 성향 - A : 혼자먹기 / T : 함께 먹기
         questions.add(new FoodBtiQuestionDto(7, "맛있는 음식이 생각났을 때 나는?",
-                new FoodBtiChoiceDto("혼자라도 바로 먹으러 간다.", "A"),
+                new FoodBtiChoiceDto("혼자 바로 먹으러 간다.", "A"),
                 new FoodBtiChoiceDto("같이 먹으러 갈사람을 먼저 찾는다.", "T")));
         questions.add(new FoodBtiQuestionDto(8, "밥을 먹을 때 선호하는 분위기는?",
                 new FoodBtiChoiceDto("혼자 조용하고 편하게 먹는 분위기.", "A"),
                 new FoodBtiChoiceDto("친구 또는 지인과 이야기하며 먹는 분위기.", "T")));
         questions.add(new FoodBtiQuestionDto(9, "길을 가다 새로운 맛집을 발견했을 때 나는?",
-                new FoodBtiChoiceDto("내 일정에 맞춰 혼자라도 방문.", "A"),
+                new FoodBtiChoiceDto("내 일정에 맞춰 혼자 방문.", "A"),
                 new FoodBtiChoiceDto("친구와 공유하고 함께 방문.", "T")));
 
         // 네번째 성향 - P : 계획적으로 선택 / I : 즉흥적으로 선택
