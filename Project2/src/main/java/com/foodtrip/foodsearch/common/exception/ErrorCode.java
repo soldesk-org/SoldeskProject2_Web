@@ -70,6 +70,8 @@ public enum ErrorCode {
     PARKING_DATA_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "주차장 정보 서버와 통신할 수 없습니다."),
     PARKING_DATA_SYNC_ALREADY_RUNNING(HttpStatus.CONFLICT, "주차장 정보 동기화가 이미 진행 중입니다. 잠시 후 다시 시도해주세요."),
     DIRECTIONS_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "길찾기 서버와 통신할 수 없습니다."),
+    SUPPORT_CHAT_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "AI 고객센터 챗봇과 통신할 수 없습니다. 잠시 후 다시 시도해주세요."),
+    SUPPORT_CHAT_DAILY_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "오늘 문의 가능한 횟수를 초과했습니다. 내일 다시 시도해주세요."),
     REPORT_REASON_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "허용되지 않은 신고 사유입니다."),
     REVIEW_ALREADY_REPORTED(HttpStatus.CONFLICT, "이미 신고한 리뷰입니다."),
     REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "처리할 신고 내역이 없습니다."),

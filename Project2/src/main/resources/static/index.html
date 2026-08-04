@@ -1,54 +1,742 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
-</head>
-<body>
-<div class="relative flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
-  <!-- Sidebar -->
-  <aside class="relative z-10 flex w-[316px] shrink-0 flex-col bg-white">
-    <a href="index" class="flex justify-center">
-      <img src="assets/images/logo-full.png" alt="잇티웨이 로고" class="size-[260px] object-contain" />
-    </a>
-    <nav class="mt-4 flex flex-col gap-9 px-12">
-      <a href="explore" class="flex items-center gap-5 text-[#25374b] transition-opacity hover:opacity-70">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <span class="text-[28px] font-semibold tracking-[-1.4px]">탐색</span>
-      </a>
-      <a href="recommend" class="flex items-center gap-5 text-[#25374b] transition-opacity hover:opacity-70">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
-        <span class="text-[28px] font-semibold tracking-[-1.4px]">추천</span>
-      </a>
-      <a href="login" data-auth="out" class="flex items-center gap-5 text-[#25374b] transition-opacity hover:opacity-70">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span class="text-[28px] font-semibold tracking-[-1.4px]">로그인</span>
-      </a>
-      <a href="mypage" data-auth="in" class="flex items-center gap-5 text-[#25374b] transition-opacity hover:opacity-70">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span class="text-[28px] font-semibold tracking-[-1.4px]">마이페이지</span>
-      </a>
-      <button type="button" data-auth="in" data-logout-btn class="flex items-center gap-5 text-[#25374b] transition-opacity hover:opacity-70 text-left">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span class="text-[28px] font-semibold tracking-[-1.4px]">로그아웃</span>
-      </button>
-    </nav>
-  </aside>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>잇티웨이 (Eatty way) — AI가 찾아주는 진짜 맛집</title>
+<meta name="description" content="영수증 인증 리뷰, 자연어 AI 추천, 실시간 오픈채팅, 음식 취향 테스트(음BTI)를 하나로 묶은 통합 맛집 플랫폼.">
 
-  <!-- Map + hero -->
-  <div class="relative flex-1">
-    <img src="assets/images/map.png" alt="맛집 지도" class="absolute inset-0 size-full object-cover" />
-    <div class="pointer-events-none absolute inset-y-0 left-0 w-[500px] bg-gradient-to-r from-white via-white/85 to-transparent"></div>
-    <div class="absolute left-16 top-[64%] max-w-[680px] text-[#25374b]">
-      <h1 class="text-[48px] font-semibold leading-tight tracking-[-2.4px]">내 취향에 딱 맞는 맛집</h1>
-      <p class="mt-4 text-[28px] font-medium leading-normal tracking-[-1.4px]">
-        AI가 취향과 위치를 분석해<br />오늘 가장 잘 어울리는 맛집을 추천합니다.
+<!--
+================================================================================
+ index — 랜딩 페이지
+--------------------------------------------------------------------------------
+ [공통 헤더 / 네비게이션]
+   #siteHeader                     헤더 루트
+   #logoHome                       로고 → index
+   #mainNav                        데스크탑 주 메뉴 (a[data-nav-page])
+   #headerGuestArea                비로그인 영역 래퍼 (data-auth-view="guest")
+     #headerLoginBtn               로그인 이동
+     #headerSignupBtn              회원가입 이동
+   #headerAuthArea                 로그인 영역 래퍼 (data-auth-view="auth")
+     #headerNotiBtn                알림 버튼
+     #headerProfileBtn             프로필 토글 (data-dropdown-toggle="headerProfileMenu")
+     #headerProfileMenu            프로필 드롭다운
+     #headerNickname               닉네임 출력
+     #headerEmail                  이메일 출력
+     #headerLogoutBtn              로그아웃  ★ JS 연결 필요
+   #headerBusinessLink             사업자 전용 메뉴 (data-auth-view="business")
+   #headerAdminLink                관리자 전용 메뉴 (data-auth-view="admin")
+   #drawerOpenBtn / #mainDrawer    모바일 드로어
+   #drawerLogoutBtn                드로어 내 로그아웃 ★ JS 연결 필요
+
+ [랜딩 전용]
+   #heroSearchForm                 히어로 검색 폼 → explore 로 전달
+   #heroSearchInput                검색 키워드 입력
+   #heroSearchBtn                  검색 실행
+   #heroKeyword[data-keyword]      추천 키워드 칩 (클릭 시 입력창 채움)
+   #ctaSignupBtn / #ctaBusinessBtn 하단 CTA
+   #statUsers / #statReviews / #statShops / #statChats   통계 숫자 ★ API 연동 시 교체
+
+ [개발 편의]
+   [data-devbar]                   로그인 상태 전환바 (실배포 시 이 요소 삭제)
+   Eatty.setAuth('guest'|'user'|'business'|'admin')
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/eatty-ui.js"></script>
+</head>
+
+<body class="has-tabbar">
+<a href="#mainContent" class="skip-link">본문으로 건너뛰기</a>
+
+<!-- ============================== 헤더 ============================== -->
+<header class="e-header" id="siteHeader">
+  <div class="e-container e-header-inner">
+
+    <a href="index" class="e-logo" id="logoHome">
+      <span class="e-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+        </svg>
+      </span>
+      <span class="e-logo-text">잇티<em>웨이</em></span>
+    </a>
+
+    <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
+      <a class="e-nav-link" href="business-mypage" id="headerBusinessLink" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
+      <a class="e-nav-link" href="admin" id="headerAdminLink" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
+    </nav>
+
+    <div class="e-header-actions">
+
+      <!-- ---------- 비로그인 상태 ---------- -->
+      <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest">
+        <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
+        <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
+      </div>
+
+      <!-- ---------- 로그인 상태 ---------- -->
+      <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth" hidden>
+        <button type="button" class="e-icon-btn" id="headerNotiBtn" aria-label="알림 3건">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+          <span class="e-dot"></span>
+        </button>
+
+        <div class="e-dropdown">
+          <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
+                  id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
+            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
+            <span class="hidden md:block text-sm font-bold text-[var(--ink-800)]" id="headerNickname">잇티러버</span>
+            <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+
+          <div class="e-dropdown-menu" id="headerProfileMenu">
+            <div class="e-dropdown-head">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]">잇티러버</p>
+              <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
+              <span class="e-badge e-badge--brand mt-2">음BTI · 매콤탐험가</span>
+            </div>
+            <a class="e-dropdown-item" href="mypage">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+              마이페이지
+            </a>
+            <a class="e-dropdown-item" href="mypage-reviews">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+              내 리뷰
+            </a>
+            <a class="e-dropdown-item" href="mypage-edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.5a2.1 2.1 0 0 1 3 3L7.5 14.2l-3.8 1 1-3.8 7.5-7.9Z"/><path d="M20 21H4"/></svg>
+              프로필 수정
+            </a>
+            <a class="e-dropdown-item" href="business-mypage" data-auth-view="business" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 5 4h14l2 5M3 9h18v11H3V9Z"/><path d="M9 20v-6h6v6"/></svg>
+              내 매장 관리
+            </a>
+            <a class="e-dropdown-item" href="admin" data-auth-view="admin" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.3 3.4 9.4 8 11 4.6-1.6 8-5.7 8-11V5l-8-3Z"/></svg>
+              관리자 콘솔
+            </a>
+            <div class="e-dropdown-sep"></div>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="e-header-burger" id="drawerOpenBtn" data-drawer-open="mainDrawer" aria-label="메뉴 열기" aria-controls="mainDrawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- =========================== 모바일 드로어 =========================== -->
+<div class="e-drawer-backdrop" data-drawer-backdrop="mainDrawer"></div>
+<aside class="e-drawer" id="mainDrawer" aria-hidden="true" aria-label="모바일 메뉴">
+  <div class="e-drawer-head">
+    <span class="e-logo-text">잇티<em>웨이</em></span>
+    <button type="button" class="e-modal-close" data-drawer-close="mainDrawer" aria-label="메뉴 닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="e-drawer-body">
+
+    <!-- 비로그인: 로그인 유도 카드 -->
+    <div data-auth-view="guest" class="block">
+      <div class="e-card e-card-soft p-4 mb-4">
+        <p class="text-sm font-extrabold text-[var(--ink-900)]">로그인하고 내 취향 맛집 받기</p>
+        <p class="text-xs text-[var(--ink-500)] mt-1 mb-3">즐겨찾기 · 영수증 리뷰 · 오픈채팅을 이용할 수 있어요.</p>
+        <div class="flex gap-2">
+          <a href="login" class="btn btn-outline btn-sm flex-1">로그인</a>
+          <a href="signup" class="btn btn-primary btn-sm flex-1">회원가입</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 로그인: 프로필 요약 -->
+    <div data-auth-view="auth" class="block" hidden>
+      <a href="mypage" class="e-card p-4 mb-4 flex items-center gap-3">
+        <span class="e-avatar e-avatar-lg" aria-hidden="true">잇</span>
+        <span class="min-w-0">
+          <span class="block text-sm font-extrabold text-[var(--ink-900)]">잇티러버</span>
+          <span class="block text-xs text-[var(--ink-500)] truncate">eatty@example.com</span>
+          <span class="e-badge e-badge--brand mt-1.5">매콤탐험가</span>
+        </span>
+      </a>
+    </div>
+
+    <p class="e-drawer-label">맛집 찾기</p>
+    <a class="e-drawer-link" href="explore" data-nav-page="explore">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      지도 탐색
+    </a>
+    <a class="e-drawer-link" href="recommend" data-nav-page="recommend">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+      AI 자연어 추천
+    </a>
+    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/><circle cx="12" cy="12" r="9.5"/></svg>
+      음BTI 테스트
+    </a>
+
+    <div class="e-drawer-sep"></div>
+    <p class="e-drawer-label">참여하기</p>
+    <a class="e-drawer-link" href="receipt-upload" data-nav-page="receipt-upload">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>
+      영수증 인증 리뷰
+    </a>
+    <a class="e-drawer-link" href="chat" data-nav-page="chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+      잇티챗 오픈채팅
+    </a>
+
+    <div data-auth-view="auth" hidden>
+      <div class="e-drawer-sep"></div>
+      <p class="e-drawer-label">내 정보</p>
+      <a class="e-drawer-link" href="mypage" data-nav-page="mypage">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+        마이페이지
+      </a>
+      <a class="e-drawer-link" href="mypage-reviews" data-nav-page="mypage-reviews">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+        내 리뷰
+      </a>
+    </div>
+
+    <div data-auth-view="business" hidden>
+      <div class="e-drawer-sep"></div>
+      <a class="e-drawer-link" href="business-mypage" data-nav-page="business-mypage">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 5 4h14l2 5M3 9h18v11H3V9Z"/><path d="M9 20v-6h6v6"/></svg>
+        내 매장 관리
+      </a>
+    </div>
+
+    <div data-auth-view="admin" hidden>
+      <div class="e-drawer-sep"></div>
+      <a class="e-drawer-link" href="admin" data-nav-page="admin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.3 3.4 9.4 8 11 4.6-1.6 8-5.7 8-11V5l-8-3Z"/></svg>
+        관리자 콘솔
+      </a>
+    </div>
+
+    <div data-auth-view="auth" hidden>
+      <div class="e-drawer-sep"></div>
+      <button type="button" class="e-drawer-link w-full text-left" id="drawerLogoutBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+        로그아웃
+      </button>
+    </div>
+  </div>
+</aside>
+
+<main id="mainContent">
+
+  <!-- ============================= 히어로 ============================= -->
+  <section class="e-hero-glow bg-white border-b border-[var(--line)]">
+    <div class="e-container relative z-10 pt-14 pb-16 md:pt-24 md:pb-24">
+      <div class="grid lg:grid-cols-[1.05fr_.95fr] gap-12 lg:gap-16 items-center">
+
+        <div class="e-anim-up">
+          <span class="e-eyebrow">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+            AI 기반 맛집 검색 · 추천 · 커뮤니티
+          </span>
+
+          <h1 class="t-h1 mt-6">
+            먹고 싶은 걸 말하면,<br>
+            <span class="t-grad">잇티웨이</span>가 찾아줍니다
+          </h1>
+
+          <p class="t-lead mt-6 max-w-xl">
+            "강남역 근처 조용한 파스타집" 처럼 그냥 말하면 돼요.
+            영수증으로 인증된 진짜 리뷰만 모아, 취향에 맞는 맛집을 골라드립니다.
+          </p>
+
+          <!-- 히어로 검색 -->
+          <form class="mt-9 max-w-xl" id="heroSearchForm" action="explore" method="get" role="search">
+            <div class="flex flex-col sm:flex-row gap-2.5 p-2.5 bg-white border border-[var(--line)] rounded-[var(--r-lg)] shadow-[var(--sh)]">
+              <div class="e-input-wrap has-icon flex-1">
+                <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input type="search" class="e-input e-input-lg border-0 shadow-none focus:shadow-none"
+                       id="heroSearchInput" name="q" placeholder="가게 이름, 메뉴, 지역을 검색해보세요" autocomplete="off">
+              </div>
+              <button type="submit" class="btn btn-primary btn-lg sm:w-auto" id="heroSearchBtn">
+                맛집 찾기
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </form>
+
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            <span class="t-xs font-bold text-[var(--ink-400)] mr-1">인기 검색</span>
+            <button type="button" class="e-chip e-chip-sm" id="heroKeyword" data-keyword="혼밥">혼밥</button>
+            <button type="button" class="e-chip e-chip-sm" data-keyword="데이트 코스">데이트 코스</button>
+            <button type="button" class="e-chip e-chip-sm" data-keyword="가성비 점심">가성비 점심</button>
+            <button type="button" class="e-chip e-chip-sm" data-keyword="매운 음식">매운 음식</button>
+          </div>
+
+          <div class="mt-10 flex flex-wrap gap-x-8 gap-y-4" data-auth-view="guest">
+            <a href="signup" class="btn btn-secondary">3초 회원가입</a>
+            <a href="recommend" class="btn btn-outline">
+              AI 추천 먼저 써보기
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+            </a>
+          </div>
+          <div class="mt-10 flex flex-wrap gap-3" data-auth-view="auth" hidden>
+            <a href="recommend" class="btn btn-primary">오늘 뭐 먹지? AI에게 묻기</a>
+            <a href="mypage" class="btn btn-outline">내 즐겨찾기 보기</a>
+          </div>
+        </div>
+
+        <!-- 히어로 비주얼: 추천 결과 미리보기 -->
+        <div class="relative e-anim-up e-delay-2">
+          <div class="e-card e-card-pad shadow-[var(--sh-lg)] relative z-10">
+            <div class="flex items-center gap-2.5 pb-4 border-b border-[var(--line)]">
+              <span class="w-8 h-8 rounded-[10px] grid place-items-center text-white" style="background:var(--brand-grad)">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+              </span>
+              <p class="text-sm font-extrabold text-[var(--ink-900)]">잇티 AI 추천</p>
+              <span class="e-status e-status--on e-status--live ml-auto text-xs">응답 중</span>
+            </div>
+
+            <div class="pt-4 pb-3">
+              <p class="inline-block px-3.5 py-2.5 rounded-[16px_4px_16px_16px] text-white text-sm font-semibold" style="background:var(--brand-grad)">
+                강남역 근처 조용한 파스타집 알려줘
+              </p>
+            </div>
+
+            <div class="space-y-2.5">
+              <div class="e-shop-card !cursor-default">
+                <div class="e-shop-thumb e-img-ph">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">라 스텔라 파스타</p>
+                    <span class="e-badge e-badge--brand">98% 일치</span>
+                  </div>
+                  <div class="e-rating mt-1">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <span class="e-rating-score">4.6</span>
+                    <span class="t-xs ml-1">· 강남역 3번 출구 240m</span>
+                  </div>
+                  <p class="t-xs mt-1.5 t-clamp-2 leading-relaxed">테이블 간격이 넓고 대화 소음이 적다는 리뷰가 많아요. 2인 방문 후기 비중이 높습니다.</p>
+                </div>
+              </div>
+
+              <div class="e-shop-card !cursor-default">
+                <div class="e-shop-thumb e-img-ph">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">오스테리아 무니</p>
+                    <span class="e-badge e-badge--gray">91% 일치</span>
+                  </div>
+                  <div class="e-rating mt-1">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                    <span class="e-rating-score">4.4</span>
+                    <span class="t-xs ml-1">· 강남역 11번 출구 410m</span>
+                  </div>
+                  <p class="t-xs mt-1.5 t-clamp-2 leading-relaxed">단독 룸이 있어 조용한 식사에 적합. 예약 후 방문 후기가 많습니다.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 p-3.5 rounded-[var(--r-md)]" style="background:var(--brand-grad-soft);border:1px solid var(--brand-100)">
+              <p class="text-[13px] font-bold text-[var(--brand-700)]">식사 후엔 산책 어떠세요?</p>
+              <p class="t-xs mt-1">도보 5분 · 봉은사로 가로수길 코스를 함께 추천했어요.</p>
+            </div>
+          </div>
+
+          <!-- 장식 카드 -->
+          <div class="hidden md:flex absolute -left-6 -bottom-6 z-20 e-card items-center gap-2.5 px-4 py-3 shadow-[var(--sh-md)] e-anim-float">
+            <span class="w-9 h-9 rounded-full grid place-items-center" style="background:var(--success-soft);color:var(--success)">
+              <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+            <div>
+              <p class="text-[13px] font-extrabold text-[var(--ink-900)]">영수증 인증 완료</p>
+              <p class="t-xs">진짜 방문자 리뷰만</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 통계 -->
+      <div class="mt-16 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-8 pt-10 border-t border-[var(--line)]">
+        <div>
+          <p class="text-[28px] md:text-[34px] font-extrabold t-grad t-num leading-none" id="statUsers">128,400</p>
+          <p class="t-sm mt-2 font-semibold">누적 이용자</p>
+        </div>
+        <div>
+          <p class="text-[28px] md:text-[34px] font-extrabold t-grad t-num leading-none" id="statReviews">42,910</p>
+          <p class="t-sm mt-2 font-semibold">영수증 인증 리뷰</p>
+        </div>
+        <div>
+          <p class="text-[28px] md:text-[34px] font-extrabold t-grad t-num leading-none" id="statShops">31,650</p>
+          <p class="t-sm mt-2 font-semibold">등록된 매장</p>
+        </div>
+        <div>
+          <p class="text-[28px] md:text-[34px] font-extrabold t-grad t-num leading-none" id="statChats">2,180</p>
+          <p class="t-sm mt-2 font-semibold">활성 오픈채팅방</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 핵심 기능 ============================ -->
+  <section class="py-16 md:py-24">
+    <div class="e-container">
+      <div class="max-w-2xl">
+        <span class="e-eyebrow">CORE FEATURES</span>
+        <h2 class="t-h2 mt-5">맛집 찾는 모든 과정을<br>한 곳에서</h2>
+        <p class="t-lead mt-4">검색부터 리뷰, 대화까지. 흩어져 있던 맛집 경험을 잇티웨이 하나로 묶었습니다.</p>
+      </div>
+
+      <div class="mt-12 grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+
+        <a href="recommend" class="e-card e-card-pad e-card-hover block">
+          <span class="w-12 h-12 rounded-[14px] grid place-items-center text-white mb-5" style="background:var(--brand-grad)">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+          </span>
+          <h3 class="t-h4">자연어 AI 추천</h3>
+          <p class="t-sm mt-2.5 leading-relaxed">"조용한", "가성비", "혼밥 가능" 같은 조건을 문장으로 말하면 AI가 후보를 골라줍니다.</p>
+          <span class="e-link-brand text-[13px] inline-flex items-center gap-1 mt-4">
+            추천 받기
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </span>
+        </a>
+
+        <a href="receipt-upload" class="e-card e-card-pad e-card-hover block">
+          <span class="w-12 h-12 rounded-[14px] grid place-items-center mb-5" style="background:var(--brand-50);color:var(--brand-500)">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>
+          </span>
+          <h3 class="t-h4">영수증 인증 리뷰</h3>
+          <p class="t-sm mt-2.5 leading-relaxed">영수증을 OCR로 확인한 방문자만 리뷰를 남깁니다. 광고성 후기를 걸러냅니다.</p>
+          <span class="e-link-brand text-[13px] inline-flex items-center gap-1 mt-4">
+            리뷰 작성
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </span>
+        </a>
+
+        <a href="chat" class="e-card e-card-pad e-card-hover block">
+          <span class="w-12 h-12 rounded-[14px] grid place-items-center mb-5" style="background:var(--info-soft);color:var(--info)">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+          </span>
+          <h3 class="t-h4">잇티챗 오픈채팅</h3>
+          <p class="t-sm mt-2.5 leading-relaxed">참가코드로 바로 입장. 같이 갈 사람을 찾거나 실시간으로 맛집 정보를 나눠요.</p>
+          <span class="e-link-brand text-[13px] inline-flex items-center gap-1 mt-4">
+            채팅방 보기
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </span>
+        </a>
+
+        <a href="taste-quiz" class="e-card e-card-pad e-card-hover block">
+          <span class="w-12 h-12 rounded-[14px] grid place-items-center mb-5" style="background:var(--warning-soft);color:var(--warning)">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/></svg>
+          </span>
+          <h3 class="t-h4">음BTI 취향 테스트</h3>
+          <p class="t-sm mt-2.5 leading-relaxed">12문항으로 내 음식 취향 유형을 진단하고, 유형에 맞는 메뉴를 추천받습니다.</p>
+          <span class="e-link-brand text-[13px] inline-flex items-center gap-1 mt-4">
+            테스트 시작
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= 지도 탐색 소개 ========================= -->
+  <section class="py-16 md:py-24 bg-white border-y border-[var(--line)]">
+    <div class="e-container">
+      <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div class="order-2 lg:order-1">
+          <div class="e-card overflow-hidden shadow-[var(--sh-md)]">
+            <div class="e-map h-[340px] md:h-[420px]">
+              <div class="e-map-note">
+                네이버 지도(Naver Maps) 삽입 영역
+                <span>실제 서비스에서는 이 영역에 지도가 렌더링됩니다</span>
+              </div>
+              <div class="e-marker is-active" style="left:32%;top:38%">
+                <div class="e-marker-pin">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
+                  라 스텔라
+                </div>
+              </div>
+              <div class="e-marker" style="left:63%;top:56%">
+                <div class="e-marker-pin">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
+                  무니
+                </div>
+              </div>
+              <div class="e-marker" style="left:48%;top:22%">
+                <div class="e-marker-pin">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
+                  청담옥
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-1 lg:order-2">
+          <span class="e-eyebrow">MAP SEARCH</span>
+          <h2 class="t-h2 mt-5">지도에서 바로,<br>지금 갈 수 있는 곳</h2>
+          <p class="t-lead mt-4">현재 위치 기준으로 카테고리와 가격대를 걸러 보세요. 마커를 누르면 리뷰와 길찾기까지 한 번에 이어집니다.</p>
+
+          <ul class="mt-8 space-y-4">
+            <li class="flex gap-3.5">
+              <span class="w-6 h-6 rounded-full grid place-items-center flex-none mt-0.5" style="background:var(--brand-50);color:var(--brand-600)">
+                <svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+              <p class="t-body"><b class="t-strong">가게명 · 메뉴명 동시 검색</b><br><span class="t-sm">"김치찌개" 처럼 메뉴로 찾아도 결과가 나옵니다.</span></p>
+            </li>
+            <li class="flex gap-3.5">
+              <span class="w-6 h-6 rounded-full grid place-items-center flex-none mt-0.5" style="background:var(--brand-50);color:var(--brand-600)">
+                <svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+              <p class="t-body"><b class="t-strong">카테고리 · 가격 필터</b><br><span class="t-sm">한식/양식/중식/일식/카페 + 1만원 이하부터 단계별 가격대.</span></p>
+            </li>
+            <li class="flex gap-3.5">
+              <span class="w-6 h-6 rounded-full grid place-items-center flex-none mt-0.5" style="background:var(--brand-50);color:var(--brand-600)">
+                <svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+              <p class="t-body"><b class="t-strong">즐겨찾기 · 길찾기 연동</b><br><span class="t-sm">마음에 드는 곳은 저장하고, 바로 길찾기로 넘어갑니다.</span></p>
+            </li>
+          </ul>
+
+          <a href="explore" class="btn btn-primary mt-9">
+            지도로 탐색하기
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== 이용 흐름 =========================== -->
+  <section class="py-16 md:py-24">
+    <div class="e-container">
+      <div class="text-center max-w-xl mx-auto">
+        <span class="e-eyebrow">HOW IT WORKS</span>
+        <h2 class="t-h2 mt-5">3단계로 끝나는 맛집 찾기</h2>
+      </div>
+
+      <div class="mt-12 grid md:grid-cols-3 gap-5">
+        <div class="e-card e-card-pad relative">
+          <span class="absolute right-6 top-5 text-[54px] font-extrabold leading-none" style="color:var(--brand-100)">01</span>
+          <span class="e-badge e-badge--brand-solid">검색</span>
+          <h3 class="t-h4 mt-4">조건을 말합니다</h3>
+          <p class="t-sm mt-2.5 leading-relaxed">지도에서 필터로 좁히거나, AI에게 문장으로 물어보세요. 음BTI 결과가 있으면 취향까지 반영됩니다.</p>
+        </div>
+        <div class="e-card e-card-pad relative">
+          <span class="absolute right-6 top-5 text-[54px] font-extrabold leading-none" style="color:var(--brand-100)">02</span>
+          <span class="e-badge e-badge--brand-solid">확인</span>
+          <h3 class="t-h4 mt-4">진짜 리뷰를 봅니다</h3>
+          <p class="t-sm mt-2.5 leading-relaxed">영수증으로 인증된 방문자 리뷰와 긍정/부정 태그 분포로 분위기와 맛을 미리 파악합니다.</p>
+        </div>
+        <div class="e-card e-card-pad relative">
+          <span class="absolute right-6 top-5 text-[54px] font-extrabold leading-none" style="color:var(--brand-100)">03</span>
+          <span class="e-badge e-badge--brand-solid">공유</span>
+          <h3 class="t-h4 mt-4">같이 갈 사람을 찾습니다</h3>
+          <p class="t-sm mt-2.5 leading-relaxed">잇티챗 오픈채팅에서 참가코드로 모이고, 다녀온 뒤엔 리뷰로 기록을 남깁니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= 사용자 유형 안내 ========================= -->
+  <section class="py-16 md:py-24 bg-white border-y border-[var(--line)]">
+    <div class="e-container">
+      <div class="max-w-xl">
+        <span class="e-eyebrow">FOR EVERYONE</span>
+        <h2 class="t-h2 mt-5">역할에 맞는 화면을 제공합니다</h2>
+        <p class="t-lead mt-4">일반 회원, 사업자 회원, 운영 관리자가 각각 필요한 기능만 보게 됩니다.</p>
+      </div>
+
+      <div class="mt-12 grid md:grid-cols-3 gap-5">
+        <div class="e-card e-card-pad flex flex-col">
+          <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-5" style="background:var(--brand-50);color:var(--brand-500)">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+          </span>
+          <h3 class="t-h4">일반 회원</h3>
+          <p class="t-sm mt-2.5 leading-relaxed flex-1">맛집 검색 · AI 추천 · 영수증 리뷰 · 즐겨찾기 · 오픈채팅 · 음BTI를 모두 이용합니다.</p>
+          <div class="flex gap-2 mt-6">
+            <a href="signup" class="btn btn-primary btn-sm flex-1">회원가입</a>
+            <a href="login" class="btn btn-outline btn-sm flex-1">로그인</a>
+          </div>
+        </div>
+
+        <div class="e-card e-card-pad flex flex-col">
+          <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-5" style="background:var(--info-soft);color:var(--info)">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 5 4h14l2 5M3 9h18v11H3V9Z"/><path d="M9 20v-6h6v6"/></svg>
+          </span>
+          <h3 class="t-h4">사업자 회원</h3>
+          <p class="t-sm mt-2.5 leading-relaxed flex-1">사업자등록번호와 증명원 인증 후, 내 매장 정보와 리뷰 반응을 관리합니다.</p>
+          <div class="flex gap-2 mt-6">
+            <a href="signup-business" class="btn btn-secondary btn-sm flex-1">사업자 가입</a>
+            <a href="login-business" class="btn btn-outline btn-sm flex-1">사업자 로그인</a>
+          </div>
+        </div>
+
+        <div class="e-card e-card-pad flex flex-col e-card-dark">
+          <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-5" style="background:rgba(255,255,255,.1);color:#fff">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.3 3.4 9.4 8 11 4.6-1.6 8-5.7 8-11V5l-8-3Z"/></svg>
+          </span>
+          <h3 class="t-h4 !text-white">운영 관리자</h3>
+          <p class="text-[13.5px] mt-2.5 leading-relaxed flex-1 text-[var(--ink-400)]">회원 정지/해제, 리뷰·채팅 신고 처리, API 서버 상태를 한 화면에서 확인합니다.</p>
+          <a href="admin" class="btn btn-white btn-sm mt-6">관리자 콘솔 열기</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== CTA ============================== -->
+  <section class="py-16 md:py-24">
+    <div class="e-container">
+      <div class="rounded-[var(--r-xl)] p-8 md:p-14 text-center relative overflow-hidden" style="background:var(--brand-grad);box-shadow:var(--sh-brand)">
+        <div class="absolute w-[380px] h-[380px] rounded-full -right-24 -top-32" style="background:rgba(255,255,255,.12)"></div>
+        <div class="absolute w-[280px] h-[280px] rounded-full -left-20 -bottom-28" style="background:rgba(255,255,255,.1)"></div>
+        <div class="relative z-10">
+          <h2 class="text-white font-extrabold tracking-[-.035em] text-[27px] md:text-[38px] leading-tight">
+            오늘 저녁, 뭐 먹을지<br class="md:hidden"> 아직 못 정했다면
+          </h2>
+          <p class="text-white/85 mt-4 text-[15px] md:text-[17px]">잇티웨이에 물어보세요. 취향에 맞는 곳을 3초 안에 찾아드립니다.</p>
+          <div class="mt-9 flex flex-col sm:flex-row gap-3 justify-center" data-auth-view="guest">
+            <a href="signup" class="btn btn-white btn-lg" id="ctaSignupBtn">무료로 시작하기</a>
+            <a href="signup-business" class="btn btn-lg bg-white/15 text-white border-white/30 hover:bg-white/25" id="ctaBusinessBtn">사업자로 가입하기</a>
+          </div>
+          <div class="mt-9 flex flex-col sm:flex-row gap-3 justify-center" data-auth-view="auth" hidden>
+            <a href="recommend" class="btn btn-white btn-lg">AI 추천 받기</a>
+            <a href="explore" class="btn btn-lg bg-white/15 text-white border-white/30 hover:bg-white/25">지도에서 찾기</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============================== 푸터 ============================== -->
+<footer class="e-footer">
+  <div class="e-container">
+    <div class="e-footer-grid">
+      <div>
+        <div class="e-logo mb-4">
+          <span class="e-logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+            </svg>
+          </span>
+          <span class="e-logo-text !text-white">잇티<em>웨이</em></span>
+        </div>
+        <p class="text-sm leading-relaxed max-w-sm">
+          AI 기반 맛집 검색·추천 및 커뮤니티 서비스.<br>
+          영수증으로 인증된 진짜 리뷰만 모읍니다.
+        </p>
+        <p class="text-xs mt-5 text-[var(--ink-500)]">
+          본 서비스는 학습/포트폴리오 목적의 프로젝트입니다.
+        </p>
+      </div>
+
+      <div>
+        <p class="e-footer-title">서비스</p>
+        <nav class="e-footer-list">
+          <a href="explore">지도 탐색</a>
+          <a href="recommend">AI 추천</a>
+          <a href="receipt-upload">영수증 리뷰</a>
+          <a href="taste-quiz">음BTI 테스트</a>
+          <a href="chat">잇티챗</a>
+        </nav>
+      </div>
+
+      <div>
+        <p class="e-footer-title">계정</p>
+        <nav class="e-footer-list">
+          <a href="login">로그인</a>
+          <a href="signup">회원가입</a>
+          <a href="login-business">사업자 로그인</a>
+          <a href="signup-business">사업자 가입</a>
+          <a href="find-email">이메일 찾기</a>
+          <a href="find-password">비밀번호 찾기</a>
+        </nav>
+      </div>
+
+      <div>
+        <p class="e-footer-title">고객지원 · 정책</p>
+        <nav class="e-footer-list">
+          <a href="support">고객센터 · AI 상담</a>
+          <a href="terms-service">이용약관</a>
+          <a href="terms-privacy">개인정보처리방침</a>
+          <a href="admin">관리자 콘솔</a>
+        </nav>
+      </div>
+    </div>
+
+    <div class="e-footer-bottom">
+      <p>&copy; 2026 Eatty way. All rights reserved.</p>
+      <p class="flex items-center gap-2">
+        <span class="e-status e-status--on e-status--live !text-[var(--ink-300)]">API 정상</span>
       </p>
     </div>
   </div>
-</div>
-<script src="assets/js/api.js"></script>
+</footer>
+
+<!-- ========================= 모바일 하단 탭바 ========================= -->
+<nav class="e-tabbar" aria-label="모바일 주요 메뉴">
+  <a class="e-tabbar-item" href="index" data-nav-page="index,">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
+    홈
+  </a>
+  <a class="e-tabbar-item" href="explore" data-nav-page="explore">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    탐색
+  </a>
+  <a class="e-tabbar-item" href="recommend" data-nav-page="recommend">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+    AI추천
+  </a>
+  <a class="e-tabbar-item" href="chat" data-nav-page="chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+    잇티챗
+  </a>
+  <a class="e-tabbar-item" href="mypage" data-nav-page="mypage">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    내정보
+  </a>
+</nav>
+
+<!-- 개발용 상태 전환바 (실배포 시 이 한 줄 삭제) -->
+
+<script>
+/* 랜딩 전용 데모 스크립트 — 인기 검색 칩 클릭 시 검색창 채우기 (팀 JS로 교체 가능) */
+document.addEventListener('click', function (e) {
+  var chip = e.target.closest('[data-keyword]');
+  if (!chip) return;
+  var input = document.getElementById('heroSearchInput');
+  if (input) { input.value = chip.getAttribute('data-keyword'); input.focus(); }
+});
+</script>
 </body>
 </html>
