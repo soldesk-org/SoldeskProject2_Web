@@ -15,80 +15,51 @@
    발행:  /app/rooms/{roomId}/send       — 메시지 전송
    입장/퇴장 시스템 메시지도 같은 토픽으로 수신한다고 가정합니다.
 
+ 실제 오픈채팅은 참가코드로만 입장 가능하고(카카오톡 오픈채팅과 동일한 방식), 전체 공개방 브라우징/검색
+ API가 없어 시안의 검색창·전체 공개방 탭·카테고리·비공개 스위치는 제거했다. 강제 퇴장 API는 없다.
+
  [좌측 · 채팅방 목록]
    #chatListPane            목록 패널 루트
-   #roomSearchInput         방 이름 검색
-   #roomFilterGroup         필터 세그먼트 (data-tabs)
-     #filterMyRooms         내가 참여한 방
-     #filterAllRooms        전체 공개방
-   #roomList                방 목록 컨테이너 ★ GET /api/chat/rooms
-   .room-item[data-room-id] 방 항목 (클릭 시 입장)
+   #roomList                방 목록 컨테이너 ★ GET /api/chat/rooms/my
    #roomListEmpty           빈 상태 (기본 hidden)
    #joinByCodeBtn           참가코드로 입장 (data-modal-open="joinCodeModal")
    #createRoomBtn           방 만들기 (data-modal-open="createRoomModal")
 
- [참가코드 입장 모달]  ★ POST /api/chat/rooms/join
-   #joinCodeModal
-   #joinCodeInput           참가코드 입력 (6자리)
-   #joinCodeError           잘못된 코드 에러
-   #joinCodeSubmitBtn       입장
+ [참가코드 입장 모달]  ★ POST /api/chat/rooms/join {joinCode}
+   #joinCodeModal / #joinCodeInput / #joinCodeSubmitBtn (실패 시 토스트로만 안내)
 
- [방 만들기 모달]  ★ POST /api/chat/rooms
-   #createRoomModal
-   #newRoomName             방 제목 (name="roomName")
-   #newRoomNameCounter      글자수
-   #newRoomDesc             방 소개 (name="description")
-   #newRoomMaxMembers       최대 인원 (name="maxMembers", 2~100)
-   #maxMembersText          최대 인원 표시
-   #newRoomCategory         관련 카테고리 (name="category")
-   #newRoomPrivateSwitch    비공개(코드 전용) 여부 (name="isPrivate")
-   #createRoomSubmitBtn     만들기
-   #createdCodeBox          생성 후 참가코드 안내 (기본 hidden)
-   #createdCodeText         발급된 참가코드
-   #copyCreatedCodeBtn      코드 복사
+ [방 만들기 모달]  ★ POST /api/chat/rooms {title, maxMembers}
+   #createRoomModal / #newRoomName / #newRoomNameCounter
+   #newRoomMaxMembers       최대 인원 (name="maxMembers", 2~5, 기본 5)
+   #maxMembersText / #createRoomSubmitBtn
+   #createdCodeBox / #createdCodeText / #copyCreatedCodeBtn
 
  [우측 · 채팅방]
-   #chatRoomPane            채팅방 패널 루트
-   #chatRoomEmpty           방 미선택 상태 (기본 표시)
-   #chatRoomActive          방 선택 상태 (기본 hidden)
-   #roomTitle               방 제목
-   #roomMemberCount         현재 인원 / 최대 인원
-   #roomCodeBadge           참가코드 배지
-   #roomBackBtn             (모바일) 목록으로 돌아가기
-   #roomMenuBtn             방 메뉴 토글 (data-dropdown-toggle="roomMenu")
-   #roomMenu                방 메뉴 드롭다운
-   #memberListBtn           참여자 목록 (data-modal-open="memberListModal")
-   #leaveRoomBtn            방 나가기 (data-modal-open="leaveRoomModal")
-   #explodeRoomBtn          ★ 방장 전용 "방 폭파" (data-owner-only)
-                            (data-modal-open="explodeRoomModal")
+   #chatRoomPane #chatRoomEmpty #chatRoomActive
+   #roomTitle #roomMemberCount #roomCodeBadge #roomBackBtn
+   #roomMenuBtn / #roomMenu / #memberListBtn
+   #leaveRoomBtn            방 나가기 ★ POST /api/chat/rooms/{id}/leave
+   #explodeRoomBtn          방장 전용 "방 폭파" ★ DELETE /api/chat/rooms/{id} (data-owner-only)
+   #reportRoomBtn           채팅방 신고
 
- [메시지]
-   #messageArea             메시지 스크롤 영역 (data-chat-scroll)
-   .e-msg                   상대 말풍선 / .e-msg--me 내 말풍선
-   .e-msg-system            시스템 메시지 (입장/퇴장/공지)
-   .e-msg-system--danger    경고성 시스템 메시지
+ [메시지] — WebSocket(STOMP): brokerURL ws(s)://<host>/ws-chat, connectHeaders Authorization
+   구독 /topic/rooms/{roomId}, /user/queue/errors · 발행 /app/rooms/{roomId}/send {content}
+   #messageArea             메시지 스크롤 영역
    [data-report-message]    메시지 신고 (data-modal-open="reportMsgModal")
-   #messageForm             전송 폼
-   #messageInput            입력 textarea (data-autogrow)
-   #sendMessageBtn          전송
-   #typingIndicator         상대 입력중 표시 (기본 hidden)
+   #messageForm / #messageInput / #sendMessageBtn
    #connectionStatus        WebSocket 연결 상태 표시
 
- [참여자 목록 모달]
+ [참여자 목록 모달] ★ GET /api/chat/rooms/{roomId}/members (현재 활성 참가자만)
    #memberListModal / #memberList
-   [data-kick-member]       ★ 방장 전용 강제 퇴장
 
- [신고 모달]  ★ POST /api/reports/chat
+ [신고 모달] ★ POST /api/chat/messages/{id}/report 또는 /api/chat/rooms/{id}/report
    #reportMsgModal / #reportMsgReason / #reportMsgDetail / #reportMsgSubmitBtn
 
  [나가기 / 폭파 모달]
-   #leaveRoomModal / #leaveRoomConfirmBtn      ★ POST /api/chat/rooms/{id}/leave
+   #leaveRoomModal / #leaveRoomConfirmBtn
    #explodeRoomModal / #explodeConfirmInput / #explodeConfirmBtn
-                                               ★ DELETE /api/chat/rooms/{id}
 
- [권한 전환 - 시안용]
-   [data-owner-only]        방장일 때만 노출되는 요소
-   #ownerToggleBtn          [시안 확인용] 방장/참여자 전환 (실배포 시 삭제)
+ [data-owner-only]        방장일 때만 노출되는 요소 (hostMemberId === 내 memberId)
 ================================================================================
 -->
 
@@ -96,50 +67,36 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+<script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/chat.js"></script>
 
-<style>
-  /* 모바일: 목록 ↔ 방 화면 전환 */
-  @media (max-width: 1023px) {
-    .e-chat-shell { grid-template-columns: 1fr; height: calc(100vh - var(--header-h)); }
-    body.chat-room-open .e-chat-list { display: none; }
-    body:not(.chat-room-open) .e-chat-room { display: none; }
-  }
-  /* 방장 전용 요소 */
-  [data-owner-only] { display: none; }
-  body[data-room-role="owner"] [data-owner-only] { display: flex; }
-  body[data-room-role="owner"] button[data-owner-only].e-dropdown-item { display: flex; }
-</style>
+<link rel="stylesheet" href="assets/css/chat.css">
 </head>
 
-<body class="chat-room-open" data-room-role="owner">
-<a href="#messageArea" class="skip-link">대화 내용으로 건너뛰기</a>
+<body data-room-role="member">
 
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header e-header--solid" id="siteHeader">
   <div class="e-container e-container-wide e-header-inner">
     <a href="index" class="e-logo" id="logoHome">
-      <span class="e-logo-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
-        </svg>
-      </span>
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
       <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
     </a>
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
       <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
       <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
       <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
 
     <div class="e-header-actions">
-      <span class="e-status e-status--on e-status--live hidden md:flex !text-[12px] mr-1" id="connectionStatus">실시간 연결됨</span>
-
       <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest" hidden>
         <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
         <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
@@ -154,7 +111,7 @@
         <div class="e-dropdown">
           <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
                   id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
-            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
             <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="e-dropdown-menu" id="headerProfileMenu">
@@ -190,9 +147,9 @@
   <div class="e-drawer-body">
     <a class="e-drawer-link" href="explore">지도 탐색</a>
     <a class="e-drawer-link" href="recommend">AI 추천</a>
-    <a class="e-drawer-link" href="receipt-upload">영수증 리뷰</a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
     <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz">음BTI</a>
+    <a class="e-drawer-link" href="taste-quiz">음식 취향 찾기</a>
     <div class="e-drawer-sep"></div>
     <a class="e-drawer-link" href="support">고객센터</a>
     <a class="e-drawer-link" href="mypage">마이페이지</a>
@@ -210,12 +167,7 @@
     <div class="p-4 border-b border-[var(--line)]">
       <div class="flex items-center gap-2 mb-3.5">
         <h1 class="text-[19px] font-extrabold tracking-[-.03em] text-[var(--ink-900)]">잇티챗</h1>
-        <span class="e-badge e-badge--brand">2,180개 방</span>
-      </div>
-
-      <div class="e-input-wrap has-icon mb-3">
-        <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input type="search" class="e-input e-input-sm" id="roomSearchInput" placeholder="방 이름으로 검색" aria-label="채팅방 검색">
+        <span class="e-badge e-badge--brand" id="myRoomCountBadge">0개 방</span>
       </div>
 
       <div class="flex gap-2">
@@ -230,158 +182,16 @@
       </div>
     </div>
 
-    <!-- 필터 -->
-    <div class="px-4 py-3 border-b border-[var(--line)]" data-tabs id="roomFilterGroup">
-      <div class="e-segment w-full" role="tablist" aria-label="채팅방 필터">
-        <button type="button" class="e-segment-item flex-1" id="filterMyRooms" data-tab-target="paneMyRooms" role="tab" aria-selected="true">
-          내 채팅방 <span class="e-tab-count !ml-1">3</span>
-        </button>
-        <button type="button" class="e-segment-item flex-1" id="filterAllRooms" data-tab-target="paneAllRooms" role="tab" aria-selected="false">
-          전체 공개방
-        </button>
-      </div>
-    </div>
-
-    <!-- 방 목록 -->
+    <!-- 방 목록 (참여 중인 방만 — 오픈채팅은 참가코드로만 입장하므로 전체 공개방 탐색은 지원하지 않음) -->
     <div class="e-scroll flex-1 min-h-0" id="roomList">
-      <div id="paneMyRooms" data-tab-panel>
-
-        <!-- 방 1 (선택됨 · 방장) -->
-        <button type="button" class="e-chat-item is-active" data-room-id="1"
-                data-room-name="강남 맛집 같이 갈 사람" data-room-role="owner"
-                data-room-code="EAT7K2" data-room-members="8" data-room-max="12">
-          <span class="e-avatar flex-none" aria-hidden="true">강</span>
-          <span class="min-w-0 flex-1">
-            <span class="flex items-center gap-1.5">
-              <b class="text-[14.5px] font-extrabold text-[var(--ink-900)] truncate">강남 맛집 같이 갈 사람</b>
-              <span class="e-badge e-badge--brand-solid flex-none !text-[10px] !px-1.5">방장</span>
-            </span>
-            <span class="block t-xs mt-1 truncate">민초파: 그럼 7시에 3번 출구에서 만나요!</span>
-            <span class="flex items-center gap-2 mt-1.5">
-              <span class="t-xs flex items-center gap-1">
-                <svg style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/><path d="M17 11a3 3 0 1 0 0-6"/></svg>
-                8 / 12
-              </span>
-              <span class="e-badge e-badge--gray flex-none">한식</span>
-            </span>
-          </span>
-          <span class="flex flex-col items-end gap-1.5 flex-none">
-            <span class="t-xs">방금</span>
-            <span class="w-5 h-5 rounded-full grid place-items-center text-[10px] font-extrabold text-white" style="background:var(--brand-500)">3</span>
-          </span>
-        </button>
-
-        <!-- 방 2 -->
-        <button type="button" class="e-chat-item" data-room-id="2"
-                data-room-name="마라탕 매운맛 도전방" data-room-role="member"
-                data-room-code="SPY9M4" data-room-members="24" data-room-max="30">
-          <span class="e-avatar e-avatar--gray flex-none" aria-hidden="true">마</span>
-          <span class="min-w-0 flex-1">
-            <span class="flex items-center gap-1.5">
-              <b class="text-[14.5px] font-extrabold text-[var(--ink-900)] truncate">마라탕 매운맛 도전방</b>
-            </span>
-            <span class="block t-xs mt-1 truncate">불사조: 5단계는 진짜 못 먹겠어요 ㅠㅠ</span>
-            <span class="flex items-center gap-2 mt-1.5">
-              <span class="t-xs flex items-center gap-1">
-                <svg style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/><path d="M17 11a3 3 0 1 0 0-6"/></svg>
-                24 / 30
-              </span>
-              <span class="e-badge e-badge--gray flex-none">중식</span>
-            </span>
-          </span>
-          <span class="flex flex-col items-end gap-1.5 flex-none">
-            <span class="t-xs">12분 전</span>
-            <span class="w-5 h-5 rounded-full grid place-items-center text-[10px] font-extrabold text-white" style="background:var(--brand-500)">9</span>
-          </span>
-        </button>
-
-        <!-- 방 3 -->
-        <button type="button" class="e-chat-item" data-room-id="3"
-                data-room-name="혼밥러들의 정보 공유방" data-room-role="member"
-                data-room-code="SOLO11" data-room-members="47" data-room-max="50">
-          <span class="e-avatar e-avatar--gray flex-none" aria-hidden="true">혼</span>
-          <span class="min-w-0 flex-1">
-            <span class="flex items-center gap-1.5">
-              <b class="text-[14.5px] font-extrabold text-[var(--ink-900)] truncate">혼밥러들의 정보 공유방</b>
-            </span>
-            <span class="block t-xs mt-1 truncate">시스템: 조용한김밥님이 입장했습니다.</span>
-            <span class="flex items-center gap-2 mt-1.5">
-              <span class="t-xs flex items-center gap-1">
-                <svg style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/><path d="M17 11a3 3 0 1 0 0-6"/></svg>
-                47 / 50
-              </span>
-              <span class="e-badge e-badge--warning flex-none">거의 만석</span>
-            </span>
-          </span>
-          <span class="flex flex-col items-end gap-1.5 flex-none">
-            <span class="t-xs">1시간 전</span>
-          </span>
-        </button>
-
-        <!-- 빈 상태 -->
-        <div class="e-empty" id="roomListEmpty" hidden>
-          <div class="e-empty-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
-          </div>
-          <p class="e-empty-title">참여 중인 방이 없어요</p>
-          <p class="e-empty-desc">방을 만들거나 참가코드로 입장해보세요.</p>
+      <!-- 빈 상태 -->
+      <div class="e-empty" id="roomListEmpty" hidden>
+        <div class="e-empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
         </div>
+        <p class="e-empty-title">참여 중인 방이 없어요</p>
+        <p class="e-empty-desc">방을 만들거나 참가코드로 입장해보세요.</p>
       </div>
-
-      <!-- 전체 공개방 -->
-      <div id="paneAllRooms" data-tab-panel hidden>
-        <button type="button" class="e-chat-item" data-room-id="4"
-                data-room-name="을지로 노포 탐방대" data-room-role="member"
-                data-room-code="OLD777" data-room-members="15" data-room-max="20">
-          <span class="e-avatar e-avatar--gray flex-none" aria-hidden="true">을</span>
-          <span class="min-w-0 flex-1">
-            <b class="block text-[14.5px] font-extrabold text-[var(--ink-900)] truncate">을지로 노포 탐방대</b>
-            <span class="block t-xs mt-1 truncate">매주 목요일 저녁 을지로 노포 순회합니다</span>
-            <span class="flex items-center gap-2 mt-1.5">
-              <span class="t-xs">15 / 20</span>
-              <span class="e-badge e-badge--gray flex-none">한식</span>
-            </span>
-          </span>
-          <span class="btn btn-soft btn-xs flex-none self-center">입장</span>
-        </button>
-
-        <button type="button" class="e-chat-item" data-room-id="5"
-                data-room-name="디저트 신상 정보방" data-room-role="member"
-                data-room-code="SWEET1" data-room-members="62" data-room-max="100">
-          <span class="e-avatar e-avatar--gray flex-none" aria-hidden="true">디</span>
-          <span class="min-w-0 flex-1">
-            <b class="block text-[14.5px] font-extrabold text-[var(--ink-900)] truncate">디저트 신상 정보방</b>
-            <span class="block t-xs mt-1 truncate">새로 나온 디저트 정보 공유해요</span>
-            <span class="flex items-center gap-2 mt-1.5">
-              <span class="t-xs">62 / 100</span>
-              <span class="e-badge e-badge--gray flex-none">카페</span>
-            </span>
-          </span>
-          <span class="btn btn-soft btn-xs flex-none self-center">입장</span>
-        </button>
-
-        <button type="button" class="e-chat-item" data-room-id="6"
-                data-room-name="퇴근 후 한잔 (강남)" data-room-role="member"
-                data-room-code="BEER42" data-room-members="30" data-room-max="30">
-          <span class="e-avatar e-avatar--gray flex-none" aria-hidden="true">퇴</span>
-          <span class="min-w-0 flex-1">
-            <b class="block text-[14.5px] font-extrabold text-[var(--ink-900)] truncate">퇴근 후 한잔 (강남)</b>
-            <span class="block t-xs mt-1 truncate">평일 저녁 가볍게 한잔하실 분</span>
-            <span class="flex items-center gap-2 mt-1.5">
-              <span class="t-xs">30 / 30</span>
-              <span class="e-badge e-badge--danger flex-none">만석</span>
-            </span>
-          </span>
-          <span class="btn btn-outline btn-xs flex-none self-center is-disabled" aria-disabled="true">만석</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- 하단 안내 -->
-    <div class="p-3.5 border-t border-[var(--line)]">
-      <p class="t-xs leading-relaxed">
-        오픈채팅은 누구나 볼 수 있어요. 연락처 등 개인정보는 공유하지 마세요.
-      </p>
     </div>
   </section>
 
@@ -389,7 +199,7 @@
   <section class="e-chat-room" id="chatRoomPane" aria-label="채팅방">
 
     <!-- 방 미선택 상태 -->
-    <div class="flex-1 grid place-items-center p-8" id="chatRoomEmpty" hidden>
+    <div class="flex-1 grid place-items-center p-8" id="chatRoomEmpty">
       <div class="text-center max-w-sm">
         <span class="w-20 h-20 rounded-[24px] grid place-items-center mx-auto mb-6" style="background:var(--brand-grad-soft);border:1px solid var(--brand-100)">
           <svg class="w-9 h-9" style="color:var(--brand-400)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -406,7 +216,7 @@
     </div>
 
     <!-- 방 선택 상태 -->
-    <div class="flex flex-col flex-1 min-h-0" id="chatRoomActive">
+    <div class="flex flex-col flex-1 min-h-0" id="chatRoomActive" hidden>
 
       <!-- 방 헤더 -->
       <div class="flex items-center gap-3 px-4 py-3 border-b border-[var(--line)] bg-white flex-none">
@@ -447,9 +257,9 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/><path d="M17 11a3 3 0 1 0 0-6"/></svg>
               참여자 목록
             </button>
-            <button type="button" class="e-dropdown-item" data-owner-only data-modal-open="createRoomModal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.5a2.1 2.1 0 0 1 3 3L7.5 14.2l-3.8 1 1-3.8 7.5-7.9Z"/><path d="M20 21H4"/></svg>
-              방 설정 수정
+            <button type="button" class="e-dropdown-item" id="reportRoomBtn" data-modal-open="reportMsgModal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
+              채팅방 신고
             </button>
             <div class="e-dropdown-sep"></div>
             <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="leaveRoomBtn" data-modal-open="leaveRoomModal">
@@ -466,156 +276,13 @@
         </div>
       </div>
 
-      <!-- 공지 -->
-      <div class="px-4 py-2.5 border-b border-[var(--line)] flex items-center gap-2.5" style="background:var(--brand-50)">
-        <svg class="w-4 h-4 flex-none" style="color:var(--brand-600)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M17 9a4 4 0 0 1 0 6"/>
-        </svg>
-        <p class="text-[12.5px] font-semibold text-[var(--brand-700)] truncate flex-1">
-          공지: 오늘 저녁 7시 강남역 3번 출구 앞에서 모입니다
-        </p>
-        <button type="button" class="e-icon-btn !w-7 !h-7 flex-none" aria-label="공지 닫기" onclick="this.closest('div').remove()">
-          <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-
       <!-- ==================== 메시지 영역 ==================== -->
-      <div class="e-chat-body e-scroll" id="messageArea" data-chat-scroll role="log" aria-live="polite" aria-label="대화 내용">
-
-        <!-- 날짜 구분 -->
-        <div class="e-chat-date">2026년 7월 31일</div>
-
-        <!-- 시스템: 방 생성 -->
-        <div class="e-msg-system e-msg-system--brand">
-          잇티러버님이 방을 만들었습니다. 참가코드는 EAT7K2 입니다.
-        </div>
-
-        <!-- 시스템: 입장 -->
-        <div class="e-msg-system">민초파님이 입장했습니다.</div>
-
-        <!-- 상대 메시지 -->
-        <div class="e-msg">
-          <span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true">민</span>
-          <div class="min-w-0">
-            <p class="e-msg-name">민초파</p>
-            <div class="flex items-end gap-1.5">
-              <p class="e-msg-bubble">안녕하세요! 오늘 저녁에 강남에서 뭐 먹을까요?</p>
-              <span class="e-msg-time">18:02</span>
-              <span class="e-msg-actions">
-                <button type="button" class="e-icon-btn !w-7 !h-7" data-report-message data-modal-open="reportMsgModal" aria-label="메시지 신고">
-                  <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
-                </button>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 내 메시지 -->
-        <div class="e-msg e-msg--me">
-          <div class="min-w-0">
-            <div class="flex items-end gap-1.5 flex-row-reverse">
-              <p class="e-msg-bubble">청담옥 갈비탕 어때요? 영수증 인증 리뷰 별점 4.8이에요</p>
-              <span class="e-msg-time">18:04</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 상대 메시지 (연속) -->
-        <div class="e-msg">
-          <span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true">불</span>
-          <div class="min-w-0">
-            <p class="e-msg-name">불사조</p>
-            <div class="flex items-end gap-1.5">
-              <p class="e-msg-bubble">저 거기 지난주에 갔는데 웨이팅 40분 있었어요 ㅠㅠ</p>
-              <span class="e-msg-time">18:06</span>
-              <span class="e-msg-actions">
-                <button type="button" class="e-icon-btn !w-7 !h-7" data-report-message data-modal-open="reportMsgModal" aria-label="메시지 신고">
-                  <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
-                </button>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 링크 공유 카드 형태 메시지 -->
-        <div class="e-msg">
-          <span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true">민</span>
-          <div class="min-w-0">
-            <p class="e-msg-name">민초파</p>
-            <div class="flex items-end gap-1.5">
-              <div class="e-msg-bubble !p-2.5">
-                <a href="explore" class="flex gap-2.5 items-center">
-                  <span class="w-12 h-12 rounded-[10px] e-img-ph flex-none">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
-                  </span>
-                  <span class="min-w-0">
-                    <b class="block text-[13.5px] font-extrabold text-[var(--ink-900)] truncate">라 스텔라 파스타</b>
-                    <span class="block t-xs mt-0.5">양식 · 강남역 240m · 4.6</span>
-                  </span>
-                </a>
-                <p class="text-[14px] mt-2.5">여기는 웨이팅 없대요!</p>
-              </div>
-              <span class="e-msg-time">18:08</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 내 메시지 -->
-        <div class="e-msg e-msg--me">
-          <div class="min-w-0">
-            <div class="flex items-end gap-1.5 flex-row-reverse">
-              <p class="e-msg-bubble">좋아요 거기로 가죠! 7시에 3번 출구 앞에서 만나요</p>
-              <span class="e-msg-time">18:10</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 시스템: 경고 -->
-        <div class="e-msg-system e-msg-system--danger">
-          부적절한 메시지 1건이 신고 처리로 삭제되었습니다.
-        </div>
-
-        <!-- 시스템: 퇴장 -->
-        <div class="e-msg-system">조용한김밥님이 나갔습니다.</div>
-
-        <!-- 상대 메시지 -->
-        <div class="e-msg">
-          <span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true">민</span>
-          <div class="min-w-0">
-            <p class="e-msg-name">민초파</p>
-            <div class="flex items-end gap-1.5">
-              <p class="e-msg-bubble">그럼 7시에 3번 출구에서 만나요!</p>
-              <span class="e-msg-time">18:12</span>
-              <span class="e-msg-actions">
-                <button type="button" class="e-icon-btn !w-7 !h-7" data-report-message data-modal-open="reportMsgModal" aria-label="메시지 신고">
-                  <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
-                </button>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 입력중 표시 -->
-        <div class="e-msg" id="typingIndicator" hidden>
-          <span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true">불</span>
-          <div class="e-msg-bubble !py-3">
-            <span class="flex gap-1 items-center">
-              <span class="w-1.5 h-1.5 rounded-full bg-[var(--ink-300)]"></span>
-              <span class="w-1.5 h-1.5 rounded-full bg-[var(--ink-300)]"></span>
-              <span class="w-1.5 h-1.5 rounded-full bg-[var(--ink-300)]"></span>
-            </span>
-          </div>
-        </div>
-      </div>
+      <div class="e-chat-body e-scroll" id="messageArea" data-chat-scroll role="log" aria-live="polite" aria-label="대화 내용"></div>
 
       <!-- ==================== 입력 영역 ==================== -->
       <div class="e-chat-input flex-none">
         <form id="messageForm">
           <div class="e-chat-input-box">
-            <button type="button" class="e-icon-btn !w-9 !h-9 flex-none self-end" aria-label="가게 공유"
-                    data-demo-toast="공유할 가게를 검색하세요.">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-            </button>
             <textarea id="messageInput" data-autogrow rows="1"
                       placeholder="메시지를 입력하세요 (Shift + Enter 로 줄바꿈)" aria-label="메시지 입력"></textarea>
             <button type="submit" class="e-chat-send flex-none" id="sendMessageBtn" aria-label="메시지 전송">
@@ -625,11 +292,7 @@
         </form>
 
         <div class="flex items-center gap-3 mt-2.5">
-          <p class="t-xs">개인정보 · 연락처 공유는 금지됩니다.</p>
-          <!-- 시안 확인용 권한 전환 (실배포 시 삭제) -->
-          <button type="button" class="t-xs e-link underline ml-auto" id="ownerToggleBtn">
-            [시안] 방장/참여자 전환
-          </button>
+          <p class="t-xs">개인정보 · 연락처 공유는 금지됩니다. 부적절한 메시지는 자동으로 차단됩니다.</p>
         </div>
       </div>
     </div>
@@ -642,11 +305,8 @@
   <div class="e-modal-panel e-modal-panel--sm">
     <div class="e-modal-head">
       <div>
-        <span class="e-modal-icon e-modal-icon--brand">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0"/></svg>
-        </span>
         <h2 class="e-modal-title" id="joinCodeTitle">참가코드로 입장</h2>
-        <p class="e-modal-desc">방장에게 받은 6자리 코드를 입력해주세요.</p>
+        <p class="e-modal-desc">방장에게 받은 8자리 코드를 입력해주세요.</p>
       </div>
       <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -656,12 +316,8 @@
     <div class="e-modal-body">
       <div class="e-field !mb-0">
         <label class="e-label" for="joinCodeInput">참가코드 <span class="req">*</span></label>
-        <input type="text" class="e-input e-input-lg text-center tracking-[.4em] font-extrabold uppercase"
-               id="joinCodeInput" placeholder="ABC123" maxlength="6" autocomplete="off" data-modal-autofocus>
-        <p class="e-error" id="joinCodeError">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-          존재하지 않는 코드이거나 만석인 방입니다.
-        </p>
+        <input type="text" class="e-input e-input-lg text-center tracking-[.3em] font-extrabold uppercase"
+               id="joinCodeInput" placeholder="ABCD1234" maxlength="8" autocomplete="off" data-modal-autofocus>
         <p class="e-hint">대소문자를 구분하지 않습니다.</p>
       </div>
     </div>
@@ -688,7 +344,7 @@
     </div>
 
     <div class="e-modal-body">
-      <div class="e-field">
+      <div class="e-field" id="newRoomNameField">
         <label class="e-label" for="newRoomName">
           방 제목 <span class="req">*</span>
           <span class="e-label-side"><span id="newRoomNameCounter" data-counter="newRoomName">0 / 30</span></span>
@@ -697,60 +353,22 @@
                placeholder="예) 강남 맛집 같이 갈 사람" data-modal-autofocus>
       </div>
 
-      <div class="e-field">
-        <label class="e-label" for="newRoomDesc">방 소개 <span class="e-label-side">선택</span></label>
-        <textarea class="e-textarea !min-h-[80px]" id="newRoomDesc" name="description" maxlength="100"
-                  placeholder="어떤 이야기를 나누는 방인지 알려주세요."></textarea>
-      </div>
-
-      <div class="e-field">
-        <label class="e-label" for="newRoomCategory">관련 카테고리 <span class="e-label-side">선택</span></label>
-        <select class="e-select" id="newRoomCategory" name="category">
-          <option value="">선택하지 않음</option>
-          <option value="korean">한식</option>
-          <option value="western">양식</option>
-          <option value="chinese">중식</option>
-          <option value="japanese">일식</option>
-          <option value="asian">아시안</option>
-          <option value="cafe">카페 · 디저트</option>
-          <option value="bunsik">분식</option>
-          <option value="chicken">치킨 · 피자</option>
-          <option value="meat">고기 · 구이</option>
-          <option value="bar">술집 · 바</option>
-        </select>
-      </div>
-
       <!-- 최대 인원 -->
-      <div class="e-field">
+      <div class="e-field !mb-0" id="newRoomMaxMembersField">
         <label class="e-label" for="newRoomMaxMembers">
           최대 인원 <span class="req">*</span>
-          <span class="e-label-side"><b class="t-brand t-num" id="maxMembersText">12</b>명</span>
+          <span class="e-label-side"><b class="t-brand t-num" id="maxMembersText">5</b>명</span>
         </label>
         <input type="range" class="w-full accent-[var(--brand-500)]" id="newRoomMaxMembers" name="maxMembers"
-               min="2" max="100" step="1" value="12">
+               min="2" max="5" step="1" value="5">
         <div class="flex justify-between t-xs mt-1.5">
-          <span>2명</span><span>50명</span><span>100명</span>
+          <span>2명</span><span>3명</span><span>4명</span><span>5명</span>
         </div>
-        <p class="e-hint">인원이 가득 차면 추가 입장이 제한됩니다. 개설 후에도 변경할 수 있어요.</p>
+        <p class="e-hint">인원이 가득 차면 추가 입장이 제한됩니다.</p>
       </div>
 
-      <!-- 비공개 -->
-      <div class="e-field !mb-0">
-        <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]">
-          <div>
-            <p class="text-sm font-bold text-[var(--ink-900)]">비공개 방으로 만들기</p>
-            <p class="t-xs mt-0.5">전체 목록에 노출되지 않고 참가코드로만 입장</p>
-          </div>
-          <label class="e-switch" for="newRoomPrivateSwitch">
-            <input type="checkbox" id="newRoomPrivateSwitch" name="isPrivate">
-            <span class="e-switch-track"></span>
-            <span class="sr-only-e">비공개 방으로 만들기</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- 생성 결과 (참가코드) -->
-      <div class="mt-5" id="createdCodeBox" hidden>
+      <!-- 생성 결과 (참가코드) - 생성 전에는 방 제목/최대 인원 필드가, 생성 후에는 이 박스만 보인다 -->
+      <div id="createdCodeBox" hidden>
         <div class="p-5 rounded-[var(--r-md)] text-center" style="background:var(--brand-grad-soft);border:1px solid var(--brand-100)">
           <p class="text-[13px] font-bold text-[var(--brand-700)]">방이 만들어졌어요! 참가코드를 공유해주세요</p>
           <p class="text-[30px] font-extrabold tracking-[.2em] t-grad mt-3" id="createdCodeText">EAT7K2</p>
@@ -763,7 +381,7 @@
     </div>
 
     <div class="e-modal-foot">
-      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-outline" data-modal-close id="createRoomCancelBtn">취소</button>
       <button type="button" class="btn btn-primary" id="createRoomSubmitBtn">방 만들기</button>
     </div>
   </div>
@@ -775,8 +393,8 @@
   <div class="e-modal-panel e-modal-panel--sm">
     <div class="e-modal-head">
       <div>
-        <h2 class="e-modal-title" id="memberListTitle">참여자 8명</h2>
-        <p class="e-modal-desc">강남 맛집 같이 갈 사람 · 최대 12명</p>
+        <h2 class="e-modal-title" id="memberListTitle">참여자 목록</h2>
+        <p class="e-modal-desc" id="memberListDesc"></p>
       </div>
       <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -784,44 +402,7 @@
     </div>
 
     <div class="e-modal-body">
-      <ul class="divide-y divide-[var(--line-soft)]" id="memberList">
-        <li class="flex items-center gap-3 py-3">
-          <span class="e-avatar e-avatar-sm flex-none" aria-hidden="true">잇</span>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-bold text-[var(--ink-900)]">잇티러버 <span class="t-xs font-semibold">(나)</span></p>
-            <p class="t-xs mt-0.5">매콤탐험가</p>
-          </div>
-          <span class="e-badge e-badge--brand-solid flex-none">방장</span>
-        </li>
-        <li class="flex items-center gap-3 py-3">
-          <span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true">민</span>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-bold text-[var(--ink-900)]">민초파</p>
-            <p class="t-xs mt-0.5">순한맛평화주의</p>
-          </div>
-          <button type="button" class="btn btn-ghost btn-xs !text-[var(--danger)] flex-none" data-owner-only data-kick-member>강제 퇴장</button>
-        </li>
-        <li class="flex items-center gap-3 py-3">
-          <span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true">불</span>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-bold text-[var(--ink-900)]">불사조</p>
-            <p class="t-xs mt-0.5">매콤탐험가</p>
-          </div>
-          <button type="button" class="btn btn-ghost btn-xs !text-[var(--danger)] flex-none" data-owner-only data-kick-member>강제 퇴장</button>
-        </li>
-        <li class="flex items-center gap-3 py-3">
-          <span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true">가</span>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-bold text-[var(--ink-900)]">가성비왕</p>
-            <p class="t-xs mt-0.5">가성비장인</p>
-          </div>
-          <button type="button" class="btn btn-ghost btn-xs !text-[var(--danger)] flex-none" data-owner-only data-kick-member>강제 퇴장</button>
-        </li>
-      </ul>
-    </div>
-
-    <div class="e-modal-foot">
-      <button type="button" class="btn btn-outline" data-modal-close>닫기</button>
+      <ul class="divide-y divide-[var(--line-soft)]" id="memberList"></ul>
     </div>
   </div>
 </div>
@@ -844,21 +425,19 @@
     </div>
 
     <div class="e-modal-body">
-      <div class="p-3.5 rounded-[var(--r)] bg-[var(--bg-soft)] border border-[var(--line)] mb-4">
+      <div class="p-3.5 rounded-[var(--r)] bg-[var(--bg-soft)] border border-[var(--line)] mb-4" id="reportMsgPreviewBox" hidden>
         <p class="t-xs font-bold mb-1">신고 대상 메시지</p>
-        <p class="text-[13.5px] text-[var(--ink-700)]" id="reportMsgPreview">저 거기 지난주에 갔는데 웨이팅 40분 있었어요 ㅠㅠ</p>
+        <p class="text-[13.5px] text-[var(--ink-700)]" id="reportMsgPreview"></p>
       </div>
 
       <div class="e-field">
         <label class="e-label" for="reportMsgReason">신고 사유 <span class="req">*</span></label>
         <select class="e-select" id="reportMsgReason" name="reason" required>
           <option value="">사유를 선택해주세요</option>
+          <option value="SPAM">광고 · 도배성 내용</option>
           <option value="ABUSE">욕설 · 비방</option>
-          <option value="SPAM">도배 · 스팸</option>
-          <option value="AD">광고 · 홍보</option>
+          <option value="FALSE_INFO">허위 사실</option>
           <option value="PRIVACY">개인정보 노출</option>
-          <option value="SEXUAL">음란성 내용</option>
-          <option value="ILLEGAL">불법 거래 유도</option>
           <option value="ETC">기타</option>
         </select>
       </div>
@@ -875,8 +454,7 @@
 
     <div class="e-modal-foot">
       <button type="button" class="btn btn-outline" data-modal-close>취소</button>
-      <button type="button" class="btn btn-danger" id="reportMsgSubmitBtn"
-              data-demo-toast="신고가 접수되었습니다." data-demo-type="success" data-modal-close>신고하기</button>
+      <button type="button" class="btn btn-danger" id="reportMsgSubmitBtn">신고하기</button>
     </div>
   </div>
 </div>
@@ -918,7 +496,7 @@
         </span>
         <h2 class="e-modal-title" id="explodeRoomTitle">방을 폭파할까요?</h2>
         <p class="e-modal-desc">
-          방장만 할 수 있는 작업입니다. 폭파하면 <b class="t-strong">참여자 8명 전원이 퇴장</b>되고
+          방장만 할 수 있는 작업입니다. 폭파하면 <b class="t-strong">참여자 전원이 퇴장</b>되고
           모든 대화 내용이 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
         </p>
       </div>
@@ -928,14 +506,6 @@
     </div>
 
     <div class="e-modal-body">
-      <div class="e-alert e-alert--danger mb-4">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-        <div>
-          <p class="e-alert-title">삭제되는 항목</p>
-          <p>대화 내용 · 공유된 가게 링크 · 참가코드 (EAT7K2)</p>
-        </div>
-      </div>
-
       <div class="e-field !mb-0">
         <label class="e-label" for="explodeConfirmInput">
           확인을 위해 <b class="t-brand">방 폭파</b> 를 입력해주세요 <span class="req">*</span>
@@ -951,237 +521,29 @@
   </div>
 </div>
 
+<!-- 모바일 하단 탭바(2026-08-07 추가) — 다른 페이지엔 다 있는데 이 페이지에만 빠져있었다. -->
+<nav class="e-tabbar" aria-label="모바일 주요 메뉴">
+  <a class="e-tabbar-item" href="index">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
+    홈
+  </a>
+  <a class="e-tabbar-item" href="explore">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    탐색
+  </a>
+  <a class="e-tabbar-item" href="recommend">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+    AI추천
+  </a>
+  <a class="e-tabbar-item" href="chat" data-nav-page="chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+    잇티챗
+  </a>
+  <a class="e-tabbar-item" href="mypage">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    내정보
+  </a>
+</nav>
 
-<script>
-/* ---------------------------------------------------------------------------
-   chat 시안 데모 스크립트 — 실제 연동 시 chat.js 로 대체
-   ★ WebSocket(STOMP) 연결은 여기서 하지 않습니다.
-     연결 후 다음 함수들을 그대로 재사용하면 됩니다.
-       appendMyMessage(text)         내 말풍선 추가
-       appendOtherMessage(name, t)   상대 말풍선 추가
-       appendSystemMessage(text)     시스템 메시지 추가
-   --------------------------------------------------------------------------- */
-(function () {
-  var msgArea = document.getElementById('messageArea');
-  var roomEmpty = document.getElementById('chatRoomEmpty');
-  var roomActive = document.getElementById('chatRoomActive');
-
-  function nowTime() {
-    var d = new Date();
-    return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
-  }
-  function scrollToBottom() { msgArea.scrollTop = msgArea.scrollHeight; }
-
-  /* ---- 메시지 추가 헬퍼 (팀 JS 에서 그대로 사용 가능) ---- */
-  function appendMyMessage(text) {
-    var wrap = document.createElement('div');
-    wrap.className = 'e-msg e-msg--me';
-    wrap.innerHTML =
-      '<div class="min-w-0"><div class="flex items-end gap-1.5 flex-row-reverse">' +
-      '<p class="e-msg-bubble"></p><span class="e-msg-time">' + nowTime() + '</span>' +
-      '</div></div>';
-    wrap.querySelector('.e-msg-bubble').textContent = text;
-    msgArea.appendChild(wrap);
-    scrollToBottom();
-  }
-
-  function appendOtherMessage(name, text) {
-    var wrap = document.createElement('div');
-    wrap.className = 'e-msg';
-    wrap.innerHTML =
-      '<span class="e-avatar e-avatar-sm e-avatar--gray flex-none" aria-hidden="true"></span>' +
-      '<div class="min-w-0"><p class="e-msg-name"></p>' +
-      '<div class="flex items-end gap-1.5"><p class="e-msg-bubble"></p>' +
-      '<span class="e-msg-time">' + nowTime() + '</span>' +
-      '<span class="e-msg-actions"><button type="button" class="e-icon-btn !w-7 !h-7" data-report-message data-modal-open="reportMsgModal" aria-label="메시지 신고">' +
-      '<svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>' +
-      '</button></span></div></div>';
-    wrap.querySelector('.e-avatar').textContent = name.charAt(0);
-    wrap.querySelector('.e-msg-name').textContent = name;
-    wrap.querySelector('.e-msg-bubble').textContent = text;
-    msgArea.appendChild(wrap);
-    scrollToBottom();
-  }
-
-  function appendSystemMessage(text, type) {
-    var el = document.createElement('div');
-    el.className = 'e-msg-system' + (type ? ' e-msg-system--' + type : '');
-    el.textContent = text;
-    msgArea.appendChild(el);
-    scrollToBottom();
-  }
-
-  /* 전역 노출 (팀 JS 에서 호출) */
-  window.EattyChat = {
-    appendMyMessage: appendMyMessage,
-    appendOtherMessage: appendOtherMessage,
-    appendSystemMessage: appendSystemMessage
-  };
-
-  /* ---- 메시지 전송 ---- */
-  var input = document.getElementById('messageInput');
-  document.getElementById('messageForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var text = input.value.trim();
-    if (!text) return;
-    appendMyMessage(text);   /* ★ 실제로는 stompClient.send('/app/rooms/{id}/send', ...) */
-    input.value = '';
-    input.style.height = 'auto';
-
-    /* 데모: 상대 응답 시뮬레이션 */
-    var typing = document.getElementById('typingIndicator');
-    setTimeout(function () {
-      typing.hidden = false;
-      msgArea.appendChild(typing);
-      scrollToBottom();
-    }, 500);
-    setTimeout(function () {
-      typing.hidden = true;
-      appendOtherMessage('민초파', '넵 확인했어요!');
-    }, 1800);
-  });
-
-  /* Enter 전송 / Shift+Enter 줄바꿈 */
-  input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      document.getElementById('sendMessageBtn').click();
-    }
-  });
-
-  /* ---- 방 목록 선택 ---- */
-  document.getElementById('roomList').addEventListener('click', function (e) {
-    var item = e.target.closest('.room-item, .e-chat-item');
-    if (!item) return;
-
-    document.querySelectorAll('.e-chat-item').forEach(function (x) {
-      x.classList.toggle('is-active', x === item);
-    });
-
-    document.getElementById('roomTitle').textContent = item.getAttribute('data-room-name') || '채팅방';
-    document.getElementById('roomMemberCount').textContent =
-      (item.getAttribute('data-room-members') || '0') + ' / ' + (item.getAttribute('data-room-max') || '0');
-    document.getElementById('roomCodeBadge').textContent = '코드 ' + (item.getAttribute('data-room-code') || '------');
-
-    /* 방장 여부 반영 */
-    document.body.setAttribute('data-room-role', item.getAttribute('data-room-role') || 'member');
-
-    roomEmpty.hidden = true;
-    roomActive.hidden = false;
-    document.body.classList.add('chat-room-open');
-    scrollToBottom();
-  });
-
-  /* ---- 모바일 뒤로가기 ---- */
-  document.getElementById('roomBackBtn').addEventListener('click', function () {
-    document.body.classList.remove('chat-room-open');
-  });
-
-  /* ---- 참가코드 입장 ---- */
-  document.getElementById('joinCodeSubmitBtn').addEventListener('click', function () {
-    var code = document.getElementById('joinCodeInput').value.trim();
-    if (code.length !== 6) {
-      document.getElementById('joinCodeError').classList.add('is-visible');
-      return;
-    }
-    /* ★ 실제로는 POST /api/chat/rooms/join */
-    document.getElementById('joinCodeError').classList.remove('is-visible');
-    Eatty.closeModal('joinCodeModal');
-    Eatty.toast(code.toUpperCase() + ' 방에 입장했습니다.', 'brand');
-    appendSystemMessage('잇티러버님이 입장했습니다.');
-  });
-
-  /* ---- 방 만들기 ---- */
-  var maxRange = document.getElementById('newRoomMaxMembers');
-  maxRange.addEventListener('input', function () {
-    document.getElementById('maxMembersText').textContent = maxRange.value;
-  });
-
-  document.getElementById('createRoomSubmitBtn').addEventListener('click', function () {
-    var name = document.getElementById('newRoomName').value.trim();
-    if (!name) {
-      Eatty.toast('방 제목을 입력해주세요.', 'error');
-      document.getElementById('newRoomName').focus();
-      return;
-    }
-    /* ★ 실제로는 POST /api/chat/rooms → 응답의 참가코드 표시 */
-    var code = Math.random().toString(36).slice(2, 8).toUpperCase();
-    document.getElementById('createdCodeText').textContent = code;
-    document.getElementById('createdCodeBox').hidden = false;
-    Eatty.toast('방을 만들었습니다. 참가코드를 공유해주세요.', 'brand');
-  });
-
-  document.getElementById('copyCreatedCodeBtn').addEventListener('click', function () {
-    var t = document.getElementById('createdCodeText').textContent.trim();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(t).then(function () { Eatty.toast('참가코드를 복사했습니다.', 'success'); });
-    }
-  });
-
-  document.getElementById('copyRoomCodeBtn').addEventListener('click', function () {
-    var t = document.getElementById('roomCodeBadge').textContent.replace('코드', '').trim();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(t).then(function () { Eatty.toast('참가코드를 복사했습니다.', 'success'); });
-    }
-  });
-
-  /* ---- 신고 대상 미리보기 채우기 ---- */
-  document.addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-report-message]');
-    if (!btn) return;
-    var bubble = btn.closest('.e-msg').querySelector('.e-msg-bubble');
-    if (bubble) document.getElementById('reportMsgPreview').textContent = bubble.textContent.trim();
-  });
-
-  /* ---- 방 나가기 ---- */
-  document.getElementById('leaveRoomConfirmBtn').addEventListener('click', function () {
-    /* ★ 실제로는 POST /api/chat/rooms/{id}/leave */
-    Eatty.closeModal('leaveRoomModal');
-    Eatty.toast('방에서 나왔습니다.');
-    var active = document.querySelector('.e-chat-item.is-active');
-    if (active) active.remove();
-    roomActive.hidden = true;
-    roomEmpty.hidden = false;
-    document.body.classList.remove('chat-room-open');
-  });
-
-  /* ---- 방 폭파 (방장) ---- */
-  document.getElementById('explodeConfirmBtn').addEventListener('click', function () {
-    var v = document.getElementById('explodeConfirmInput').value.trim();
-    if (v !== '방 폭파') {
-      Eatty.toast('확인 문구를 정확히 입력해주세요.', 'error');
-      return;
-    }
-    /* ★ 실제로는 DELETE /api/chat/rooms/{id} */
-    Eatty.closeModal('explodeRoomModal');
-    Eatty.toast('방을 폭파했습니다. 참여자 전원이 퇴장되었습니다.', 'success');
-    var active = document.querySelector('.e-chat-item.is-active');
-    if (active) active.remove();
-    roomActive.hidden = true;
-    roomEmpty.hidden = false;
-    document.body.classList.remove('chat-room-open');
-  });
-
-  /* ---- 강제 퇴장 (방장) ---- */
-  document.getElementById('memberList').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-kick-member]');
-    if (!b) return;
-    var li = b.closest('li');
-    var name = li.querySelector('p').textContent.trim();
-    li.remove();
-    Eatty.toast(name + '님을 퇴장시켰습니다.');
-    appendSystemMessage(name + '님이 방장에 의해 퇴장되었습니다.', 'danger');
-  });
-
-  /* ---- [시안용] 방장 / 참여자 전환 ---- */
-  document.getElementById('ownerToggleBtn').addEventListener('click', function () {
-    var isOwner = document.body.getAttribute('data-room-role') === 'owner';
-    document.body.setAttribute('data-room-role', isOwner ? 'member' : 'owner');
-    Eatty.toast(isOwner ? '참여자 시점으로 전환했습니다.' : '방장 시점으로 전환했습니다.');
-  });
-
-  scrollToBottom();
-})();
-</script>
 </body>
 </html>
