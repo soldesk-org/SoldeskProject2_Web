@@ -22,13 +22,17 @@
  [기본 정보]
    #signupNickname          닉네임 (name="nickname")
    #checkNicknameBtn        닉네임 중복확인  ★ GET /api/members/check-nickname
-   ※ 닉네임 관련 에러(미입력/중복/형식 오류 등)는 전부 Eatty.toast()로 표시합니다(2026-08-04 변경).
+   #nicknameError / #nicknameOk
    #signupBirth             생년월일 (name="birthDate", type=date)
    #signupGender            성별 select (name="gender")  값: M / F / N
 
- [음식 취향 찾기 유도]
-   #tasteQuizModal   "테스트 보기" 클릭 시 taste-quiz를 팝업(iframe)으로 띄우는 모달
-                      (data-modal-open="tasteQuizModal", iframe src는 열 때 지연 로드)
+ [취향 정보]
+   input[name="favoriteCategory"]   선호 카테고리 체크박스 (복수 선택)
+     #catKorean #catWestern #catChinese #catJapanese #catAsian
+     #catCafe   #catBunsik  #catChicken #catMeat    #catBar
+   input[name="priceRange"]         평균 예산 라디오 (#price1~#price4)
+   #spicyLevel                      매운맛 선호 range (name="spicyLevel", 0~4)
+   #spicyLevelText                  매운맛 단계 문구
 
  [알림 설정]
    #notifyRecommend   추천 알림 (name="notifyRecommend")
@@ -55,7 +59,11 @@
 <header class="e-header e-header--solid">
   <div class="e-container e-header-inner">
     <a href="index" class="e-logo">
-      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+        </svg>
+      </span>
       <span class="e-logo-text">잇티<em>웨이</em></span>
     </a>
     <div class="e-header-actions">
@@ -139,6 +147,14 @@
                        placeholder="예) 매콤한김밥" maxlength="12" required>
                 <button type="button" class="btn btn-outline" id="checkNicknameBtn">중복확인</button>
               </div>
+              <p class="e-error" id="nicknameError">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                이미 사용 중인 닉네임입니다.
+              </p>
+              <p class="e-ok" id="nicknameOk">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                사용할 수 있는 닉네임입니다.
+              </p>
             </div>
 
             <div class="e-form-grid e-form-grid-2">
@@ -160,17 +176,115 @@
         </div>
       </section>
 
-      <!-- ==================== 음식 취향 찾기 유도 ==================== -->
+      <!-- ==================== 취향 정보 ==================== -->
+      <section class="e-card e-card-pad mb-5">
+        <h2 class="e-form-section-title">음식 취향</h2>
+        <p class="e-form-section-desc">AI 추천에 반영됩니다. 최대 5개까지 선택해주세요.</p>
+
+        <div class="e-field">
+          <span class="e-label">선호 카테고리 <span class="e-label-side">복수 선택</span></span>
+          <div class="flex flex-wrap gap-2">
+            <label class="e-chip-check">
+              <input type="checkbox" id="catKorean" name="favoriteCategory" value="korean">
+              <span class="e-chip">한식</span>
+            </label>
+            <label class="e-chip-check">
+              <input type="checkbox" id="catWestern" name="favoriteCategory" value="western">
+              <span class="e-chip">양식</span>
+            </label>
+            <label class="e-chip-check">
+              <input type="checkbox" id="catChinese" name="favoriteCategory" value="chinese">
+              <span class="e-chip">중식</span>
+            </label>
+            <label class="e-chip-check">
+              <input type="checkbox" id="catJapanese" name="favoriteCategory" value="japanese">
+              <span class="e-chip">일식</span>
+            </label>
+            <label class="e-chip-check">
+              <input type="checkbox" id="catAsian" name="favoriteCategory" value="asian">
+              <span class="e-chip">아시안</span>
+            </label>
+            <label class="e-chip-check">
+              <input type="checkbox" id="catCafe" name="favoriteCategory" value="cafe">
+              <span class="e-chip">카페 · 디저트</span>
+            </label>
+            <label class="e-chip-check">
+              <input type="checkbox" id="catBunsik" name="favoriteCategory" value="bunsik">
+              <span class="e-chip">분식</span>
+            </label>
+            <label class="e-chip-check">
+              <input type="checkbox" id="catChicken" name="favoriteCategory" value="chicken">
+              <span class="e-chip">치킨 · 피자</span>
+            </label>
+            <label class="e-chip-check">
+              <input type="checkbox" id="catMeat" name="favoriteCategory" value="meat">
+              <span class="e-chip">고기 · 구이</span>
+            </label>
+            <label class="e-chip-check">
+              <input type="checkbox" id="catBar" name="favoriteCategory" value="bar">
+              <span class="e-chip">술집 · 바</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="e-field">
+          <span class="e-label">1인 평균 예산</span>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <label class="e-choice" for="price1">
+              <input type="radio" id="price1" name="priceRange" value="under10000">
+              <span class="e-choice-body !p-3.5 text-center">
+                <span class="block text-[15px] font-extrabold text-[var(--ink-900)]">1만원 이하</span>
+                <span class="block t-xs mt-1">가성비</span>
+              </span>
+            </label>
+            <label class="e-choice" for="price2">
+              <input type="radio" id="price2" name="priceRange" value="10000-20000">
+              <span class="e-choice-body !p-3.5 text-center">
+                <span class="block text-[15px] font-extrabold text-[var(--ink-900)]">1~2만원</span>
+                <span class="block t-xs mt-1">일상 식사</span>
+              </span>
+            </label>
+            <label class="e-choice" for="price3">
+              <input type="radio" id="price3" name="priceRange" value="20000-40000">
+              <span class="e-choice-body !p-3.5 text-center">
+                <span class="block text-[15px] font-extrabold text-[var(--ink-900)]">2~4만원</span>
+                <span class="block t-xs mt-1">모임 · 데이트</span>
+              </span>
+            </label>
+            <label class="e-choice" for="price4">
+              <input type="radio" id="price4" name="priceRange" value="over40000">
+              <span class="e-choice-body !p-3.5 text-center">
+                <span class="block text-[15px] font-extrabold text-[var(--ink-900)]">4만원 이상</span>
+                <span class="block t-xs mt-1">특별한 날</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="e-field !mb-0">
+          <label class="e-label" for="spicyLevel">
+            매운맛 선호도
+            <span class="e-label-side" id="spicyLevelText">보통</span>
+          </label>
+          <input type="range" class="w-full accent-[var(--brand-500)]" id="spicyLevel" name="spicyLevel"
+                 min="0" max="4" step="1" value="2">
+          <div class="flex justify-between t-xs mt-1.5">
+            <span>안 매움</span><span>순한맛</span><span>보통</span><span>매움</span><span>아주 매움</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 음BTI 유도 ==================== -->
       <section class="e-card e-card-soft e-card-pad mb-5">
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <span class="w-12 h-12 rounded-[14px] grid place-items-center flex-none text-white" style="background:var(--brand-grad)">
             <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/></svg>
           </span>
           <div class="flex-1">
-            <p class="t-h4">음식 취향 찾기로 취향을 더 정확하게</p>
-            <p class="t-sm mt-1.5">12문항 테스트로 내 음식 유형을 진단하면 추천 정확도가 크게 올라갑니다.</p>
+            <p class="t-h4">음BTI로 취향을 더 정확하게</p>
+            <p class="t-sm mt-1.5">12문항 테스트로 내 음식 유형을 진단하면 추천 정확도가 크게 올라갑니다. 가입 후에 해도 괜찮아요.</p>
           </div>
-          <button type="button" class="btn btn-outline-brand btn-sm flex-none" data-modal-open="tasteQuizModal">테스트 보기</button>
+          <a href="taste-quiz" class="btn btn-outline-brand btn-sm flex-none">테스트 보기</a>
         </div>
       </section>
 
@@ -180,9 +294,7 @@
         <p class="e-form-section-desc">언제든지 마이페이지에서 변경할 수 있습니다.</p>
 
         <div class="space-y-3">
-          <!-- 맞춤 맛집 추천 알림(2026-08-06 보류) — mypage-edit.html과 동일한 이유로 숨김
-               (발송 트리거 미구현). checkbox는 그대로 둬서 가입 요청엔 계속 기본값(true)이 실린다. -->
-          <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]" hidden>
+          <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]">
             <div>
               <p class="text-sm font-bold text-[var(--ink-900)]">맞춤 맛집 추천 알림</p>
               <p class="t-xs mt-0.5">취향에 맞는 새 맛집이 등록되면 알려드립니다.</p>
@@ -212,7 +324,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
           이전
         </a>
-        <button type="submit" class="btn btn-primary btn-lg w-full sm:flex-1" id="signupSubmitBtn">가입 완료하기</button>
+        <button type="submit" class="btn btn-primary btn-lg flex-1" id="signupSubmitBtn">가입 완료하기</button>
       </div>
     </form>
   </div>
@@ -228,23 +340,28 @@
   </div>
 </footer>
 
-<!-- ==================== 음식 취향 찾기 팝업 ==================== -->
-<div class="e-modal" id="tasteQuizModal" role="dialog" aria-modal="true" aria-labelledby="tasteQuizModalTitle" aria-hidden="true">
-  <div class="e-modal-backdrop" data-modal-close></div>
-  <div class="e-modal-panel e-modal-panel--lg">
-    <div class="e-modal-head">
-      <div>
-        <h2 class="e-modal-title" id="tasteQuizModalTitle">음식 취향 찾기</h2>
-      </div>
-      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="e-modal-body !p-0">
-      <iframe id="tasteQuizFrame" title="음식 취향 찾기" style="width:100%;height:75vh;border:0;display:block"></iframe>
-    </div>
-  </div>
-</div>
+<script>
+/* 순수 UI 동작만(백엔드 저장 대상 아님) — 실제 API 연동은 signup-info.js */
+(function () {
+  var spicy = document.getElementById('spicyLevel');
+  var labels = ['안 매움', '순한맛', '보통', '매움', '아주 매움'];
+  if (spicy) spicy.addEventListener('input', function () {
+    document.getElementById('spicyLevelText').textContent = labels[Number(spicy.value)];
+  });
 
+  var removeBtn = document.getElementById('profileImageRemoveBtn');
+  if (removeBtn) removeBtn.addEventListener('click', function () {
+    var input = document.getElementById('profileImageInput');
+    if (input) input.value = '';
+    document.getElementById('profileImagePreview').hidden = true;
+    document.getElementById('profileImageName').innerHTML = 'JPG · PNG<br>5MB 이하';
+  });
+
+  var drop = document.getElementById('profileImageDrop');
+  if (drop) drop.addEventListener('eatty:filepicked', function () {
+    document.getElementById('profileImagePlaceholder').style.display = 'none';
+  });
+})();
+</script>
 </body>
 </html>

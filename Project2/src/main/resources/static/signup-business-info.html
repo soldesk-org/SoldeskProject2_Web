@@ -10,9 +10,6 @@
 ================================================================================
  signup-business-info — 사업자 회원가입 STEP 2 (매장 정보)
 --------------------------------------------------------------------------------
- ※ STEP1(signup-business)을 거치지 않고 바로 들어오면 STEP1로 돌려보냅니다(2026-08-04 추가,
-   sessionStorage biz_signup_email/biz_signup_at 확인, 30분 이내만 유효).
-
  [스테퍼]  #bizSignupSteps  (1 완료 / 2 현재 / 3 대기)
 
  [매장 기본]
@@ -21,15 +18,13 @@
    #shopPhone           매장 전화번호 (name="shopPhone")
    #shopPriceRange      평균 가격대 select (name="priceRange")
 
- [주소] (2026-08-04 실제 연동)
+ [주소]
    #shopZipcode         우편번호 (name="zipcode", readonly)
-   #searchAddressBtn    주소 검색 ★ 행정안전부 도로명주소 팝업 API(business.juso.go.kr) 연동
-                        — window.jusoCallBack()이 팝업의 결과를 받으면, 그 도로명주소를
-                        POST /api/geocode(NCP Geocoding)로 좌표 변환한 뒤 지도에 표시한다.
+   #searchAddressBtn    주소 검색 ★ 다음/카카오 주소 API 연결
    #shopAddress1        기본 주소 (name="address1", readonly)
    #shopAddress2        상세 주소 (name="address2")
-   #shopMapArea         선택 위치 지도 — new naver.maps.Map(...) + Marker, 주소 검색 전에는 비어있음
-   #shopLat / #shopLng  좌표 hidden (name="latitude"/"longitude") — geocode 성공 시 채워짐
+   #shopMapArea         선택 위치 확인용 지도 영역 ★ 네이버 지도 삽입
+   #shopLat / #shopLng  좌표 hidden (name="latitude"/"longitude")
 
  [영업 정보]
    #shopOpenTime / #shopCloseTime     영업시간 (name="openTime"/"closeTime")
@@ -43,20 +38,16 @@
                           #amenityKids #amenityDelivery #amenityTakeout
                           #amenityGroup #amenityBarrierFree
 
- [매장 사진] (2026-08-04 실제 연동 — 예전엔 정적 예시 마크업만 있고 실제 선택 반영이 안 됐음)
+ [매장 사진]
    #shopPhotoDrop       드롭존 (data-dropzone)
-   #shopPhotoInput      파일 입력 (name="shopPhotos", multiple, 최대 5장)
-   #shopPhotoFileName   선택 파일명 → "N장 선택됨"으로 자동 갱신
-   #shopPhotoList       업로드된 썸네일 목록 — 실제 선택 파일로 렌더링, 첫 장 "대표" 배지, 장별 삭제 가능
+   #shopPhotoInput      파일 입력 (name="shopPhotos", multiple)
+   #shopPhotoFileName   선택 파일명
+   #shopPhotoList       업로드된 썸네일 목록
 
  [제출]
    #bizSignupStep2Form  폼 루트
-   #bizSignupSubmitBtn  가입 진행하기 → signup-business-done (2026-08-04: "심사 신청하기"에서 변경 —
-                        실제 사업자 계정은 이미 STEP1 제출 시점에 생성 완료된 상태라 "심사 접수"라는
-                        표현이 부정확했음. 매장 정보를 저장하는 백엔드 API는 아직 없어 이 화면은
-                        입력만 받고 서버에는 보내지 않는다.)
-   ※ "나중에 입력하기" 건너뛰기는 없습니다(2026-08-04 제거) — 사업자 회원은 매장 정보를
-     입력해야만 다음 단계로 진행할 수 있습니다.
+   #bizSignupSubmitBtn  심사 신청 → signup-business-done
+   #bizSkipStepBtn      나중에 입력하기
 ================================================================================
 -->
 
@@ -64,7 +55,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
-<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/signup-business-info.js"></script>
@@ -75,10 +66,17 @@
 <header class="e-header e-header--solid">
   <div class="e-container e-header-inner">
     <a href="index" class="e-logo">
-      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+        </svg>
+      </span>
       <span class="e-logo-text">잇티<em>웨이</em></span>
       <span class="e-badge e-badge--dark ml-1">BUSINESS</span>
     </a>
+    <div class="e-header-actions">
+      <a href="signup-business-done" class="btn btn-ghost btn-sm" id="bizSkipStepBtn">나중에 입력하기</a>
+    </div>
   </div>
 </header>
 
@@ -101,9 +99,14 @@
         <span class="e-step-line"></span>
         <div class="e-step">
           <span class="e-step-dot">3</span>
-          <span class="e-step-label">가입 완료</span>
+          <span class="e-step-label">심사 접수</span>
         </div>
       </div>
+    </div>
+
+    <div class="mb-8">
+      <h1 class="t-h2">매장 정보를 알려주세요</h1>
+      <p class="t-lead mt-3">입력한 정보는 지도 탐색과 AI 추천 결과에 노출됩니다. 가입 후에도 수정할 수 있어요.</p>
     </div>
 
     <form id="bizSignupStep2Form" novalidate>
@@ -115,7 +118,7 @@
 
         <div class="e-field">
           <label class="e-label" for="shopName">매장명 <span class="req">*</span></label>
-          <input type="text" class="e-input" id="shopName" name="shopName" placeholder="클릭해서 매장을 검색해주세요" readonly required>
+          <input type="text" class="e-input" id="shopName" name="shopName" placeholder="예) 잇티식당 강남점" required>
         </div>
 
         <div class="e-form-grid e-form-grid-2">
@@ -181,12 +184,24 @@
           <input type="text" class="e-input" id="shopAddress2" name="address2" placeholder="예) 2층 201호">
         </div>
 
-        <!-- 위치 확인용 지도 — 주소 검색(Juso) 후 좌표 변환(NCP Geocoding)한 위치에 실제 네이버 지도+마커를 표시한다(2026-08-04 실제 연동) -->
+        <!-- 위치 확인용 지도 -->
         <div class="rounded-[var(--r-md)] overflow-hidden border border-[var(--line)]">
-          <div class="h-[260px]" id="shopMapArea"></div>
+          <div class="e-map h-[260px]" id="shopMapArea">
+            <div class="e-map-note">
+              네이버 지도(Naver Maps) 삽입 영역
+              <span>주소 검색 시 해당 좌표로 마커가 이동합니다</span>
+            </div>
+            <div class="e-marker is-active" style="left:50%;top:50%">
+              <div class="e-marker-pin">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
+                내 매장 위치
+              </div>
+            </div>
+          </div>
         </div>
         <input type="hidden" id="shopLat" name="latitude">
         <input type="hidden" id="shopLng" name="longitude">
+        <p class="e-hint">지도를 눌러 핀 위치를 미세 조정할 수 있습니다.</p>
       </section>
 
       <!-- ==================== 영업 정보 ==================== -->
@@ -291,16 +306,38 @@
           <p class="t-xs mt-3" id="shopPhotoFileName">선택된 파일이 없습니다</p>
         </div>
 
-        <!-- 선택한 사진 썸네일 목록 — signup-business-info.js가 실제 선택 파일로 채운다(2026-08-04 실제 연동) -->
-        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2.5 mt-4" id="shopPhotoList"></div>
+        <!-- 업로드 예시 목록 -->
+        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2.5 mt-4" id="shopPhotoList">
+          <div class="relative e-ratio-1 rounded-[var(--r)] overflow-hidden e-img-ph">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            <span class="absolute left-1.5 top-1.5 e-badge e-badge--brand-solid !text-[10px] !px-2 !py-0.5">대표</span>
+            <button type="button" class="absolute right-1.5 top-1.5 w-6 h-6 rounded-full bg-black/50 text-white grid place-items-center" aria-label="사진 삭제">
+              <svg style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="relative e-ratio-1 rounded-[var(--r)] overflow-hidden e-img-ph">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            <button type="button" class="absolute right-1.5 top-1.5 w-6 h-6 rounded-full bg-black/50 text-white grid place-items-center" aria-label="사진 삭제">
+              <svg style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
       </section>
+
+      <div class="e-alert e-alert--info mb-6">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div>
+          <p class="e-alert-title">심사 안내</p>
+          <p>제출 후 운영팀이 사업자등록 정보와 매장 실재 여부를 확인합니다. 영업일 기준 1~2일이 소요됩니다.</p>
+        </div>
+      </div>
 
       <div class="flex flex-col sm:flex-row gap-3">
         <a href="signup-business" class="btn btn-outline btn-lg sm:w-40">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
           이전
         </a>
-        <button type="submit" class="btn btn-primary btn-lg w-full sm:flex-1" id="bizSignupSubmitBtn">가입 진행하기</button>
+        <button type="submit" class="btn btn-primary btn-lg flex-1" id="bizSignupSubmitBtn">심사 신청하기</button>
       </div>
     </form>
   </div>

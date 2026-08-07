@@ -54,6 +54,7 @@
      #editPhoneCode        인증번호 (name="phoneCode")
      #phoneCodeTimer       타이머 (data-timer="180")
      #verifyPhoneCodeBtn   확인 ★ POST /api/auth/sms/verify
+     #phoneOk              인증 완료 메시지
 
    [비밀번호 변경]  [local 전용]
      #passwordChangeBox    영역 루트
@@ -63,11 +64,9 @@
      #newPwStrengthBar / #newPwStrengthText
      #newPasswordConfirmError
 
-   [취향 정보] (2026-08-04 전면 교체 — 카테고리 칩/매운맛 슬라이더는 저장할 API가 없던 순수 시안이라
-              삭제하고, 실제 저장되는 음BTI 결과를 보여준다)
-     #foodBtiResult    저장된 결과 있을 때 ★ GET /api/food-bti/my-result
-     #btiTypeCode / #btiTypeName / #btiTypeDesc / #btiAxisList / #btiFoodList
-     #foodBtiEmpty     결과 없을 때(아직 퀴즈 안 풀었음)
+   [취향 정보]
+     input[name="favoriteCategory"]  선호 카테고리 칩
+     #editSpicyLevel / #editSpicyLevelText   매운맛 선호도
 
    [알림]
      #notifyRecommend / #notifyChat / #notifyMarketing
@@ -87,26 +86,35 @@
 <script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/mypage-edit.js"></script>
-<link rel="stylesheet" href="assets/css/mypage-edit.css">
+<style>
+  /* 계정 유형별 표시 제어 */
+  [data-account-view] { display: none; }
+  html[data-account-type="local"]  [data-account-view="local"]  { display: block; }
+  html[data-account-type="social"] [data-account-view="social"] { display: block; }
+</style>
 </head>
 
 <body class="has-tabbar bg-[var(--bg-soft)]">
+<a href="#mainContent" class="skip-link">본문으로 건너뛰기</a>
 
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header" id="siteHeader">
   <div class="e-container e-container-wide e-header-inner">
     <a href="index" class="e-logo" id="logoHome">
-      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+        </svg>
+      </span>
       <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
     </a>
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
       <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
-      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
     </nav>
 
     <div class="e-header-actions">
@@ -119,7 +127,7 @@
         <div class="e-dropdown">
           <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
                   id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
-            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
+            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
             <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="e-dropdown-menu" id="headerProfileMenu">
@@ -155,9 +163,9 @@
   <div class="e-drawer-body">
     <a class="e-drawer-link" href="explore">지도 탐색</a>
     <a class="e-drawer-link" href="recommend">AI 추천</a>
-    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+    <a class="e-drawer-link" href="receipt-upload">영수증 리뷰</a>
     <a class="e-drawer-link" href="chat">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz">음식 취향 찾기</a>
+    <a class="e-drawer-link" href="taste-quiz">음BTI</a>
     <div class="e-drawer-sep"></div>
     <a class="e-drawer-link" href="mypage">마이페이지</a>
     <a class="e-drawer-link" href="mypage-reviews">내 리뷰</a>
@@ -168,31 +176,42 @@
 <main id="mainContent" class="py-8 md:py-12">
   <div class="e-container e-container-narrow">
 
+    <div class="mb-7">
+      <nav class="e-breadcrumb" aria-label="현재 위치">
+        <a href="index">홈</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        <a href="mypage">마이페이지</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        <span class="font-semibold text-[var(--ink-600)]">프로필 수정</span>
+      </nav>
+      <h1 class="e-page-title">프로필 수정</h1>
+      <p class="e-page-desc">닉네임, 연락처, 프로필 사진과 취향 정보를 변경할 수 있습니다.</p>
+    </div>
+
     <!-- ==================================================================
          STEP 1 · 비밀번호 재인증 게이트
          ================================================================== -->
-    <!-- min-h: 이 페이지는 하단에 footer가 없어서(2026-08-04 발견) "100vh - 260px"처럼 footer 높이를
-         어림잡아 빼는 방식이 실제로는 존재하지 않는 footer 몫만큼 빈 공간을 만들어 카드가 화면 위쪽에
-         쏠려 보이는 원인이었다. 헤더 높이(--header-h)뿐 아니라, 이 섹션을 감싸는 <main class="py-8
-         md:py-12">의 위/아래 패딩(반응형이라 브레이크포인트별로 다름)까지 함께 빼야 실제 뷰포트 안에서
-         정확히 중앙 정렬된다(패딩만 빼면 섹션이 뷰포트를 넘쳐서 스크롤이 생기고, 그만큼 위/아래 여백이
-         달라 보였다). -->
-    <section id="gateSection" class="min-h-[calc(100vh-var(--header-h)-64px)] md:min-h-[calc(100vh-var(--header-h)-96px)] flex flex-col justify-center">
-      <div class="e-card p-9 md:p-12">
+    <section id="gateSection">
+      <div class="e-card e-card-pad">
 
         <div class="text-center py-4 mb-2">
+          <span class="w-16 h-16 rounded-[20px] grid place-items-center mx-auto mb-5" style="background:var(--brand-50);color:var(--brand-500)">
+            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3"/>
+            </svg>
+          </span>
           <h2 class="t-h3">본인 확인이 필요해요</h2>
 
           <!-- 일반 계정 안내 -->
           <div data-account-view="local">
-            <p class="t-sm mt-3 max-w-md mx-auto leading-relaxed">
+            <p class="t-sm mt-3 max-w-sm mx-auto leading-relaxed">
               개인정보를 안전하게 보호하기 위해<br>
               현재 비밀번호를 한 번 더 확인합니다.
             </p>
           </div>
           <!-- 소셜 계정 안내 -->
           <div data-account-view="social">
-            <p class="t-sm mt-3 max-w-md mx-auto leading-relaxed">
+            <p class="t-sm mt-3 max-w-sm mx-auto leading-relaxed">
               소셜 로그인 계정은 비밀번호가 없어요.<br>
               연결된 소셜 계정으로 다시 인증해주세요.
             </p>
@@ -201,7 +220,7 @@
 
         <!-- 일반 계정: 비밀번호 입력 -->
         <div data-account-view="local">
-          <form id="gateForm" class="max-w-md mx-auto" novalidate>
+          <form id="gateForm" class="max-w-sm mx-auto" novalidate>
             <div class="e-field">
               <label class="e-label" for="gatePassword">
                 현재 비밀번호 <span class="req">*</span>
@@ -220,16 +239,25 @@
                   </button>
                 </span>
               </div>
+              <p class="e-error" id="gatePasswordError">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                비밀번호가 일치하지 않습니다.
+              </p>
             </div>
 
             <button type="submit" class="btn btn-primary btn-lg btn-block" id="gateSubmitBtn">확인</button>
             <a href="mypage" class="btn btn-ghost btn-block mt-2.5" id="gateCancelBtn">취소</a>
+
+            <p class="text-center t-xs mt-5">
+              비밀번호를 잊으셨나요?
+              <a href="find-password" class="e-link-brand">비밀번호 찾기</a>
+            </p>
           </form>
         </div>
 
         <!-- 소셜 계정: 소셜 재인증 -->
         <div data-account-view="social">
-          <div class="max-w-md mx-auto">
+          <div class="max-w-sm mx-auto">
             <button type="button" class="btn-social btn-social--kakao mb-2.5" id="gateSocialBtn" data-social="kakao">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 3C6.9 3 2.8 6.3 2.8 10.3c0 2.6 1.7 4.9 4.3 6.2-.2.7-.7 2.5-.8 2.9-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.5.1 1.1.1 1.6.1 5.1 0 9.2-3.3 9.2-7.1S17.1 3 12 3Z"/>
@@ -328,6 +356,14 @@
               <input type="text" class="e-input" id="editNickname" name="nickname" value="잇티러버" maxlength="12" required>
               <button type="button" class="btn btn-outline" id="checkNicknameBtn">중복확인</button>
             </div>
+            <p class="e-error" id="nicknameError">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+              이미 사용 중인 닉네임입니다.
+            </p>
+            <p class="e-ok" id="nicknameOk">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              사용할 수 있는 닉네임입니다.
+            </p>
           </div>
 
           <div class="e-field">
@@ -337,12 +373,16 @@
                 <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M7 3h3l1.5 4.5-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2L21 14v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 5 5.2 2 2 0 0 1 7 3Z"/>
                 </svg>
-                <input type="text" class="e-input t-num" id="editPhone" name="editPhoneNumber" autocomplete="off"
-                       inputmode="numeric" maxlength="13" readonly required>
+                <input type="tel" class="e-input t-num" id="editPhone" name="phone" value="01012345678"
+                       inputmode="numeric" maxlength="11" required>
               </div>
               <button type="button" class="btn btn-soft" id="sendPhoneCodeBtn">인증번호 발송</button>
             </div>
-            <p class="e-hint" id="editPhoneHint">번호를 변경하면 다시 인증해야 합니다.</p>
+            <p class="e-hint">번호를 변경하면 다시 인증해야 합니다.</p>
+            <p class="e-ok" id="phoneOk">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              전화번호 인증이 완료되었습니다.
+            </p>
           </div>
 
           <div class="e-field !mb-0" id="phoneCodeRow" hidden>
@@ -402,6 +442,10 @@
                   </button>
                 </span>
               </div>
+              <p class="e-error" id="newPasswordConfirmError">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                비밀번호가 일치하지 않습니다.
+              </p>
             </div>
           </section>
         </div>
@@ -431,23 +475,36 @@
         <section class="e-card e-card-pad mb-5">
           <div class="flex items-center gap-2 mb-1">
             <h2 class="e-form-section-title !mb-0">음식 취향</h2>
-            <a href="taste-quiz" class="e-link-brand text-[12.5px] ml-auto">음식 취향 찾기 다시하기</a>
+            <a href="taste-quiz" class="e-link-brand text-[12.5px] ml-auto">음BTI 다시하기</a>
           </div>
-          <p class="e-form-section-desc">음BTI 결과가 AI 추천에 반영됩니다.</p>
+          <p class="e-form-section-desc">AI 추천에 반영됩니다.</p>
 
-          <!-- 저장된 음BTI 결과(2026-08-04 실제 연동) — GET /api/food-bti/my-result -->
-          <div id="foodBtiResult" hidden>
-            <div class="flex items-center gap-3 mb-4">
-              <span class="e-badge e-badge--brand-solid t-num" id="btiTypeCode">-</span>
-              <h3 class="text-[19px] font-extrabold text-[var(--ink-900)]" id="btiTypeName"></h3>
+          <div class="e-field">
+            <span class="e-label">선호 카테고리 <span class="e-label-side">복수 선택</span></span>
+            <div class="flex flex-wrap gap-2">
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="korean" checked><span class="e-chip">한식</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="western" checked><span class="e-chip">양식</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="chinese"><span class="e-chip">중식</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="japanese" checked><span class="e-chip">일식</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="asian"><span class="e-chip">아시안</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="cafe"><span class="e-chip">카페 · 디저트</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="bunsik"><span class="e-chip">분식</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="chicken"><span class="e-chip">치킨 · 피자</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="meat"><span class="e-chip">고기 · 구이</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="favoriteCategory" value="bar"><span class="e-chip">술집 · 바</span></label>
             </div>
-            <p class="t-sm leading-relaxed mb-5" id="btiTypeDesc"></p>
-            <div class="space-y-4 mb-5" id="btiAxisList"></div>
-            <div class="flex flex-wrap gap-2" id="btiFoodList"></div>
           </div>
 
-          <div id="foodBtiEmpty" class="text-center py-6" hidden>
-            <p class="t-sm">아직 결과가 없어요.</p>
+          <div class="e-field !mb-0">
+            <label class="e-label" for="editSpicyLevel">
+              매운맛 선호도
+              <span class="e-label-side" id="editSpicyLevelText">매움</span>
+            </label>
+            <input type="range" class="w-full accent-[var(--brand-500)]" id="editSpicyLevel" name="spicyLevel"
+                   min="0" max="4" step="1" value="3">
+            <div class="flex justify-between t-xs mt-1.5">
+              <span>안 매움</span><span>순한맛</span><span>보통</span><span>매움</span><span>아주 매움</span>
+            </div>
           </div>
         </section>
 
@@ -457,10 +514,7 @@
           <p class="e-form-section-desc">필요한 알림만 켜두세요.</p>
 
           <div class="space-y-3">
-            <!-- 맞춤 맛집 추천 알림(2026-08-06 보류) — 이 알림을 실제로 발송하는 기능(트리거)이 아직
-                 없어서, 켜봐야 아무 일도 안 일어난다. 설정 저장 자체는 계속 되게 두고(checked 기본값
-                 유지) 화면에서만 숨긴다 — 기능이 생기면 hidden만 지우면 됨. -->
-            <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]" hidden>
+            <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]">
               <div>
                 <p class="text-sm font-bold text-[var(--ink-900)]">맞춤 맛집 추천 알림</p>
                 <p class="t-xs mt-0.5">취향에 맞는 새 맛집 등록 시</p>
@@ -482,8 +536,7 @@
                 <span class="sr-only-e">오픈채팅 메시지 알림</span>
               </label>
             </div>
-            <!-- 이벤트·광고(마케팅) 알림도 마찬가지로 보류 — 발송 기능 자체가 없음. -->
-            <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]" hidden>
+            <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]">
               <div class="min-w-0 pr-4">
                 <p class="text-sm font-bold text-[var(--ink-900)]">
                   이벤트 · 광고 알림
@@ -505,7 +558,7 @@
 
         <div class="flex flex-col sm:flex-row gap-3">
           <a href="mypage" class="btn btn-outline btn-lg sm:w-40" id="editCancelBtn">취소</a>
-          <button type="submit" class="btn btn-primary btn-lg w-full sm:flex-1" id="editSubmitBtn">변경 사항 저장</button>
+          <button type="submit" class="btn btn-primary btn-lg flex-1" id="editSubmitBtn">변경 사항 저장</button>
         </div>
       </form>
     </section>
@@ -536,5 +589,17 @@
   </a>
 </nav>
 
+
+<script>
+/* 순수 UI 동작만(백엔드 저장 대상 아님 — 매운맛 선호도는 이번 리디자인에서 새로 그려졌지만
+   백엔드에 저장할 곳이 아직 없다) */
+(function () {
+  var spicy = document.getElementById('editSpicyLevel');
+  var spicyLabels = ['안 매움', '순한맛', '보통', '매움', '아주 매움'];
+  if (spicy) spicy.addEventListener('input', function () {
+    document.getElementById('editSpicyLevelText').textContent = spicyLabels[Number(spicy.value)];
+  });
+})();
+</script>
 </body>
 </html>

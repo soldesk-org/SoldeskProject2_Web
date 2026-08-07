@@ -6,6 +6,8 @@
   var passwordInput = document.getElementById("loginPassword");
   var rememberInput = document.getElementById("rememberMe");
   var submitBtn = document.getElementById("loginSubmitBtn");
+  var alertBox = document.getElementById("loginAlert");
+  var alertText = document.getElementById("loginAlertText");
   var emailError = document.getElementById("loginEmailError");
   var passwordError = document.getElementById("loginPasswordError");
 
@@ -18,8 +20,10 @@
   };
 
   function showAlert(msg) {
-    if (!msg) return;
-    Eatty.toast(msg, "error");
+    if (!alertBox) return;
+    if (!msg) { alertBox.hidden = true; return; }
+    alertText.textContent = msg;
+    alertBox.hidden = false;
   }
 
   function setFieldError(input, errorEl, show) {

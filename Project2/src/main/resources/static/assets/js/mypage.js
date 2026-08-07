@@ -11,16 +11,20 @@
   }
 
   // ---- 프로필 ----
-  // 이메일/전화번호는 마이페이지 요약 카드에는 노출하지 않는다(2026-08-04 변경 — 필요하면 프로필 수정
-  // 화면에서 확인). data.email/data.phone 자체는 이 API 응답에 계속 포함되지만 이 페이지에서는 안 쓴다.
   Api.request("/api/members/me").then(function (data) {
     document.getElementById("profileNickname").textContent = data.nickname || "";
+    document.getElementById("profileEmail").textContent = data.email || "";
+    document.getElementById("profilePhone").textContent = data.phone || "-";
     var avatar = document.getElementById("profileAvatar");
     if (data.profileImageUrl) {
       avatar.innerHTML = '<img src="' + data.profileImageUrl + '" class="size-full object-cover rounded-full" alt="프로필 사진">';
     } else if (data.nickname) {
       avatar.textContent = data.nickname.charAt(0);
     }
+
+    // 가입일은 이 API가 내려주지 않아 표시하지 않는다(지어낸 값 금지).
+    var joinedEl = document.getElementById("profileJoinedAt");
+    if (joinedEl && joinedEl.parentElement) joinedEl.parentElement.hidden = true;
 
     var btiBadge = document.getElementById("profileBtiBadge");
     var btiEmptyBox = document.getElementById("profileBtiEmptyBox");
@@ -39,92 +43,29 @@
   var favoriteEmpty = document.getElementById("favoriteEmpty");
   var statFavoriteCount = document.getElementById("statFavoriteCount");
 
-  var tabFavoriteCount = document.getElementById("tabFavoriteCount");
-  var favoritePagination = document.getElementById("favoritePagination");
-  var favoritePagePrev = document.getElementById("favoritePagePrev");
-  var favoritePageNext = document.getElementById("favoritePageNext");
-  var favoritePageNumbers = document.getElementById("favoritePageNumbers");
-  var FAVORITES_PAGE_SIZE = 10;
-  var favoritesAll = [];
-  var favoritesPage = 1;
-
-  function favoriteItemHtml(it) {
-    return (
-      '<div class="e-shop-card !cursor-default">' +
-        '<span class="e-shop-thumb e-img-ph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg></span>' +
-        '<div class="min-w-0 flex-1">' +
-          '<div class="flex items-center gap-2"><span class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">' + escapeHtml(it.name) + '</span></div>' +
-          '<p class="t-xs mt-1.5 truncate">' + escapeHtml(it.roadAddress || it.address || "") + '</p>' +
-          '<p class="t-xs mt-1">저장 <b class="t-num">' + formatDate(it.recordedAt) + '</b></p>' +
-        '</div>' +
-        '<div class="flex flex-col gap-1.5 flex-none">' +
-          '<button type="button" class="btn btn-ghost btn-xs !text-[var(--danger)]" data-remove-favorite data-restaurant-id="' + escapeHtml(it.restaurantId) + '">해제</button>' +
-        '</div>' +
-      '</div>'
-    );
-  }
-
-  function renderFavoritesPage() {
+  function renderFavorites(items) {
     favoriteList.innerHTML = "";
-    var items = favoritesAll;
-    if (!items.length) {
-      favoriteEmpty.hidden = false;
-      if (favoritePagination) favoritePagination.hidden = true;
-      return;
-    }
+    if (statFavoriteCount) statFavoriteCount.textContent = items.length;
+    if (!items.length) { favoriteEmpty.hidden = false; return; }
     favoriteEmpty.hidden = true;
-
-    var totalPages = Math.max(1, Math.ceil(items.length / FAVORITES_PAGE_SIZE));
-    if (favoritesPage > totalPages) favoritesPage = totalPages;
-    var start = (favoritesPage - 1) * FAVORITES_PAGE_SIZE;
-    items.slice(start, start + FAVORITES_PAGE_SIZE).forEach(function (it) {
+    items.forEach(function (it) {
       var li = document.createElement("li");
       li.className = "fav-item";
       li.setAttribute("data-shop-id", it.restaurantId);
-      li.innerHTML = favoriteItemHtml(it);
+      li.innerHTML =
+        '<div class="e-shop-card !cursor-default">' +
+          '<span class="e-shop-thumb e-img-ph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg></span>' +
+          '<div class="min-w-0 flex-1">' +
+            '<div class="flex items-center gap-2"><span class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">' + escapeHtml(it.name) + '</span></div>' +
+            '<p class="t-xs mt-1.5 truncate">' + escapeHtml(it.roadAddress || it.address || "") + '</p>' +
+            '<p class="t-xs mt-1">저장 <b class="t-num">' + formatDate(it.recordedAt) + '</b></p>' +
+          '</div>' +
+          '<div class="flex flex-col gap-1.5 flex-none">' +
+            '<button type="button" class="btn btn-ghost btn-xs !text-[var(--danger)]" data-remove-favorite data-restaurant-id="' + escapeHtml(it.restaurantId) + '">해제</button>' +
+          '</div>' +
+        '</div>';
       favoriteList.appendChild(li);
     });
-
-    if (!favoritePagination) return;
-    if (totalPages <= 1) {
-      favoritePagination.hidden = true;
-      return;
-    }
-    favoritePagination.hidden = false;
-    favoritePageNumbers.innerHTML = "";
-    for (var p = 1; p <= totalPages; p++) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "e-page-btn";
-      btn.textContent = String(p);
-      if (p === favoritesPage) btn.setAttribute("aria-current", "page");
-      (function (targetPage) {
-        btn.addEventListener("click", function () { favoritesPage = targetPage; renderFavoritesPage(); });
-      })(p);
-      favoritePageNumbers.appendChild(btn);
-    }
-    favoritePagePrev.disabled = favoritesPage === 1;
-    favoritePageNext.disabled = favoritesPage === totalPages;
-  }
-
-  if (favoritePagePrev) {
-    favoritePagePrev.addEventListener("click", function () {
-      if (favoritesPage > 1) { favoritesPage--; renderFavoritesPage(); }
-    });
-  }
-  if (favoritePageNext) {
-    favoritePageNext.addEventListener("click", function () {
-      var totalPages = Math.max(1, Math.ceil(favoritesAll.length / FAVORITES_PAGE_SIZE));
-      if (favoritesPage < totalPages) { favoritesPage++; renderFavoritesPage(); }
-    });
-  }
-
-  function renderFavorites(items) {
-    favoritesAll = items;
-    favoritesPage = 1;
-    if (statFavoriteCount) statFavoriteCount.textContent = items.length;
-    if (tabFavoriteCount) tabFavoriteCount.textContent = items.length;
-    renderFavoritesPage();
   }
 
   function loadFavorites() {
@@ -146,12 +87,9 @@
   var visitEmpty = document.getElementById("visitEmpty");
   var statVisitCount = document.getElementById("statVisitCount");
 
-  var tabVisitCount = document.getElementById("tabVisitCount");
-
   function renderVisits(items) {
     visitList.innerHTML = "";
     if (statVisitCount) statVisitCount.textContent = items.length;
-    if (tabVisitCount) tabVisitCount.textContent = items.length;
     if (!items.length) { visitEmpty.hidden = false; return; }
     visitEmpty.hidden = true;
     items.forEach(function (it) {
@@ -178,11 +116,8 @@
   var searchHistoryList = document.getElementById("searchHistoryList");
   var searchHistoryEmpty = document.getElementById("searchHistoryEmpty");
 
-  var tabSearchCount = document.getElementById("tabSearchCount");
-
   function renderSearchHistories(items) {
     searchHistoryList.innerHTML = "";
-    if (tabSearchCount) tabSearchCount.textContent = items.length;
     if (!items.length) { searchHistoryEmpty.hidden = false; return; }
     searchHistoryEmpty.hidden = true;
     items.forEach(function (it) {
@@ -230,10 +165,7 @@
   Api.request("/api/mypage/reviews").then(function (reviews) {
     var statReviewCount = document.getElementById("statReviewCount");
     var statAvgRating = document.getElementById("statAvgRating");
-    var statReviewMonthCount = document.getElementById("statReviewMonthCount");
-    var goMyReviewsSub = document.getElementById("goMyReviewsSub");
     if (statReviewCount) statReviewCount.textContent = reviews.length;
-    if (goMyReviewsSub) goMyReviewsSub.textContent = reviews.length + "건 · 수정 및 삭제";
     if (statAvgRating) {
       if (reviews.length) {
         var avg = reviews.reduce(function (s, r) { return s + r.rating; }, 0) / reviews.length;
@@ -242,23 +174,7 @@
         statAvgRating.textContent = "-";
       }
     }
-    if (statReviewMonthCount) {
-      var thisMonthPrefix = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-      var monthCount = reviews.filter(function (r) {
-        return r.createdAt && String(r.createdAt).slice(0, 7) === thisMonthPrefix;
-      }).length;
-      statReviewMonthCount.textContent = monthCount + "건";
-    }
   }).catch(function () {});
-
-  // ---- 참여 중인 채팅방 수(19.오픈채팅 — 안읽은 메시지 수 API는 없어 방 개수만 표시) ----
-  Api.request("/api/chat/rooms/my").then(function (rooms) {
-    var goChatSub = document.getElementById("goChatSub");
-    if (goChatSub) goChatSub.textContent = rooms.length ? rooms.length + "개 참여 중" : "참여 중인 채팅방 없음";
-  }).catch(function () {
-    var goChatSub = document.getElementById("goChatSub");
-    if (goChatSub) goChatSub.textContent = "참여 중인 채팅방 없음";
-  });
 
   loadFavorites();
   loadVisits();
@@ -270,7 +186,6 @@
     withdrawConfirmBtn.addEventListener("click", function () {
       var confirmText = document.getElementById("withdrawConfirmInput").value.trim();
       var password = document.getElementById("withdrawPassword").value;
-      var reason = document.getElementById("withdrawReasonSelect").value;
       var pwError = document.getElementById("withdrawPasswordError");
       pwError.classList.remove("is-visible");
 
@@ -284,7 +199,7 @@
       }
 
       withdrawConfirmBtn.disabled = true;
-      Api.request("/api/members/me", { method: "DELETE", body: { password: password, reason: reason } })
+      Api.request("/api/members/me", { method: "DELETE", body: { password: password } })
         .then(function () {
           Api.clearSession();
           window.location.href = "index";

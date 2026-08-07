@@ -11,7 +11,7 @@
  business-mypage — 사업자 전용 마이페이지 (내 매장 관리)
 --------------------------------------------------------------------------------
  [매장 헤더]  ★ GET /api/business/me/shop
-   #shopMainImageBox       대표 이미지 (사진 관리 탭에서 대표 지정한 사진, 없으면 플레이스홀더 유지, 2026-08-06)
+   #shopStatusBadge        승인 상태 배지 (승인완료 / 심사중 / 반려)
    #shopNameText           매장명
    #shopCategoryText       카테고리
    #shopAddressText        주소
@@ -21,41 +21,38 @@
    #viewPublicPageBtn      고객 화면으로 보기 → explore
    #approvalPendingAlert   심사중 안내 배너 (기본 hidden)
 
- [통계]  ★ GET /api/business/me/stats (2026-08-06 실구현 — business-mypage.js)
-   #statReviewCount        총 리뷰 수 (실데이터)
-   #statAvgRating          평균 별점 (실데이터, restaurants.avg_rating 캐시)
-   #statFavoriteCount      즐겨찾기 수 (실데이터)
-   #statVisitCert          이번 달 방문 인증 수 (실데이터, 영수증 인증 리뷰 기준)
-   "이번 달 조회수"는 조회수를 기록하는 곳이 없어 카드 자체를 뺐다(지어낸 수치 금지).
+ [통계]  ★ GET /api/business/me/stats
+   #statViewCount          이번 달 조회수
+   #statReviewCount        총 리뷰 수
+   #statAvgRating          평균 별점
+   #statFavoriteCount      즐겨찾기 수
+   #statVisitCert          이번 달 방문 인증 수
 
  [탭]  #bizTabs (data-tabs)
-   #bizTabReviews          리뷰 반응 (#bizReviewTabCount = 총 리뷰 수)
-   #bizTabInfo             매장 정보 (미구현 — 준비 중)
-   #bizTabMenu             메뉴 관리 (미구현 — 준비 중)
-   #bizTabPhoto            사진 관리 (미구현 — 준비 중)
+   #bizTabReviews          리뷰 반응
+   #bizTabInfo             매장 정보
+   #bizTabMenu             메뉴 관리
+   #bizTabPhoto            사진 관리
 
- [리뷰 반응]  ★ GET /api/business/me/reviews?page=&size= (2026-08-06 실구현)
-   #tagRatioPositive / #tagRatioNegative   긍정/부정 비율 (review_keywords 집계)
-   #positiveTagList / #negativeTagList     태그 분포 바 (많이 받은 순 상위 4개, JS가 채움)
-   #ratingSummaryAvg / #ratingSummaryStars / #ratingSummaryCount   평균/총 리뷰 수
-   #ratingDistList         별점 분포 (5~1점, JS가 채움)
-   #bizReviewList / #bizReviewEmpty        최근 리뷰 목록 (5개씩, JS가 채움)
-   #bizReviewLoadMoreBtn   리뷰 더 보기 — 더 있을 때만 노출
-   [data-report-review]    리뷰 신고 (data-modal-open="bizReportModal", 미구현 — 모달 UI만 존재)
+ [리뷰 반응]
+   #tagRatioPositive / #tagRatioNegative   긍정/부정 비율
+   #positiveTagChart / #negativeTagChart   태그 분포 바
+   #ratingDistList         별점 분포 (5~1점)
+   #bizReviewList          최근 리뷰 목록
+   [data-report-review]    리뷰 신고 (data-modal-open="bizReportModal")
    #bizReportModal         신고 모달 (#bizReportReason, #bizReportDetail, #bizReportSubmitBtn)
-   #reviewPeriodSelect     기간 필터 (미구현 — 아직 전체 기간만 조회)
-   매장이 아직 자동귀속되지 않은 사업자 계정(BUSINESS_RESTAURANT_NOT_CLAIMED)은 통계/리뷰 전부
-   빈 상태로 안내한다.
+   #reviewPeriodSelect     기간 필터
 
- [매장 정보 수정]  (2026-08-06 — 전화번호/영업시간만 실제 API로 저장됨, 나머지는 아직 준비 중)
+ [매장 정보 수정]  ★ PATCH /api/business/me/shop
    #bizInfoForm            폼 루트
-   #bizShopPhone           ★ PATCH /api/restaurants/{id}/phone
-   #bizOpenTime #bizCloseTime / input[name="holiday"]   ★ PUT /api/restaurants/{id}/business-hours
-     (요일별 개별 시간은 아직 지원 안 함 — 휴무 아닌 모든 요일에 같은 시작/종료 시간 적용)
-   #bizShopName #bizCategory #bizPriceRange #bizZipcode #bizAddress1 #bizAddress2
-   input[name="amenity"] #bizIntro   저장 API 없음(카카오 데이터 미저장 원칙, 07 참고) — 화면에만 반영
-   #bizSearchAddressBtn #bizMapArea  ★ 네이버 지도 삽입 영역(주소 검색 시 실좌표로 마커 표시, 저장은 안 됨)
-   #bizInfoSaveBtn         저장(전화번호·영업시간만 실제 반영)
+   #bizShopName #bizCategory #bizPriceRange #bizShopPhone
+   #bizZipcode #bizSearchAddressBtn #bizAddress1 #bizAddress2
+   #bizMapArea             ★ 네이버 지도 삽입 영역
+   #bizOpenTime #bizCloseTime #bizBreakTime
+   input[name="holiday"]   휴무일 체크박스
+   #bizIntro / #bizIntroCounter
+   input[name="amenity"]   편의시설
+   #bizInfoSaveBtn         저장
 
  [메뉴 관리]  ★ /api/business/me/menus
    #menuList               메뉴 목록
@@ -77,19 +74,23 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
-<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
 <script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/business-mypage.js"></script>
 </head>
 
 <body class="has-tabbar bg-[var(--bg-soft)]">
+<a href="#mainContent" class="skip-link">본문으로 건너뛰기</a>
 
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header" id="siteHeader">
   <div class="e-container e-container-wide e-header-inner">
     <a href="index" class="e-logo" id="logoHome">
-      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+        </svg>
+      </span>
       <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
       <span class="e-badge e-badge--dark ml-1 hidden sm:inline-flex">BUSINESS</span>
     </a>
@@ -99,7 +100,6 @@
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
       <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
-      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
     </nav>
 
     <div class="e-header-actions">
@@ -113,7 +113,7 @@
         <div class="e-dropdown">
           <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
                   id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
-            <span class="e-avatar e-avatar-sm" id="headerAvatar" style="background:var(--ink-800)" aria-hidden="true">잇</span>
+            <span class="e-avatar e-avatar-sm" style="background:var(--ink-800)" aria-hidden="true">잇</span>
             <span class="hidden md:block text-sm font-bold text-[var(--ink-800)]" id="headerNickname">잇티식당</span>
             <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
@@ -181,8 +181,8 @@
     <!-- ==================== 매장 헤더 ==================== -->
     <section class="e-card overflow-hidden mb-6">
       <div class="grid md:grid-cols-[240px_1fr]">
-        <!-- 대표 이미지 — 사진 관리 탭에서 지정한 대표 이미지를 실제로 보여준다(2026-08-06) -->
-        <div class="e-img-ph h-40 md:h-full min-h-[160px] relative" id="shopMainImageBox">
+        <!-- 대표 이미지 -->
+        <div class="e-img-ph h-40 md:h-full min-h-[160px] relative">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
           <span class="e-img-ph-label">대표 이미지</span>
         </div>
@@ -191,6 +191,10 @@
           <div class="flex flex-wrap items-start gap-3">
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
+                <span class="e-badge e-badge--success e-badge-lg" id="shopStatusBadge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                  승인 완료
+                </span>
                 <span class="e-status e-status--on e-status--live" id="shopOpenStatus">영업중</span>
               </div>
 
@@ -211,9 +215,6 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                 고객 화면으로 보기
               </a>
-              <!-- 회원가입 시 매장 자동귀속이 모호(0개/여러 개)했던 계정을 위한 수동 연결 버튼(2026-08-07 추가) —
-                   연결된 매장이 없을 때만 보인다(business-mypage.js updateShopHeader). -->
-              <button type="button" class="btn btn-primary btn-sm" id="claimRestaurantBtn" hidden>매장 연결하기</button>
               <label class="e-switch justify-end" for="toggleOpenSwitch">
                 <span class="text-[13px] font-bold text-[var(--ink-700)]">임시 휴업</span>
                 <input type="checkbox" id="toggleOpenSwitch">
@@ -237,13 +238,31 @@
     </section>
 
     <!-- ==================== 통계 ==================== -->
-    <!-- "이번 달 조회수"는 조회수를 기록하는 곳이 없어 뺐다(지어낸 수치 금지, 2026-08-06). -->
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" aria-label="매장 통계">
+    <section class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6" aria-label="매장 통계">
+      <div class="e-card e-stat">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <p class="e-stat-label">이번 달 조회</p>
+            <p class="e-stat-value" id="statViewCount">3,482</p>
+          </div>
+          <span class="e-stat-ico e-stat-ico--info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+        <p class="e-stat-sub">
+          <span class="e-trend e-trend--up">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+            12.4%
+          </span>
+          지난달 대비
+        </p>
+      </div>
+
       <div class="e-card e-stat">
         <div class="flex items-start justify-between gap-2">
           <div>
             <p class="e-stat-label">총 리뷰</p>
-            <p class="e-stat-value" id="statReviewCount">-</p>
+            <p class="e-stat-value" id="statReviewCount">216</p>
           </div>
           <span class="e-stat-ico e-stat-ico--brand">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
@@ -256,34 +275,36 @@
         <div class="flex items-start justify-between gap-2">
           <div>
             <p class="e-stat-label">평균 별점</p>
-            <p class="e-stat-value" id="statAvgRating">-</p>
+            <p class="e-stat-value" id="statAvgRating">4.5</p>
           </div>
           <span class="e-stat-ico e-stat-ico--warning">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
           </span>
         </div>
+        <p class="e-stat-sub">동일 카테고리 상위 <b>18%</b></p>
       </div>
 
       <div class="e-card e-stat">
         <div class="flex items-start justify-between gap-2">
           <div>
             <p class="e-stat-label">즐겨찾기</p>
-            <p class="e-stat-value" id="statFavoriteCount">-</p>
+            <p class="e-stat-value" id="statFavoriteCount">642</p>
           </div>
           <span class="e-stat-ico e-stat-ico--danger">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 0 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1Z"/></svg>
           </span>
         </div>
+        <p class="e-stat-sub">이번 주 <b class="t-num">+28</b></p>
       </div>
 
-      <div class="e-card e-stat">
+      <div class="e-card e-stat col-span-2 lg:col-span-1">
         <div class="flex items-start justify-between gap-2">
           <div>
             <p class="e-stat-label">이번 달 방문 인증</p>
-            <p class="e-stat-value" id="statVisitCert">-</p>
+            <p class="e-stat-value" id="statVisitCert">216</p>
           </div>
           <span class="e-stat-ico e-stat-ico--success">
-            <svg viewBox="0 0 384 512" fill="currentColor"><path d="M14 2.2C22.5-1.7 32.5-.3 39.6 5.8L80 40.4 120.4 5.8c9-7.7 22.3-7.7 31.2 0L192 40.4 232.4 5.8c9-7.7 22.3-7.7 31.2 0L304 40.4 344.4 5.8c7.1-6.1 17.1-7.5 25.6-3.6s14 12.4 14 21.8l0 464c0 9.4-5.5 17.9-14 21.8s-18.5 2.5-25.6-3.6L304 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L192 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L80 471.6 39.6 506.2c-7.1 6.1-17.1 7.5-25.6 3.6S0 497.4 0 488L0 24C0 14.6 5.5 6.1 14 2.2zM96 144c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 144zM80 352c0 8.8 7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 336c-8.8 0-16 7.2-16 16zM96 240c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 240z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6"/></svg>
           </span>
         </div>
         <p class="e-stat-sub">영수증 OCR 기준</p>
@@ -295,14 +316,14 @@
       <div class="px-5 md:px-6 pt-1">
         <div class="e-tabs" role="tablist" aria-label="매장 관리 탭">
           <button type="button" class="e-tab" data-tab-target="bizTabReviews" role="tab" aria-selected="true">
-            리뷰 반응 <span class="e-tab-count" id="bizReviewTabCount">-</span>
+            리뷰 반응 <span class="e-tab-count">216</span>
           </button>
           <button type="button" class="e-tab" data-tab-target="bizTabInfo" role="tab" aria-selected="false">매장 정보</button>
           <button type="button" class="e-tab" data-tab-target="bizTabMenu" role="tab" aria-selected="false">
-            메뉴 <span class="e-tab-count" id="bizMenuTabCount">-</span>
+            메뉴 <span class="e-tab-count">12</span>
           </button>
           <button type="button" class="e-tab" data-tab-target="bizTabPhoto" role="tab" aria-selected="false">
-            사진 <span class="e-tab-count" id="bizPhotoTabCount">-</span>
+            사진 <span class="e-tab-count">8</span>
           </button>
         </div>
       </div>
@@ -328,12 +349,12 @@
               <div class="flex items-center gap-4 mb-5">
                 <div class="flex-1">
                   <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-[13px] font-extrabold text-[var(--brand-600)]">긍정 <span id="tagRatioPositive">0</span>%</span>
-                    <span class="text-[13px] font-extrabold text-[var(--ink-500)]">부정 <span id="tagRatioNegative">0</span>%</span>
+                    <span class="text-[13px] font-extrabold text-[var(--brand-600)]">긍정 <span id="tagRatioPositive">78</span>%</span>
+                    <span class="text-[13px] font-extrabold text-[var(--ink-500)]">부정 <span id="tagRatioNegative">22</span>%</span>
                   </div>
                   <div class="h-3 rounded-full overflow-hidden flex" style="background:var(--ink-100)">
-                    <span id="ratioBarPositive" style="width:0%;background:var(--brand-grad)"></span>
-                    <span id="ratioBarNegative" style="width:0%;background:var(--ink-300)"></span>
+                    <span style="width:78%;background:var(--brand-grad)"></span>
+                    <span style="width:22%;background:var(--ink-300)"></span>
                   </div>
                 </div>
               </div>
@@ -342,13 +363,79 @@
                 <!-- 긍정 태그 -->
                 <div id="positiveTagChart">
                   <p class="text-[12.5px] font-extrabold text-[var(--brand-600)] mb-3">많이 받은 긍정 태그</p>
-                  <div class="space-y-2.5" id="positiveTagList"></div>
+                  <div class="space-y-2.5">
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="t-xs font-bold text-[var(--ink-700)]">맛이 좋아요</span>
+                        <span class="t-xs t-num">142</span>
+                      </div>
+                      <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:88%"></div></div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="t-xs font-bold text-[var(--ink-700)]">친절해요</span>
+                        <span class="t-xs t-num">118</span>
+                      </div>
+                      <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:73%"></div></div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="t-xs font-bold text-[var(--ink-700)]">청결해요</span>
+                        <span class="t-xs t-num">96</span>
+                      </div>
+                      <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:59%"></div></div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="t-xs font-bold text-[var(--ink-700)]">재방문 의사</span>
+                        <span class="t-xs t-num">81</span>
+                      </div>
+                      <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:50%"></div></div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- 부정 태그 -->
                 <div id="negativeTagChart">
                   <p class="text-[12.5px] font-extrabold text-[var(--ink-600)] mb-3">개선이 필요한 태그</p>
-                  <div class="space-y-2.5" id="negativeTagList"></div>
+                  <div class="space-y-2.5">
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="t-xs font-bold text-[var(--ink-700)]">웨이팅 길어요</span>
+                        <span class="t-xs t-num">47</span>
+                      </div>
+                      <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:64%;background:var(--ink-400)"></div></div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="t-xs font-bold text-[var(--ink-700)]">시끄러워요</span>
+                        <span class="t-xs t-num">29</span>
+                      </div>
+                      <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:40%;background:var(--ink-400)"></div></div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="t-xs font-bold text-[var(--ink-700)]">주차 불편해요</span>
+                        <span class="t-xs t-num">21</span>
+                      </div>
+                      <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:29%;background:var(--ink-400)"></div></div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="t-xs font-bold text-[var(--ink-700)]">가격이 비싸요</span>
+                        <span class="t-xs t-num">14</span>
+                      </div>
+                      <div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:19%;background:var(--ink-400)"></div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="e-alert e-alert--brand mt-5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <div>
+                  <p class="e-alert-title">"웨이팅 길어요" 태그가 지난달보다 18% 늘었어요</p>
+                  <p>예약 안내나 대기 순번 공지를 매장 소개에 추가해보세요.</p>
                 </div>
               </div>
             </div>
@@ -358,10 +445,67 @@
               <h2 class="t-h4 mb-1">최근 리뷰</h2>
               <p class="t-sm mb-5">사업자는 리뷰를 수정·삭제할 수 없습니다. 부적절한 리뷰는 신고해주세요.</p>
 
-              <ul class="space-y-4" id="bizReviewList"></ul>
-              <p class="t-sm text-center py-6" id="bizReviewEmpty" hidden>아직 등록된 리뷰가 없습니다.</p>
+              <ul class="space-y-4" id="bizReviewList">
+                <li class="pb-4 border-b border-[var(--line-soft)]">
+                  <div class="flex items-center gap-2.5">
+                    <span class="e-avatar e-avatar-sm" aria-hidden="true">매</span>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-[13.5px] font-bold text-[var(--ink-900)]">매콤한김밥</p>
+                      <div class="flex items-center gap-2">
+                        <span class="e-rating">
+                          <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                          <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                          <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                          <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                          <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                        </span>
+                        <span class="t-xs t-num">2026-07-29</span>
+                        <span class="e-badge e-badge--success">영수증 인증</span>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-xs flex-none" data-report-review data-modal-open="bizReportModal">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
+                      신고
+                    </button>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5 mt-3">
+                    <span class="e-tag e-tag--pos">맛이 좋아요</span>
+                    <span class="e-tag e-tag--pos">친절해요</span>
+                  </div>
+                  <p class="t-sm mt-2.5 leading-relaxed">직원분들이 정말 친절하셨어요. 반찬 리필도 흔쾌히 해주셨습니다.</p>
+                </li>
 
-              <button type="button" class="btn btn-outline btn-sm btn-block mt-5" id="bizReviewLoadMoreBtn" hidden>리뷰 더 보기</button>
+                <li class="pb-4 border-b border-[var(--line-soft)]">
+                  <div class="flex items-center gap-2.5">
+                    <span class="e-avatar e-avatar-sm e-avatar--gray" aria-hidden="true">한</span>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-[13.5px] font-bold text-[var(--ink-900)]">한우사랑</p>
+                      <div class="flex items-center gap-2">
+                        <span class="e-rating">
+                          <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                          <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                          <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                          <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                          <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                        </span>
+                        <span class="t-xs t-num">2026-07-27</span>
+                        <span class="e-badge e-badge--success">영수증 인증</span>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-xs flex-none" data-report-review data-modal-open="bizReportModal">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
+                      신고
+                    </button>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5 mt-3">
+                    <span class="e-tag e-tag--pos">맛이 좋아요</span>
+                    <span class="e-tag e-tag--neg">웨이팅 길어요</span>
+                  </div>
+                  <p class="t-sm mt-2.5 leading-relaxed">맛은 좋았지만 저녁 7시에 40분 정도 기다렸어요. 예약이 가능하면 좋겠습니다.</p>
+                </li>
+              </ul>
+
+              <button type="button" class="btn btn-outline btn-sm btn-block mt-5" data-demo-toast="다음 리뷰를 불러왔습니다.">리뷰 더 보기</button>
             </div>
           </div>
 
@@ -371,12 +515,60 @@
               <h2 class="t-h4 mb-4">별점 분포</h2>
 
               <div class="text-center pb-5 mb-5 border-b border-[var(--line)]">
-                <p class="text-[42px] font-extrabold t-grad leading-none t-num" id="ratingSummaryAvg">-</p>
-                <span class="e-rating e-rating-lg mt-2" id="ratingSummaryStars"></span>
-                <p class="t-xs mt-2">총 <b class="t-num" id="ratingSummaryCount">0</b>개 리뷰</p>
+                <p class="text-[42px] font-extrabold t-grad leading-none t-num">4.5</p>
+                <span class="e-rating e-rating-lg mt-2">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                </span>
+                <p class="t-xs mt-2">총 <b class="t-num">216</b>개 리뷰</p>
               </div>
 
-              <div class="space-y-2.5" id="ratingDistList"></div>
+              <div class="space-y-2.5" id="ratingDistList">
+                <div class="flex items-center gap-2.5">
+                  <span class="t-xs font-bold w-7 flex-none">5점</span>
+                  <div class="e-progress e-progress-sm flex-1"><div class="e-progress-bar" style="width:62%"></div></div>
+                  <span class="t-xs t-num w-9 text-right flex-none">134</span>
+                </div>
+                <div class="flex items-center gap-2.5">
+                  <span class="t-xs font-bold w-7 flex-none">4점</span>
+                  <div class="e-progress e-progress-sm flex-1"><div class="e-progress-bar" style="width:24%"></div></div>
+                  <span class="t-xs t-num w-9 text-right flex-none">52</span>
+                </div>
+                <div class="flex items-center gap-2.5">
+                  <span class="t-xs font-bold w-7 flex-none">3점</span>
+                  <div class="e-progress e-progress-sm flex-1"><div class="e-progress-bar" style="width:9%"></div></div>
+                  <span class="t-xs t-num w-9 text-right flex-none">19</span>
+                </div>
+                <div class="flex items-center gap-2.5">
+                  <span class="t-xs font-bold w-7 flex-none">2점</span>
+                  <div class="e-progress e-progress-sm flex-1"><div class="e-progress-bar" style="width:4%;background:var(--ink-300)"></div></div>
+                  <span class="t-xs t-num w-9 text-right flex-none">8</span>
+                </div>
+                <div class="flex items-center gap-2.5">
+                  <span class="t-xs font-bold w-7 flex-none">1점</span>
+                  <div class="e-progress e-progress-sm flex-1"><div class="e-progress-bar" style="width:1%;background:var(--ink-300)"></div></div>
+                  <span class="t-xs t-num w-9 text-right flex-none">3</span>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-5 border-t border-[var(--line)]">
+                <p class="text-[12.5px] font-extrabold text-[var(--ink-900)] mb-2.5">방문 시간대 분포</p>
+                <div class="flex items-end gap-1.5 h-20">
+                  <span class="flex-1 rounded-t-[4px]" style="height:22%;background:var(--brand-200)"></span>
+                  <span class="flex-1 rounded-t-[4px]" style="height:58%;background:var(--brand-300)"></span>
+                  <span class="flex-1 rounded-t-[4px]" style="height:82%;background:var(--brand-500)"></span>
+                  <span class="flex-1 rounded-t-[4px]" style="height:34%;background:var(--brand-200)"></span>
+                  <span class="flex-1 rounded-t-[4px]" style="height:46%;background:var(--brand-300)"></span>
+                  <span class="flex-1 rounded-t-[4px]" style="height:100%;background:var(--brand-500)"></span>
+                  <span class="flex-1 rounded-t-[4px]" style="height:64%;background:var(--brand-300)"></span>
+                </div>
+                <div class="flex justify-between t-xs mt-2">
+                  <span>11시</span><span>14시</span><span>17시</span><span>21시</span>
+                </div>
+              </div>
             </div>
           </aside>
         </div>
@@ -426,7 +618,7 @@
 
               <div class="e-field">
                 <label class="e-label" for="bizShopPhone">매장 전화번호 <span class="req">*</span></label>
-                <input type="tel" class="e-input t-num" id="bizShopPhone" name="shopPhone" inputmode="numeric" required>
+                <input type="tel" class="e-input t-num" id="bizShopPhone" name="shopPhone" value="0212345678" inputmode="numeric" required>
               </div>
 
               <div class="e-field">
@@ -447,12 +639,21 @@
                 <input type="text" class="e-input" id="bizAddress2" name="address2" value="2층">
               </div>
 
-              <!-- 네이버 지도 — 주소 검색(도로명주소 팝업) 후 실좌표로 마커 표시(2026-08-06 실구현) -->
+              <!-- ★ 네이버 지도 삽입 영역 -->
               <div class="rounded-[var(--r-md)] overflow-hidden border border-[var(--line)]">
-                <div class="h-[220px]" id="bizMapArea"></div>
+                <div class="e-map h-[220px]" id="bizMapArea">
+                  <div class="e-map-note !text-[12px]">
+                    네이버 지도 삽입 영역
+                    <span>#bizMapArea · 핀 위치 조정</span>
+                  </div>
+                  <div class="e-marker is-active" style="left:50%;top:50%">
+                    <div class="e-marker-pin">
+                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
+                      내 매장
+                    </div>
+                  </div>
+                </div>
               </div>
-              <input type="hidden" id="bizShopLat" name="latitude">
-              <input type="hidden" id="bizShopLng" name="longitude">
             </div>
 
             <!-- 영업 정보 -->
@@ -463,18 +664,23 @@
               <div class="e-form-grid e-form-grid-2">
                 <div class="e-field">
                   <label class="e-label" for="bizOpenTime">영업 시작</label>
-                  <input type="time" class="e-input" id="bizOpenTime" name="openTime">
+                  <input type="time" class="e-input" id="bizOpenTime" name="openTime" value="11:00">
                 </div>
                 <div class="e-field">
                   <label class="e-label" for="bizCloseTime">영업 종료</label>
-                  <input type="time" class="e-input" id="bizCloseTime" name="closeTime">
+                  <input type="time" class="e-input" id="bizCloseTime" name="closeTime" value="22:00">
                 </div>
+              </div>
+
+              <div class="e-field">
+                <label class="e-label" for="bizBreakTime">브레이크타임</label>
+                <input type="text" class="e-input" id="bizBreakTime" name="breakTime" value="15:00 ~ 17:00" placeholder="예) 15:00 ~ 17:00">
               </div>
 
               <div class="e-field">
                 <span class="e-label">정기 휴무일</span>
                 <div class="flex flex-wrap gap-2">
-                  <label class="e-chip-check"><input type="checkbox" name="holiday" value="MON"><span class="e-chip e-chip-sm">월</span></label>
+                  <label class="e-chip-check"><input type="checkbox" name="holiday" value="MON" checked><span class="e-chip e-chip-sm">월</span></label>
                   <label class="e-chip-check"><input type="checkbox" name="holiday" value="TUE"><span class="e-chip e-chip-sm">화</span></label>
                   <label class="e-chip-check"><input type="checkbox" name="holiday" value="WED"><span class="e-chip e-chip-sm">수</span></label>
                   <label class="e-chip-check"><input type="checkbox" name="holiday" value="THU"><span class="e-chip e-chip-sm">목</span></label>
@@ -506,12 +712,18 @@
                 <textarea class="e-textarea !min-h-[140px]" id="bizIntro" name="intro" maxlength="500">30년 전통 한우 갈비탕 전문점입니다. 매일 아침 직접 고른 국내산 재료만 사용합니다. 점심시간(12~13시)에는 대기가 있을 수 있습니다.</textarea>
               </div>
 
+              <div class="e-alert e-alert--info">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <div>
+                  <p>매장명과 주소를 변경하면 운영팀 재검토가 진행됩니다. 검토 중에는 기존 정보가 노출됩니다.</p>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="flex flex-col sm:flex-row gap-3 mt-7 pt-6 border-t border-[var(--line)]">
             <button type="reset" class="btn btn-outline sm:w-40">변경 취소</button>
-            <button type="submit" class="btn btn-primary w-full sm:flex-1" id="bizInfoSaveBtn">매장 정보 저장</button>
+            <button type="submit" class="btn btn-primary flex-1" id="bizInfoSaveBtn">매장 정보 저장</button>
           </div>
         </form>
       </div>
@@ -531,17 +743,76 @@
           </div>
         </div>
 
-        <ul class="space-y-2.5" id="menuList"></ul>
-        <p class="t-sm text-center py-6" id="menuEmpty" hidden>등록된 메뉴가 없습니다.</p>
+        <ul class="space-y-2.5" id="menuList">
+          <li class="e-file-item" data-menu-id="1">
+            <span class="w-14 h-14 rounded-[10px] e-img-ph flex-none">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <p class="text-sm font-extrabold text-[var(--ink-900)]">한우 갈비탕</p>
+                <span class="e-badge e-badge--brand-solid flex-none">시그니처</span>
+              </div>
+              <p class="t-xs mt-1">국내산 한우 갈비 사용 · 24시간 우린 육수</p>
+            </div>
+            <span class="text-sm font-extrabold text-[var(--ink-900)] t-num flex-none">15,000원</span>
+            <div class="flex gap-1 flex-none">
+              <button type="button" class="e-icon-btn !w-8 !h-8" data-edit-menu data-modal-open="menuModal" aria-label="메뉴 수정">
+                <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.5a2.1 2.1 0 0 1 3 3L7.5 14.2l-3.8 1 1-3.8 7.5-7.9Z"/><path d="M20 21H4"/></svg>
+              </button>
+              <button type="button" class="e-icon-btn !w-8 !h-8 hover:!text-[var(--danger)]" data-delete-menu aria-label="메뉴 삭제">
+                <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>
+              </button>
+            </div>
+          </li>
+
+          <li class="e-file-item" data-menu-id="2">
+            <span class="w-14 h-14 rounded-[10px] e-img-ph flex-none">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]">불고기 정식</p>
+              <p class="t-xs mt-1">반찬 6종 포함</p>
+            </div>
+            <span class="text-sm font-extrabold text-[var(--ink-900)] t-num flex-none">13,000원</span>
+            <div class="flex gap-1 flex-none">
+              <button type="button" class="e-icon-btn !w-8 !h-8" data-edit-menu data-modal-open="menuModal" aria-label="메뉴 수정">
+                <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.5a2.1 2.1 0 0 1 3 3L7.5 14.2l-3.8 1 1-3.8 7.5-7.9Z"/><path d="M20 21H4"/></svg>
+              </button>
+              <button type="button" class="e-icon-btn !w-8 !h-8 hover:!text-[var(--danger)]" data-delete-menu aria-label="메뉴 삭제">
+                <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>
+              </button>
+            </div>
+          </li>
+
+          <li class="e-file-item" data-menu-id="3">
+            <span class="w-14 h-14 rounded-[10px] e-img-ph flex-none">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]">냉면</p>
+              <p class="t-xs mt-1">여름 한정 메뉴</p>
+            </div>
+            <span class="text-sm font-extrabold text-[var(--ink-900)] t-num flex-none">9,000원</span>
+            <div class="flex gap-1 flex-none">
+              <button type="button" class="e-icon-btn !w-8 !h-8" data-edit-menu data-modal-open="menuModal" aria-label="메뉴 수정">
+                <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.5a2.1 2.1 0 0 1 3 3L7.5 14.2l-3.8 1 1-3.8 7.5-7.9Z"/><path d="M20 21H4"/></svg>
+              </button>
+              <button type="button" class="e-icon-btn !w-8 !h-8 hover:!text-[var(--danger)]" data-delete-menu aria-label="메뉴 삭제">
+                <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>
+              </button>
+            </div>
+          </li>
+        </ul>
       </div>
 
       <!-- ============ 탭 4: 사진 관리 ============ -->
       <div class="p-5 md:p-6" id="bizTabPhoto" data-tab-panel hidden>
         <h2 class="t-h4 mb-1">사진 관리</h2>
-        <p class="t-sm mb-5">대표 이미지는 검색 결과와 상세 화면 상단에 사용됩니다. 최대 4장.</p>
+        <p class="t-sm mb-5">대표 이미지는 검색 결과와 상세 화면 상단에 사용됩니다. 최대 10장.</p>
 
         <div class="e-dropzone !py-8 mb-5" id="photoDrop" data-dropzone data-dropzone-filename="photoFileName">
-          <input type="file" id="photoInput" name="shopPhotos" accept="image/png,image/jpeg,image/webp" aria-label="매장 사진 업로드">
+          <input type="file" id="photoInput" name="shopPhotos" accept="image/png,image/jpeg,image/webp" multiple aria-label="매장 사진 업로드">
           <div class="e-dropzone-icon !w-12 !h-12 !mb-3">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5L5 20"/>
@@ -551,7 +822,39 @@
           <p class="t-xs mt-2" id="photoFileName">JPG · PNG · WEBP / 장당 5MB 이하</p>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="photoGrid"></div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="photoGrid">
+          <div class="relative e-ratio-4-3 rounded-[var(--r-md)] overflow-hidden e-img-ph group" data-photo-id="1">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            <span class="absolute left-2 top-2 e-badge e-badge--brand-solid !text-[10px] !px-2 !py-0.5">대표</span>
+            <button type="button" class="absolute right-2 top-2 w-7 h-7 rounded-full bg-black/50 text-white grid place-items-center" data-delete-photo aria-label="사진 삭제">
+              <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <div class="relative e-ratio-4-3 rounded-[var(--r-md)] overflow-hidden e-img-ph" data-photo-id="2">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            <button type="button" class="absolute left-2 top-2 btn btn-white btn-xs" data-set-main-photo>대표로</button>
+            <button type="button" class="absolute right-2 top-2 w-7 h-7 rounded-full bg-black/50 text-white grid place-items-center" data-delete-photo aria-label="사진 삭제">
+              <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <div class="relative e-ratio-4-3 rounded-[var(--r-md)] overflow-hidden e-img-ph" data-photo-id="3">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            <button type="button" class="absolute left-2 top-2 btn btn-white btn-xs" data-set-main-photo>대표로</button>
+            <button type="button" class="absolute right-2 top-2 w-7 h-7 rounded-full bg-black/50 text-white grid place-items-center" data-delete-photo aria-label="사진 삭제">
+              <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <div class="relative e-ratio-4-3 rounded-[var(--r-md)] overflow-hidden e-img-ph" data-photo-id="4">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            <button type="button" class="absolute left-2 top-2 btn btn-white btn-xs" data-set-main-photo>대표로</button>
+            <button type="button" class="absolute right-2 top-2 w-7 h-7 rounded-full bg-black/50 text-white grid place-items-center" data-delete-photo aria-label="사진 삭제">
+              <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -682,7 +985,87 @@
 </nav>
 
 
+<script>
+/* ---------------------------------------------------------------------------
+   business-mypage 시안 데모 스크립트 — 실제 연동 시 business-mypage.js 로 대체
+   --------------------------------------------------------------------------- */
+(function () {
+  /* 임시 휴업 토글 */
+  var openSwitch = document.getElementById('toggleOpenSwitch');
+  openSwitch.addEventListener('change', function () {
+    var status = document.getElementById('shopOpenStatus');
+    if (openSwitch.checked) {
+      status.className = 'e-status e-status--off';
+      status.textContent = '임시 휴업';
+      Eatty.toast('임시 휴업으로 전환했습니다. 고객 화면에 표시됩니다.', 'default');
+    } else {
+      status.className = 'e-status e-status--on e-status--live';
+      status.textContent = '영업중';
+      Eatty.toast('영업중으로 전환했습니다.', 'success');
+    }
+  });
 
+  /* 주소 검색 */
+  document.getElementById('bizSearchAddressBtn').addEventListener('click', function () {
+    /* ★ 실제로는 카카오/다음 주소 API 팝업 */
+    Eatty.toast('주소 검색 팝업을 엽니다.');
+  });
 
+  /* 매장 정보 저장 */
+  document.getElementById('bizInfoForm').addEventListener('submit', function (e) {
+    e.preventDefault();  /* ★ PATCH /api/business/me/shop */
+    Eatty.toast('매장 정보를 저장했습니다.', 'success');
+  });
+
+  /* 메뉴 추가 / 수정 모달 제목 전환 */
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('#addMenuBtn')) {
+      document.getElementById('menuModalTitle').textContent = '메뉴 추가';
+      document.getElementById('menuNameInput').value = '';
+      document.getElementById('menuPriceInput').value = '';
+      document.getElementById('menuDescInput').value = '';
+      return;
+    }
+    var editBtn = e.target.closest('[data-edit-menu]');
+    if (editBtn) {
+      var item = editBtn.closest('[data-menu-id]');
+      document.getElementById('menuModalTitle').textContent = '메뉴 수정';
+      document.getElementById('menuNameInput').value = item.querySelector('p.text-sm').textContent.trim();
+      document.getElementById('menuPriceInput').value = item.querySelector('span.t-num').textContent.replace('원', '').trim();
+    }
+  });
+
+  document.getElementById('menuSaveBtn').addEventListener('click', function () {
+    if (!document.getElementById('menuNameInput').value.trim()) {
+      Eatty.toast('메뉴명을 입력해주세요.', 'error');
+      return;
+    }
+    Eatty.closeModal('menuModal');
+    Eatty.toast('메뉴를 저장했습니다.', 'success');
+  });
+
+  /* 메뉴 삭제 */
+  document.getElementById('menuList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-delete-menu]');
+    if (!b) return;
+    b.closest('[data-menu-id]').remove();   /* ★ DELETE /api/business/me/menus/{id} */
+    Eatty.toast('메뉴를 삭제했습니다.');
+  });
+
+  /* 사진 대표 지정 / 삭제 */
+  document.getElementById('photoGrid').addEventListener('click', function (e) {
+    var mainBtn = e.target.closest('[data-set-main-photo]');
+    if (mainBtn) {
+      Eatty.toast('대표 이미지로 변경했습니다.', 'success');
+      return;
+    }
+    var delBtn = e.target.closest('[data-delete-photo]');
+    if (delBtn) {
+      delBtn.closest('[data-photo-id]').remove();
+      Eatty.toast('사진을 삭제했습니다.');
+    }
+  });
+})();
+</script>
 </body>
 </html>
