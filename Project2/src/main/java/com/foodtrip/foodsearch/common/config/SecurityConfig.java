@@ -37,6 +37,10 @@ public class SecurityConfig {
                                                      ObjectMapper objectMapper) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                // 기본값(DENY)은 같은 출처(same-origin) iframe도 막아버려서, signup-info.html의
+                // "음식 취향 찾기" 팝업이 taste-quiz.html을 iframe으로 띄우지 못하는 원인이 됐다(2026-08-04).
+                // SAMEORIGIN으로 완화하되 다른 사이트에서의 클릭재킹 방지는 그대로 유지한다.
+                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

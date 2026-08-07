@@ -1,5 +1,7 @@
 package com.foodtrip.foodsearch.mail.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -13,6 +15,8 @@ import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class MailService {
+
+    private static final Logger log = LoggerFactory.getLogger(MailService.class);
 
     private final JavaMailSender mailSender;
 
@@ -35,7 +39,8 @@ public class MailService {
             helper.setText(buildHtml(code), true);
             mailSender.send(mimeMessage);
         } catch (MailException | jakarta.mail.MessagingException e) {
-            throw new CustomException(ErrorCode.MAIL_SEND_FAIL, "메일 발송에 실패했습니다: " + e.getMessage());
+            log.error("메일 발송 실패 (to={})", toEmail, e);
+            throw new CustomException(ErrorCode.MAIL_SEND_FAIL);
         }
     }
 
@@ -49,7 +54,8 @@ public class MailService {
             helper.setText(buildResetHtml(resetUrl), true);
             mailSender.send(mimeMessage);
         } catch (MailException | jakarta.mail.MessagingException e) {
-            throw new CustomException(ErrorCode.MAIL_SEND_FAIL, "메일 발송에 실패했습니다: " + e.getMessage());
+            log.error("메일 발송 실패 (to={})", toEmail, e);
+            throw new CustomException(ErrorCode.MAIL_SEND_FAIL);
         }
     }
 

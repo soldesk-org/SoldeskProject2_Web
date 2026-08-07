@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>매장 검색</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+</head>
+<body class="p-5">
+
+<!--
+================================================================================
+ store-search-popup — 매장 검색 전용 팝업(2026-08-07 신규)
+--------------------------------------------------------------------------------
+ signup-business.html / signup-business-info.html / business-mypage.html이
+ window.open()으로 이 페이지를 별도 브라우저 창으로 띄운다(주소 검색 Juso 팝업과 같은 패턴).
+ 사용자가 결과를 고르면 window.opener.eattyStoreSearchCallback(item)을 호출하고 창을 닫는다 —
+ opener 쪽이 그 콜백 함수를 미리 정의해둬야 한다(item = {restaurantId, name, category, address,
+ roadAddress, ...}, GET /api/restaurants/search 응답의 restaurants[] 항목 그대로).
+================================================================================
+-->
+
+<h1 class="text-lg font-extrabold text-[var(--ink-900)] mb-1">매장 검색</h1>
+<p class="t-xs mb-4">가게명을 입력하면 매장 목록이 나옵니다.</p>
+
+<div class="e-input-row mb-4">
+  <input type="text" class="e-input" id="storeSearchInput" placeholder="가게명을 입력하세요 (예: 스타벅스 강남점)" autofocus>
+  <button type="button" class="btn btn-primary flex-none" id="storeSearchBtn">검색</button>
+</div>
+
+<div id="storeSearchResults" class="flex flex-col gap-2"></div>
+<p class="t-xs mt-2" id="storeSearchEmpty" hidden>검색 결과가 없습니다. 다른 이름으로 검색해보세요.</p>
+
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/store-search-popup.js"></script>
+</body>
+</html>

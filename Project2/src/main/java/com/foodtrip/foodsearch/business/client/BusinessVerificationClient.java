@@ -88,8 +88,20 @@ public class BusinessVerificationClient {
                 String.valueOf(extracted.get("business_number")),
                 String.valueOf(extracted.get("company_name")),
                 String.valueOf(extracted.get("representative_name")),
-                address
+                address,
+                formatOpenDate(extracted.get("start_date"))
         );
+    }
+
+    // Python 쪽 OCR 추출 스키마는 개업일을 "YYYYMMDD" 8자리로 준다(business_auth.py _EXTRACTION_PROMPT
+    // 참고) — 화면에 그대로 붙여넣기 편하게 "YYYY-MM-DD"로 변환한다(2026-08-04 추가, 이전에는 이 필드
+    // 자체를 읽지 않고 버리고 있었음).
+    private String formatOpenDate(Object rawStartDate) {
+        String v = rawStartDate != null ? String.valueOf(rawStartDate) : "";
+        if (v.length() != 8 || !v.chars().allMatch(Character::isDigit)) {
+            return "";
+        }
+        return v.substring(0, 4) + "-" + v.substring(4, 6) + "-" + v.substring(6, 8);
     }
 
     private String extractErrorMessage(RestClientResponseException e) {

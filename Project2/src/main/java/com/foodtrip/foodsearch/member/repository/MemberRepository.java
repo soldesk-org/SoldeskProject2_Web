@@ -54,4 +54,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             + "AND m.memberId NOT IN (SELECT mc.memberId FROM MemberCredential mc) "
             + "AND m.memberId NOT IN (SELECT sa.memberId FROM SocialAccount sa)")
     List<Long> findUnverifiedMemberIdsCreatedBefore(@Param("cutoff") LocalDateTime cutoff);
+
+    // 관리자 공지 발송(2026-08-06 추가) — 활성 회원 전체에게 알림 행을 하나씩 만들기 위한 대상 조회.
+    @Query("SELECT m.memberId FROM Member m WHERE m.status = :status")
+    List<Long> findMemberIdsByStatus(@Param("status") String status);
 }

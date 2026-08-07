@@ -38,6 +38,13 @@ public class BusinessSignUpRequestDto {
     @Pattern(regexp = "^010-\\d{4}-\\d{4}$", message = "전화번호는 010-XXXX-XXXX 형식이어야 합니다.")
     private String phone;
 
+    // 매장 자동귀속용 가게명(2026-08-07 필수 입력 추가) — 프론트의 "매장 검색" 팝업(카카오 실시간
+    // 키워드 검색)에서 고른 정확한 상호명이 들어온다. 사업장 주소만으로는 같은 주소에 여러 상호가 있는
+    // 경우(예: 1층 A카페/2층 B카페) 구분이 안 되는 문제를 해결하기 위함(RestaurantClaimServiceImpl 참고).
+    @NotBlank(message = "가게명은 필수입니다.")
+    @Size(max = 100, message = "가게명은 최대 100자입니다.")
+    private String storeName;
+
     public String getEmail() {
         return email;
     }
@@ -76,5 +83,13 @@ public class BusinessSignUpRequestDto {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getStoreName() {
+        return storeName;
+    }
+
+    public void setStoreName(String storeName) {
+        this.storeName = storeName;
     }
 }

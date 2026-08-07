@@ -21,4 +21,7 @@ public interface AdminService {
     List<AdminReviewResponseDto> listReviews();
 
     AdminActionResponseDto deleteReview(Long reviewId);
+
+    // 관리자 공지 발송(2026-08-06 추가) — 활성 회원 전체에게 알림 벨로 공지를 뿌린다.
+    AdminActionResponseDto broadcastNotification(String title, String body);
 }

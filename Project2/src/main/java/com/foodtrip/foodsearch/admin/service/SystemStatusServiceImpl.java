@@ -9,31 +9,41 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
 
 import com.foodtrip.foodsearch.admin.dto.SystemStatusItemDto;
+import com.foodtrip.foodsearch.common.sms.PpurioSmsService;
+import com.foodtrip.foodsearch.restaurant.client.KakaoLocalSearchClient;
 
 // 14(관리자-권한) 2차 — "현재 API 상태들 실시간으로 모니터링" 요청으로 추가. admin-test.html이 이 API를
 // 주기적으로 폴링해서(5초 간격) 화면을 갱신한다 — 서버가 클라이언트에 push하는 진짜 실시간(WebSocket 등)은
 // 아니고, 이 프로젝트에 이미 있는 "폴링" 패턴(예: 07 지도 검색 등)과 같은 방식이다. 이 서비스 자체는
 // AdminServiceImpl과 마찬가지로 컨트롤러 단에서 이미 ADMIN 권한이 확인된 뒤 호출된다.
+//
+// 2026-08-06 개편 — 카카오/메일/SMS도 "설정값 존재 여부만" 확인하던 것을 실제 연결까지 확인하도록 바꿨다.
+// 다만 5초마다 폴링되므로 매번 실제로 호출하면 카카오 쿼터를 낭비하거나(호출 자체는 과금/쿼터가 드는 건
+// 아니지만 불필요하게 자주 때릴 이유가 없음) SMS 토큰을 불필요하게 재발급하게 된다 — 그래서 이 세 항목은
+// CACHE_TTL(60초) 동안 결과를 캐싱해두고, 그 안에 다시 폴링되면 캐시된 결과를 그대로 돌려준다.
 @Service
 public class SystemStatusServiceImpl implements SystemStatusService {
 
-    // DB/Redis처럼 순간적으로 응답하는 항목만 실시간 연결 확인 대상으로 삼는다. Python 서버(business-verify,
-    // recommendation)도 로컬/사내 서버라 짧은 타임아웃으로 안전하게 확인 가능. 반면 카카오/메일/SMS는 매
-    // 폴링(5초)마다 실제로 호출하면 카카오 API 쿼터를 소모하거나 진짜 메일/문자가 나가버리므로, 그 셋은
-    // "설정값이 채워져 있는지"만 확인한다(4-2장 참고, 진짜 연결 확인이 아님을 화면에도 명시).
     private static final Duration PING_TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration LIVE_CHECK_CACHE_TTL = Duration.ofSeconds(60);
 
     private final DataSource dataSource;
     private final StringRedisTemplate redisTemplate;
     private final HttpClient httpClient;
+    private final KakaoLocalSearchClient kakaoLocalSearchClient;
+    private final JavaMailSenderImpl javaMailSender;
+    private final PpurioSmsService ppurioSmsService;
 
     private final String businessVerifyBaseUrl;
     private final String recommendationBaseUrl;
@@ -41,8 +51,16 @@ public class SystemStatusServiceImpl implements SystemStatusService {
     private final String mailUsername;
     private final String ppurioAccount;
 
+    private final Map<String, CachedStatus> liveCheckCache = new ConcurrentHashMap<>();
+
+    private record CachedStatus(SystemStatusItemDto item, long checkedAtMs) {
+    }
+
     public SystemStatusServiceImpl(DataSource dataSource,
                                     StringRedisTemplate redisTemplate,
+                                    KakaoLocalSearchClient kakaoLocalSearchClient,
+                                    JavaMailSenderImpl javaMailSender,
+                                    PpurioSmsService ppurioSmsService,
                                     @Value("${business-verify.base-url}") String businessVerifyBaseUrl,
                                     @Value("${recommendation.base-url}") String recommendationBaseUrl,
                                     @Value("${oauth.kakao.client-id:}") String kakaoClientId,
@@ -50,6 +68,9 @@ public class SystemStatusServiceImpl implements SystemStatusService {
                                     @Value("${ppurio.account:}") String ppurioAccount) {
         this.dataSource = dataSource;
         this.redisTemplate = redisTemplate;
+        this.kakaoLocalSearchClient = kakaoLocalSearchClient;
+        this.javaMailSender = javaMailSender;
+        this.ppurioSmsService = ppurioSmsService;
         this.businessVerifyBaseUrl = businessVerifyBaseUrl;
         this.recommendationBaseUrl = recommendationBaseUrl;
         this.kakaoClientId = kakaoClientId;
@@ -66,11 +87,11 @@ public class SystemStatusServiceImpl implements SystemStatusService {
         List<SystemStatusItemDto> results = new ArrayList<>();
         results.add(checkDatabase());
         results.add(checkRedis());
-        results.add(checkHttpServer("사업자/영수증 OCR 서버 (business-verify)", businessVerifyBaseUrl));
-        results.add(checkHttpServer("AI 추천 서버 (recommendation)", recommendationBaseUrl));
-        results.add(checkConfigured("카카오 로컬/로그인 API", kakaoClientId));
-        results.add(checkConfigured("메일 발송 (Daum SMTP)", mailUsername));
-        results.add(checkConfigured("SMS 발송 (Ppurio)", ppurioAccount));
+        results.add(checkHttpServer("사업자/영수증 OCR 서버", businessVerifyBaseUrl));
+        results.add(checkHttpServer("AI 추천 서버", recommendationBaseUrl));
+        results.add(checkWithCache("카카오 API", kakaoClientId, this::pingKakao));
+        results.add(checkWithCache("메일 발송", mailUsername, this::pingMail));
+        results.add(checkWithCache("SMS 발송", ppurioAccount, this::pingSms));
         return results;
     }
 
@@ -80,12 +101,12 @@ public class SystemStatusServiceImpl implements SystemStatusService {
             boolean valid = connection.isValid((int) PING_TIMEOUT.getSeconds());
             long latency = System.currentTimeMillis() - start;
             return valid
-                    ? new SystemStatusItemDto("DB (MariaDB)", "UP", "정상 연결", latency, LocalDateTime.now())
-                    : new SystemStatusItemDto("DB (MariaDB)", "DOWN", "연결은 됐으나 유효성 검사 실패", latency,
+                    ? new SystemStatusItemDto("DB", "UP", "정상 연결", latency, LocalDateTime.now())
+                    : new SystemStatusItemDto("DB", "DOWN", "연결은 됐으나 유효성 검사 실패", latency,
                             LocalDateTime.now());
         } catch (Exception e) {
             long latency = System.currentTimeMillis() - start;
-            return new SystemStatusItemDto("DB (MariaDB)", "DOWN", e.getMessage(), latency, LocalDateTime.now());
+            return new SystemStatusItemDto("DB", "DOWN", e.getMessage(), latency, LocalDateTime.now());
         }
     }
 
@@ -103,28 +124,65 @@ public class SystemStatusServiceImpl implements SystemStatusService {
         }
     }
 
-    // 응답 코드는 신경 쓰지 않는다(그 Python 서버가 루트 경로에 뭘 두든 상관없이, 연결 자체가 되는지만 확인) —
-    // 연결이 거부되거나 타임아웃되면 그 서버가 기동되어 있지 않다는 뜻이다.
+    // FastAPI 앱은 루트("/")에 라우트를 안 두면 404를 주는 게 정상이라(2026-08-06, 실제로 그렇게 뜨는 걸
+    // 확인) 루트 응답 코드로는 "떠있는지"를 못 가른다 — 대신 FastAPI가 자동으로 만들어주는 Swagger 문서
+    // 경로("/docs")를 확인한다. 2xx가 아니면 명확히 DOWN으로 표시한다(예전엔 404여도 "UP"으로 잘못 표시됨).
     private SystemStatusItemDto checkHttpServer(String name, String baseUrl) {
         long start = System.currentTimeMillis();
         try {
-            HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl))
+            HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/docs"))
                     .timeout(PING_TIMEOUT)
                     .GET()
                     .build();
             HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
             long latency = System.currentTimeMillis() - start;
-            return new SystemStatusItemDto(name, "UP", "HTTP " + response.statusCode() + " 응답", latency,
-                    LocalDateTime.now());
+            boolean up = response.statusCode() >= 200 && response.statusCode() < 300;
+            return new SystemStatusItemDto(name, up ? "UP" : "DOWN",
+                    "HTTP " + response.statusCode() + " 응답", latency, LocalDateTime.now());
         } catch (Exception e) {
             long latency = System.currentTimeMillis() - start;
-            return new SystemStatusItemDto(name, "DOWN", "연결 실패 (" + baseUrl + ")", latency, LocalDateTime.now());
+            return new SystemStatusItemDto(name, "DOWN", "연결 실패", latency, LocalDateTime.now());
         }
     }
 
-    private SystemStatusItemDto checkConfigured(String name, String value) {
-        boolean configured = value != null && !value.isBlank();
-        return new SystemStatusItemDto(name, configured ? "CONFIGURED" : "NOT_CONFIGURED",
-                configured ? "설정값 있음 (실제 연결은 확인하지 않음)" : "환경변수가 비어있음", null, LocalDateTime.now());
+    // 카카오/메일/SMS는 실제로 호출해 확인하되, 5초 폴링마다 매번 때리지 않도록 캐싱해서 재사용한다.
+    private SystemStatusItemDto checkWithCache(String name, String configuredValue, Runnable livePing) {
+        if (configuredValue == null || configuredValue.isBlank()) {
+            return new SystemStatusItemDto(name, "NOT_CONFIGURED", "환경변수가 비어있음", null, LocalDateTime.now());
+        }
+        CachedStatus cached = liveCheckCache.get(name);
+        long now = System.currentTimeMillis();
+        if (cached != null && now - cached.checkedAtMs() < LIVE_CHECK_CACHE_TTL.toMillis()) {
+            return cached.item();
+        }
+
+        long start = System.currentTimeMillis();
+        SystemStatusItemDto result;
+        try {
+            livePing.run();
+            long latency = System.currentTimeMillis() - start;
+            result = new SystemStatusItemDto(name, "UP", "실제 연결 확인됨", latency, LocalDateTime.now());
+        } catch (Exception e) {
+            long latency = System.currentTimeMillis() - start;
+            result = new SystemStatusItemDto(name, "DOWN", "연결 실패: " + e.getMessage(), latency, LocalDateTime.now());
+        }
+        liveCheckCache.put(name, new CachedStatus(result, now));
+        return result;
+    }
+
+    private void pingKakao() {
+        kakaoLocalSearchClient.ping();
+    }
+
+    private void pingMail() {
+        try {
+            javaMailSender.testConnection();
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+
+    private void pingSms() {
+        ppurioSmsService.checkConnection();
     }
 }

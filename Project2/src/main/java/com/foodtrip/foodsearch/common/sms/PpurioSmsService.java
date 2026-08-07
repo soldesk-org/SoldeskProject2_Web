@@ -83,6 +83,12 @@ public class PpurioSmsService {
         }
     }
 
+    // 관리자 API 서버 모니터링(2026-08-06 추가)에서 "실제로 인증되는지" 확인할 때 재사용 — SMS를
+    // 발송하지 않고 토큰 발급(또는 캐시된 토큰 재사용)까지만 수행한다.
+    public void checkConnection() {
+        getAccessToken();
+    }
+
     private String getAccessToken() {
         String cached = redisTemplate.opsForValue().get(TOKEN_REDIS_KEY);
         if (cached != null) {

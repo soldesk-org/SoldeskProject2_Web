@@ -48,6 +48,24 @@ public class Member {
     @Column(name = "food_bti", length = 20)
     private String foodBti;
 
+    // 음BTI 축별 점수(2026-08-04 추가) — "l:s:f:n:a:t:p:i" 형식의 콜론 구분 정수 8개(각 0~3, 질문 12개를
+    // 4축 3문항씩 나눠 채점). 마이페이지에서 퍼센트 막대를 다시 보여주려면 최종 유형 코드(4글자)만으로는
+    // 축별 비중(예: 2:1 vs 3:0)을 복원할 수 없어서 별도로 저장한다. FoodBtiServiceImpl 참고.
+    @Column(name = "food_bti_score", length = 40)
+    private String foodBtiScore;
+
+    // 알림 설정(2026-08-06 추가) — 마이페이지/회원가입 화면의 알림 체크박스가 실제로 동작하지 않던 문제.
+    // 기존 회원도 화면의 기본 체크 상태(추천/채팅 켜짐, 마케팅 꺼짐)와 동일하게 시작하도록 DB 기본값을
+    // 맞춘다(columnDefinition — 이미 있던 회원 행도 이 값으로 채워짐).
+    @Column(name = "notify_recommend", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    private boolean notifyRecommend = true;
+
+    @Column(name = "notify_chat", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    private boolean notifyChat = true;
+
+    @Column(name = "notify_marketing", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    private boolean notifyMarketing = false;
+
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
@@ -59,6 +77,10 @@ public class Member {
 
     @Column(name = "withdrawn_at")
     private LocalDateTime withdrawnAt;
+
+    // 탈퇴 사유(2026-08-06 추가) — mypage.html #withdrawReasonSelect의 코드값. 선택 안 하면 null.
+    @Column(name = "withdrawal_reason", length = 20)
+    private String withdrawalReason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -138,10 +160,16 @@ public class Member {
         this.phoneHash = phoneHash;
     }
 
-    // 회원탈퇴(001-02(회원정보수정) 2-5장): 데이터를 익명화/삭제하지 않고 status만 바꾼다.
-    public void withdraw() {
+    // 회원탈퇴(001-02(회원정보수정) 2-5장, 2026-08-06 닉네임 익명화 추가): 리뷰/오픈채팅 등 다른 도메인이
+    // member_id로 조인해서 nickname을 실시간으로 보여주는 구조라(스냅샷 컬럼이 없는 곳들), 탈퇴 후에도
+    // 원래 닉네임이 그대로 노출되는 문제가 있었다 — 회원탈퇴 모달 안내문("리뷰는 익명 처리 후 유지됩니다")과
+    // 실제 동작을 맞추기 위해 여기서 닉네임을 바꾼다. "탈퇴한 회원" + memberId로 유니크 제약을 그대로 만족.
+    // email/전화번호는 손대지 않는다(이메일찾기·재가입 등 다른 흐름에 영향이 있어 이번 범위 밖).
+    public void withdraw(String reason) {
         this.status = "WITHDRAWN";
         this.withdrawnAt = LocalDateTime.now();
+        this.withdrawalReason = (reason == null || reason.isBlank()) ? null : reason;
+        this.nickname = "탈퇴한 회원" + memberId;
     }
 
     // 관리자 계정 정지/해제(14.관리자-권한, 2026-07-23 추가). WITHDRAWN 상태는 대상이 아니다(탈퇴 취소는
@@ -162,8 +190,15 @@ public class Member {
 
     // 음BTI 계산 결과 저장(12.음BTI, 2026-07-22 연동). 48번째 줄의 옛 주석("값 설정 API는 만들지 않는다")은
     // 이 기능이 실제로 연동되면서 더 이상 유효하지 않음 — FoodBtiServiceImpl 참고.
-    public void updateFoodBti(String foodBti) {
+    public void updateFoodBti(String foodBti, String foodBtiScore) {
         this.foodBti = foodBti;
+        this.foodBtiScore = foodBtiScore;
+    }
+
+    public void updateNotificationSettings(boolean notifyRecommend, boolean notifyChat, boolean notifyMarketing) {
+        this.notifyRecommend = notifyRecommend;
+        this.notifyChat = notifyChat;
+        this.notifyMarketing = notifyMarketing;
     }
 
     public Long getMemberId() {
@@ -194,6 +229,10 @@ public class Member {
         return foodBti;
     }
 
+    public String getFoodBtiScore() {
+        return foodBtiScore;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -210,7 +249,23 @@ public class Member {
         return withdrawnAt;
     }
 
+    public String getWithdrawalReason() {
+        return withdrawalReason;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isNotifyRecommend() {
+        return notifyRecommend;
+    }
+
+    public boolean isNotifyChat() {
+        return notifyChat;
+    }
+
+    public boolean isNotifyMarketing() {
+        return notifyMarketing;
     }
 }
