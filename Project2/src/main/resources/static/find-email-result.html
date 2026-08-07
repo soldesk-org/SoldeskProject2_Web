@@ -51,15 +51,6 @@
 
 <main class="flex-1 grid place-items-center py-12 px-5">
   <div class="w-full" style="max-width:520px">
-
-    <div class="text-center mb-8">
-      <span class="w-16 h-16 rounded-full grid place-items-center mx-auto mb-5 text-white" style="background:var(--brand-grad);box-shadow:var(--sh-brand)">
-        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-      </span>
-      <h1 class="t-h3">이메일을 찾았어요</h1>
-      <p class="t-sm mt-2.5">본인 인증이 완료되어 <b class="t-strong"><span id="foundCount">1</span>개</b>의 계정을 확인했습니다.</p>
-    </div>
-
     <div class="e-card e-card-flat p-4 mb-5">
       <div class="e-steps" id="findEmailSteps">
         <div class="e-step is-done">
@@ -88,7 +79,7 @@
       <div id="foundAccountList" class="space-y-3">
 
         <!-- 계정 카드 (여러 개면 이 블록을 반복) -->
-        <div class="p-5 rounded-[var(--r-md)]" style="background:var(--brand-grad-soft);border:1px solid var(--brand-100)">
+        <div class="p-5 rounded-[var(--r-md)]" style="border:1px solid var(--brand-100)">
           <div class="flex items-center gap-2 mb-3">
             <span class="e-badge e-badge--brand js-found-type">일반 회원</span>
             <span class="t-xs ml-auto">가입일 <b class="t-num js-found-joined">2025-04-18</b></span>
@@ -112,19 +103,6 @@
         <a href="find-password" class="btn btn-outline btn-block" id="goFindPasswordBtn">비밀번호도 잊으셨나요?</a>
       </div>
     </div>
-
-    <div class="e-alert e-alert--warning mt-5">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.6 2.7h15.8A1.8 1.8 0 0 0 21.5 18L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
-      <div>
-        <p class="e-alert-title">보안 안내</p>
-        <p>이 페이지는 새로고침하면 다시 볼 수 없습니다. 이메일을 미리 기록해두세요.</p>
-      </div>
-    </div>
-
-    <p class="text-center t-xs mt-6">
-      찾으시는 계정이 없나요?
-      <a href="signup" class="e-link-brand">새로 가입하기</a>
-    </p>
   </div>
 </main>
 
@@ -138,14 +116,6 @@
   </div>
 </footer>
 
-<script>
-document.addEventListener('click', function (e) {
-  var btn = e.target.closest('[data-copy-target]');
-  if (!btn || !navigator.clipboard) return;
-  navigator.clipboard.writeText(btn.getAttribute('data-copy-target')).then(function () {
-    Eatty.toast('이메일을 복사했습니다.', 'success');
-  });
-});
-</script>
+
 </body>
 </html>

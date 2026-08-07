@@ -28,6 +28,11 @@
   var reviewList = document.getElementById("reviewList");
   var reviewEmpty = document.getElementById("reviewEmpty");
   var reviewPagination = document.getElementById("reviewPagination");
+  var reviewPagePrev = document.getElementById("reviewPagePrev");
+  var reviewPageNext = document.getElementById("reviewPageNext");
+  var reviewPageNumbers = document.getElementById("reviewPageNumbers");
+  var REVIEW_PAGE_SIZE = 10;
+  var reviewPage = 1;
   var publishedCountEl = document.getElementById("publishedCount");
   var summaryTotal = document.getElementById("summaryTotal");
   var summaryAvgRating = document.getElementById("summaryAvgRating");
@@ -82,9 +87,60 @@
     return li;
   }
 
+  function renderReviewPage() {
+    reviewList.innerHTML = "";
+    var reviews = reviewsCache;
+    if (!reviews.length) {
+      reviewList.hidden = true;
+      reviewPagination.hidden = true;
+      reviewEmpty.hidden = false;
+      return;
+    }
+    reviewList.hidden = false;
+    reviewEmpty.hidden = true;
+
+    var totalPages = Math.max(1, Math.ceil(reviews.length / REVIEW_PAGE_SIZE));
+    if (reviewPage > totalPages) reviewPage = totalPages;
+    var start = (reviewPage - 1) * REVIEW_PAGE_SIZE;
+    reviews.slice(start, start + REVIEW_PAGE_SIZE)
+      .forEach(function (r) { reviewList.appendChild(renderReviewItem(r)); });
+
+    if (totalPages <= 1) {
+      reviewPagination.hidden = true;
+      return;
+    }
+    reviewPagination.hidden = false;
+    reviewPageNumbers.innerHTML = "";
+    for (var p = 1; p <= totalPages; p++) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "e-page-btn";
+      btn.textContent = String(p);
+      if (p === reviewPage) btn.setAttribute("aria-current", "page");
+      (function (targetPage) {
+        btn.addEventListener("click", function () { reviewPage = targetPage; renderReviewPage(); });
+      })(p);
+      reviewPageNumbers.appendChild(btn);
+    }
+    reviewPagePrev.disabled = reviewPage === 1;
+    reviewPageNext.disabled = reviewPage === totalPages;
+  }
+
+  if (reviewPagePrev) {
+    reviewPagePrev.addEventListener("click", function () {
+      if (reviewPage > 1) { reviewPage--; renderReviewPage(); }
+    });
+  }
+  if (reviewPageNext) {
+    reviewPageNext.addEventListener("click", function () {
+      var totalPages = Math.max(1, Math.ceil(reviewsCache.length / REVIEW_PAGE_SIZE));
+      if (reviewPage < totalPages) { reviewPage++; renderReviewPage(); }
+    });
+  }
+
   function renderReviews(reviews) {
     reviewsCache = reviews;
-    reviewList.innerHTML = "";
+    reviewPage = 1;
     if (publishedCountEl) publishedCountEl.textContent = reviews.length;
     if (summaryTotal) summaryTotal.textContent = reviews.length;
     if (summaryAvgRating) {
@@ -96,17 +152,7 @@
       var ym = new Date().toISOString().slice(0, 7);
       summaryThisMonth.textContent = reviews.filter(function (r) { return (r.createdAt || "").slice(0, 7) === ym; }).length;
     }
-
-    if (!reviews.length) {
-      reviewList.hidden = true;
-      reviewPagination.hidden = true;
-      reviewEmpty.hidden = false;
-      return;
-    }
-    reviewList.hidden = false;
-    reviewPagination.hidden = false;
-    reviewEmpty.hidden = true;
-    reviews.forEach(function (r) { reviewList.appendChild(renderReviewItem(r)); });
+    renderReviewPage();
   }
 
   function loadReviews() {
@@ -269,7 +315,12 @@
     if (!row) return;
 
     if (e.target.closest("[data-continue-draft]")) {
-      window.location.href = "receipt-upload?draft=" + encodeURIComponent(row.getAttribute("data-draft-id"));
+      var draftId = row.getAttribute("data-draft-id");
+      // receipt-upload는 이 값 없이 바로/조작해서 들어오는 걸 막는다(2026-08-05 추가) — explore.js의
+      // 가게 클릭 진입과 같은 패턴.
+      sessionStorage.setItem("ru_entry_draft_id", draftId);
+      sessionStorage.setItem("ru_entry_at", String(Date.now()));
+      window.location.href = "receipt-upload?draft=" + encodeURIComponent(draftId);
       return;
     }
     if (e.target.closest("[data-discard-draft]")) {

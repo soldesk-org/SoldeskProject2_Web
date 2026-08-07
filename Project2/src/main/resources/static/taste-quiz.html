@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>음BTI 음식 취향 테스트 — 잇티웨이</title>
+<title>음식 취향 찾기 음식 취향 테스트 — 잇티웨이</title>
 <meta name="description" content="12문항으로 내 음식 취향 유형을 진단하고 맞춤 메뉴를 추천받으세요.">
 
 <!--
 ================================================================================
- taste-quiz — 음BTI 음식 취향 테스트 (12문항) + 결과
+ taste-quiz — 음식 취향 찾기 음식 취향 테스트 (12문항) + 결과
 --------------------------------------------------------------------------------
  화면은 3개 상태로 전환됩니다. (섹션 hidden 토글)
    #quizIntroSection  → #quizPlaySection → #quizResultSection
@@ -38,7 +38,7 @@
    #resultAxisList        4개 축 그래프(score의 l/s, f/n, a/t, p/i 선택 횟수 비율)
    #resultFoodList        추천 음식 목록(food)
    #saveResultStatus      저장 여부 안내(saved) — 별도 저장 버튼 없이 제출 시 자동 저장됨
-   #shareResultBtn        결과 공유 (링크 복사)
+   #goHomeBtn             홈으로 → index
    #retakeQuizBtn         다시 테스트하기
    #goRecommendBtn        이 유형으로 AI 추천받기 → recommend
 ================================================================================
@@ -52,71 +52,10 @@
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/taste-quiz.js"></script>
 
-<style>
-  /* 선택지 카드 */
-  .q-option {
-    display: flex; align-items: center; gap: 14px;
-    width: 100%; text-align: left;
-    padding: 18px 20px;
-    border: 1.5px solid var(--line); border-radius: var(--r-md);
-    background: var(--bg); cursor: pointer;
-    transition: all .18s var(--ease);
-  }
-  .q-option:hover {
-    border-color: var(--brand-400); background: var(--brand-50);
-    transform: translateY(-2px); box-shadow: var(--sh-sm);
-  }
-  .q-option.is-selected {
-    border-color: var(--brand-500); background: var(--brand-50);
-    box-shadow: var(--sh-brand-sm);
-  }
-  .q-option-key {
-    width: 32px; height: 32px; border-radius: 10px; flex: none;
-    display: grid; place-items: center;
-    font-size: 13px; font-weight: 800;
-    background: var(--bg-muted); color: var(--ink-500);
-    transition: all .18s var(--ease);
-  }
-  .q-option:hover .q-option-key,
-  .q-option.is-selected .q-option-key {
-    background: var(--brand-grad); color: #fff;
-  }
-  .q-option-text { font-size: 15.5px; font-weight: 600; color: var(--ink-800); line-height: 1.5; }
-
-  /* 성향 축 그래프 */
-  .axis-row { display: grid; grid-template-columns: 88px 1fr 88px; align-items: center; gap: 12px; }
-  .axis-bar {
-    position: relative; height: 10px; border-radius: var(--r-full);
-    background: var(--bg-muted); overflow: hidden;
-  }
-  .axis-fill {
-    position: absolute; inset: 0 auto 0 0; height: 100%;
-    border-radius: var(--r-full); background: var(--brand-grad);
-  }
-  .axis-label { font-size: 12.5px; font-weight: 700; }
-  .axis-label--on { color: var(--brand-600); }
-  .axis-label--off { color: var(--ink-400); }
-
-  /* 결과 히어로 */
-  .result-hero {
-    position: relative; overflow: hidden;
-    background: var(--brand-grad); color: #fff;
-    border-radius: var(--r-xl);
-    padding: 44px 28px;
-    text-align: center;
-  }
-  .result-hero::before,
-  .result-hero::after {
-    content: ""; position: absolute; border-radius: 50%;
-    background: rgba(255, 255, 255, .13);
-  }
-  .result-hero::before { width: 300px; height: 300px; right: -110px; top: -130px; }
-  .result-hero::after { width: 220px; height: 220px; left: -90px; bottom: -110px; }
-</style>
+<link rel="stylesheet" href="assets/css/taste-quiz.css">
 </head>
 
 <body class="has-tabbar bg-[var(--bg-soft)]">
-<a href="#mainContent" class="skip-link">본문으로 건너뛰기</a>
 
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header" id="siteHeader">
@@ -129,9 +68,10 @@
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
       <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
       <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
       <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
@@ -152,7 +92,7 @@
         <div class="e-dropdown">
           <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
                   id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
-            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
             <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="e-dropdown-menu" id="headerProfileMenu">
@@ -187,9 +127,9 @@
   <div class="e-drawer-body">
     <a class="e-drawer-link" href="explore" data-nav-page="explore">지도 탐색</a>
     <a class="e-drawer-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-    <a class="e-drawer-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
     <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
   </div>
 </aside>
 
@@ -197,93 +137,100 @@
   <div class="e-container" style="max-width:760px">
 
     <!-- ==================================================================
-         인트로
+         인트로 (2026-08-06 재설계 - MBTI류 성향 테스트 관례에 맞춰 "4개 축" 중심 구조로 변경)
          ================================================================== -->
     <section id="quizIntroSection">
-      <div class="text-center mb-8">
-        <span class="e-eyebrow">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
-          음BTI · 음식 취향 테스트
-        </span>
-        <h1 class="t-h2 mt-5">내 음식 취향은<br>어떤 유형일까?</h1>
+
+      <!-- 히어로 -->
+      <div class="text-center mb-9">
+        <h1 class="t-h2 mt-4">나는 어떤 미식가일까?</h1>
         <p class="t-lead mt-4 max-w-lg mx-auto">
-          12개 질문에 답하면 나의 음식 성향 유형을 알려드려요.
-          결과는 AI 추천에 자동으로 반영됩니다.
+          4가지 성향 축, 12개의 질문으로 완성되는 <b class="t-brand">16가지 음식 취향 유형</b>.<br>
+          결과는 AI 추천에도 자동으로 반영돼요.
         </p>
       </div>
 
-      <!-- 유형 미리보기 -->
+      <!-- 4가지 성향 축 -->
       <div class="e-card e-card-pad mb-5">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="text-center p-4 rounded-[var(--r-md)]" style="background:var(--brand-grad-soft);border:1px solid var(--brand-100)">
-            <span class="w-11 h-11 rounded-full grid place-items-center mx-auto mb-2.5 text-white" style="background:var(--brand-grad)">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4.5-3 7-6.5 7-10a7 7 0 0 0-14 0c0 3.5 2.5 7 7 10Z"/><path d="M12 13a2.5 2.5 0 0 0 0-5"/></svg>
-            </span>
-            <p class="text-[13px] font-extrabold text-[var(--ink-900)]">매콤탐험가</p>
+        <p class="text-center text-[15px] font-extrabold text-[var(--ink-900)] mb-1">4가지 성향 축으로 결정돼요</p>
+        <p class="text-center t-xs mb-6">각 축에서 더 가까운 쪽 알파벳이 모여 나만의 4글자 유형이 만들어져요.</p>
+
+        <div class="space-y-3">
+          <div class="axis-pair-row">
+            <div class="axis-pair-side">
+              <span class="axis-pair-letter">L</span>
+              <span class="axis-pair-name">담백함</span>
+            </div>
+            <span class="axis-pair-vs">vs</span>
+            <div class="axis-pair-side axis-pair-side--right">
+              <span class="axis-pair-name">자극적</span>
+              <span class="axis-pair-letter">S</span>
+            </div>
           </div>
-          <div class="text-center p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
-            <span class="w-11 h-11 rounded-full grid place-items-center mx-auto mb-2.5" style="background:var(--info-soft);color:var(--info)">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/></svg>
-            </span>
-            <p class="text-[13px] font-extrabold text-[var(--ink-900)]">순한맛평화주의</p>
+          <div class="axis-pair-row">
+            <div class="axis-pair-side">
+              <span class="axis-pair-letter">F</span>
+              <span class="axis-pair-name">익숙함</span>
+            </div>
+            <span class="axis-pair-vs">vs</span>
+            <div class="axis-pair-side axis-pair-side--right">
+              <span class="axis-pair-name">새로운 도전</span>
+              <span class="axis-pair-letter">N</span>
+            </div>
           </div>
-          <div class="text-center p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
-            <span class="w-11 h-11 rounded-full grid place-items-center mx-auto mb-2.5" style="background:var(--success-soft);color:var(--success)">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
-            </span>
-            <p class="text-[13px] font-extrabold text-[var(--ink-900)]">혼밥마스터</p>
+          <div class="axis-pair-row">
+            <div class="axis-pair-side">
+              <span class="axis-pair-letter">A</span>
+              <span class="axis-pair-name">혼밥</span>
+            </div>
+            <span class="axis-pair-vs">vs</span>
+            <div class="axis-pair-side axis-pair-side--right">
+              <span class="axis-pair-name">함께</span>
+              <span class="axis-pair-letter">T</span>
+            </div>
           </div>
-          <div class="text-center p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
-            <span class="w-11 h-11 rounded-full grid place-items-center mx-auto mb-2.5" style="background:var(--warning-soft);color:var(--warning)">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            </span>
-            <p class="text-[13px] font-extrabold text-[var(--ink-900)]">가성비장인</p>
+          <div class="axis-pair-row">
+            <div class="axis-pair-side">
+              <span class="axis-pair-letter">P</span>
+              <span class="axis-pair-name">계획적</span>
+            </div>
+            <span class="axis-pair-vs">vs</span>
+            <div class="axis-pair-side axis-pair-side--right">
+              <span class="axis-pair-name">즉흥적</span>
+              <span class="axis-pair-letter">I</span>
+            </div>
           </div>
         </div>
-        <p class="t-xs text-center mt-4">이 외에도 총 16가지 유형이 있어요.</p>
       </div>
 
-      <!-- 안내 -->
-      <div class="e-card e-card-pad mb-6">
-        <div class="grid sm:grid-cols-3 gap-5">
-          <div class="flex sm:flex-col items-center sm:items-start gap-3">
-            <span class="w-10 h-10 rounded-[12px] grid place-items-center flex-none" style="background:var(--brand-50);color:var(--brand-500)">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3.5 2"/></svg>
-            </span>
-            <div>
-              <p class="text-sm font-extrabold text-[var(--ink-900)]">약 2분 소요</p>
-              <p class="t-xs mt-0.5">12문항 4지선다</p>
-            </div>
+      <!-- 유형 예시 -->
+      <div class="e-card e-card-pad mb-5">
+        <p class="text-center text-[15px] font-extrabold text-[var(--ink-900)] mb-5">이런 유형들이 있어요</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="type-preview-card">
+            <span class="type-preview-code">SNTP</span>
+            <p class="type-preview-name">매운맛 탐험가</p>
           </div>
-          <div class="flex sm:flex-col items-center sm:items-start gap-3">
-            <span class="w-10 h-10 rounded-[12px] grid place-items-center flex-none" style="background:var(--brand-50);color:var(--brand-500)">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
-            </span>
-            <div>
-              <p class="text-sm font-extrabold text-[var(--ink-900)]">추천에 반영</p>
-              <p class="t-xs mt-0.5">AI 추천 정확도 상승</p>
-            </div>
+          <div class="type-preview-card">
+            <span class="type-preview-code">LFAI</span>
+            <p class="type-preview-name">담백한 혼밥러</p>
           </div>
-          <div class="flex sm:flex-col items-center sm:items-start gap-3">
-            <span class="w-10 h-10 rounded-[12px] grid place-items-center flex-none" style="background:var(--brand-50);color:var(--brand-500)">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-            </span>
-            <div>
-              <p class="text-sm font-extrabold text-[var(--ink-900)]">언제든 재검사</p>
-              <p class="t-xs mt-0.5">취향이 바뀌면 다시</p>
-            </div>
+          <div class="type-preview-card">
+            <span class="type-preview-code">SFTP</span>
+            <p class="type-preview-name">강렬한 단골 미식가</p>
+          </div>
+          <div class="type-preview-card">
+            <span class="type-preview-code">LNAI</span>
+            <p class="type-preview-name">편안한 음식 탐험가</p>
           </div>
         </div>
+        <p class="t-xs text-center mt-5">4가지 축의 조합으로 총 16가지 유형이 만들어져요.</p>
       </div>
 
       <button type="button" class="btn btn-primary btn-lg btn-block" id="quizStartBtn">
         테스트 시작하기
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
       </button>
-
-      <p class="text-center t-xs mt-5" data-auth-view="guest">
-        비로그인 상태에서도 테스트할 수 있어요. 결과 저장은 로그인이 필요합니다.
-      </p>
     </section>
 
     <!-- ==================================================================
@@ -320,7 +267,7 @@
           </h2>
         </div>
 
-        <!-- 선택지 2개 (실제 음BTI 문항은 A/B 양자택일) -->
+        <!-- 선택지 2개 (실제 음식 취향 찾기 문항은 A/B 양자택일) -->
         <div class="space-y-2.5" id="quizOptionList" role="radiogroup" aria-labelledby="quizQuestionText"></div>
       </div>
 
@@ -332,8 +279,6 @@
         </button>
         <button type="button" class="btn btn-ghost ml-auto" id="quizExitBtn" data-modal-open="quizExitModal">나가기</button>
       </div>
-
-      <p class="t-xs text-center mt-5">선택하면 자동으로 다음 문항으로 넘어갑니다.</p>
     </section>
 
     <!-- ==================================================================
@@ -344,7 +289,7 @@
       <!-- 결과 히어로 -->
       <div class="result-hero e-anim-up">
         <div class="relative z-10">
-          <p class="text-white/80 text-[13px] font-bold tracking-wider">나의 음BTI 유형</p>
+          <p class="text-white/80 text-[13px] font-bold tracking-wider">나의 음식 취향 찾기 유형</p>
           <p class="text-white/60 text-[13px] font-extrabold tracking-[.25em] mt-4" id="resultTypeCode">SPXV</p>
           <h1 class="text-white font-extrabold text-[34px] md:text-[42px] tracking-[-.04em] leading-tight mt-1.5" id="resultTypeName">
             매콤탐험가
@@ -377,10 +322,11 @@
 
       <!-- 결과 액션 -->
       <div class="mt-6 space-y-2.5">
-        <!-- 로그인: 결과는 제출 시 자동으로 저장됨 -->
-        <div class="e-card e-card-soft e-card-pad" data-auth-view="auth" hidden id="saveResultStatus">
-          <p class="t-sm">✅ 내 프로필에 저장되었습니다.</p>
+        <div class="flex gap-2.5">
+          <a href="index" class="btn btn-outline flex-1" id="goHomeBtn">홈으로</a>
+          <button type="button" class="btn btn-outline flex-1" id="retakeQuizBtn">다시 테스트하기</button>
         </div>
+
         <!-- 비로그인: 로그인 유도 -->
         <div data-auth-view="guest">
           <div class="e-card e-card-soft e-card-pad mb-2.5">
@@ -391,22 +337,6 @@
               <a href="signup" class="btn btn-primary btn-sm flex-1">회원가입</a>
             </div>
           </div>
-        </div>
-
-        <a href="recommend" class="btn btn-outline-brand btn-lg btn-block" id="goRecommendBtn">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
-          이 유형으로 AI 추천받기
-        </a>
-
-        <div class="flex gap-2.5">
-          <button type="button" class="btn btn-outline flex-1" id="shareResultBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
-            결과 공유
-          </button>
-          <button type="button" class="btn btn-ghost flex-1" id="retakeQuizBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-            다시 테스트
-          </button>
         </div>
       </div>
     </section>
@@ -431,7 +361,7 @@
     </div>
     <div class="e-modal-foot">
       <button type="button" class="btn btn-outline" data-modal-close>계속하기</button>
-      <a href="index" class="btn btn-danger">나가기</a>
+      <a href="index" class="btn btn-danger" id="quizExitConfirmLink">나가기</a>
     </div>
   </div>
 </div>
@@ -452,7 +382,7 @@
   </a>
   <a class="e-tabbar-item" href="taste-quiz" data-nav-page="taste-quiz">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/></svg>
-    음BTI
+    음식 취향 찾기
   </a>
   <a class="e-tabbar-item" href="mypage">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>

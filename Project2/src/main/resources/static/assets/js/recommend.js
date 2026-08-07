@@ -1,7 +1,6 @@
 (function () {
   var DEFAULT_CENTER = { lat: 37.4979, lng: 127.0276 }; // 강남역
   var RECENT_KEY = "eatty:recommendRecentQueries";
-  var RULE_LABEL = { CATEGORY_BASED: "카테고리 기반 추천", REVIEW_RATIO_BASED: "리뷰 태그 기반 추천" };
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -19,7 +18,6 @@
   var emptyBox = document.getElementById("recommendEmpty");
   var loadingBox = document.getElementById("recommendLoading");
   var resultBox = document.getElementById("recommendResult");
-  var errorBox = document.getElementById("recommendError");
   var cardList = document.getElementById("recommendCardList");
   var lastHistoryId = null;
   var lastRecommendations = [];
@@ -28,7 +26,6 @@
     emptyBox.hidden = which !== "empty";
     loadingBox.hidden = which !== "loading";
     resultBox.hidden = which !== "result";
-    errorBox.hidden = which !== "error";
   }
 
   // ---- 최근 질문 (서버에 저장 API가 없어 localStorage로만 관리) ----
@@ -98,9 +95,9 @@
       var lat = Number(place.y), lng = Number(place.x);
       if (!lat || !lng) return;
       var pos = new naver.maps.LatLng(lat, lng);
-      var marker = new naver.maps.Marker({ position: pos, map: map, title: place.placeName, icon: numberedIcon(i + 1) });
+      var marker = new naver.maps.Marker({ position: pos, map: map, title: place.place_name, icon: numberedIcon(i + 1) });
       naver.maps.Event.addListener(marker, "click", function () {
-        var card = cardList.querySelector('.rc-card[data-shop-id="' + place.placeId + '"]');
+        var card = cardList.querySelector('.rc-card[data-shop-id="' + place.place_id + '"]');
         if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
       });
       markers.push(marker);
@@ -121,36 +118,36 @@
   function renderCard(place, index) {
     var article = document.createElement("article");
     article.className = "rc-card";
-    article.setAttribute("data-shop-id", place.placeId);
-    if (place.matchedReviewRatio != null) article.setAttribute("data-match-score", Math.round(place.matchedReviewRatio * 100));
+    article.setAttribute("data-shop-id", place.place_id);
+    if (place.matched_review_ratio != null) article.setAttribute("data-match-score", Math.round(place.matched_review_ratio * 100));
 
-    var tags = (place.matchedKeywords && place.matchedKeywords.length)
-      ? place.matchedKeywords
-      : (place.categoryName ? place.categoryName.split(">").map(function (s) { return s.trim(); }).filter(Boolean).slice(-2) : []);
+    var tags = (place.matched_keywords && place.matched_keywords.length)
+      ? place.matched_keywords
+      : (place.category_name ? place.category_name.split(">").map(function (s) { return s.trim(); }).filter(Boolean).slice(-2) : []);
     var dist = distanceLabel(place.distance);
-    var matchBadge = place.matchedReviewRatio != null
-      ? '<span class="e-badge ' + (index === 0 ? "e-badge--brand" : "e-badge--gray") + '">' + Math.round(place.matchedReviewRatio * 100) + '% 일치</span>'
+    var matchBadge = place.matched_review_ratio != null
+      ? '<span class="e-badge ' + (index === 0 ? "e-badge--brand" : "e-badge--gray") + '">' + Math.round(place.matched_review_ratio * 100) + '% 일치</span>'
       : "";
 
     article.innerHTML =
       '<span class="rc-rank" ' + (index === 0 ? "" : 'style="background:var(--ink-' + (index === 1 ? "700" : "400") + ')"') + '>' + (index + 1) + '</span>' +
       '<div class="min-w-0 flex-1">' +
       '<div class="flex items-center gap-2 flex-wrap">' +
-      '<h3 class="text-[17px] font-extrabold text-[var(--ink-900)] truncate">' + escapeHtml(place.placeName) + '</h3>' +
+      '<h3 class="text-[17px] font-extrabold text-[var(--ink-900)] truncate">' + escapeHtml(place.place_name) + '</h3>' +
       matchBadge +
-      (place.categoryGroupName ? '<span class="e-badge e-badge--gray">' + escapeHtml(place.categoryGroupName) + '</span>' : '') +
+      (place.category_group_name ? '<span class="e-badge e-badge--gray">' + escapeHtml(place.category_group_name) + '</span>' : '') +
       '</div>' +
       '<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">' +
-      (place.totalReviewCount != null ? '<span class="t-xs">리뷰 ' + place.totalReviewCount + '</span>' : '') +
+      (place.total_review_count != null ? '<span class="t-xs">리뷰 ' + place.total_review_count + '</span>' : '') +
       '<span class="t-xs flex items-center gap-1">' +
       '<svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>' +
-      escapeHtml(place.roadAddressName || place.addressName || "") + (dist ? " · " + dist : "") +
+      escapeHtml(place.road_address_name || place.address_name || "") + (dist ? " · " + dist : "") +
       '</span></div>' +
       (tags.length ? '<div class="flex flex-wrap gap-1.5 mt-2">' + tags.map(function (t) { return '<span class="e-tag">' + escapeHtml(t) + '</span>'; }).join("") + '</div>' : '') +
       (place.reason ? '<p class="rc-reason"><b class="text-[var(--brand-700)]">추천 이유</b> · ' + escapeHtml(place.reason) + '</p>' : '') +
       '<div class="flex flex-wrap items-center gap-2 mt-3.5">' +
-      (place.placeUrl ? '<a href="' + escapeHtml(place.placeUrl) + '" target="_blank" rel="noopener" class="btn btn-primary btn-sm">카카오맵에서 보기</a>' : '') +
-      '<button type="button" class="btn btn-outline btn-sm" data-fav="' + escapeHtml(place.placeId) + '">♡ 즐겨찾기</button>' +
+      (place.place_url ? '<a href="' + escapeHtml(place.place_url) + '" target="_blank" rel="noopener" class="btn btn-primary btn-sm">카카오맵에서 보기</a>' : '') +
+      '<button type="button" class="btn btn-outline btn-sm" data-fav="' + escapeHtml(place.place_id) + '"><span class="e-heart-icon" style="color:var(--ink-300)">♡</span> 즐겨찾기</button>' +
       '<div class="flex items-center gap-1.5 ml-auto" data-feedback-group>' +
       '<button type="button" class="fb-btn" data-feedback="like" aria-pressed="false" aria-label="좋아요">' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V10l4-8h1.5a2 2 0 0 1 2 2.3L14 8h5a2 2 0 0 1 2 2.4l-1.6 8A2 2 0 0 1 17.4 20H7Z"/><path d="M7 10H4v12h3"/></svg>좋아요</button>' +
@@ -162,11 +159,14 @@
       if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
       var btn = this;
       var favored = btn.textContent.indexOf("♥") !== -1;
-      Api.request("/api/restaurants/" + encodeURIComponent(place.placeId) + "/favorite", {
+      Api.request("/api/restaurants/" + encodeURIComponent(place.place_id) + "/favorite", {
         method: favored ? "DELETE" : "POST",
-        body: { name: place.placeName, address: place.addressName, roadAddress: place.roadAddressName, latitude: Number(place.y), longitude: Number(place.x) },
-      }).then(function (res) { btn.innerHTML = res.favorite ? "♥ 즐겨찾기됨" : "♡ 즐겨찾기"; })
-        .catch(function (err) { Eatty.toast(err.message || "즐겨찾기 처리에 실패했습니다.", "error"); });
+        body: { name: place.place_name, address: place.address_name, roadAddress: place.road_address_name, latitude: Number(place.y), longitude: Number(place.x) },
+      }).then(function (res) {
+        btn.innerHTML = res.favorite
+          ? '<span class="e-heart-icon is-active">♥</span> 즐겨찾기됨'
+          : '<span class="e-heart-icon" style="color:var(--ink-300)">♡</span> 즐겨찾기';
+      }).catch(function (err) { Eatty.toast(err.message || "즐겨찾기 처리에 실패했습니다.", "error"); });
     });
 
     var feedbackGroup = article.querySelector("[data-feedback-group]");
@@ -183,7 +183,7 @@
           btn.setAttribute("aria-pressed", "true");
           article.classList.add(kind === "like" ? "is-liked" : "is-disliked");
           Api.request("/api/recommendation/" + lastHistoryId + "/feedback", { method: "PATCH", body: { wasHelpful: kind === "like" } })
-            .then(function () { Eatty.toast("피드백 감사합니다.", kind === "like" ? "brand" : "default"); })
+            .then(function () { Eatty.toast("피드백 감사합니다."); })
             .catch(function () {});
         });
       });
@@ -192,7 +192,7 @@
   }
 
   function renderResults(data) {
-    lastHistoryId = data.historyId || null;
+    lastHistoryId = data.history_id || null;
     lastRecommendations = data.recommendations || [];
 
     document.getElementById("recommendResultTitle").textContent = "추천 결과 " + lastRecommendations.length + "곳";
@@ -201,25 +201,6 @@
       cardList.innerHTML = '<div class="e-card e-card-pad"><p class="t-sm">조건에 맞는 추천 결과를 찾지 못했어요. 다른 표현으로 다시 시도해보세요.</p></div>';
     } else {
       lastRecommendations.forEach(function (place, i) { cardList.appendChild(renderCard(place, i)); });
-    }
-
-    var summaryEl = document.getElementById("aiSummaryText");
-    var tagsEl = document.getElementById("aiSummaryTags");
-    var a = data.analysis;
-    if (a) {
-      var parts = [];
-      if (a.location && a.location.length) parts.push(a.location.join(", ") + " 근처");
-      if (a.category && a.category.length) parts.push(a.category.join(", "));
-      if (a.atmosphereKeywords && a.atmosphereKeywords.length) parts.push(a.atmosphereKeywords.join(", ") + " 분위기");
-      var sentence = (parts.length ? parts.join(" · ") + " 조건으로 " : "") +
-        (RULE_LABEL[data.recommendationRule] || "조건") + "으로 " + lastRecommendations.length + "곳을 골랐어요.";
-      summaryEl.textContent = sentence + (data.dataNotice ? " " + data.dataNotice : "");
-
-      var tagValues = [].concat(a.location || [], a.category || [], a.atmosphereKeywords || [], a.menuKeywords || []);
-      tagsEl.innerHTML = tagValues.slice(0, 6).map(function (t) { return '<span class="e-tag">' + escapeHtml(t) + '</span>'; }).join("");
-    } else {
-      summaryEl.textContent = "조건에 맞는 추천 결과 " + lastRecommendations.length + "곳을 찾았어요.";
-      tagsEl.innerHTML = "";
     }
 
     renderMapMarkers(lastRecommendations);
@@ -243,7 +224,6 @@
   function runRecommend() {
     var text = buildQueryText();
     if (!text) { Eatty.toast("찾고 있는 조건을 입력해주세요.", "error"); query.focus(); return; }
-    document.getElementById("resultQueryEcho").textContent = query.value.trim() || text;
     show("loading");
 
     function request(center) {
@@ -257,7 +237,10 @@
         show("result");
         pushRecent(query.value.trim() || text);
         resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
-      }).catch(function () { show("error"); });
+      }).catch(function (err) {
+        show("empty");
+        alert(err && err.message ? err.message : "추천을 가져오지 못했어요. 잠시 후 다시 시도해주세요.");
+      });
     }
 
     if (document.getElementById("useMyLocationSwitch").checked && navigator.geolocation) {
@@ -277,19 +260,18 @@
     runRecommend();
   });
   document.getElementById("retryBtn").addEventListener("click", runRecommend);
-  document.querySelectorAll("#recommendError button").forEach(function (btn) { btn.addEventListener("click", runRecommend); });
 
   document.getElementById("saveAllBtn").addEventListener("click", function () {
     if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
     var tasks = lastRecommendations.map(function (place) {
-      return Api.request("/api/restaurants/" + encodeURIComponent(place.placeId) + "/favorite", {
+      return Api.request("/api/restaurants/" + encodeURIComponent(place.place_id) + "/favorite", {
         method: "POST",
-        body: { name: place.placeName, address: place.addressName, roadAddress: place.roadAddressName, latitude: Number(place.y), longitude: Number(place.x) },
+        body: { name: place.place_name, address: place.address_name, roadAddress: place.road_address_name, latitude: Number(place.y), longitude: Number(place.x) },
       }).catch(function () {});
     });
     Promise.all(tasks).then(function () {
       Eatty.toast("추천 " + lastRecommendations.length + "곳을 즐겨찾기에 저장했습니다.", "brand");
-      cardList.querySelectorAll("[data-fav]").forEach(function (btn) { btn.innerHTML = "♥ 즐겨찾기됨"; });
+      cardList.querySelectorAll("[data-fav]").forEach(function (btn) { btn.innerHTML = '<span class="e-heart-icon is-active">♥</span> 즐겨찾기됨'; });
     });
   });
 
@@ -297,28 +279,65 @@
   function resetFollowup() {
     document.querySelectorAll("[data-followup-body]").forEach(function (el) { el.innerHTML = ""; });
   }
+  var FOLLOWUP_LABEL = { PARK: "근처 공원", CAFE: "근처 카페" };
+  var FOLLOWUP_ICON = {
+    PARK: {
+      bg: "var(--success-soft)", color: "var(--success)",
+      svg: '<svg style="width:14px;height:20px" viewBox="0 0 320 512" fill="currentColor"><path d="M160 48a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zM126.5 199.3c-1 .4-1.9 .8-2.9 1.2l-8 3.5c-16.4 7.3-29 21.2-34.7 38.2l-2.6 7.8c-5.6 16.8-23.7 25.8-40.5 20.2s-25.8-23.7-20.2-40.5l2.6-7.8c11.4-34.1 36.6-61.9 69.4-76.5l8-3.5c20.8-9.2 43.3-14 66.1-14c44.6 0 84.8 26.8 101.9 67.9L281 232.7l21.4 10.7c15.8 7.9 22.2 27.1 14.3 42.9s-27.1 22.2-42.9 14.3L247 287.3c-10.3-5.2-18.4-13.8-22.8-24.5l-9.6-23-19.3 65.5 49.5 54c5.4 5.9 9.2 13 11.2 20.8l23 92.1c4.3 17.1-6.1 34.5-23.3 38.8s-34.5-6.1-38.8-23.3l-22-88.1-70.7-77.1c-14.8-16.1-20.3-38.6-14.7-59.7l16.9-63.5zM68.7 398l25-62.4c2.1 3 4.5 5.8 7 8.6l40.7 44.4-14.5 36.2c-2.4 6-6 11.5-10.6 16.1L54.6 502.6c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L68.7 398z"/></svg>',
+    },
+    CAFE: {
+      bg: "var(--warning-soft)", color: "var(--warning)",
+      svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M4 22h13"/></svg>',
+    },
+  };
+  var followupModalTitle = document.getElementById("followupModalTitle");
+  var followupModalDesc = document.getElementById("followupModalDesc");
+  var followupModalBody = document.getElementById("followupModalBody");
+
+  function followupLoadingHtml() {
+    return '<div class="flex flex-col items-center justify-center py-14 text-center">' +
+      '<div class="rc-spinner" style="width:40px;height:40px"><span></span></div>' +
+      '<p class="text-[13.5px] text-[var(--ink-500)] mt-4">주변을 살펴보고 있어요</p>' +
+      '</div>';
+  }
+
+  function followupPlaceRow(p, type) {
+    var icon = FOLLOWUP_ICON[type] || FOLLOWUP_ICON.CAFE;
+    var meta = [p.categoryName ? p.categoryName.split(">").pop().trim() : "", p.roadAddressName || p.addressName || ""]
+      .filter(Boolean).join(" · ");
+    var tag = p.placeUrl ? "a" : "div";
+    return '<' + tag + (p.placeUrl ? ' href="' + escapeHtml(p.placeUrl) + '" target="_blank" rel="noopener"' : "") +
+      ' class="rc-follow-row">' +
+      '<span class="rc-follow-icon" style="background:' + icon.bg + ';color:' + icon.color + '">' + icon.svg + '</span>' +
+      '<span class="min-w-0 flex-1">' +
+      '<span class="block text-[14.5px] font-bold text-[var(--ink-900)] truncate">' + escapeHtml(p.placeName) + '</span>' +
+      (meta ? '<span class="block text-[12px] text-[var(--ink-500)] truncate mt-0.5">' + escapeHtml(meta) + '</span>' : "") +
+      '</span>' +
+      (p.distanceMeters != null ? '<span class="text-[12.5px] font-bold text-[var(--brand-600)] flex-none">' + distanceLabel(p.distanceMeters) + '</span>' : "") +
+      '</' + tag + '>';
+  }
+
   document.getElementById("followupSection").addEventListener("click", function (e) {
     var btn = e.target.closest("[data-followup-load]");
     if (!btn) return;
     if (!lastRecommendations.length) return;
     var anchor = lastRecommendations[0];
     var type = btn.getAttribute("data-followup-load");
-    var body = btn.closest(".fu-card").querySelector("[data-followup-body]");
-    body.innerHTML = '<p class="t-xs">찾는 중...</p>';
+
+    followupModalTitle.textContent = FOLLOWUP_LABEL[type] || "근처 추천";
+    followupModalDesc.textContent = (anchor.place_name || "추천 1순위 매장") + " 주변 결과예요.";
+    followupModalBody.innerHTML = followupLoadingHtml();
+    Eatty.openModal("followupModal");
+
     Api.request("/api/recommendation/nearby-course", {
       method: "POST", auth: false,
-      body: { type: type, anchorName: anchor.placeName, x: Number(anchor.x), y: Number(anchor.y) },
+      body: { type: type, anchorName: anchor.place_name, x: Number(anchor.x), y: Number(anchor.y) },
     }).then(function (data) {
       var places = data.places || [];
-      if (!places.length) { body.innerHTML = '<p class="t-xs">근처에서 찾지 못했어요.</p>'; return; }
-      body.innerHTML = places.slice(0, 5).map(function (p) {
-        return '<div class="flex items-center justify-between gap-2 py-1.5 border-b border-[var(--line-soft)] last:border-0">' +
-          '<span class="text-[13px] font-semibold text-[var(--ink-800)] truncate">' + escapeHtml(p.placeName) + '</span>' +
-          (p.distanceMeters != null ? '<span class="t-xs font-bold text-[var(--brand-600)] flex-none">' + distanceLabel(p.distanceMeters) + '</span>' : '') +
-          '</div>';
-      }).join("");
+      if (!places.length) { followupModalBody.innerHTML = '<p class="t-sm text-center py-14">근처에서 찾지 못했어요.</p>'; return; }
+      followupModalBody.innerHTML = places.map(function (p) { return followupPlaceRow(p, type); }).join("");
     }).catch(function (err) {
-      body.innerHTML = '<p class="t-xs text-red-500">' + escapeHtml(err.message || "불러오지 못했습니다.") + '</p>';
+      followupModalBody.innerHTML = '<p class="t-sm text-center py-14 text-red-500">' + escapeHtml(err.message || "불러오지 못했습니다.") + '</p>';
     });
   });
 })();

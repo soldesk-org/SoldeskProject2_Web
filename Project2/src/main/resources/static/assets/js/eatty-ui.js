@@ -136,6 +136,13 @@
     var m = document.getElementById(id);
     if (!m) return;
     lastFocused = document.activeElement;
+    // 모든 .e-modal이 같은 z-index(100)를 공유해서, 모달이 열려있는 상태에서 다른 모달을 추가로
+    // 열면(예: 관리자 회원상세 → 정지) 원래 DOM 순서상 앞에 있던 쪽이 뒤에 깔려 숨어버렸다.
+    // 열 때마다 body의 마지막 자식으로 옮겨서 항상 가장 위에 그려지도록 한다(fixed 포지션이라
+    // 부모 위치는 레이아웃에 영향 없음).
+    if (m.parentElement !== document.body || document.body.lastElementChild !== m) {
+      document.body.appendChild(m);
+    }
     m.classList.add('is-open');
     m.setAttribute('aria-hidden', 'false');
     document.body.classList.add('is-modal-open');

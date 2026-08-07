@@ -4,79 +4,39 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>고객센터 — 잇티웨이</title>
-<meta name="description" content="잇티웨이 고객센터. AI 챗봇 상담과 자주 묻는 질문으로 빠르게 도움을 받으세요.">
+<meta name="description" content="잇티웨이 AI 챗봇 실시간 상담. 궁금한 점을 바로 물어보세요.">
 
 <!--
 ================================================================================
- support — 고객센터 + 잇티웨이 AI 챗봇 상담
+ support — 잇티웨이 AI 챗봇 상담 (2026-08-06 전면 재설계)
 --------------------------------------------------------------------------------
+ 이전 버전은 검색창 + 카테고리 카드 + "상담 시작 전/중/후" 3단계 게이트 + FAQ 아코디언이 뒤섞인
+ 페이지였다("고객센터 디자인이 마음에 안 든다" 피드백). 탭에 들어오면 화면 전체가 곧바로 실시간 채팅인
+ chat.html(잇티챗)과 같은 톤의 풀스크린 레이아웃으로 바꾸고, FAQ/검색/카테고리 카드는 전부 제거했다.
+ 세션은 페이지 로드 시 자동으로 시작되며(별도 "시작하기" 버튼 없음), 개인정보 처리 안내는 시스템
+ 메시지로 대화 맨 위에 자연스럽게 보여준다. 백엔드 연동(SupportChatController)과 세션/타이머/스트리밍
+ 애니메이션 로직은 기존 구현을 그대로 유지했다 — 화면 구조만 바뀌었다.
+
  ★ 서버 연동 (SupportChatController — 이미 구현되어 있음)
-   백엔드 위치 : Project2/src/main/java/.../SupportChatController.java
-   AI 응답 생성 : HyperClovaXClient
-   로그 저장    : SupportChatLogService (JSON Lines .jsonl + AES-256-GCM)
-   호출 제한    : SupportChatRateLimitService
-
-   구현된 엔드포인트는 아래 2개뿐입니다. 세션 생성 API 는 없고,
-   sessionId 를 프런트에서 만들어 매 요청에 함께 보냅니다.
-
-   1) 질문 전송
-      POST /api/support-chat/ask
-      req : { "message": "질문 내용", "sessionId": "<uuid>" }
-      res : { "success": true,  "answer": "답변 본문" }
-            { "success": false, "message": "오류 문구" }   (실패 시)
-      - answer 안의 **굵게** 는 strong 으로 렌더링 (renderBotText 참고)
-      - 호출 제한 초과 시 success=false 로 내려옴 → 안내 문구 표시
-
-   2) 상담 종료 (암호화 로그 flush)
-      POST /api/support-chat/end
-      req : { "sessionId": "<uuid>", "reason": "button" | "page_closed" | "idle_timeout" }
-      - 페이지 이탈 시 navigator.sendBeacon() 으로 전송 (아래 beaconEnd 참고)
-
- ★ sessionId 규칙 (원본 support-chat-test.html 과 동일하게 유지)
-   - crypto.randomUUID() 사용, 비 HTTPS 환경에서는 UUID v4 형태 문자열로 대체
-   - 인증 토큰이 아니라 로그를 세션 단위로 묶기 위한 식별자입니다
+   1) 질문 전송  POST /api/support-chat/ask   { message, sessionId } -> { success, answer } | { success:false, message }
+   2) 상담 종료  POST /api/support-chat/end    { sessionId, reason: "button"|"page_closed"|"idle_timeout" }
+      - 페이지 이탈 시 navigator.sendBeacon() 으로 전송
+   - 세션 생성 API는 없음 — sessionId는 crypto.randomUUID()로 프런트에서 생성해 매 요청에 함께 보냄
    - 로그인 없이도 문의 가능
 
- ★ 아직 서버에 없는 기능 (엔드포인트 신설 전까지의 임시 처리)
-   - 만족도 평가         → 저장 API 없음. 화면 안내만 하고 서버에 남기지 않음
-   - 답변 도움됨 피드백  → 저장 API 없음. 버튼 상태만 로컬로 토글
-   - 상담원 연결 접수    → 접수 API 없음. mailto: 링크로 실제 이메일 작성 화면을 열어 사용자가
-                        직접 전송하게 함(가짜로 "접수 완료"라고 표시하지 않음)
-   - 추천 질문           → 프런트 상수(서버가 답변별 후속 질문을 내려주지 않음)
-
  ★ 보안 · 개인정보 정책 (프런트에서 반드시 지킬 것)
-   - 대화 내용을 localStorage / sessionStorage / cookie 에 저장하지 않는다.
+   - 대화 내용을 localStorage / sessionStorage / cookie에 저장하지 않는다.
      메시지는 JS 메모리 배열(state.messages)에만 보관 → 새로고침 시 자연히 소멸.
-   - 상담 종료 시 state.messages 를 비우고 DOM 을 삭제해 재열람을 차단한다.
-   - 서버 로그는 question/answer 만 AES-256-GCM 으로 암호화되어 .jsonl 에 적재되고
-     sessionId/timestamp/type 은 평문입니다. 프런트는 조회 수단을 갖지 않습니다.
+   - 상담 종료 시 state.messages를 비우고 DOM을 삭제해 재열람을 차단한다.
 
---------------------------------------------------------------------------------
- [공통 헤더]  index 과 동일 규격
-   #siteHeader #logoHome #mainNav
-   #headerGuestArea (data-auth-view="guest") / #headerAuthArea (data-auth-view="auth")
-   #headerNotiBtn  알림 벨 (eatty-ui.js 의 Eatty.notify 가 패널 자동 생성)
-   #headerProfileBtn #headerProfileMenu #headerLogoutBtn
-   #drawerOpenBtn #mainDrawer
-
- [고객센터 상단]
-   #helpSearchForm / #helpSearchInput / #helpSearchBtn   도움말 검색
-   #helpCategoryList  카테고리 카드 (button[data-help-category])
-                      값: ACCOUNT | REVIEW | BUSINESS | CHAT | RECOMMEND | ETC
-
- [AI 챗봇 상담]  #supportChatCard 안에 3가지 상태
-   #chatIntro   상담 시작 전 (동의 + 시작 버튼)
-   #chatActive  상담 중 (메시지 + 대기 애니메이션 + 입력)
-   #chatEnded   상담 종료 후 (기록 차단 + 만족도)
-
- [FAQ]
-   #faqTabs (data-tabs) → #faqAll #faqAccount #faqReview #faqBusiness #faqChat
-   .e-accordion-head[data-accordion-toggle="본문ID"]  (eatty-ui.js 가 처리)
-   #faqNoResult  검색 결과 없음 (기본 hidden)
-
- [기타 문의]
-   #contactEmailBtn  메일 문의
-   #reportAbuseLink  신고 안내 → terms-service
+ [구조]
+   (2026-08-06 후속 - 상단 바의 상태 배지/상담번호/경과 시간 표시와 "상담원 연결" 버튼을 화면에서
+   없앴다. 세션 id/경과 시간 자체는 내부적으로 계속 추적하며, 상담 종료 화면의 상담번호/상담 시간
+   요약에는 그대로 쓰인다 — 상단 바에 실시간으로 노출만 안 할 뿐이다.)
+   #endChatBtn(→endChatModal)   상단 바 유일한 버튼
+   #supportMessageArea   메시지 영역 (JS 렌더, e-msg/e-msg--me/e-thinking 등 잇티챗과 공용 클래스)
+   #supportMessageForm #supportMessageInput #supportSendBtn
+   #chatEnded   종료 후 화면(재열람 차단 안내 + 만족도 평가) — #chatActive와 자리를 바꿔 채운다
 ================================================================================
 -->
 
@@ -86,13 +46,14 @@
 <link rel="stylesheet" href="assets/css/eatty.css">
 <script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
+
+<link rel="stylesheet" href="assets/css/support.css">
 </head>
 
-<body class="has-tabbar bg-[var(--bg-soft)]">
-<a href="#supportChatCard" class="skip-link">AI 상담으로 건너뛰기</a>
+<body class="bg-[var(--bg-soft)]">
 
 <!-- ============================== 헤더 ============================== -->
-<header class="e-header" id="siteHeader">
+<header class="e-header e-header--solid" id="siteHeader">
   <div class="e-container e-container-wide e-header-inner">
     <a href="index" class="e-logo" id="logoHome">
       <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
@@ -102,10 +63,10 @@
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
       <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
-      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+      <a class="e-nav-link is-active" href="support" data-nav-page="support">고객센터</a>
       <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
       <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
@@ -125,7 +86,7 @@
         <div class="e-dropdown">
           <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
                   id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
-            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
             <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="e-dropdown-menu" id="headerProfileMenu">
@@ -161,9 +122,9 @@
   <div class="e-drawer-body">
     <a class="e-drawer-link" href="explore">지도 탐색</a>
     <a class="e-drawer-link" href="recommend">AI 추천</a>
-    <a class="e-drawer-link" href="receipt-upload">영수증 리뷰</a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
     <a class="e-drawer-link" href="chat">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz">음BTI</a>
+    <a class="e-drawer-link" href="taste-quiz">음식 취향 찾기</a>
     <div class="e-drawer-sep"></div>
     <a class="e-drawer-link" href="support" data-nav-page="support">고객센터</a>
     <div data-auth-view="auth" hidden>
@@ -173,743 +134,144 @@
   </div>
 </aside>
 
-<main class="py-8 md:py-12">
-  <div class="e-container">
+<!-- ==================================================================
+     풀스크린 AI 챗봇 상담
+     ================================================================== -->
+<main class="e-support-shell" aria-label="AI 챗봇 상담">
 
-    <!-- ==================== 페이지 헤딩 + 검색 ==================== -->
-    <div class="text-center max-w-2xl mx-auto mb-9">
-      <span class="e-eyebrow">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/>
-        </svg>
-        고객센터
-      </span>
-      <h1 class="t-h2 mt-5">무엇을 도와드릴까요?</h1>
-      <p class="t-lead mt-4">
-        AI 챗봇이 24시간 답변해드려요. 원하는 답을 못 찾으면 상담원에게 연결해드립니다.
-      </p>
-
-      <form class="mt-7" id="helpSearchForm" role="search">
-        <div class="flex gap-2.5 p-2.5 bg-white border border-[var(--line)] rounded-[var(--r-lg)] shadow-[var(--sh)]">
-          <div class="e-input-wrap has-icon flex-1">
-            <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input type="search" class="e-input e-input-lg border-0 shadow-none focus:shadow-none"
-                   id="helpSearchInput" name="q" placeholder="궁금한 내용을 검색해보세요 (예: 영수증 인증)" autocomplete="off">
-          </div>
-          <button type="submit" class="btn btn-primary btn-lg flex-none" id="helpSearchBtn">검색</button>
-        </div>
-      </form>
+  <!-- 상단 바 -->
+  <div class="e-session-bar" id="sessionBar">
+    <span class="e-bot-avatar flex-none" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+    </span>
+    <div class="min-w-0">
+      <p class="text-[14.5px] font-extrabold text-[var(--ink-900)] leading-tight">잇티 AI 상담</p>
     </div>
 
-    <!-- ==================== 도움말 카테고리 ==================== -->
-    <section class="mb-10" aria-label="도움말 카테고리">
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5" id="helpCategoryList">
-        <button type="button" class="e-help-card" data-help-category="ACCOUNT">
-          <span class="e-help-card-ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    <div class="ml-auto flex items-center gap-2">
+      <button type="button" class="btn btn-outline btn-xs" id="endChatBtn" data-modal-open="endChatModal">
+        상담 종료
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ 상담 중 ============ -->
+  <div id="chatActive">
+    <div class="e-ai-progress" id="aiProgressBar" hidden aria-hidden="true"></div>
+
+    <div class="e-chat-body e-scroll" id="supportMessageArea" data-chat-scroll
+         role="log" aria-live="polite" aria-label="AI 상담 대화 내용"></div>
+
+    <div class="px-4 pb-3" id="quickReplyWrap" hidden>
+      <p class="t-xs font-bold mb-2">이런 걸 물어볼 수 있어요</p>
+      <div class="e-quick-wrap" id="quickReplyArea"></div>
+    </div>
+
+    <div class="e-chat-input flex-none">
+      <form id="supportMessageForm">
+        <div class="e-chat-input-box">
+          <textarea id="supportMessageInput" data-autogrow rows="1" maxlength="1000"
+                    placeholder="궁금한 점을 입력해주세요 (Shift + Enter 로 줄바꿈)"
+                    aria-label="상담 메시지 입력"></textarea>
+          <button type="submit" class="e-chat-send flex-none" id="supportSendBtn" aria-label="메시지 전송">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l19-8-8 19-2-9-9-2Z"/></svg>
+          </button>
+        </div>
+      </form>
+
+      <div class="flex items-center gap-3 mt-2.5">
+        <p class="t-xs">주민등록번호 · 카드번호 등 민감정보는 입력하지 마세요.</p>
+        <span class="t-xs ml-auto t-num" id="inputCounter">0 / 1000</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 상담 종료 후 ============ -->
+  <div id="chatEnded" hidden>
+
+    <div class="e-lock">
+      <span class="e-lock-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3"/>
+        </svg>
+      </span>
+      <h2 class="t-h3">상담이 종료되었습니다</h2>
+      <p class="t-sm mt-3 max-w-md mx-auto leading-relaxed">
+        보안을 위해 종료된 상담의 대화 내용은 다시 열람할 수 없습니다.<br>
+        추가 문의가 있으면 새 상담을 시작해주세요.
+      </p>
+
+      <span class="e-badge e-badge--gray e-badge-lg mt-5" id="endReasonBadge">사용자 종료</span>
+
+      <div class="max-w-sm mx-auto mt-7 e-card e-card-flat bg-white p-5 text-left space-y-2.5">
+        <div class="flex items-center justify-between gap-3">
+          <span class="t-sm font-semibold">상담번호</span>
+          <span class="e-session-id" id="endedSessionId">SUP-000000</span>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="t-sm font-semibold">상담 시간</span>
+          <span class="text-sm font-bold text-[var(--ink-900)] t-num" id="endedDuration">00:00</span>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="t-sm font-semibold">주고받은 메시지</span>
+          <span class="text-sm font-bold text-[var(--ink-900)] t-num" id="endedMsgCount">0건</span>
+        </div>
+        <div class="flex items-start justify-between gap-3 pt-3 border-t border-[var(--line)]">
+          <span class="t-sm font-semibold flex-none">로그 보관</span>
+          <span class="text-right">
+            <span class="e-badge e-badge--success">암호화 저장 완료</span>
+            <span class="block t-xs mt-1">문의 시 상담번호를 알려주세요</span>
           </span>
-          <span class="text-[14.5px] font-extrabold text-[var(--ink-900)]">계정 · 로그인</span>
-          <span class="t-xs mt-1">가입 · 인증 · 비밀번호</span>
-        </button>
-
-        <button type="button" class="e-help-card" data-help-category="REVIEW">
-          <span class="e-help-card-ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6"/></svg>
-          </span>
-          <span class="text-[14.5px] font-extrabold text-[var(--ink-900)]">영수증 · 리뷰</span>
-          <span class="t-xs mt-1">OCR 인증 · 수정 · 삭제</span>
-        </button>
-
-        <button type="button" class="e-help-card" data-help-category="RECOMMEND">
-          <span class="e-help-card-ico">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
-          </span>
-          <span class="text-[14.5px] font-extrabold text-[var(--ink-900)]">AI 추천 · 음BTI</span>
-          <span class="t-xs mt-1">추천 정확도 · 취향 진단</span>
-        </button>
-
-        <button type="button" class="e-help-card" data-help-category="CHAT">
-          <span class="e-help-card-ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
-          </span>
-          <span class="text-[14.5px] font-extrabold text-[var(--ink-900)]">잇티챗</span>
-          <span class="t-xs mt-1">참가코드 · 신고 · 방 관리</span>
-        </button>
-
-        <button type="button" class="e-help-card" data-help-category="BUSINESS">
-          <span class="e-help-card-ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 5 4h14l2 5M3 9h18v11H3V9Z"/><path d="M9 20v-6h6v6"/></svg>
-          </span>
-          <span class="text-[14.5px] font-extrabold text-[var(--ink-900)]">사업자</span>
-          <span class="t-xs mt-1">증명원 심사 · 매장 관리</span>
-        </button>
-
-        <button type="button" class="e-help-card" data-help-category="ETC">
-          <span class="e-help-card-ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 16v-4M12 8h.01"/></svg>
-          </span>
-          <span class="text-[14.5px] font-extrabold text-[var(--ink-900)]">기타 문의</span>
-          <span class="t-xs mt-1">약관 · 개인정보 · 오류</span>
-        </button>
-      </div>
-    </section>
-
-    <!-- ==================================================================
-         AI 챗봇 상담
-         ================================================================== -->
-    <section class="e-card overflow-hidden mb-10" id="supportChatCard" aria-label="AI 챗봇 상담">
-
-      <div class="e-card-head">
-        <span class="e-bot-avatar" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
-        </span>
-        <div class="min-w-0">
-          <p class="e-card-title">잇티 AI 상담</p>
-          <p class="t-xs mt-0.5">HyperCLOVA X 기반 · 24시간 응답</p>
-        </div>
-        <span class="e-status e-status--idle ml-auto flex-none" id="chatStatusBadge">대기 중</span>
-      </div>
-
-      <!-- ============ 상태 1 · 상담 시작 전 ============ -->
-      <div id="chatIntro">
-        <div class="p-6 md:p-8">
-          <div class="max-w-2xl mx-auto text-center">
-            <span class="e-bot-avatar e-bot-avatar--xl mx-auto mb-6" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
-            </span>
-            <h2 class="t-h3">잇티 AI에게 바로 물어보세요</h2>
-            <p class="t-sm mt-3 leading-relaxed">
-              계정, 영수증 인증, 리뷰, 사업자 심사 등 대부분의 문의를 즉시 답변해드려요.<br class="hidden sm:block">
-              해결이 어려우면 상담원 연결로 안내합니다.
-            </p>
-          </div>
-
-          <div class="grid sm:grid-cols-3 gap-3.5 mt-8 max-w-3xl mx-auto">
-            <div class="p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
-              <span class="w-9 h-9 rounded-[11px] grid place-items-center mb-3" style="background:var(--brand-50);color:var(--brand-500)">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13H11l-1 9 8.5-11H12l1-9Z"/></svg>
-              </span>
-              <p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">평균 3초 응답</p>
-              <p class="t-xs mt-1 leading-relaxed">대기 없이 바로 답변을 받습니다.</p>
-            </div>
-            <div class="p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
-              <span class="w-9 h-9 rounded-[11px] grid place-items-center mb-3" style="background:var(--brand-50);color:var(--brand-500)">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-              </span>
-              <p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">새로고침 시 초기화</p>
-              <p class="t-xs mt-1 leading-relaxed">대화는 브라우저에 저장되지 않습니다.</p>
-            </div>
-            <div class="p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
-              <span class="w-9 h-9 rounded-[11px] grid place-items-center mb-3" style="background:var(--brand-50);color:var(--brand-500)">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-              </span>
-              <p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">암호화 보관</p>
-              <p class="t-xs mt-1 leading-relaxed">상담 로그는 암호화되어 저장됩니다.</p>
-            </div>
-          </div>
-
-          <div class="max-w-3xl mx-auto mt-6">
-            <div class="e-alert e-alert--brand">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.3 3.4 9.4 8 11 4.6-1.6 8-5.7 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
-              <div>
-                <p class="e-alert-title">상담 내용 처리 안내</p>
-                <p class="leading-relaxed">
-                  상담 품질 개선과 분쟁 대응을 위해 대화 내용은 <b>암호화된 형태로만</b> 서버에 보관되며,
-                  보관 기간이 지나면 자동 삭제됩니다. 브라우저에는 저장되지 않으므로
-                  <b>새로고침하거나 상담을 종료하면 대화 내용을 다시 볼 수 없습니다.</b>
-                  주민등록번호, 카드번호 등 민감정보는 입력하지 말아주세요.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="max-w-md mx-auto mt-7">
-            <div class="e-field">
-              <label class="e-label" for="chatCategorySelect">문의 유형 <span class="e-label-side">선택</span></label>
-              <select class="e-select" id="chatCategorySelect" name="category">
-                <option value="">직접 입력하기</option>
-                <option value="ACCOUNT">계정 · 로그인</option>
-                <option value="REVIEW">영수증 · 리뷰</option>
-                <option value="RECOMMEND">AI 추천 · 음BTI</option>
-                <option value="CHAT">잇티챗</option>
-                <option value="BUSINESS">사업자</option>
-                <option value="ETC">기타 문의</option>
-              </select>
-            </div>
-
-            <div class="e-field">
-              <label class="e-check" for="agreeChatPrivacy">
-                <input type="checkbox" id="agreeChatPrivacy" required>
-                <span>
-                  상담 내용이 암호화되어 보관되는 것에 동의합니다. <span class="req">*</span>
-                  <a href="terms-privacy" target="_blank" rel="noopener" class="e-link-brand">개인정보처리방침</a>
-                </span>
-              </label>
-              <p class="e-error" id="agreeChatError">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-                상담을 시작하려면 동의가 필요합니다.
-              </p>
-            </div>
-
-            <button type="button" class="btn btn-primary btn-lg btn-block" id="startChatBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
-              AI 상담 시작하기
-            </button>
-
-            <p class="text-center t-xs mt-4" data-auth-view="guest">
-              로그인 없이도 문의할 수 있어요.
-              <a href="login" class="e-link-brand">로그인</a>하면 계정 정보를 확인해 더 정확하게 답변합니다.
-            </p>
-          </div>
         </div>
       </div>
+    </div>
 
-      <!-- ============ 상태 2 · 상담 중 ============ -->
-      <div id="chatActive" hidden>
+    <div class="p-6 md:p-8 border-t border-[var(--line)]" id="ratingBox">
+      <div class="max-w-md mx-auto text-center">
+        <h3 class="t-h4">이번 상담은 어떠셨나요?</h3>
+        <p class="t-sm mt-2">평가는 AI 답변 품질 개선에 사용됩니다.</p>
 
-        <div class="e-session-bar">
-          <span class="e-status e-status--on e-status--live !text-[12px]" id="sessionConnStatus">연결됨</span>
-          <span class="e-session-id" id="sessionIdText">SUP-000000</span>
-          <span class="t-xs flex items-center gap-1.5">
-            <svg style="width:13px;height:13px" class="text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3.5 2"/></svg>
-            경과 <b class="t-num" id="sessionElapsed">00:00</b>
-          </span>
-          <span class="e-badge e-badge--gray flex-none" id="sessionCategoryBadge" hidden>계정 · 로그인</span>
+        <div class="e-rating-input justify-center mt-5" id="supportRatingInput" data-rating-input
+             data-rating-target="supportRatingValue" role="radiogroup" aria-label="상담 만족도">
+          <button type="button" data-rating-value="1" role="radio" aria-checked="false" aria-label="1점">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </button>
+          <button type="button" data-rating-value="2" role="radio" aria-checked="false" aria-label="2점">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </button>
+          <button type="button" data-rating-value="3" role="radio" aria-checked="false" aria-label="3점">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </button>
+          <button type="button" data-rating-value="4" role="radio" aria-checked="false" aria-label="4점">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </button>
+          <button type="button" data-rating-value="5" role="radio" aria-checked="false" aria-label="5점">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </button>
+        </div>
+        <input type="hidden" id="supportRatingValue" name="score" value="0">
 
-          <div class="ml-auto flex items-center gap-2">
-            <button type="button" class="btn btn-ghost btn-xs" id="callAgentBtn" data-modal-open="agentModal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5"/></svg>
-              상담원 연결
-            </button>
-            <button type="button" class="btn btn-outline btn-xs" id="endChatBtn" data-modal-open="endChatModal">
-              상담 종료
-            </button>
-          </div>
+        <div class="e-field mt-5 text-left">
+          <label class="e-label" for="ratingComment">개선 의견 <span class="e-label-side">선택</span></label>
+          <textarea class="e-textarea !min-h-[90px]" id="ratingComment" name="comment" maxlength="300"
+                    placeholder="답변이 아쉬웠던 점을 알려주세요."></textarea>
         </div>
 
-        <div class="e-support-chat">
-          <div class="e-ai-progress" id="aiProgressBar" hidden aria-hidden="true"></div>
-
-          <div class="e-chat-body e-scroll" id="supportMessageArea" data-chat-scroll
-               role="log" aria-live="polite" aria-label="AI 상담 대화 내용">
-            <!-- 메시지는 JS 가 렌더합니다. (state.messages — 메모리에만 보관) -->
-          </div>
-
-          <div class="px-4 pb-3" id="quickReplyWrap" hidden>
-            <p class="t-xs font-bold mb-2">이런 걸 물어볼 수 있어요</p>
-            <div class="e-quick-wrap" id="quickReplyArea"></div>
-          </div>
-
-          <div class="e-chat-input flex-none">
-            <form id="supportMessageForm">
-              <div class="e-chat-input-box">
-                <textarea id="supportMessageInput" data-autogrow rows="1" maxlength="1000"
-                          placeholder="궁금한 점을 입력해주세요 (Shift + Enter 로 줄바꿈)"
-                          aria-label="상담 메시지 입력"></textarea>
-                <button type="submit" class="e-chat-send flex-none" id="supportSendBtn" aria-label="메시지 전송">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l19-8-8 19-2-9-9-2Z"/></svg>
-                </button>
-              </div>
-            </form>
-
-            <div class="flex items-center gap-3 mt-2.5">
-              <p class="t-xs">주민등록번호 · 카드번호 등 민감정보는 입력하지 마세요.</p>
-              <span class="t-xs ml-auto t-num" id="inputCounter">0 / 1000</span>
-            </div>
-          </div>
+        <div class="flex flex-col sm:flex-row gap-2.5">
+          <button type="button" class="btn btn-primary w-full sm:flex-1" id="submitRatingBtn">평가 보내기</button>
+          <button type="button" class="btn btn-outline w-full sm:flex-1" id="restartChatBtn">새 상담 시작</button>
         </div>
       </div>
+    </div>
 
-      <!-- ============ 상태 3 · 상담 종료 후 ============ -->
-      <div id="chatEnded" hidden>
-
-        <div class="e-lock">
-          <span class="e-lock-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3"/>
-            </svg>
-          </span>
-          <h2 class="t-h3">상담이 종료되었습니다</h2>
-          <p class="t-sm mt-3 max-w-md mx-auto leading-relaxed">
-            보안을 위해 종료된 상담의 대화 내용은 다시 열람할 수 없습니다.<br>
-            추가 문의가 있으면 새 상담을 시작해주세요.
-          </p>
-
-          <span class="e-badge e-badge--gray e-badge-lg mt-5" id="endReasonBadge">사용자 종료</span>
-
-          <div class="max-w-sm mx-auto mt-7 e-card e-card-flat bg-white p-5 text-left space-y-2.5">
-            <div class="flex items-center justify-between gap-3">
-              <span class="t-sm font-semibold">상담번호</span>
-              <span class="e-session-id" id="endedSessionId">SUP-000000</span>
-            </div>
-            <div class="flex items-center justify-between gap-3">
-              <span class="t-sm font-semibold">상담 시간</span>
-              <span class="text-sm font-bold text-[var(--ink-900)] t-num" id="endedDuration">00:00</span>
-            </div>
-            <div class="flex items-center justify-between gap-3">
-              <span class="t-sm font-semibold">주고받은 메시지</span>
-              <span class="text-sm font-bold text-[var(--ink-900)] t-num" id="endedMsgCount">0건</span>
-            </div>
-            <div class="flex items-start justify-between gap-3 pt-3 border-t border-[var(--line)]">
-              <span class="t-sm font-semibold flex-none">로그 보관</span>
-              <span class="text-right">
-                <span class="e-badge e-badge--success">암호화 저장 완료</span>
-                <span class="block t-xs mt-1">문의 시 상담번호를 알려주세요</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-6 md:p-8 border-t border-[var(--line)]" id="ratingBox">
-          <div class="max-w-md mx-auto text-center">
-            <h3 class="t-h4">이번 상담은 어떠셨나요?</h3>
-            <p class="t-sm mt-2">평가는 AI 답변 품질 개선에 사용됩니다.</p>
-
-            <div class="e-rating-input justify-center mt-5" id="supportRatingInput" data-rating-input
-                 data-rating-target="supportRatingValue" role="radiogroup" aria-label="상담 만족도">
-              <button type="button" data-rating-value="1" role="radio" aria-checked="false" aria-label="1점">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              </button>
-              <button type="button" data-rating-value="2" role="radio" aria-checked="false" aria-label="2점">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              </button>
-              <button type="button" data-rating-value="3" role="radio" aria-checked="false" aria-label="3점">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              </button>
-              <button type="button" data-rating-value="4" role="radio" aria-checked="false" aria-label="4점">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              </button>
-              <button type="button" data-rating-value="5" role="radio" aria-checked="false" aria-label="5점">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              </button>
-            </div>
-            <input type="hidden" id="supportRatingValue" name="score" value="0">
-
-            <div class="e-field mt-5 text-left">
-              <label class="e-label" for="ratingComment">개선 의견 <span class="e-label-side">선택</span></label>
-              <textarea class="e-textarea !min-h-[90px]" id="ratingComment" name="comment" maxlength="300"
-                        placeholder="답변이 아쉬웠던 점을 알려주세요."></textarea>
-            </div>
-
-            <div class="flex flex-col sm:flex-row gap-2.5">
-              <button type="button" class="btn btn-primary flex-1" id="submitRatingBtn">평가 보내기</button>
-              <button type="button" class="btn btn-outline flex-1" id="restartChatBtn">새 상담 시작</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-8 border-t border-[var(--line)] text-center" id="ratingDoneBox" hidden>
-          <span class="w-14 h-14 rounded-full grid place-items-center mx-auto mb-4 text-white" style="background:var(--brand-grad)">
-            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          </span>
-          <p class="t-h4">평가를 보내주셔서 감사합니다</p>
-          <p class="t-sm mt-2">더 나은 답변으로 보답하겠습니다.</p>
-          <button type="button" class="btn btn-outline mt-6" id="restartChatBtn2">새 상담 시작</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== FAQ ==================== -->
-    <section class="mb-10" aria-label="자주 묻는 질문">
-      <div class="flex flex-wrap items-end gap-4 mb-5">
-        <div>
-          <h2 class="t-h3">자주 묻는 질문</h2>
-          <p class="t-sm mt-2">가장 많이 찾는 답변을 모았어요.</p>
-        </div>
-        <span class="e-badge e-badge--gray ml-auto" id="faqCountBadge">10개 문서</span>
-      </div>
-
-      <div class="e-card" data-tabs id="faqTabs">
-        <div class="px-5 md:px-6 pt-1">
-          <div class="e-tabs" role="tablist" aria-label="FAQ 분류">
-            <button type="button" class="e-tab" data-tab-target="faqAll" role="tab" aria-selected="true">전체</button>
-            <button type="button" class="e-tab" data-tab-target="faqAccount" role="tab" aria-selected="false">계정</button>
-            <button type="button" class="e-tab" data-tab-target="faqReview" role="tab" aria-selected="false">영수증 · 리뷰</button>
-            <button type="button" class="e-tab" data-tab-target="faqBusiness" role="tab" aria-selected="false">사업자</button>
-            <button type="button" class="e-tab" data-tab-target="faqChat" role="tab" aria-selected="false">잇티챗</button>
-          </div>
-        </div>
-
-        <!-- ---- 전체 ---- -->
-        <div class="p-5 md:p-6" id="faqAll" data-tab-panel>
-          <div class="e-accordion">
-
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBody1" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                영수증 인증이 계속 실패해요
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBody1" hidden>
-                <p>OCR 인식률이 낮아지는 대표적인 원인은 다음과 같습니다.</p>
-                <ul>
-                  <li>영수증 일부가 잘렸거나 접혀 있는 경우</li>
-                  <li>조명이 어두워 글자 대비가 낮은 경우</li>
-                  <li>감열지가 변색되어 글자가 흐려진 경우</li>
-                </ul>
-                <p>가게명, 방문일시, 결제금액 세 항목이 모두 보이도록 밝은 곳에서 다시 촬영해주세요.
-                  그래도 실패하면 <a href="receipt-upload">영수증 리뷰</a> 화면에서 인식 결과를 직접 수정할 수 있습니다.</p>
-              </div>
-            </div>
-
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBody2" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                하나의 영수증으로 리뷰를 여러 개 쓸 수 있나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBody2" hidden>
-                <p>아니요. 하나의 영수증으로는 <strong>1건의 리뷰</strong>만 작성할 수 있습니다.
-                  이미 사용한 영수증을 다시 올리면 중복 안내가 표시됩니다.</p>
-                <p>같은 가게를 재방문했다면 새 영수증으로 리뷰를 추가할 수 있습니다.</p>
-              </div>
-            </div>
-
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBody3" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                소셜 로그인으로 가입했는데 비밀번호를 모르겠어요
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBody3" hidden>
-                <p>카카오 · 네이버 · 구글 계정으로 가입한 경우 <strong>별도의 비밀번호가 없습니다.</strong>
-                  로그인 화면에서 가입할 때 사용한 소셜 버튼으로 접속해주세요.</p>
-                <p>프로필 수정처럼 재인증이 필요한 화면에서도 비밀번호 대신 소셜 재인증 버튼이 표시됩니다.</p>
-              </div>
-            </div>
-
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBody4" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                사업자 심사는 얼마나 걸리나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBody4" hidden>
-                <p>사업자등록증명원 제출 후 <strong>영업일 기준 1~2일</strong>이 소요됩니다.
-                  승인 결과는 가입 시 등록한 이메일로 안내드립니다.</p>
-                <p>3일 이상 지연되면 상담번호와 함께
-                  <a href="mailto:support@eattyway.com">support@eattyway.com</a> 으로 문의해주세요.</p>
-              </div>
-            </div>
-
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBody5" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                내 리뷰가 갑자기 안 보여요
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBody5" hidden>
-                <p>신고가 접수되어 운영팀 검토 결과 비공개 처리된 경우일 수 있습니다.
-                  <a href="mypage-reviews">내 리뷰</a> 화면에서 해당 리뷰에 비공개 안내가 표시됩니다.</p>
-                <p>내용을 수정하면 재검토를 요청할 수 있습니다. 판단에 이견이 있으면 통지받은 날로부터
-                  14일 내에 이의를 제기할 수 있습니다.</p>
-              </div>
-            </div>
-
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBody6" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                오픈채팅 참가코드를 잊어버렸어요
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBody6" hidden>
-                <p>이미 참여 중인 방이라면 <a href="chat">잇티챗</a> 상단의 방 메뉴에서
-                  "참가코드 복사"로 다시 확인할 수 있습니다.</p>
-                <p>방을 나간 뒤라면 코드를 조회할 수 없습니다. 방장에게 다시 요청해주세요.</p>
-              </div>
-            </div>
-
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBody7" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                AI 추천 결과가 취향과 안 맞아요
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBody7" hidden>
-                <p>추천 정확도를 높이는 방법은 세 가지입니다.</p>
-                <ol>
-                  <li><a href="taste-quiz">음BTI 테스트</a>를 완료해 취향 유형을 등록합니다.</li>
-                  <li>추천 카드의 <strong>좋아요 / 싫어요</strong> 피드백을 눌러줍니다.</li>
-                  <li>질문에 지역 · 인원 · 예산 · 분위기를 함께 적습니다.</li>
-                </ol>
-                <p>AI 추천 결과는 참고 정보이며 특정 매장의 품질을 보증하지는 않습니다.</p>
-              </div>
-            </div>
-
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBody8" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                상담 대화 내용을 다시 볼 수 있나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBody8" hidden>
-                <p>아니요. 보안을 위해 상담을 종료하거나 페이지를 닫으면 대화 내용을 다시 열람할 수 없습니다.
-                  브라우저를 새로고침해도 초기화됩니다.</p>
-                <p>상담 로그는 <strong>암호화된 상태로만</strong> 서버에 보관되며, 분쟁 대응이 필요한 경우
-                  상담번호를 알려주시면 운영팀이 확인해 안내드립니다.</p>
-              </div>
-            </div>
-
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBody9" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                회원 탈퇴하면 작성한 리뷰는 어떻게 되나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBody9" hidden>
-                <p>즐겨찾기, 방문기록, 음BTI 결과는 삭제됩니다.
-                  다만 이미 게시된 리뷰는 서비스 신뢰도 유지를 위해
-                  <strong>익명화 처리 후 유지</strong>될 수 있습니다.</p>
-                <p>리뷰까지 완전히 삭제하려면 탈퇴 전에
-                  <a href="mypage-reviews">내 리뷰</a>에서 개별 삭제해주세요.</p>
-              </div>
-            </div>
-
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBody10" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                지도에 우리 가게가 안 나와요
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBody10" hidden>
-                <p>아직 등록되지 않은 매장일 수 있습니다.
-                  <a href="signup-business">사업자 회원가입</a> 후 매장 정보를 등록하면
-                  심사 승인 시점부터 지도와 검색 결과에 노출됩니다.</p>
-                <p>이미 승인된 매장인데 노출되지 않으면 임시 휴업 설정 여부를 확인해주세요.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="e-empty" id="faqNoResult" hidden>
-            <div class="e-empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            </div>
-            <p class="e-empty-title">검색 결과가 없어요</p>
-            <p class="e-empty-desc">AI 상담으로 직접 물어보시면 더 정확한 답변을 받을 수 있습니다.</p>
-            <button type="button" class="btn btn-primary btn-sm mt-5" id="askAiFromFaqBtn">AI에게 물어보기</button>
-          </div>
-        </div>
-
-        <!-- ---- 계정 ---- -->
-        <div class="p-5 md:p-6" id="faqAccount" data-tab-panel hidden>
-          <div class="e-accordion">
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqAcc1" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                이메일 인증 메일이 오지 않아요
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqAcc1" hidden>
-                <p>스팸 메일함과 프로모션 탭을 먼저 확인해주세요.
-                  발신 주소 <strong>no-reply@eattyway.com</strong> 을 수신 허용 목록에 추가하면 안정적으로 받을 수 있습니다.</p>
-                <p>인증 코드는 5분간 유효하며, 만료되면 재발송할 수 있습니다.</p>
-              </div>
-            </div>
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqAcc2" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                전화번호가 바뀌어서 이메일 찾기를 못 해요
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqAcc2" hidden>
-                <p>이메일 찾기는 가입 시 인증한 전화번호로만 가능합니다.
-                  번호가 변경되었다면 본인 확인 절차가 필요하니
-                  <a href="mailto:support@eattyway.com">support@eattyway.com</a> 으로 문의해주세요.</p>
-              </div>
-            </div>
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqAcc3" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                비밀번호 재설정 링크가 만료됐어요
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqAcc3" hidden>
-                <p>재설정 링크는 발송 후 30분간 유효합니다.
-                  만료되었으면 <a href="find-password">비밀번호 찾기</a>를 다시 진행해주세요.</p>
-                <p>비밀번호를 변경하면 보안을 위해 모든 기기에서 로그아웃됩니다.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ---- 영수증 · 리뷰 ---- -->
-        <div class="p-5 md:p-6" id="faqReview" data-tab-panel hidden>
-          <div class="e-accordion">
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqRev1" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                영수증 이미지는 얼마나 보관되나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqRev1" hidden>
-                <p>OCR 인증 후 <strong>90일</strong> 보관되며 이후 자동 삭제됩니다.
-                  리뷰 검증과 이의 처리 목적으로만 사용되고 리뷰에는 노출되지 않습니다.</p>
-                <p>카드번호 등 민감정보는 마스킹 처리됩니다.</p>
-              </div>
-            </div>
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqRev2" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                방문한 지 오래됐는데 리뷰를 쓸 수 있나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqRev2" hidden>
-                <p>방문일로부터 <strong>30일 이내</strong>에 작성할 수 있습니다.
-                  마이페이지 방문기록에서 리뷰 미작성 상태로 표시된 항목을 확인해주세요.</p>
-              </div>
-            </div>
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqRev3" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                리뷰를 수정하면 인증이 사라지나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqRev3" hidden>
-                <p>아니요. 영수증 인증 상태는 유지되고 작성일이 "수정됨"으로 표시됩니다.
-                  별점, 태그, 내용 모두 수정할 수 있습니다.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ---- 사업자 ---- -->
-        <div class="p-5 md:p-6" id="faqBusiness" data-tab-panel hidden>
-          <div class="e-accordion">
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBiz1" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                악성 리뷰를 삭제할 수 있나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBiz1" hidden>
-                <p>사업자가 직접 리뷰를 수정하거나 삭제할 수는 없습니다.
-                  허위 사실이나 매장과 무관한 내용이라면 <strong>신고</strong>해주세요.
-                  운영팀이 검토 후 조치합니다.</p>
-                <p>별점이 낮다는 이유만으로는 신고 대상이 되지 않습니다.
-                  또한 작성자에게 삭제를 강요하는 행위는 이용약관 위반입니다.</p>
-              </div>
-            </div>
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBiz2" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                매장 정보를 수정하면 바로 반영되나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBiz2" hidden>
-                <p>영업시간, 메뉴, 사진, 편의시설은 즉시 반영됩니다.
-                  다만 <strong>매장명과 주소</strong>를 변경하면 운영팀 재검토가 진행되며,
-                  검토 중에는 기존 정보가 노출됩니다.</p>
-              </div>
-            </div>
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqBiz3" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                폐업 또는 사업 양도를 했습니다
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqBiz3" hidden>
-                <p>운영 주체가 변경된 경우 지체 없이 알려주셔야 합니다.
-                  이전 사업자 계정의 매장 관리 권한을 회수하고 새 사업자에게 이전해드립니다.</p>
-                <p><a href="mailto:support@eattyway.com">support@eattyway.com</a> 으로 사업자등록번호와 함께 문의해주세요.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ---- 잇티챗 ---- -->
-        <div class="p-5 md:p-6" id="faqChat" data-tab-panel hidden>
-          <div class="e-accordion">
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqChat1" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                방을 폭파하면 되돌릴 수 있나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqChat1" hidden>
-                <p>되돌릴 수 없습니다. 방장이 방을 폭파하면 참여자 전원이 퇴장되고
-                  대화 내용과 참가코드가 모두 삭제됩니다.</p>
-              </div>
-            </div>
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqChat2" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                만석인 방에 들어가려면 어떻게 하나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqChat2" hidden>
-                <p>최대 인원에 도달한 방에는 입장할 수 없습니다.
-                  방장이 최대 인원을 늘리거나 기존 참여자가 나가면 입장 가능해집니다.</p>
-              </div>
-            </div>
-            <div class="e-accordion-item">
-              <button type="button" class="e-accordion-head" data-accordion-toggle="faqChat3" aria-expanded="false">
-                <span class="e-acc-q">Q</span>
-                채팅 신고는 어떻게 처리되나요?
-                <svg class="e-acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="e-accordion-body" id="faqChat3" hidden>
-                <p>신고는 <strong>대기중 → 처리완료 또는 반려</strong> 순으로 검토됩니다.
-                  결과는 신고자에게 안내되며, 위반이 확인되면 경고 · 기능 제한 · 계정 정지가 단계적으로 적용됩니다.</p>
-                <p>자세한 기준은 <a href="terms-service">이용약관 제20조</a>를 확인해주세요.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== 기타 문의 방법 ==================== -->
-    <section class="grid md:grid-cols-3 gap-4 mb-4" aria-label="다른 문의 방법">
-      <div class="e-card e-card-pad">
-        <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-4" style="background:var(--brand-50);color:var(--brand-500)">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>
-          </svg>
-        </span>
-        <h3 class="t-h4">메일 문의</h3>
-        <p class="t-sm mt-2 leading-relaxed">
-          AI 상담으로 해결되지 않으면 메일로 문의해주세요.
-          영업일 기준 1일 내 답변드립니다.
-        </p>
-        <a href="mailto:support@eattyway.com" class="btn btn-outline btn-sm mt-4" id="contactEmailBtn">
-          support@eattyway.com
-        </a>
-      </div>
-
-      <div class="e-card e-card-pad">
-        <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-4" style="background:var(--info-soft);color:var(--info)">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
-          </svg>
-        </span>
-        <h3 class="t-h4">개인정보 문의</h3>
-        <p class="t-sm mt-2 leading-relaxed">
-          정보 열람 · 삭제 · 처리정지 요청은 개인정보 담당 창구로 접수됩니다.
-        </p>
-        <a href="mailto:privacy@eattyway.com" class="btn btn-outline btn-sm mt-4">
-          privacy@eattyway.com
-        </a>
-      </div>
-
-      <div class="e-card e-card-pad">
-        <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-4" style="background:var(--danger-soft);color:var(--danger)">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/>
-          </svg>
-        </span>
-        <h3 class="t-h4">신고 · 제재 이의</h3>
-        <p class="t-sm mt-2 leading-relaxed">
-          제재 통지를 받은 날로부터 14일 내에 이의를 제기할 수 있습니다.
-        </p>
-        <a href="terms-service" class="btn btn-outline btn-sm mt-4" id="reportAbuseLink">
-          제재 기준 보기
-        </a>
-      </div>
-    </section>
-
-    <p class="t-xs text-center">
-      운영 시간 안내 · AI 상담은 24시간 이용 가능하며, 상담원 답변은 평일 10:00~18:00에 처리됩니다.
-    </p>
+    <div class="p-8 text-center max-w-md mx-auto" id="ratingDoneBox" hidden>
+      <span class="w-20 h-20 rounded-full grid place-items-center mx-auto mb-5 text-white" style="background:var(--brand-grad)">
+        <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </span>
+      <p class="t-h4" style="font-size: 26px;">평가를 보내주셔서 감사합니다</p>
+      <p class="t-sm mt-3" style="font-size: 16px;">더 나은 답변으로 보답하겠습니다.</p>
+      <button type="button" class="btn btn-outline mt-7" id="restartChatBtn2">새 상담 시작</button>
+    </div>
   </div>
 </main>
 
@@ -966,811 +328,6 @@
   </div>
 </div>
 
-<!-- ==================== 상담원 연결 모달 ==================== -->
-<div class="e-modal e-modal--sheet" id="agentModal" role="dialog" aria-modal="true" aria-labelledby="agentTitle" aria-hidden="true">
-  <div class="e-modal-backdrop" data-modal-close></div>
-  <div class="e-modal-panel">
-    <div class="e-modal-head">
-      <div>
-        <span class="e-modal-icon e-modal-icon--brand">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="8" r="3.5"/><path d="M5 21c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5"/>
-          </svg>
-        </span>
-        <h2 class="e-modal-title" id="agentTitle">상담원에게 연결</h2>
-        <p class="e-modal-desc">
-          아래 내용으로 메일 작성 화면이 열립니다. 상담번호가 자동으로 포함되니
-          그대로 보내주시면 운영팀이 이메일로 답변드립니다.
-        </p>
-      </div>
-      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
-
-    <div class="e-modal-body">
-      <div class="e-field">
-        <label class="e-label" for="agentEmail">답변 받을 이메일 <span class="req">*</span></label>
-        <div class="e-input-wrap has-icon">
-          <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>
-          </svg>
-          <input type="email" class="e-input" id="agentEmail" placeholder="eatty@example.com" autocomplete="email" data-modal-autofocus>
-        </div>
-      </div>
-
-      <div class="e-field">
-        <label class="e-label" for="agentDetail">
-          추가로 알려주실 내용
-          <span class="e-label-side"><span data-counter="agentDetail">0 / 500</span></span>
-        </label>
-        <textarea class="e-textarea" id="agentDetail" maxlength="500"
-                  placeholder="발생 시각, 사용 기기, 오류 메시지 등을 적어주시면 빠르게 확인할 수 있어요."></textarea>
-      </div>
-
-      <div class="e-field !mb-0">
-        <label class="e-check" for="agentAgreeTransfer">
-          <input type="checkbox" id="agentAgreeTransfer" checked>
-          <span>상담번호를 운영팀에 전달하는 것에 동의합니다. (대화 내용 자체는 전달되지 않습니다)</span>
-        </label>
-      </div>
-
-      <div class="e-alert e-alert--info mt-4">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
-        <div>
-          <p>상담원 답변은 평일 10:00~18:00에 순차적으로 처리됩니다.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="e-modal-foot">
-      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
-      <button type="button" class="btn btn-primary" id="agentSubmitBtn">문의 접수</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============================== 푸터 ============================== -->
-<footer class="e-footer">
-  <div class="e-container">
-    <div class="e-footer-grid">
-      <div>
-        <div class="e-logo mb-4">
-          <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
-          <span class="e-logo-text !text-white">잇티<em>웨이</em></span>
-        </div>
-        <p class="text-sm leading-relaxed max-w-sm">
-          AI 기반 맛집 검색·추천 및 커뮤니티 서비스.<br>
-          영수증으로 인증된 진짜 리뷰만 모읍니다.
-        </p>
-      </div>
-
-      <div>
-        <p class="e-footer-title">서비스</p>
-        <nav class="e-footer-list">
-          <a href="explore">지도 탐색</a>
-          <a href="recommend">AI 추천</a>
-          <a href="receipt-upload">영수증 리뷰</a>
-          <a href="taste-quiz">음BTI 테스트</a>
-          <a href="chat">잇티챗</a>
-        </nav>
-      </div>
-
-      <div>
-        <p class="e-footer-title">고객지원</p>
-        <nav class="e-footer-list">
-          <a href="support">고객센터</a>
-          <a href="mailto:support@eattyway.com">메일 문의</a>
-          <a href="mailto:privacy@eattyway.com">개인정보 문의</a>
-        </nav>
-      </div>
-
-      <div>
-        <p class="e-footer-title">약관 · 정책</p>
-        <nav class="e-footer-list">
-          <a href="terms-service">이용약관</a>
-          <a href="terms-privacy">개인정보처리방침</a>
-        </nav>
-      </div>
-    </div>
-
-    <div class="e-footer-bottom">
-      <p>&copy; 2026 Eatty way. All rights reserved.</p>
-      <p class="flex items-center gap-2">
-        <span class="e-status e-status--on e-status--live !text-[var(--ink-300)]">AI 상담 정상</span>
-      </p>
-    </div>
-  </div>
-</footer>
-
-<!-- ========================= 모바일 하단 탭바 ========================= -->
-<nav class="e-tabbar" aria-label="모바일 주요 메뉴">
-  <a class="e-tabbar-item" href="index">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
-    홈
-  </a>
-  <a class="e-tabbar-item" href="explore">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-    탐색
-  </a>
-  <a class="e-tabbar-item" href="recommend">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
-    AI추천
-  </a>
-  <a class="e-tabbar-item" href="support" data-nav-page="support">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/></svg>
-    고객센터
-  </a>
-  <a class="e-tabbar-item" href="mypage">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
-    내정보
-  </a>
-</nav>
-
-
-<script>
-/* ============================================================================
-   support — AI 챗봇 상담 스크립트
-   ----------------------------------------------------------------------------
-   ★ NO-PERSIST 원칙
-     대화는 state.messages(메모리) 에만 존재합니다.
-     localStorage / sessionStorage / cookie 를 절대 사용하지 않습니다.
-     새로고침하면 자동으로 사라지고, endSession() 이 배열과 DOM 을 모두 비웁니다.
-
-   ★ 실제 API (SupportChatController — 구현 완료)
-     POST /api/support-chat/ask   { message, sessionId } -> { success, answer }
-     POST /api/support-chat/end   { sessionId, reason }
-   ============================================================================ */
-(function () {
-  'use strict';
-
-  var state = {
-    sessionId: null,
-    category: '',
-    messages: [],        /* { role, text, at } — 메모리 전용 */
-    startedAt: null,
-    busy: false,
-    ended: false
-  };
-
-  var IDLE_LIMIT_MS = 8 * 60 * 1000;   /* 8분 무응답 → 경고 */
-  var IDLE_GRACE_SEC = 60;             /* 경고 후 60초 → 자동 종료 */
-
-  var els = {
-    card: document.getElementById('supportChatCard'),
-    intro: document.getElementById('chatIntro'),
-    active: document.getElementById('chatActive'),
-    ended: document.getElementById('chatEnded'),
-    statusBadge: document.getElementById('chatStatusBadge'),
-    msgArea: document.getElementById('supportMessageArea'),
-    input: document.getElementById('supportMessageInput'),
-    sendBtn: document.getElementById('supportSendBtn'),
-    progress: document.getElementById('aiProgressBar'),
-    quickWrap: document.getElementById('quickReplyWrap'),
-    quickArea: document.getElementById('quickReplyArea'),
-    sessionId: document.getElementById('sessionIdText'),
-    elapsed: document.getElementById('sessionElapsed'),
-    catBadge: document.getElementById('sessionCategoryBadge'),
-    counter: document.getElementById('inputCounter')
-  };
-
-  var elapsedTimer = null, idleTimer = null, graceTimer = null;
-
-  /* ------------------------------------------------------------ 유틸 */
-  function nowLabel() {
-    var d = new Date();
-    return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
-  }
-  function scrollBottom() { els.msgArea.scrollTop = els.msgArea.scrollHeight; }
-  function fmtDuration(ms) {
-    var s = Math.floor(ms / 1000);
-    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
-  }
-
-  /* sessionId 는 프런트에서 생성합니다. (원본 support-chat-test.html 과 동일)
-     crypto.randomUUID() 는 HTTPS 또는 localhost 에서만 제공되므로,
-     평문 HTTP 로 열었을 때를 대비해 폴백을 둡니다.
-     인증 토큰이 아니라 로그를 세션 단위로 묶기 위한 식별자입니다. */
-  function makeSessionId() {
-    if (window.crypto && typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
-    }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      var r = (Math.random() * 16) | 0;
-      var v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  }
-
-  /* 화면 표기용 짧은 상담번호 (전체 UUID 는 title 속성에 넣습니다) */
-  function shortId(uuid) {
-    return 'SUP-' + String(uuid || '').split('-')[0].toUpperCase();
-  }
-
-  /* 서버 answer 의 **굵게** 를 strong 으로 변환.
-     XSS 방지를 위해 먼저 이스케이프한 뒤 치환합니다. */
-  function escapeHtml(text) {
-    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-  function renderBotText(text) {
-    return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  }
-
-  /* ========================================================== 메시지 렌더 */
-  function renderUser(text) {
-    var wrap = document.createElement('div');
-    wrap.className = 'e-msg e-msg--me';
-    wrap.innerHTML =
-      '<div class="min-w-0"><div class="flex items-end gap-1.5 flex-row-reverse">' +
-      '<p class="e-msg-bubble"></p><span class="e-msg-time">' + nowLabel() + '</span>' +
-      '</div></div>';
-    wrap.querySelector('.e-msg-bubble').textContent = text;
-    els.msgArea.appendChild(wrap);
-    scrollBottom();
-  }
-
-  function renderSystem(text, type) {
-    var el = document.createElement('div');
-    el.className = 'e-msg-system' + (type ? ' e-msg-system--' + type : '');
-    el.textContent = text;
-    els.msgArea.appendChild(el);
-    scrollBottom();
-  }
-
-  function createBotBubble() {
-    var wrap = document.createElement('div');
-    wrap.className = 'e-msg';
-    wrap.style.maxWidth = '88%';
-    wrap.innerHTML =
-      '<span class="e-bot-avatar" aria-hidden="true">' +
-      '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>' +
-      '</span>' +
-      '<div class="min-w-0 flex-1">' +
-      '<p class="e-msg-name">잇티 AI</p>' +
-      '<div class="e-msg-bubble e-msg-bubble--bot">' +
-      '<span class="js-text" style="white-space:pre-wrap"></span>' +
-      '<span class="e-stream-cursor js-caret"></span>' +
-      '</div>' +
-      '<span class="e-msg-time block mt-1">' + nowLabel() + '</span>' +
-      '</div>';
-    els.msgArea.appendChild(wrap);
-    scrollBottom();
-    return wrap;
-  }
-
-  function attachBotFoot(wrap) {
-    var bubble = wrap.querySelector('.e-msg-bubble');
-    var foot = document.createElement('div');
-    foot.className = 'e-msg-foot';
-    foot.innerHTML =
-      '<button type="button" class="e-msg-foot-btn" data-helpful="yes" aria-pressed="false">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V10l4-8h1.5a2 2 0 0 1 2 2.3L14 8h5a2 2 0 0 1 2 2.4l-1.6 8A2 2 0 0 1 17.4 20H7Z"/><path d="M7 10H4v12h3"/></svg>도움됐어요</button>' +
-      '<button type="button" class="e-msg-foot-btn" data-helpful="no" aria-pressed="false">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2v12l-4 8h-1.5a2 2 0 0 1-2-2.3L10 16H5a2 2 0 0 1-2-2.4l1.6-8A2 2 0 0 1 6.6 4H17Z"/><path d="M17 14h3V2h-3"/></svg>아니에요</button>' +
-      '<button type="button" class="e-msg-foot-btn" data-copy-msg>' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>복사</button>';
-    bubble.appendChild(foot);
-  }
-
-  /* ================================== AI 답변 생성 대기 애니메이션 */
-  var THINK_STEPS = [
-    '질문을 이해하고 있어요',
-    '도움말 문서를 찾고 있어요',
-    '답변을 작성하고 있어요'
-  ];
-
-  function showThinking() {
-    var wrap = document.createElement('div');
-    wrap.className = 'e-thinking';
-    wrap.id = 'botThinking';
-    wrap.setAttribute('aria-live', 'polite');
-    wrap.innerHTML =
-      '<span class="e-bot-avatar" aria-hidden="true">' +
-      '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>' +
-      '</span>' +
-      '<div class="e-thinking-box">' +
-      '<div class="e-thinking-dots"><span></span><span></span><span></span></div>' +
-      '<p class="e-thinking-step" id="thinkingStep">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>' +
-      '<span class="js-step-text">' + THINK_STEPS[0] + '</span></p>' +
-      '<div class="e-thinking-skeleton"><span class="e-skeleton"></span><span class="e-skeleton"></span><span class="e-skeleton"></span></div>' +
-      '</div>';
-    els.msgArea.appendChild(wrap);
-    els.progress.hidden = false;
-    scrollBottom();
-
-    var i = 0;
-    wrap._stepTimer = setInterval(function () {
-      i = Math.min(i + 1, THINK_STEPS.length - 1);
-      setThinkingStep(THINK_STEPS[i]);
-      if (i === THINK_STEPS.length - 1) clearInterval(wrap._stepTimer);
-    }, 900);
-
-    return wrap;
-  }
-
-  function setThinkingStep(text) {
-    var step = document.getElementById('thinkingStep');
-    if (!step) return;
-    step.querySelector('.js-step-text').textContent = text;
-    step.classList.remove('is-swap');
-    void step.offsetWidth;
-    step.classList.add('is-swap');
-  }
-
-  function hideThinking() {
-    var wrap = document.getElementById('botThinking');
-    if (wrap) {
-      clearInterval(wrap._stepTimer);
-      wrap.remove();
-    }
-    els.progress.hidden = true;
-  }
-
-  /* ================================== 스트리밍 출력 (타이핑 효과) */
-  function streamText(wrap, text, done) {
-    var target = wrap.querySelector('.js-text');
-    var caret = wrap.querySelector('.js-caret');
-    var i = 0;
-
-    var timer = setInterval(function () {
-      i += 2 + Math.floor(Math.random() * 3);
-      target.textContent = text.slice(0, i);
-      scrollBottom();
-
-      if (i >= text.length) {
-        clearInterval(timer);
-        target.textContent = text;
-        if (caret) caret.remove();
-        if (done) done();
-      }
-    }, 24);
-  }
-
-  /* 서버 응답에는 후속 추천 질문이 없어, 첫 인사 뒤에만 일반적인 예시 질문을 보여준다. */
-  var DEFAULT_QUICK = ['영수증 인증이 안 돼요', '로그인이 안 돼요', '사업자 심사 현황을 알고 싶어요'];
-
-  /* ================================== 추천 질문 */
-  function setQuickReplies(list) {
-    els.quickArea.innerHTML = '';
-    if (!list || !list.length) { els.quickWrap.hidden = true; return; }
-    list.forEach(function (q) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'e-quick-btn';
-      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>';
-      var span = document.createElement('span');
-      span.textContent = q;
-      b.appendChild(span);
-      b.addEventListener('click', function () { submit(q); });
-      els.quickArea.appendChild(b);
-    });
-    els.quickWrap.hidden = false;
-  }
-
-  /* ================================== 세션 시작 */
-  function startSession(firstQuestion) {
-    var agree = document.getElementById('agreeChatPrivacy');
-    if (!agree.checked) {
-      document.getElementById('agreeChatError').classList.add('is-visible');
-      agree.focus();
-      return;
-    }
-    document.getElementById('agreeChatError').classList.remove('is-visible');
-
-    /* 세션 생성 API 는 없습니다. sessionId 를 프런트에서 만들어 매 요청에 함께 보냅니다. */
-    state.sessionId = makeSessionId();
-    state.category = document.getElementById('chatCategorySelect').value;
-    state.startedAt = Date.now();
-    state.messages = [];
-    state.ended = false;
-
-    els.intro.hidden = true;
-    els.ended.hidden = true;
-    els.active.hidden = false;
-    els.msgArea.innerHTML = '';
-
-    els.sessionId.textContent = shortId(state.sessionId);
-    els.sessionId.title = state.sessionId;
-    els.statusBadge.className = 'e-status e-status--on e-status--live ml-auto flex-none';
-    els.statusBadge.textContent = '상담 중';
-
-    var CAT_LABEL = {
-      ACCOUNT: '계정 · 로그인', REVIEW: '영수증 · 리뷰', RECOMMEND: 'AI 추천 · 음BTI',
-      CHAT: '잇티챗', BUSINESS: '사업자', ETC: '기타 문의'
-    };
-    if (state.category) {
-      els.catBadge.textContent = CAT_LABEL[state.category] || state.category;
-      els.catBadge.hidden = false;
-    } else {
-      els.catBadge.hidden = true;
-    }
-
-    renderSystem('상담이 시작되었습니다. 상담번호 ' + shortId(state.sessionId), 'brand');
-    renderSystem('대화 내용은 암호화되어 보관되며, 종료 후에는 다시 열람할 수 없습니다.');
-
-    var greetWrap = createBotBubble();
-    var greeting = '안녕하세요, 잇티웨이 AI 상담입니다.\n' +
-                   '계정, 영수증 인증, 리뷰, 사업자 심사 등 궁금한 점을 편하게 물어보세요.';
-    streamText(greetWrap, greeting, function () {
-      state.messages.push({ role: 'bot', text: greeting, at: Date.now() });
-      setQuickReplies(DEFAULT_QUICK);
-      if (firstQuestion) { submit(firstQuestion); }
-      else { els.input.focus(); }
-    });
-
-    startElapsed();
-    resetIdle();
-    els.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  /* ================================== 메시지 전송 */
-  function submit(text) {
-    if (state.busy || state.ended) return;
-    text = (text || '').trim();
-    if (!text) return;
-
-    state.busy = true;
-    els.sendBtn.disabled = true;
-    els.input.value = '';
-    els.input.style.height = 'auto';
-    updateCounter();
-    setQuickReplies([]);
-
-    renderUser(text);
-    state.messages.push({ role: 'user', text: text, at: Date.now() });
-    resetIdle();
-
-    showThinking();
-
-    fetch('/api/support-chat/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, sessionId: state.sessionId })
-    })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        hideThinking();
-        if (data && data.success) {
-          onAnswer(data.answer);
-        } else {
-          onError(data && data.message
-            ? data.message
-            : '답변을 가져오지 못했어요. 잠시 후 다시 시도해주세요.');
-        }
-      })
-      .catch(function (err) {
-        hideThinking();
-        onError('네트워크 오류가 발생했어요. (' + err.message + ')');
-      });
-  }
-
-  /* 정상 답변 처리 — 서버 answer 를 그대로 렌더링. */
-  function onAnswer(answer) {
-    var wrap = createBotBubble();
-    streamText(wrap, answer, function () {
-      /* 스트리밍이 끝난 뒤 **굵게** 마크다운을 반영 */
-      var target = wrap.querySelector('.js-text');
-      if (target) target.innerHTML = renderBotText(answer);
-
-      attachBotFoot(wrap);
-      state.messages.push({ role: 'bot', text: answer, at: Date.now() });
-      setQuickReplies(DEFAULT_QUICK);
-      state.busy = false;
-      els.sendBtn.disabled = false;
-      els.input.focus();
-      resetIdle();
-    });
-  }
-
-  /* 실패 처리 — 호출 제한 초과, 네트워크 오류 등 */
-  function onError(message) {
-    renderSystem(message, 'danger');
-    setQuickReplies(DEFAULT_QUICK);
-    state.busy = false;
-    els.sendBtn.disabled = false;
-    els.input.focus();
-    resetIdle();
-  }
-
-  /* ================================== 세션 종료 */
-  /* reason 값은 서버 EndSupportChatRequestDto.reason 으로 그대로 전달됩니다.
-     원본 support-chat-test.html 이 쓰던 button / page_closed 를 유지하고,
-     무응답 자동 종료용으로 idle_timeout 을 추가했습니다. */
-  var REASON_LABEL = {
-    button: '사용자 종료',
-    page_closed: '페이지 이탈로 자동 종료',
-    idle_timeout: '장시간 미응답으로 자동 종료'
-  };
-
-  function endSession(reason) {
-    if (state.ended || !state.sessionId) return;
-    reason = reason || 'button';
-
-    var duration = fmtDuration(Date.now() - state.startedAt);
-    var msgCount = state.messages.length;
-
-    /* --- 기록 완전 삭제 (재열람 차단) --- */
-    state.messages.length = 0;
-    state.messages = [];
-    els.msgArea.innerHTML = '';
-    els.quickArea.innerHTML = '';
-    els.input.value = '';
-    state.ended = true;
-    state.busy = false;
-
-    stopElapsed();
-    clearTimeout(idleTimer);
-    clearInterval(graceTimer);
-    hideThinking();
-
-    var endedIdEl = document.getElementById('endedSessionId');
-    endedIdEl.textContent = shortId(state.sessionId);
-    endedIdEl.title = state.sessionId;
-    document.getElementById('endedDuration').textContent = duration;
-    document.getElementById('endedMsgCount').textContent = msgCount + '건';
-    document.getElementById('endReasonBadge').textContent = REASON_LABEL[reason] || reason;
-
-    document.getElementById('ratingBox').hidden = false;
-    document.getElementById('ratingDoneBox').hidden = true;
-
-    els.active.hidden = true;
-    els.intro.hidden = true;
-    els.ended.hidden = false;
-
-    els.statusBadge.className = 'e-status e-status--idle ml-auto flex-none';
-    els.statusBadge.textContent = '종료됨';
-
-    Eatty.closeModal('endChatModal');
-    Eatty.closeModal('idleWarnModal');
-    els.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  /* 종료 알림 — POST /api/support-chat/end
-     페이지가 닫히는 중일 수도 있어 fetch 대신 sendBeacon 으로 보냅니다. */
-  function beaconEnd(reason) {
-    if (state.ended || !state.sessionId) return;
-    var payload = JSON.stringify({ sessionId: state.sessionId, reason: reason });
-    try {
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/support-chat/end',
-          new Blob([payload], { type: 'application/json' }));
-      }
-    } catch (e) { /* 무시 */ }
-  }
-
-  /* ================================== 타이머 */
-  function startElapsed() {
-    stopElapsed();
-    elapsedTimer = setInterval(function () {
-      els.elapsed.textContent = fmtDuration(Date.now() - state.startedAt);
-    }, 1000);
-  }
-  function stopElapsed() {
-    clearInterval(elapsedTimer);
-    elapsedTimer = null;
-  }
-
-  function resetIdle() {
-    clearTimeout(idleTimer);
-    clearInterval(graceTimer);
-    if (state.ended) return;
-    idleTimer = setTimeout(showIdleWarning, IDLE_LIMIT_MS);
-  }
-
-  function showIdleWarning() {
-    if (state.ended) return;
-    var left = IDLE_GRACE_SEC;
-    document.getElementById('idleCountdown').textContent = left;
-    Eatty.openModal('idleWarnModal');
-
-    graceTimer = setInterval(function () {
-      left--;
-      document.getElementById('idleCountdown').textContent = left;
-      if (left <= 0) {
-        clearInterval(graceTimer);
-        beaconEnd('idle_timeout');
-        endSession('idle_timeout');
-      }
-    }, 1000);
-  }
-
-  /* ================================== 이벤트 바인딩 */
-  document.getElementById('startChatBtn').addEventListener('click', function () { startSession(); });
-  document.getElementById('restartChatBtn').addEventListener('click', backToIntro);
-  document.getElementById('restartChatBtn2').addEventListener('click', backToIntro);
-
-  function backToIntro() {
-    state.sessionId = null;
-    state.ended = false;
-    els.ended.hidden = true;
-    els.active.hidden = true;
-    els.intro.hidden = false;
-    els.statusBadge.className = 'e-status e-status--idle ml-auto flex-none';
-    els.statusBadge.textContent = '대기 중';
-    document.getElementById('supportRatingValue').value = '0';
-    document.querySelectorAll('#supportRatingInput [data-rating-value]').forEach(function (b) {
-      b.classList.remove('is-on');
-      b.setAttribute('aria-checked', 'false');
-    });
-    document.getElementById('ratingComment').value = '';
-    els.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  document.getElementById('supportMessageForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    submit(els.input.value);
-  });
-
-  els.input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      submit(els.input.value);
-    }
-  });
-
-  function updateCounter() {
-    els.counter.textContent = els.input.value.length + ' / 1000';
-  }
-  els.input.addEventListener('input', function () {
-    updateCounter();
-    resetIdle();
-  });
-
-  document.getElementById('endChatConfirmBtn').addEventListener('click', function () {
-    beaconEnd('button');
-    endSession('button');
-  });
-
-  document.getElementById('idleContinueBtn').addEventListener('click', function () {
-    Eatty.closeModal('idleWarnModal');
-    resetIdle();
-    els.input.focus();
-  });
-  document.getElementById('idleEndNowBtn').addEventListener('click', function () {
-    beaconEnd('button');
-    endSession('button');
-  });
-
-  /* 봇 답변 피드백 / 복사 */
-  els.msgArea.addEventListener('click', function (e) {
-    var fb = e.target.closest('[data-helpful]');
-    if (fb) {
-      var foot = fb.closest('.e-msg-foot');
-      foot.querySelectorAll('[data-helpful]').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
-      fb.setAttribute('aria-pressed', 'true');
-      /* ★ 피드백 저장 엔드포인트는 아직 없습니다. 신설 시 여기서 호출하세요. */
-      Eatty.toast(fb.getAttribute('data-helpful') === 'yes'
-        ? '피드백 감사합니다.' : '알려주셔서 감사합니다. 답변 품질을 개선하겠습니다.');
-      return;
-    }
-
-    var cp = e.target.closest('[data-copy-msg]');
-    if (cp && navigator.clipboard) {
-      var txt = cp.closest('.e-msg-bubble').querySelector('.js-text').textContent;
-      navigator.clipboard.writeText(txt).then(function () {
-        Eatty.toast('답변을 복사했습니다.', 'success');
-      });
-    }
-  });
-
-  /* 만족도 평가 */
-  document.getElementById('submitRatingBtn').addEventListener('click', function () {
-    var score = Number(document.getElementById('supportRatingValue').value);
-    if (!score) {
-      Eatty.toast('별점을 선택해주세요.', 'error');
-      return;
-    }
-    /* ★ 만족도 저장 엔드포인트는 아직 없습니다. 신설 시 여기서 호출하세요. */
-    document.getElementById('ratingBox').hidden = true;
-    document.getElementById('ratingDoneBox').hidden = false;
-  });
-
-  /* 상담원 연결 */
-  document.getElementById('agentSubmitBtn').addEventListener('click', function () {
-    var email = document.getElementById('agentEmail').value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      Eatty.toast('답변 받을 이메일을 정확히 입력해주세요.', 'error');
-      document.getElementById('agentEmail').focus();
-      return;
-    }
-    /* 상담원 티켓 접수 엔드포인트가 없어, 실제로 전송되는 메일 작성 화면으로 대신한다
-       (허위로 "접수되었습니다"라고 표시하지 않음 — 사용자가 직접 보내야 실제로 전달됨). */
-    var detail = document.getElementById('agentDetail').value.trim();
-    var subject = '[잇티웨이] 상담원 연결 요청 (상담번호 ' + shortId(state.sessionId) + ')';
-    var body = '답변 받을 이메일: ' + email + '\n상담번호: ' + state.sessionId +
-      (detail ? '\n\n추가 내용:\n' + detail : '');
-    window.location.href = 'mailto:support@eattyway.com?subject=' + encodeURIComponent(subject) +
-      '&body=' + encodeURIComponent(body);
-    Eatty.closeModal('agentModal');
-  });
-
-  /* ================================== 페이지 이탈 → 자동 종료 */
-  window.addEventListener('beforeunload', function (e) {
-    if (!state.sessionId || state.ended) return;
-    beaconEnd('page_closed');
-    if (state.messages.length > 1) {
-      e.preventDefault();
-      e.returnValue = '';
-      return '';
-    }
-  });
-
-  window.addEventListener('pagehide', function () {
-    beaconEnd('page_closed');
-  });
-
-  document.addEventListener('visibilitychange', function () {
-    if (state.ended || !state.sessionId) return;
-    if (document.visibilityState === 'hidden') {
-      els.statusBadge.textContent = '대기';
-    } else {
-      els.statusBadge.textContent = '상담 중';
-      resetIdle();
-    }
-  });
-
-  /* ================================== 카테고리 / FAQ 검색 연결 */
-  var CAT_QUESTION = {
-    ACCOUNT: '로그인이 안 되는데 어떻게 해야 하나요?',
-    REVIEW: '영수증 인증이 계속 실패해요',
-    RECOMMEND: 'AI 추천이 취향과 안 맞아요',
-    CHAT: '잇티챗 참가코드를 잊어버렸어요',
-    BUSINESS: '사업자 심사는 얼마나 걸리나요?',
-    ETC: '기타 문의를 하고 싶어요'
-  };
-
-  document.getElementById('helpCategoryList').addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-help-category]');
-    if (!btn) return;
-    var cat = btn.getAttribute('data-help-category');
-    document.getElementById('chatCategorySelect').value = cat;
-
-    if (state.sessionId && !state.ended) {
-      submit(CAT_QUESTION[cat]);
-      els.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      els.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      document.getElementById('agreeChatPrivacy').focus();
-      Eatty.toast('동의 후 상담을 시작하면 해당 주제로 질문해드립니다.');
-    }
-  });
-
-  document.getElementById('helpSearchForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var q = document.getElementById('helpSearchInput').value.trim().toLowerCase();
-
-    var allTab = document.querySelector('[data-tab-target="faqAll"]');
-    if (allTab) allTab.click();
-
-    var items = document.querySelectorAll('#faqAll .e-accordion-item');
-    var shown = 0;
-    items.forEach(function (item) {
-      var head = item.querySelector('.e-accordion-head');
-      var body = item.querySelector('.e-accordion-body');
-      var text = (head.textContent + ' ' + body.textContent).toLowerCase();
-      var hit = !q || text.indexOf(q) > -1;
-      item.hidden = !hit;
-      if (hit) shown++;
-    });
-
-    document.getElementById('faqNoResult').hidden = shown > 0;
-    document.getElementById('faqCountBadge').textContent = q ? (shown + '개 검색됨') : '10개 문서';
-    document.getElementById('faqTabs').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-
-  document.getElementById('askAiFromFaqBtn').addEventListener('click', function () {
-    var q = document.getElementById('helpSearchInput').value.trim();
-    if (state.sessionId && !state.ended) {
-      submit(q || '도움말에서 답을 못 찾았어요');
-    } else {
-      Eatty.toast('상담 시작 후 질문해주세요.');
-    }
-    els.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-
-  updateCounter();
-})();
-</script>
+<script defer src="assets/js/support.js"></script>
 </body>
 </html>

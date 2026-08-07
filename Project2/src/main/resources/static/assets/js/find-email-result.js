@@ -24,3 +24,11 @@
   sessionStorage.removeItem("fe_phone");
   sessionStorage.removeItem("fe_email");
 })();
+
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('[data-copy-target]');
+  if (!btn || !navigator.clipboard) return;
+  navigator.clipboard.writeText(btn.getAttribute('data-copy-target')).then(function () {
+    Eatty.toast('이메일을 복사했습니다.', 'success');
+  });
+});

@@ -18,17 +18,16 @@
    #agreePrivacy            (필수) 개인정보 수집   data-agree-item="signupTerms"
    #agreeAge                (필수) 만 14세 이상    data-agree-item="signupTerms"
    #agreeMarketing          (선택) 마케팅 수신     data-agree-item="signupTerms"
-   #agreeError              필수 약관 미동의 에러
+   ※ 필수 약관 미동의는 Eatty.toast()로 표시합니다(2026-08-07 인라인 에러 제거, signup-business.js와 통일).
 
  [이메일 + 인증]
-   #signupEmail             이메일 입력      (name="email")
-   #checkEmailDupBtn        중복확인          ★ GET /api/members/check-email
+   #signupEmail             이메일 입력      (name="email") — 중복 여부는 가입 완료 시 서버가 자동 검증
    #sendEmailCodeBtn        인증메일 발송     ★ POST /api/auth/email/send
    #emailCodeRow            인증코드 입력 행 (기본 hidden)
    #signupEmailCode         이메일 인증코드   (name="emailCode")
    #emailCodeTimer          남은 시간 (data-timer="300")
    #verifyEmailCodeBtn      코드 확인         ★ POST /api/auth/email/verify
-   #signupEmailError / #signupEmailOk   상태 메시지
+   ※ 인증 성공/실패는 Eatty.toast()로만 안내하고, 성공 시 인증코드 입력 행(#emailCodeRow)을 숨깁니다.
 
  [비밀번호]
    #signupPassword          비밀번호        (name="password")
@@ -45,7 +44,7 @@
    #signupPhoneCode         SMS 인증번호   (name="phoneCode")
    #phoneCodeTimer          남은 시간 (data-timer="180")
    #verifyPhoneCodeBtn      번호 확인       ★ POST /api/auth/sms/verify
-   #signupPhoneError / #signupPhoneOk
+   ※ 인증 성공/실패는 Eatty.toast()로만 안내하고, 성공 시 인증번호 입력 행(#phoneCodeRow)을 숨깁니다.
 
  [제출]
    #signupStep1Form         폼 루트
@@ -102,11 +101,6 @@
       </div>
     </div>
 
-    <div class="mb-8">
-      <h1 class="t-h2">회원가입</h1>
-      <p class="t-lead mt-3">약관에 동의하고 이메일 · 전화번호를 인증해주세요.</p>
-    </div>
-
     <form id="signupStep1Form" novalidate>
 
       <!-- ==================== 약관 동의 ==================== -->
@@ -160,10 +154,6 @@
           </div>
         </div>
 
-        <p class="e-error mt-3" id="agreeError">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-          필수 약관에 모두 동의해주세요.
-        </p>
       </section>
 
       <!-- ==================== 계정 정보 ==================== -->
@@ -182,18 +172,9 @@
               <input type="email" class="e-input" id="signupEmail" name="email"
                      placeholder="eatty@example.com" autocomplete="email" required>
             </div>
-            <button type="button" class="btn btn-outline" id="checkEmailDupBtn">중복확인</button>
             <button type="button" class="btn btn-soft" id="sendEmailCodeBtn">인증메일 발송</button>
           </div>
           <p class="e-hint">인증 메일이 도착하지 않으면 스팸 메일함을 확인해주세요.</p>
-          <p class="e-error" id="signupEmailError">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            이미 사용 중인 이메일입니다.
-          </p>
-          <p class="e-ok" id="signupEmailOk">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            사용할 수 있는 이메일입니다.
-          </p>
         </div>
 
         <!-- 이메일 인증코드 (발송 후 표시) -->
@@ -275,18 +256,10 @@
                 <path d="M7 3h3l1.5 4.5-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2L21 14v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 5 5.2 2 2 0 0 1 7 3Z"/>
               </svg>
               <input type="tel" class="e-input t-num" id="signupPhone" name="phone"
-                     placeholder="01012345678 (숫자만)" inputmode="numeric" maxlength="11" autocomplete="tel" required>
+                     placeholder="010-1234-5678" inputmode="numeric" maxlength="13" autocomplete="tel" required>
             </div>
             <button type="button" class="btn btn-soft" id="sendPhoneCodeBtn">인증번호 발송</button>
           </div>
-          <p class="e-error" id="signupPhoneError">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            올바른 전화번호를 입력해주세요.
-          </p>
-          <p class="e-ok" id="signupPhoneOk">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            전화번호 인증이 완료되었습니다.
-          </p>
         </div>
 
         <div class="e-field !mb-0" id="phoneCodeRow" hidden>
@@ -305,16 +278,11 @@
       <!-- ==================== 하단 액션 ==================== -->
       <div class="flex flex-col sm:flex-row gap-3">
         <a href="index" class="btn btn-outline btn-lg sm:w-40">취소</a>
-        <button type="submit" class="btn btn-primary btn-lg flex-1" id="signupNextBtn">
+        <button type="submit" class="btn btn-primary btn-lg w-full sm:flex-1" id="signupNextBtn">
           다음 단계로
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </button>
       </div>
-
-      <p class="text-center t-xs mt-6">
-        사업자 회원이신가요?
-        <a href="signup-business" class="e-link-brand">사업자 회원가입으로 이동</a>
-      </p>
     </form>
   </div>
 </main>

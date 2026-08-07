@@ -1,4 +1,17 @@
 (function () {
+  // STEP1→STEP2를 차근차근 거치지 않고 이 URL로 바로 들어오면 STEP1로 돌려보낸다(2026-08-04 추가) —
+  // signup-business-info.js가 STEP2 제출 시 남기는 값을 확인한다.
+  var STEP2_VALID_MS = 30 * 60 * 1000;
+  var infoDoneAt = Number(sessionStorage.getItem("biz_info_done_at"));
+  var step2Fresh = infoDoneAt && (Date.now() - infoDoneAt) < STEP2_VALID_MS;
+  if (!step2Fresh) {
+    sessionStorage.removeItem("biz_signup_email");
+    sessionStorage.removeItem("biz_signup_at");
+    sessionStorage.removeItem("biz_info_done_at");
+    window.location.replace("signup-business");
+    return;
+  }
+
   var emailEl = document.getElementById("doneBizEmail");
   if (emailEl) {
     var email = sessionStorage.getItem("biz_signup_email");
@@ -15,4 +28,6 @@
   }
 
   sessionStorage.removeItem("biz_signup_email");
+  sessionStorage.removeItem("biz_signup_at");
+  sessionStorage.removeItem("biz_info_done_at");
 })();

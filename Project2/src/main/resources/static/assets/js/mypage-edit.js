@@ -5,7 +5,6 @@
   var editSection = document.getElementById("editSection");
   var gateForm = document.getElementById("gateForm");
   var gatePasswordInput = document.getElementById("gatePassword");
-  var gatePasswordError = document.getElementById("gatePasswordError");
   var gateSubmitBtn = document.getElementById("gateSubmitBtn");
   var gateFailCountEl = document.getElementById("gateFailCount");
   if (gateFailCountEl && gateFailCountEl.closest(".e-label-side")) {
@@ -25,23 +24,22 @@
   Api.request("/api/members/me").then(function (data) {
     me = data;
     setAccountView(!!data.social);
+    // 소셜 계정은 비밀번호가 없어 재인증 게이트를 통과할 방법이 없다 — 게이트 자체를 건너뛰고
+    // 바로 수정 폼으로 들여보낸다(비밀번호 변경 UI는 populateEditForm에서 계속 숨김 처리).
+    if (data.social) openEditSection();
   }).catch(function () {
     window.location.href = "mypage";
   });
 
   gateForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    gatePasswordError.classList.remove("is-visible");
     var password = gatePasswordInput.value;
     if (!password) return;
 
     gateSubmitBtn.disabled = true;
     Api.request("/api/members/me/verify-password", { method: "POST", body: { password: password } })
       .then(function () { openEditSection(); })
-      .catch(function (err) {
-        gatePasswordError.textContent = err.message || "비밀번호가 일치하지 않습니다.";
-        gatePasswordError.classList.add("is-visible");
-      })
+      .catch(function (err) { Eatty.toast(err.message || "비밀번호가 일치하지 않습니다.", "error"); })
       .finally(function () { gateSubmitBtn.disabled = false; });
   });
 
@@ -62,7 +60,13 @@
   function populateEditForm(data) {
     document.getElementById("editNickname").value = data.nickname || "";
     document.getElementById("editEmail").value = data.email || "";
-    document.getElementById("editPhone").value = (data.phone || "").replace(/-/g, "");
+    // 전화번호는 입력칸에 미리 채워 넣지 않는다(2026-08-04 변경) — 비워두면 "변경 안 함"으로
+    // 간주한다(아래 비밀번호 변경란과 동일한 관례). placeholder도 실제 번호가 아니라 형식 예시만
+    // 보여준다(2026-08-04 변경 — 실제 번호를 placeholder에 보여주는 건 회피할 이유가 없어 보여도
+    // 다른 사람이 화면을 넘겨봤을 때 그대로 노출되는 문제라 예시 형식으로 바꿈).
+    var editPhoneInputEl = document.getElementById("editPhone");
+    editPhoneInputEl.value = "";
+    editPhoneInputEl.placeholder = "010-0000-0000";
     originalPhone = data.phone || "";
 
     var avatarPlaceholder = document.getElementById("avatarPlaceholder");
@@ -78,6 +82,89 @@
     // 이미 막고 있지만, UI에서도 미리 안내).
     var passwordBox = document.getElementById("passwordChangeBox");
     if (passwordBox && data.social) passwordBox.hidden = true;
+
+    loadFoodBtiResult();
+    loadNotificationSettings();
+  }
+
+  // ---- 알림 설정(2026-08-06 실연동) ----
+  var notifyRecommendInput = document.getElementById("notifyRecommend");
+  var notifyChatInput = document.getElementById("notifyChat");
+  var notifyMarketingInput = document.getElementById("notifyMarketing");
+
+  function loadNotificationSettings() {
+    if (!notifyRecommendInput || !notifyChatInput || !notifyMarketingInput) return;
+    Api.request("/api/members/me/notification-settings")
+      .then(function (data) {
+        notifyRecommendInput.checked = !!data.notifyRecommend;
+        notifyChatInput.checked = !!data.notifyChat;
+        notifyMarketingInput.checked = !!data.notifyMarketing;
+      })
+      .catch(function () {});
+  }
+
+  function saveNotificationSettings() {
+    Api.request("/api/members/me/notification-settings", {
+      method: "PATCH",
+      body: {
+        notifyRecommend: notifyRecommendInput.checked,
+        notifyChat: notifyChatInput.checked,
+        notifyMarketing: notifyMarketingInput.checked,
+      },
+    })
+      .then(function () { Eatty.toast("알림 설정을 저장했습니다.", "success"); })
+      .catch(function (err) { Eatty.toast(err.message || "알림 설정 저장에 실패했습니다.", "error"); });
+  }
+
+  [notifyRecommendInput, notifyChatInput, notifyMarketingInput].forEach(function (input) {
+    if (input) input.addEventListener("change", saveNotificationSettings);
+  });
+
+  // ---- 음BTI 결과(2026-08-04 실제 연동) ----
+  var AXIS_LABEL = {
+    l: "담백한 맛", s: "자극적인 맛",
+    f: "익숙한 음식", n: "새로운 음식",
+    a: "혼자 먹기", t: "함께 먹기",
+    p: "계획적 선택", i: "즉흥적 선택",
+  };
+  var AXIS_PAIRS = [["l", "s"], ["f", "n"], ["a", "t"], ["p", "i"]];
+
+  function loadFoodBtiResult() {
+    var resultBox = document.getElementById("foodBtiResult");
+    var emptyBox = document.getElementById("foodBtiEmpty");
+    if (!resultBox || !emptyBox) return;
+
+    Api.request("/api/food-bti/my-result")
+      .then(function (data) {
+        document.getElementById("btiTypeCode").textContent = data.resultType;
+        document.getElementById("btiTypeName").textContent = data.resultName;
+        document.getElementById("btiTypeDesc").textContent = data.resultText;
+
+        var axisList = document.getElementById("btiAxisList");
+        var score = data.score;
+        axisList.innerHTML = AXIS_PAIRS.map(function (pair) {
+          var left = score[pair[0]], right = score[pair[1]];
+          var total = left + right || 1;
+          var pct = Math.round((left / total) * 100);
+          return '<div class="axis-row">' +
+            '<span class="axis-label ' + (left >= right ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
+            '<span class="axis-bar"><span class="axis-fill" style="width:' + pct + '%"></span></span>' +
+            '<span class="axis-label ' + (right > left ? "axis-label--on" : "axis-label--off") + '">' + AXIS_LABEL[pair[1]] + '</span>' +
+            '</div>';
+        }).join("");
+
+        var foodList = document.getElementById("btiFoodList");
+        foodList.innerHTML = (data.food || []).map(function (name) {
+          return '<span class="e-chip">' + name + '</span>';
+        }).join("");
+
+        resultBox.hidden = false;
+        emptyBox.hidden = true;
+      })
+      .catch(function () {
+        resultBox.hidden = true;
+        emptyBox.hidden = false;
+      });
   }
 
   // ---- 프로필 사진 ----
@@ -90,6 +177,10 @@
       .then(function (res) {
         Eatty.toast("프로필 사진을 변경했습니다.", "success");
         me.profileImageUrl = res.profileImageUrl;
+        // eatty-ui.js의 공용 드롭존 핸들러가 미리보기 이미지는 보여주지만, 초기 로드/삭제 때와 달리
+        // 뒤에 깔린 주황 배경(#avatarPlaceholder)은 안 숨겨서 사진 테두리 밖으로 배경색이 비쳐 보였다.
+        var placeholder = document.getElementById("avatarPlaceholder");
+        if (placeholder) placeholder.style.display = "none";
       })
       .catch(function (err) { Eatty.toast(err.message || "이미지 업로드에 실패했습니다.", "error"); });
   });
@@ -123,7 +214,6 @@
   var phoneCodeRow = document.getElementById("phoneCodeRow");
   var editPhoneCodeInput = document.getElementById("editPhoneCode");
   var verifyPhoneCodeBtn = document.getElementById("verifyPhoneCodeBtn");
-  var phoneOkEl = document.getElementById("phoneOk");
 
   function formatPhone(v) {
     var d = (v || "").replace(/\D/g, "");
@@ -131,11 +221,34 @@
     return d.slice(0, 3) + "-" + d.slice(3, 7) + "-" + d.slice(7);
   }
 
+  // 회원가입(signup.js)과 동일하게, 입력 중에도 숫자만 남기고 자릿수에 맞춰 "-"를 자동으로 붙여준다
+  // (2026-08-04 추가).
+  function formatPhoneLive(digits) {
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 7) return digits.slice(0, 3) + "-" + digits.slice(3);
+    return digits.slice(0, 3) + "-" + digits.slice(3, 7) + "-" + digits.slice(7);
+  }
+
+  // 크롬이 저장해둔 내 전화번호를 자동으로 채워 넣는 문제(2026-08-04 실사용 중 재발견) — autocomplete="off"
+  // 만으로는 크롬의 주소록 자동완성을 못 막아서, 포커스 전에는 readonly로 잠가둔다(자동완성은 readonly
+  // 필드에는 채우지 않음). 사용자가 실제로 클릭/탭해서 입력하려는 순간에만 잠금을 풀어준다.
+  editPhoneInput.addEventListener("focus", function unlockOnFocus() {
+    editPhoneInput.readOnly = false;
+    editPhoneInput.removeEventListener("focus", unlockOnFocus);
+  });
+
   editPhoneInput.addEventListener("input", function () {
-    var same = formatPhone(editPhoneInput.value.trim()) === originalPhone;
-    phoneVerified = same;
-    phoneOkEl.classList.toggle("is-visible", same);
-    if (!same) phoneCodeRow.hidden = true;
+    var digits = editPhoneInput.value.replace(/\D/g, "").slice(0, 11);
+    editPhoneInput.value = formatPhoneLive(digits);
+
+    var typed = editPhoneInput.value.trim();
+    // 비워두면 "변경 안 함"으로 취급한다(2026-08-04 변경, 비밀번호 변경란과 동일한 관례) —
+    // 인증도 다시 요구하지 않는다. 그 외에는(기존 번호와 같은 값을 다시 입력한 경우 포함) 실제
+    // 인증번호 확인 없이는 절대 인증완료로 표시하지 않는다(2026-08-04 버그 수정 — 지웠다가 기존
+    // 번호를 그대로 다시 입력하면 서버 검증 없이 인증완료로 표시되던 문제. 편집할 때마다 매번
+    // 새로 인증받도록 강제한다).
+    phoneVerified = !typed;
+    phoneCodeRow.hidden = true;
   });
 
   if (sendPhoneCodeBtn) {
@@ -143,6 +256,7 @@
       var phone = formatPhone(editPhoneInput.value.trim());
       Api.request("/api/members/me/phone/send-code", { method: "POST", body: { phone: phone } })
         .then(function () {
+          editPhoneCodeInput.value = "";
           phoneCodeRow.hidden = false;
           var timer = document.getElementById("phoneCodeTimer");
           if (timer) timer.dispatchEvent(new Event("eatty:timer-restart"));
@@ -159,7 +273,6 @@
       Api.request("/api/members/me/phone/verify-code", { method: "POST", body: { phone: phone, code: code } })
         .then(function () {
           phoneVerified = true;
-          phoneOkEl.classList.add("is-visible");
           phoneCodeRow.hidden = true;
           Eatty.toast("전화번호 인증이 완료되었습니다.", "success");
         })
@@ -190,19 +303,23 @@
     successAlert.hidden = true;
 
     var nickname = document.getElementById("editNickname").value.trim();
-    var phone = formatPhone(editPhoneInput.value.trim());
+    // 비워두면 "변경 안 함"이다(2026-08-04 변경) — 뭔가 입력했고 그 값이 기존 번호와 달라야만
+    // 실제로 바꾸려는 시도로 취급한다.
+    var phoneTyped = editPhoneInput.value.trim();
+    var phone = phoneTyped ? formatPhone(phoneTyped) : originalPhone;
+    var phoneChanged = !!phoneTyped && phone !== originalPhone;
     var newPassword = newPasswordInput ? newPasswordInput.value : "";
     var newPasswordConfirm = document.getElementById("newPasswordConfirm") ? document.getElementById("newPasswordConfirm").value : "";
 
     if (!nickname) { Eatty.toast("닉네임을 입력해주세요.", "error"); return; }
-    if (phone !== originalPhone && !phoneVerified) { Eatty.toast("전화번호 인증을 완료해주세요.", "error"); return; }
+    if (phoneChanged && !phoneVerified) { Eatty.toast("전화번호 인증을 완료해주세요.", "error"); return; }
     if (newPassword && newPassword !== newPasswordConfirm) {
-      document.getElementById("newPasswordConfirmError").classList.add("is-visible");
+      Eatty.toast("비밀번호가 일치하지 않습니다.", "error");
       return;
     }
 
     var body = { nickname: nickname };
-    if (phone !== originalPhone) body.phone = phone;
+    if (phoneChanged) body.phone = phone;
     if (newPassword) { body.password = newPassword; body.passwordConfirm = newPasswordConfirm; }
 
     var submitBtn = document.getElementById("editSubmitBtn");

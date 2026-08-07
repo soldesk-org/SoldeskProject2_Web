@@ -17,7 +17,11 @@
     return html + '<span class="e-rating-score">' + r.toFixed(1) + '</span>';
   }
 
-  if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
+  // 관리자가 아닌 계정은 아예 데이터 요청을 하지 않고 그 자리에서 바로 메인으로 돌려보낸다(2026-08-07
+  // 수정) — 예전엔 로그인 여부만 확인하고 각 섹션(대시보드/회원/신고/리뷰/모니터링)이 각자 API를 병렬로
+  // 호출한 뒤 403이 올 때마다 authRequest()가 alert()를 띄웠는데, 그 호출이 5~6개라 alert가 그만큼
+  // 연달아 뜨고 마지막 걸 닫아야 리다이렉트가 되는 것처럼 보이는 문제가 있었다.
+  if (!Api.requireRole("ADMIN", "index")) return;
 
   var state = { members: [], reviews: [], reportRows: [] };
 
@@ -27,8 +31,7 @@
         Api.clearSession();
         window.location.href = "login";
       } else if (err && err.status === 403) {
-        window.alert("관리자 권한이 없는 계정입니다.");
-        window.location.href = Api.landingPageForRole();
+        window.location.href = "index";
       }
       throw err;
     });
@@ -48,7 +51,11 @@
       a.classList.toggle("is-active", a.getAttribute("data-admin-nav") === id);
     });
     document.body.classList.remove("adminSideOpen");
-    document.getElementById("adminSide").classList.remove("is-open");
+    // Eatty.closeDrawer()로 닫아야 사이드바 자신뿐 아니라 짝을 이루는 어두운 backdrop
+    // ([data-drawer-backdrop="adminSide"])의 is-open도 함께 지워진다(2026-08-07 수정) — 예전엔
+    // 사이드바 요소의 is-open만 직접 지워서, 모바일에서 메뉴를 눌러 이동해도 backdrop이 계속 화면을
+    // 덮은 채로 남아있었다.
+    Eatty.closeDrawer("adminSide");
   }
   document.addEventListener("click", function (e) {
     var nav = e.target.closest("[data-admin-nav]");
@@ -70,25 +77,61 @@
     if (sideEmail) sideEmail.textContent = me.email || "";
     var menuEmail = document.getElementById("adminMenuEmail");
     if (menuEmail) menuEmail.textContent = me.email || "";
+    // 기본 프로필(이미지 없음)이면 다른 페이지(헤더/드로어)와 동일하게 닉네임 첫 글자를 보여준다
+    // (2026-08-06 수정 — 예전엔 "관"으로 항상 고정돼 있었다).
+    var avatarEl = document.getElementById("adminTopbarAvatar");
+    if (avatarEl) {
+      if (me.profileImageUrl) {
+        avatarEl.innerHTML = '<img src="' + me.profileImageUrl + '" class="size-full object-cover rounded-full" alt="프로필 사진">';
+      } else if (me.nickname) {
+        avatarEl.textContent = me.nickname.charAt(0);
+      }
+    }
   }).catch(function () {});
 
   // ==========================================================
   // 대시보드
   // ==========================================================
   function renderDashboard(dash) {
-    document.getElementById("kpiTotalMembers").textContent = dash.memberTotal.toLocaleString();
-    document.getElementById("kpiGeneralMembers").textContent = dash.memberGeneral.toLocaleString();
-    document.getElementById("kpiBusinessMembers").textContent = dash.memberBusiness.toLocaleString();
-    document.getElementById("kpiAdminMembers").textContent = dash.memberAdmin.toLocaleString();
-    document.getElementById("kpiTotalReviews").textContent = dash.reviewTotal.toLocaleString();
+    document.getElementById("kpiTotalMembers").textContent = dash.memberTotal.toLocaleString() + "명";
+    document.getElementById("kpiGeneralMembers").textContent = dash.memberGeneral.toLocaleString() + "명";
+    document.getElementById("kpiBusinessMembers").textContent = dash.memberBusiness.toLocaleString() + "명";
+    document.getElementById("kpiAdminMembers").textContent = dash.memberAdmin.toLocaleString() + "명";
+    document.getElementById("kpiTotalReviews").textContent = dash.reviewTotal.toLocaleString() + "건";
     document.getElementById("kpiReportedReviews").textContent = dash.reviewReported.toLocaleString();
   }
   function updatePendingBadge() {
     var pending = state.reportRows.filter(function (r) { return r.status === "PENDING"; }).length;
-    document.getElementById("kpiPendingReports").textContent = pending;
+    document.getElementById("kpiPendingReports").textContent = pending + "건";
     var sideBadge = document.getElementById("sidePendingReportBadge");
     sideBadge.hidden = pending === 0;
     sideBadge.textContent = pending;
+  }
+
+  // 공지 발송(2026-08-06 추가) — ★ POST /api/admin/notifications/broadcast
+  var broadcastForm = document.getElementById("broadcastForm");
+  if (broadcastForm) {
+    broadcastForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var titleInput = document.getElementById("broadcastTitle");
+      var bodyInput = document.getElementById("broadcastBody");
+      var title = titleInput.value.trim();
+      if (!title) { Eatty.toast("제목을 입력해주세요.", "error"); return; }
+
+      var submitBtn = document.getElementById("broadcastSubmitBtn");
+      submitBtn.disabled = true;
+      authRequest("/api/admin/notifications/broadcast", {
+        method: "POST",
+        body: { title: title, body: bodyInput.value.trim() },
+      })
+        .then(function (res) {
+          Eatty.toast(res.message || "공지를 발송했습니다.", "success");
+          titleInput.value = "";
+          bodyInput.value = "";
+        })
+        .catch(function (err) { Eatty.toast(err.message || "공지 발송에 실패했습니다.", "error"); })
+        .finally(function () { submitBtn.disabled = false; });
+    });
   }
 
   // ==========================================================
@@ -145,7 +188,6 @@
     var list = filteredMembers();
     memberTableBody.innerHTML = "";
     list.forEach(function (m) { memberTableBody.appendChild(renderMemberRow(m)); });
-    document.getElementById("memberTotalCount").textContent = list.length;
     memberCheckAll.checked = false;
     updateBulkBar();
   }
@@ -236,7 +278,7 @@
       '<td><p class="t-sm font-semibold">' + escapeHtml(r.nickname) + '</p></td>' +
       '<td><span class="e-rating">' + starsHtml(r.rating) + '</span></td>' +
       '<td><p class="t-sm t-clamp-2">' + escapeHtml(r.content || "") + '</p></td>' +
-      '<td>' + (r.keywords || []).map(function (k) { return '<span class="e-tag">' + escapeHtml(k) + '</span>'; }).join(" ") + '</td>' +
+      '<td><div class="e-tag-wrap">' + (r.keywords || []).map(function (k) { return '<span class="e-tag">' + escapeHtml(k) + '</span>'; }).join("") + '</div></td>' +
       '<td class="t-num t-sm">' + fmtDate(r.createdAt) + '</td>' +
       '<td class="cell-actions"><button type="button" class="btn btn-ghost btn-xs" data-view-review data-modal-open="adminReviewModal">원문</button> ' +
       '<button type="button" class="btn btn-danger-soft btn-xs" data-delete-review data-modal-open="deleteReviewModal">삭제</button></td>';
@@ -263,7 +305,6 @@
     var list = filteredReviews();
     adminReviewTableBody.innerHTML = "";
     list.forEach(function (r) { adminReviewTableBody.appendChild(renderReviewRow(r)); });
-    document.getElementById("reviewTotalCount").textContent = list.length;
     reviewCheckAll.checked = false;
     updateReviewBulkBar();
   }
@@ -483,21 +524,6 @@
   }
   document.getElementById("monitorAutoRefreshSwitch").addEventListener("change", scheduleMonitor);
 
-  document.getElementById("parkingSyncBtn").addEventListener("click", function () {
-    var btn = this;
-    btn.disabled = true;
-    btn.classList.add("is-loading");
-    authRequest("/api/admin/parking-lots/sync?maxPages=5", { method: "POST" })
-      .then(function (res) {
-        document.getElementById("parkingSyncStatus").textContent = "실행 완료";
-        document.getElementById("parkingSyncCount").textContent = res.facilitySynced;
-        document.getElementById("parkingSyncedAt").textContent = new Date().toLocaleString();
-        Eatty.toast(res.message || "주차장 데이터를 동기화했습니다.", "success");
-      })
-      .catch(function (err) { Eatty.toast(err.message || "동기화에 실패했습니다.", "error"); })
-      .finally(function () { btn.disabled = false; btn.classList.remove("is-loading"); });
-  });
-
   // ==========================================================
   // 전역 로드
   // ==========================================================
@@ -531,12 +557,43 @@
   }
 
   document.getElementById("adminRefreshBtn").addEventListener("click", reloadAll);
-  document.getElementById("adminSearchInput").addEventListener("keydown", function (e) {
+  var adminSearchInput = document.getElementById("adminSearchInput");
+  adminSearchInput.addEventListener("keydown", function (e) {
     if (e.key !== "Enter") return;
     showSection("members");
     memberSearchInput.value = this.value;
     renderMembers();
   });
+
+  // 검색창 X(지우기) 버튼(2026-08-06 추가) — explore.html의 searchClearBtn과 동일한 패턴.
+  var adminSearchClearBtn = document.getElementById("adminSearchClearBtn");
+  if (adminSearchClearBtn) {
+    adminSearchClearBtn.addEventListener("click", function () { adminSearchInput.value = ""; adminSearchInput.focus(); });
+  }
+  var memberSearchClearBtn = document.getElementById("memberSearchClearBtn");
+  if (memberSearchClearBtn) {
+    memberSearchClearBtn.addEventListener("click", function () {
+      memberSearchInput.value = "";
+      memberSearchInput.focus();
+      renderMembers();
+    });
+  }
+  var reportSearchClearBtn = document.getElementById("reportSearchClearBtn");
+  if (reportSearchClearBtn) {
+    reportSearchClearBtn.addEventListener("click", function () {
+      reportSearchInput.value = "";
+      reportSearchInput.focus();
+      renderReports();
+    });
+  }
+  var reviewSearchClearBtn = document.getElementById("reviewSearchClearBtn");
+  if (reviewSearchClearBtn) {
+    reviewSearchClearBtn.addEventListener("click", function () {
+      reviewSearchInput.value = "";
+      reviewSearchInput.focus();
+      renderReviews();
+    });
+  }
 
   reloadAll();
   loadMonitor();

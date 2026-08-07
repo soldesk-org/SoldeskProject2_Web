@@ -95,40 +95,11 @@
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/admin.js"></script>
 
-<style>
-  /* 관리자 상단바 */
-  .adm-topbar {
-    position: sticky; top: 0; z-index: 50;
-    height: 64px;
-    background: rgba(255, 255, 255, .88);
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; gap: 12px;
-    padding: 0 20px;
-  }
-  /* 섹션 전환 */
-  .adm-section[hidden] { display: none !important; }
-  /* 막대 차트 자리 */
-  .adm-bars { display: flex; align-items: flex-end; gap: 6px; height: 140px; }
-  .adm-bars > span { flex: 1; border-radius: 5px 5px 0 0; background: var(--brand-200); position: relative; }
-  .adm-bars > span.is-peak { background: var(--brand-grad); }
-  /* 로그 코드 블록 */
-  .adm-log {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 12px; line-height: 1.7;
-    background: var(--ink-900); color: #d7d3de;
-    border-radius: var(--r-md); padding: 14px 16px;
-    overflow-x: auto; max-height: 260px;
-  }
-  .adm-log .lv-error { color: #fca5a5; font-weight: 700; }
-  .adm-log .lv-warn { color: #fcd34d; font-weight: 700; }
-  .adm-log .lv-info { color: #93c5fd; font-weight: 700; }
-  .adm-log .ts { color: var(--ink-500); }
-</style>
+<link rel="stylesheet" href="assets/css/admin.css">
+
 </head>
 
 <body class="bg-[var(--bg-soft)]">
-<a href="#adminMain" class="skip-link">본문으로 건너뛰기</a>
 
 <div class="e-admin-shell">
 
@@ -137,26 +108,15 @@
 
   <aside class="e-admin-side" id="adminSide" aria-label="관리자 메뉴">
     <!-- 로고 -->
-    <div class="flex items-center gap-2 px-5 h-16 border-b border-white/10 flex-none">
+    <div class="flex items-center gap-2 px-5 h-16 border-b border-black/10 flex-none">
       <a href="index" class="e-logo">
         <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
-        <span class="e-logo-text !text-white !text-[17px]">잇티<em class="!text-white !bg-none">웨이</em></span>
+        <span class="e-logo-text !text-[17px]">잇티<em>웨이</em></span>
       </a>
-      <button type="button" class="e-modal-close !text-[var(--ink-400)] hover:!bg-white/10 ml-auto lg:hidden"
+      <button type="button" class="e-modal-close !text-[var(--ink-600)] hover:!bg-black/10 ml-auto lg:hidden"
               id="adminSideClose" data-drawer-close="adminSide" aria-label="메뉴 닫기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
-    </div>
-
-    <!-- 관리자 정보 -->
-    <div class="p-4 border-b border-white/10 flex-none">
-      <div class="flex items-center gap-3">
-        <span class="e-avatar e-avatar-sm flex-none" style="background:var(--brand-grad)" aria-hidden="true">관</span>
-        <div class="min-w-0">
-          <p class="text-[13.5px] font-extrabold text-white truncate" id="adminSideName">관리자</p>
-          <p class="text-[11.5px] text-[var(--ink-500)] truncate" id="adminSideEmail"></p>
-        </div>
-      </div>
     </div>
 
     <!-- 메뉴 -->
@@ -194,20 +154,6 @@
         </svg>
         서버 모니터링
       </a>
-
-      <p class="e-admin-side-label">바로가기</p>
-      <a class="e-admin-side-link" href="admin-test">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M8 12h8"/>
-        </svg>
-        개발/테스트 화면
-      </a>
-      <a class="e-admin-side-link" href="index">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/>
-        </svg>
-        서비스 홈
-      </a>
     </nav>
 
   </aside>
@@ -221,9 +167,14 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
 
-      <div class="e-input-wrap has-icon flex-1" style="max-width:380px">
+      <div class="e-input-wrap has-icon has-suffix flex-1" style="max-width:380px">
         <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input type="search" class="e-input e-input-sm" id="adminSearchInput" placeholder="회원 이메일 또는 신고 ID 검색" aria-label="관리자 전역 검색">
+        <span class="e-input-suffix">
+          <button type="button" class="e-eye" id="adminSearchClearBtn" aria-label="검색어 지우기">
+            <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </span>
       </div>
 
       <div class="ml-auto flex items-center gap-2">
@@ -243,7 +194,7 @@
         <div class="e-dropdown">
           <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
                   id="adminProfileBtn" data-dropdown-toggle="adminProfileMenu" aria-expanded="false" aria-haspopup="true">
-            <span class="e-avatar e-avatar-sm flex-none" aria-hidden="true">관</span>
+            <span class="e-avatar e-avatar-sm flex-none" id="adminTopbarAvatar" aria-hidden="true">관</span>
             <span class="hidden md:block text-sm font-bold text-[var(--ink-800)]" id="adminTopbarName">관리자</span>
             <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
@@ -251,17 +202,8 @@
             <div class="e-dropdown-head">
               <p class="text-sm font-extrabold text-[var(--ink-900)]" id="adminMenuName">관리자</p>
               <p class="text-xs text-[var(--ink-500)] mt-0.5" id="adminMenuEmail"></p>
-              <span class="e-badge e-badge--dark mt-2">ROLE_ADMIN</span>
+              <span class="e-badge e-badge--dark mt-2">관리자</span>
             </div>
-            <a class="e-dropdown-item" href="index">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
-              서비스 홈
-            </a>
-            <a class="e-dropdown-item" href="admin-test">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M8 12h8"/></svg>
-              개발/테스트 화면
-            </a>
-            <div class="e-dropdown-sep"></div>
             <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="adminLogoutBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
               로그아웃
@@ -302,15 +244,8 @@
             <p class="e-stat-value !text-[24px]" id="kpiAdminMembers">-</p>
           </div>
           <div class="e-card e-stat" style="border-color:#fbd5d5">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <p class="e-stat-label">미처리 신고</p>
-                <p class="e-stat-value !text-[24px] !text-[var(--danger)]" id="kpiPendingReports">-</p>
-              </div>
-              <span class="e-stat-ico e-stat-ico--danger">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
-              </span>
-            </div>
+            <p class="e-stat-label">미처리 신고</p>
+            <p class="e-stat-value !text-[24px] !text-[var(--danger)]" id="kpiPendingReports">-</p>
           </div>
           <div class="e-card e-stat">
             <p class="e-stat-label">총 리뷰</p>
@@ -350,6 +285,28 @@
             </div>
           </div>
         </div>
+
+        <!-- 공지 발송(2026-08-06 추가) — 활성 회원 전체에게 알림 벨로 공지를 뿌린다 (★ POST /api/admin/notifications/broadcast) -->
+        <div class="e-card mt-6">
+          <div class="e-card-head">
+            <p class="e-card-title">공지 발송</p>
+          </div>
+          <div class="e-card-body">
+            <form id="broadcastForm" class="space-y-3">
+              <div>
+                <label class="e-label" for="broadcastTitle">제목</label>
+                <input type="text" id="broadcastTitle" class="e-input" maxlength="200" placeholder="예) 8월 6일 서버 점검 안내" required>
+              </div>
+              <div>
+                <label class="e-label" for="broadcastBody">내용</label>
+                <textarea id="broadcastBody" class="e-input" rows="3" maxlength="500" placeholder="공지 내용을 입력하세요."></textarea>
+              </div>
+              <div class="flex justify-end">
+                <button type="submit" class="btn btn-primary" id="broadcastSubmitBtn">전체 회원에게 발송</button>
+              </div>
+            </form>
+          </div>
+        </div>
       </section>
 
       <!-- ================================================================
@@ -365,9 +322,14 @@
         <!-- 필터 -->
         <div class="e-card e-card-pad !py-4 mb-5">
           <div class="flex flex-wrap items-center gap-2.5">
-            <div class="e-input-wrap has-icon flex-1" style="min-width:220px;max-width:320px">
+            <div class="e-input-wrap has-icon has-suffix flex-1" style="min-width:220px;max-width:320px">
               <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
               <input type="search" class="e-input e-input-sm" id="memberSearchInput" placeholder="이메일 또는 닉네임 검색" aria-label="회원 검색">
+              <span class="e-input-suffix">
+                <button type="button" class="e-eye" id="memberSearchClearBtn" aria-label="검색어 지우기">
+                  <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </span>
             </div>
 
             <select class="e-select e-input-sm" id="memberRoleFilter" aria-label="역할 필터" style="width:auto">
@@ -431,9 +393,6 @@
           </table>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3 mt-5">
-          <p class="t-sm">전체 <b class="t-strong t-num" id="memberTotalCount">0</b>명 표시</p>
-        </div>
       </section>
 
       <!-- ================================================================
@@ -449,9 +408,14 @@
         <!-- 필터 -->
         <div class="e-card e-card-pad !py-4 mb-5">
           <div class="flex flex-wrap items-center gap-2.5">
-            <div class="e-input-wrap has-icon flex-1" style="min-width:220px;max-width:320px">
+            <div class="e-input-wrap has-icon has-suffix flex-1" style="min-width:220px;max-width:320px">
               <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
               <input type="search" class="e-input e-input-sm" id="reportSearchInput" placeholder="신고 ID, 신고자, 대상 검색" aria-label="신고 검색">
+              <span class="e-input-suffix">
+                <button type="button" class="e-eye" id="reportSearchClearBtn" aria-label="검색어 지우기">
+                  <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </span>
             </div>
 
             <select class="e-select e-input-sm" id="reportTypeFilter" aria-label="신고 유형 필터" style="width:auto">
@@ -578,9 +542,14 @@
         <!-- 필터 -->
         <div class="e-card e-card-pad !py-4 mb-5">
           <div class="flex flex-wrap items-center gap-2.5">
-            <div class="e-input-wrap has-icon flex-1" style="min-width:220px;max-width:320px">
+            <div class="e-input-wrap has-icon has-suffix flex-1" style="min-width:220px;max-width:320px">
               <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
               <input type="search" class="e-input e-input-sm" id="reviewSearchInput" placeholder="가게명 · 작성자 · 내용 검색" aria-label="리뷰 검색">
+              <span class="e-input-suffix">
+                <button type="button" class="e-eye" id="reviewSearchClearBtn" aria-label="검색어 지우기">
+                  <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </span>
             </div>
 
             <select class="e-select e-input-sm" id="reviewRatingFilter" aria-label="별점 필터" style="width:auto">
@@ -635,10 +604,6 @@
             <tbody id="adminReviewTableBody"></tbody>
           </table>
         </div>
-
-        <div class="flex flex-wrap items-center gap-3 mt-5">
-          <p class="t-sm">전체 <b class="t-strong t-num" id="reviewTotalCount">0</b>건 표시</p>
-        </div>
       </section>
 
 
@@ -647,10 +612,10 @@
            ================================================================ -->
       <section class="adm-section" id="sectionMonitor" hidden>
 
-        <div class="flex flex-wrap items-end gap-4 mb-6">
+        <div class="flex flex-wrap items-center gap-4 mb-6">
           <div>
             <h1 class="e-page-title">API 서버 모니터링</h1>
-            <p class="e-page-desc">서비스별 상태를 확인합니다. 카카오/메일/SMS는 실제 호출 없이 설정값 존재 여부만 표시됩니다.</p>
+            <p class="e-page-desc">서비스별 상태를 확인합니다.</p>
           </div>
           <div class="ml-auto flex items-center gap-4">
             <label class="e-switch" for="monitorAutoRefreshSwitch">
@@ -666,7 +631,6 @@
         <div class="e-card mb-5">
           <div class="e-card-head">
             <p class="e-card-title">서비스별 상태</p>
-            <span class="t-xs ml-auto">GET /api/admin/status 응답 기준</span>
           </div>
           <div class="e-table-wrap !border-0 !rounded-none">
             <table class="e-table e-table-compact" id="monitorTable">
@@ -680,48 +644,6 @@
               </thead>
               <tbody id="monitorTableBody"></tbody>
             </table>
-          </div>
-        </div>
-
-        <!-- ==================== 외부 데이터 동기화 ====================
-             ★ POST /api/admin/parking-lots/sync
-               공영주차장 공공데이터를 내려받아 DB 를 갱신합니다.
-               실행 시간이 길 수 있으므로 버튼에 .is-loading 을 붙여 중복 클릭을 막습니다. -->
-        <div class="e-card mb-5">
-          <div class="e-card-head">
-            <p class="e-card-title">외부 데이터 동기화 (전국 공공데이터, 보조 수단)</p>
-            <span class="t-xs ml-auto">data.go.kr 기반</span>
-          </div>
-          <div class="e-card-body">
-            <div class="e-file-item !items-start">
-              <span class="e-stat-ico e-stat-ico--info flex-none">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M5 17h14M4 17V11l2-5h12l2 5v6"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/>
-                </svg>
-              </span>
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <p class="text-sm font-extrabold text-[var(--ink-900)]">전국 공영주차장 데이터(data.go.kr)</p>
-                  <span class="e-badge e-badge--gray" id="parkingSyncStatus">미실행</span>
-                </div>
-                <p class="t-xs mt-1 leading-relaxed">
-                  현재 지도 탐색의 주변 주차장 조회는 서울 열린데이터광장을 실시간으로 호출하며 이 동기화와 무관합니다.
-                  이 버튼은 이전에 쓰던 전국 단위 배치 동기화를 수동으로 다시 실행할 때만 사용합니다.
-                  동기화 <b class="t-num" id="parkingSyncCount">-</b>건 · 마지막 실행 <b class="t-num" id="parkingSyncedAt">-</b>
-                </p>
-              </div>
-              <button type="button" class="btn btn-outline btn-sm flex-none" id="parkingSyncBtn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-                지금 동기화
-              </button>
-            </div>
-
-            <div class="e-alert e-alert--info mt-4">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
-              <div>
-                <p>이 자동 스케줄은 현재 비활성화되어 있습니다. 완료까지 수 분이 걸릴 수 있습니다.</p>
-              </div>
-            </div>
           </div>
         </div>
 
