@@ -25,6 +25,11 @@ import com.foodtrip.foodsearch.member.dto.LoginResponseDto;
 import com.foodtrip.foodsearch.member.dto.LogoutRequestDto;
 import com.foodtrip.foodsearch.member.dto.LogoutResponseDto;
 import com.foodtrip.foodsearch.member.dto.MyProfileResponseDto;
+import com.foodtrip.foodsearch.member.dto.NicknameAvailabilityResponseDto;
+import com.foodtrip.foodsearch.member.dto.NotificationSettingsResponseDto;
+import com.foodtrip.foodsearch.member.dto.UpdateNotificationSettingsRequestDto;
+import com.foodtrip.foodsearch.member.dto.PasswordResetLinkOpenedResponseDto;
+import com.foodtrip.foodsearch.member.dto.PasswordResetPollResponseDto;
 import com.foodtrip.foodsearch.member.dto.ProfileImageResponseDto;
 import com.foodtrip.foodsearch.member.dto.PasswordResetConfirmRequestDto;
 import com.foodtrip.foodsearch.member.dto.PasswordResetConfirmResponseDto;
@@ -67,6 +72,13 @@ public class MemberController {
         return memberService.signUp(request);
     }
 
+    // 닉네임 중복확인(회원가입 STEP2, 2026-08-04 신규) — 형식 검증은 최종 가입 제출 시 다시 하므로
+    // 여기서는 중복 여부만 확인한다.
+    @GetMapping("/check-nickname")
+    public NicknameAvailabilityResponseDto checkNicknameAvailable(@RequestParam String nickname) {
+        return memberService.checkNicknameAvailable(nickname);
+    }
+
     @PostMapping(value = "/signup/business", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public SignUpResponseDto signUpBusiness(@Valid @ModelAttribute BusinessSignUpRequestDto request,
                                              @RequestParam("businessLicenseFile") MultipartFile businessLicenseFile) {
@@ -96,6 +108,18 @@ public class MemberController {
     @PostMapping("/password-reset/request")
     public PasswordResetResponseDto requestPasswordReset(@Valid @RequestBody PasswordResetRequestDto request) {
         return memberService.requestPasswordReset(request);
+    }
+
+    // 다른 탭(이메일 링크)에서 인증이 확인됐는지 폴링(2026-08-04 신규) — find-password-sent.html 전용.
+    @GetMapping("/password-reset/poll")
+    public PasswordResetPollResponseDto pollPasswordReset(@RequestParam String pollKey) {
+        return memberService.pollPasswordReset(pollKey);
+    }
+
+    // 이메일 링크(find-password-reset.html?token=...)가 열렸을 때 호출 — 실제 토큰은 소비하지 않는다.
+    @PostMapping("/password-reset/confirm-click")
+    public PasswordResetLinkOpenedResponseDto confirmPasswordResetLinkOpened(@RequestParam String token) {
+        return memberService.confirmPasswordResetLinkOpened(token);
     }
 
     @PostMapping("/password-reset/confirm")
@@ -176,5 +200,19 @@ public class MemberController {
     @DeleteMapping("/me/profile-image")
     public ProfileImageResponseDto deleteProfileImage(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         return memberService.deleteProfileImage(authorizationHeader);
+    }
+
+    // 알림 설정(2026-08-06 추가) — 맞춤 맛집 추천/오픈채팅 메시지/이벤트·광고(마케팅) 알림 수신 여부.
+    @GetMapping("/me/notification-settings")
+    public NotificationSettingsResponseDto getNotificationSettings(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return memberService.getNotificationSettings(authorizationHeader);
+    }
+
+    @PatchMapping("/me/notification-settings")
+    public NotificationSettingsResponseDto updateNotificationSettings(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            @Valid @RequestBody UpdateNotificationSettingsRequestDto request) {
+        return memberService.updateNotificationSettings(authorizationHeader, request);
     }
 }

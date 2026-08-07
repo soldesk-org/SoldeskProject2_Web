@@ -1,0 +1,29 @@
+
+  /* 관리자 상단바 */
+  .adm-topbar {
+    position: sticky; top: 0; z-index: 50;
+    height: 64px;
+    background: rgba(255, 255, 255, .88);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 20px;
+  }
+  /* 섹션 전환 */
+  .adm-section[hidden] { display: none !important; }
+  /* 막대 차트 자리 */
+  .adm-bars { display: flex; align-items: flex-end; gap: 6px; height: 140px; }
+  .adm-bars > span { flex: 1; border-radius: 5px 5px 0 0; background: var(--brand-200); position: relative; }
+  .adm-bars > span.is-peak { background: var(--brand-grad); }
+  /* 로그 코드 블록 */
+  .adm-log {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px; line-height: 1.7;
+    background: var(--ink-900); color: #d7d3de;
+    border-radius: var(--r-md); padding: 14px 16px;
+    overflow-x: auto; max-height: 260px;
+  }
+  .adm-log .lv-error { color: #fca5a5; font-weight: 700; }
+  .adm-log .lv-warn { color: #fcd34d; font-weight: 700; }
+  .adm-log .lv-info { color: #93c5fd; font-weight: 700; }
+  .adm-log .ts { color: var(--ink-500); }

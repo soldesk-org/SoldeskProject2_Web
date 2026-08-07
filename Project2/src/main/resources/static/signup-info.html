@@ -1,74 +1,250 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>정보 입력 | 잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>추가 정보 입력 — 잇티웨이 회원가입</title>
+<meta name="description" content="잇티웨이 일반 회원가입 2단계. 닉네임과 취향 정보를 입력합니다.">
+
+<!--
+================================================================================
+ signup-info — 일반 회원가입 STEP 2 (추가 정보)
+--------------------------------------------------------------------------------
+ [스테퍼]  #signupSteps  (1 완료 / 2 현재 / 3 대기)
+
+ [프로필]
+   #profileImageDrop        프로필 사진 드롭존 (data-dropzone)
+   #profileImageInput       파일 입력 (name="profileImage")
+   #profileImagePreview     미리보기 래퍼 (data-dropzone-preview)
+   #profileImagePreviewImg  미리보기 <img> (data-dropzone-img)
+   #profileImageRemoveBtn   사진 제거
+
+ [기본 정보]
+   #signupNickname          닉네임 (name="nickname")
+   #checkNicknameBtn        닉네임 중복확인  ★ GET /api/members/check-nickname
+   ※ 닉네임 관련 에러(미입력/중복/형식 오류 등)는 전부 Eatty.toast()로 표시합니다(2026-08-04 변경).
+   #signupBirth             생년월일 (name="birthDate", type=date)
+   #signupGender            성별 select (name="gender")  값: M / F / N
+
+ [음식 취향 찾기 유도]
+   #tasteQuizModal   "테스트 보기" 클릭 시 taste-quiz를 팝업(iframe)으로 띄우는 모달
+                      (data-modal-open="tasteQuizModal", iframe src는 열 때 지연 로드)
+
+ [알림 설정]
+   #notifyRecommend   추천 알림 (name="notifyRecommend")
+   #notifyChat        채팅 알림 (name="notifyChat")
+
+ [제출]
+   #signupStep2Form   폼 루트
+   #signupSubmitBtn   가입 완료 → signup-done
+   #skipStepBtn       나중에 입력하기 → signup-done
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/signup-info.js"></script>
 </head>
-<body>
-<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
-  <div class="relative flex w-full shrink-0 flex-col overflow-y-auto px-10 py-8 lg:w-[31%] lg:min-w-[440px] lg:max-w-[595px] lg:px-14">
-    <a href="index" class="flex items-center gap-3">
-      <div class="relative size-16 shrink-0 overflow-hidden">
-        <img src="assets/images/logo-icon.png" alt="Eatty way 로고" class="absolute left-[-36.79%] top-[-24.44%] size-[173.11%] max-w-none object-cover" />
-      </div>
-      <span class="bg-gradient-to-r from-[#fd6d4a] to-[#fea255] bg-clip-text text-[36px] font-bold tracking-[-1.8px] text-transparent">Eatty way</span>
+
+<body class="min-h-screen flex flex-col bg-[var(--bg-soft)]">
+
+<header class="e-header e-header--solid">
+  <div class="e-container e-header-inner">
+    <a href="index" class="e-logo">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text">잇티<em>웨이</em></span>
     </a>
-
-    <div class="flex flex-1 flex-col justify-center py-8">
-      <div class="text-[#25374b]">
-        <h1 class="text-[30px] font-semibold leading-tight tracking-[-1.5px]">정보 입력</h1>
-        <p class="mt-3 text-[18px] font-medium leading-normal tracking-[-0.9px] opacity-80">회원 정보를 입력해주세요.</p>
-      </div>
-
-      <form id="signup-info-form" data-next="signup-done" class="mt-8 flex flex-col gap-3">
-        <label class="text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">닉네임</label>
-        <input id="signup-nickname" placeholder="닉네임을 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">이메일</label>
-        <input id="signup-email" type="email" placeholder="이메일을 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-        <button type="button" id="email-send" class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">인증코드 전송</button>
-        <div id="email-code-group" style="display:none">
-          <label class="mt-2 block text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">인증코드</label>
-          <div class="mt-1 flex items-center gap-3">
-            <input id="signup-email-code" placeholder="코드를 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-          </div>
-          <button type="button" id="email-confirm" class="mt-2 relative h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">인증 확인</button>
-          <p id="email-verify-status" class="mt-1 text-[14px] font-medium text-[rgba(37,55,75,0.5)]"></p>
-        </div>
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">비밀번호</label>
-        <input id="signup-password" type="password" placeholder="비밀번호를 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">비밀번호 확인</label>
-        <input id="signup-password-confirm" type="password" placeholder="비밀번호를 다시 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">전화번호</label>
-        <input id="signup-phone" placeholder="전화번호를 입력해주세요. ('-' 없이)" class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-        <button type="button" id="phone-send" class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">인증코드 전송</button>
-        <div id="phone-code-group" style="display:none">
-          <label class="mt-2 block text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">인증코드</label>
-          <div class="mt-1 flex items-center gap-3">
-            <input id="signup-phone-code" placeholder="코드를 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-          </div>
-          <button type="button" id="phone-confirm" class="mt-2 relative h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">인증 확인</button>
-          <p id="phone-verify-status" class="mt-1 text-[14px] font-medium text-[rgba(37,55,75,0.5)]"></p>
-        </div>
-
-        <p id="signup-error" class="text-[15px] font-medium text-red-500" style="display:none"></p>
-        <div class="mt-4">
-          <button type="submit" id="signup-submit-btn" class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">다음</button>
-        </div>
-      </form>
+    <div class="e-header-actions">
+      <a href="signup-done" class="btn btn-ghost btn-sm" id="skipStepBtn">나중에 입력하기</a>
     </div>
   </div>
+</header>
 
-  <div class="relative hidden flex-1 lg:block">
-    <img src="assets/images/map.png" alt="맛집 지도" class="absolute inset-0 size-full object-cover" />
+<main class="flex-1 py-10 md:py-16">
+  <div class="e-container e-container-narrow">
+
+    <div class="e-card e-card-flat p-5 mb-8">
+      <div class="e-steps" id="signupSteps">
+        <div class="e-step is-done">
+          <span class="e-step-dot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <span class="e-step-label">약관 · 인증</span>
+        </div>
+        <span class="e-step-line" style="background:var(--brand-300)"></span>
+        <div class="e-step is-current">
+          <span class="e-step-dot">2</span>
+          <span class="e-step-label">추가 정보</span>
+        </div>
+        <span class="e-step-line"></span>
+        <div class="e-step">
+          <span class="e-step-dot">3</span>
+          <span class="e-step-label">가입 완료</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-8">
+      <h1 class="t-h2">거의 다 됐어요</h1>
+      <p class="t-lead mt-3">닉네임과 취향을 알려주시면 추천 정확도가 올라갑니다. 나중에 마이페이지에서 바꿀 수 있어요.</p>
+    </div>
+
+    <form id="signupStep2Form" novalidate>
+
+      <!-- ==================== 프로필 ==================== -->
+      <section class="e-card e-card-pad mb-5">
+        <h2 class="e-form-section-title">프로필</h2>
+        <p class="e-form-section-desc">리뷰와 오픈채팅에 표시되는 정보입니다.</p>
+
+        <div class="flex flex-col sm:flex-row gap-6 items-start">
+
+          <!-- 프로필 사진 -->
+          <div class="flex-none">
+            <div class="relative">
+              <div class="e-dropzone !p-0 !rounded-full w-[110px] h-[110px] grid place-items-center overflow-hidden"
+                   id="profileImageDrop" data-dropzone
+                   data-dropzone-preview="profileImagePreview" data-dropzone-filename="profileImageName">
+                <input type="file" id="profileImageInput" name="profileImage" accept="image/png,image/jpeg,image/webp" aria-label="프로필 사진 업로드">
+                <div class="text-center pointer-events-none px-2" id="profileImagePlaceholder">
+                  <svg class="w-7 h-7 mx-auto mb-1" style="color:var(--brand-500)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15V7a2 2 0 0 0-2-2h-3l-1.5-2h-5L8 5H5a2 2 0 0 0-2 2v8"/><circle cx="12" cy="12" r="3.5"/><path d="M3 15v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+                  </svg>
+                  <span class="text-[11px] font-bold text-[var(--ink-500)]">사진 추가</span>
+                </div>
+                <div class="absolute inset-0 pointer-events-none" id="profileImagePreview" hidden>
+                  <img alt="프로필 사진 미리보기" data-dropzone-img class="w-full h-full object-cover" style="display:none">
+                </div>
+              </div>
+              <button type="button" class="absolute -right-1 -bottom-1 w-8 h-8 rounded-full bg-white border border-[var(--line-bold)] grid place-items-center shadow-[var(--sh-sm)] hover:bg-[var(--ink-50)]"
+                      id="profileImageRemoveBtn" aria-label="프로필 사진 제거">
+                <svg class="w-4 h-4 text-[var(--ink-500)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <p class="t-xs text-center mt-2.5 max-w-[110px]" id="profileImageName">JPG · PNG<br>5MB 이하</p>
+          </div>
+
+          <!-- 닉네임 등 -->
+          <div class="flex-1 w-full">
+            <div class="e-field">
+              <label class="e-label" for="signupNickname">
+                닉네임 <span class="req">*</span>
+                <span class="e-label-side">2~12자</span>
+              </label>
+              <div class="e-input-row">
+                <input type="text" class="e-input" id="signupNickname" name="nickname"
+                       placeholder="예) 매콤한김밥" maxlength="12" required>
+                <button type="button" class="btn btn-outline" id="checkNicknameBtn">중복확인</button>
+              </div>
+            </div>
+
+            <div class="e-form-grid e-form-grid-2">
+              <div class="e-field">
+                <label class="e-label" for="signupBirth">생년월일 <span class="e-label-side">선택</span></label>
+                <input type="date" class="e-input" id="signupBirth" name="birthDate">
+              </div>
+              <div class="e-field">
+                <label class="e-label" for="signupGender">성별 <span class="e-label-side">선택</span></label>
+                <select class="e-select" id="signupGender" name="gender">
+                  <option value="">선택하지 않음</option>
+                  <option value="M">남성</option>
+                  <option value="F">여성</option>
+                  <option value="N">기타</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 음식 취향 찾기 유도 ==================== -->
+      <section class="e-card e-card-soft e-card-pad mb-5">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <span class="w-12 h-12 rounded-[14px] grid place-items-center flex-none text-white" style="background:var(--brand-grad)">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/></svg>
+          </span>
+          <div class="flex-1">
+            <p class="t-h4">음식 취향 찾기로 취향을 더 정확하게</p>
+            <p class="t-sm mt-1.5">12문항 테스트로 내 음식 유형을 진단하면 추천 정확도가 크게 올라갑니다.</p>
+          </div>
+          <button type="button" class="btn btn-outline-brand btn-sm flex-none" data-modal-open="tasteQuizModal">테스트 보기</button>
+        </div>
+      </section>
+
+      <!-- ==================== 알림 설정 ==================== -->
+      <section class="e-card e-card-pad mb-8">
+        <h2 class="e-form-section-title">알림 설정</h2>
+        <p class="e-form-section-desc">언제든지 마이페이지에서 변경할 수 있습니다.</p>
+
+        <div class="space-y-3">
+          <!-- 맞춤 맛집 추천 알림(2026-08-06 보류) — mypage-edit.html과 동일한 이유로 숨김
+               (발송 트리거 미구현). checkbox는 그대로 둬서 가입 요청엔 계속 기본값(true)이 실린다. -->
+          <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]" hidden>
+            <div>
+              <p class="text-sm font-bold text-[var(--ink-900)]">맞춤 맛집 추천 알림</p>
+              <p class="t-xs mt-0.5">취향에 맞는 새 맛집이 등록되면 알려드립니다.</p>
+            </div>
+            <label class="e-switch" for="notifyRecommend">
+              <input type="checkbox" id="notifyRecommend" name="notifyRecommend" checked>
+              <span class="e-switch-track"></span>
+              <span class="sr-only-e">맞춤 맛집 추천 알림 사용</span>
+            </label>
+          </div>
+          <div class="flex items-center justify-between p-4 rounded-[var(--r)] border border-[var(--line)]">
+            <div>
+              <p class="text-sm font-bold text-[var(--ink-900)]">오픈채팅 메시지 알림</p>
+              <p class="t-xs mt-0.5">참여 중인 잇티챗에 새 메시지가 오면 알려드립니다.</p>
+            </div>
+            <label class="e-switch" for="notifyChat">
+              <input type="checkbox" id="notifyChat" name="notifyChat" checked>
+              <span class="e-switch-track"></span>
+              <span class="sr-only-e">오픈채팅 메시지 알림 사용</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <a href="signup" class="btn btn-outline btn-lg sm:w-40">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
+          이전
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg w-full sm:flex-1" id="signupSubmitBtn">가입 완료하기</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<footer class="py-8 border-t border-[var(--line)] bg-white">
+  <div class="e-container flex flex-wrap items-center justify-between gap-3">
+    <p class="t-xs">&copy; 2026 Eatty way.</p>
+    <nav class="flex gap-4 t-xs">
+      <a href="terms-service" class="e-link">이용약관</a>
+      <a href="terms-privacy" class="e-link">개인정보처리방침</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- ==================== 음식 취향 찾기 팝업 ==================== -->
+<div class="e-modal" id="tasteQuizModal" role="dialog" aria-modal="true" aria-labelledby="tasteQuizModalTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--lg">
+    <div class="e-modal-head">
+      <div>
+        <h2 class="e-modal-title" id="tasteQuizModalTitle">음식 취향 찾기</h2>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="e-modal-body !p-0">
+      <iframe id="tasteQuizFrame" title="음식 취향 찾기" style="width:100%;height:75vh;border:0;display:block"></iframe>
+    </div>
   </div>
 </div>
-<script src="assets/js/api.js"></script>
-<script src="assets/js/signup-info.js"></script>
+
 </body>
 </html>

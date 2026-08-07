@@ -38,10 +38,17 @@ public enum ErrorCode {
     SOCIAL_UNLINK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "소셜 계정 연동 해제에 실패했습니다."),
     SOCIAL_ACCOUNT_NOT_LINKED(HttpStatus.NOT_FOUND, "연동된 소셜 계정이 없습니다."),
     INVALID_PROFILE_IMAGE(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식이거나 용량이 너무 큽니다."),
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "알림을 찾을 수 없습니다."),
     RESTAURANT_NOT_FOUND(HttpStatus.NOT_FOUND, "음식점을 찾을 수 없습니다."),
     RESTAURANT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "이 음식점을 관리할 권한이 없습니다."),
+    BUSINESS_RESTAURANT_NOT_CLAIMED(HttpStatus.NOT_FOUND, "아직 연결된 매장이 없습니다."),
+    RESTAURANT_ADDRESS_MISMATCH(HttpStatus.BAD_REQUEST, "선택한 매장 주소가 사업자등록증명원 주소와 일치하지 않습니다."),
+    RESTAURANT_ALREADY_CLAIMED(HttpStatus.CONFLICT, "이미 다른 사업자가 등록한 매장입니다."),
+    BUSINESS_RESTAURANT_ALREADY_LINKED(HttpStatus.CONFLICT, "이미 연결된 매장이 있습니다."),
     MENU_NOT_FOUND(HttpStatus.NOT_FOUND, "메뉴를 찾을 수 없습니다."),
     INVALID_RESTAURANT_IMAGE(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식이거나 용량이 너무 큽니다."),
+    RESTAURANT_IMAGE_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "매장 사진은 최대 4장까지 등록할 수 있습니다."),
+    RESTAURANT_IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "사진을 찾을 수 없습니다."),
     KAKAO_LOCAL_SEARCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "카카오 로컬 API 연동 중 오류가 발생했습니다."),
     RECEIPT_EMPTY_FILE(HttpStatus.BAD_REQUEST, "빈 파일입니다."),
     RECEIPT_INVALID_IMAGE(HttpStatus.BAD_REQUEST, "이미지를 인식할 수 없습니다."),
@@ -70,6 +77,8 @@ public enum ErrorCode {
     PARKING_DATA_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "주차장 정보 서버와 통신할 수 없습니다."),
     PARKING_DATA_SYNC_ALREADY_RUNNING(HttpStatus.CONFLICT, "주차장 정보 동기화가 이미 진행 중입니다. 잠시 후 다시 시도해주세요."),
     DIRECTIONS_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "길찾기 서버와 통신할 수 없습니다."),
+    SUPPORT_CHAT_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "AI 고객센터 챗봇과 통신할 수 없습니다. 잠시 후 다시 시도해주세요."),
+    SUPPORT_CHAT_DAILY_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "오늘 문의 가능한 횟수를 초과했습니다. 내일 다시 시도해주세요."),
     REPORT_REASON_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "허용되지 않은 신고 사유입니다."),
     REVIEW_ALREADY_REPORTED(HttpStatus.CONFLICT, "이미 신고한 리뷰입니다."),
     REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "처리할 신고 내역이 없습니다."),
@@ -80,7 +89,10 @@ public enum ErrorCode {
     CHAT_MESSAGE_CONTENT_REQUIRED(HttpStatus.BAD_REQUEST, "메시지 내용을 입력해주세요."),
     CHAT_MESSAGE_PROFANITY(HttpStatus.BAD_REQUEST, "메시지에 부적절한 표현이 포함되어 있습니다."),
     CHAT_ALREADY_REPORTED(HttpStatus.CONFLICT, "이미 신고했습니다."),
-    CHAT_ROOM_FULL(HttpStatus.CONFLICT, "채팅방 인원이 가득 찼습니다.");
+    CHAT_ROOM_FULL(HttpStatus.CONFLICT, "채팅방 인원이 가득 찼습니다."),
+    GEOCODE_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "주소-좌표 변환 서버와 통신할 수 없습니다."),
+    GEOCODE_NOT_FOUND(HttpStatus.NOT_FOUND, "입력한 주소의 좌표를 찾을 수 없습니다."),
+    FOOD_BTI_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "저장된 음BTI 결과가 없습니다.");
 
     private final HttpStatus status;
     private final String defaultMessage;

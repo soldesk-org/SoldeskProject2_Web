@@ -1,44 +1,101 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>가입 완료 | 잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회원가입 완료 — 잇티웨이</title>
+<meta name="description" content="잇티웨이 회원가입이 완료되었습니다.">
+
+<!--
+================================================================================
+ signup-done — 일반 회원가입 STEP 3 (완료)
+--------------------------------------------------------------------------------
+ [출력 값]  ★ 가입 결과로 서버에서 받은 값으로 채워주세요
+   #doneNickname       가입한 닉네임
+
+ [다음 행동]
+   #goLoginBtn         로그인하러 가기 → login
+   #goHomeLink         홈으로          → index
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/signup-done.js"></script>
 </head>
-<body>
-<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
-  <div class="relative flex w-full shrink-0 flex-col overflow-y-auto px-10 py-8 lg:w-[31%] lg:min-w-[440px] lg:max-w-[595px] lg:px-14">
-    <a href="index" class="flex items-center gap-3">
-      <div class="relative size-16 shrink-0 overflow-hidden">
-        <img src="assets/images/logo-icon.png" alt="Eatty way 로고" class="absolute left-[-36.79%] top-[-24.44%] size-[173.11%] max-w-none object-cover" />
-      </div>
-      <span class="bg-gradient-to-r from-[#fd6d4a] to-[#fea255] bg-clip-text text-[36px] font-bold tracking-[-1.8px] text-transparent">Eatty way</span>
+
+<body class="min-h-screen flex flex-col bg-[var(--bg-soft)]">
+
+<header class="e-header e-header--solid">
+  <div class="e-container e-header-inner">
+    <a href="index" class="e-logo">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text">잇티<em>웨이</em></span>
     </a>
-
-    <div class="flex flex-1 flex-col justify-center py-8">
-      <div class="mx-auto flex size-[180px] items-center justify-center rounded-full bg-[rgba(254,162,85,0.15)]">
-        <div class="bg-gradient-to-b from-[#fea255] to-[#fd6d4a] bg-clip-text text-transparent">
-          <svg width="80" height="80" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-      </div>
-
-      <div class="mt-8 text-center text-[#25374b]">
-        <h1 class="text-[30px] font-semibold tracking-[-1.5px]">가입을 축하드립니다!</h1>
-        <p class="mt-3 text-[18px] font-medium tracking-[-0.9px] opacity-80">로그인 후 모든 서비스를 이용하실 수 있습니다.</p>
-      </div>
-
-      <div class="mt-8 flex flex-col gap-3">
-        <a href="login" class="flex h-[52px] w-full items-center justify-center rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">로그인 하기</a>
-        <a href="index" class="flex h-[52px] w-full items-center justify-center rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">메인으로 이동하기</a>
-      </div>
+    <div class="e-header-actions">
+      <a href="index" class="btn btn-ghost btn-sm" id="goHomeLink">홈으로</a>
     </div>
   </div>
+</header>
 
-  <div class="relative hidden flex-1 lg:block">
-    <img src="assets/images/map.png" alt="맛집 지도" class="absolute inset-0 size-full object-cover" />
+<main class="flex-1 py-10 md:py-16 flex flex-col justify-center">
+  <div class="e-container e-container-narrow">
+
+    <div class="e-card e-card-flat p-5 mb-8">
+      <div class="e-steps">
+        <div class="e-step is-done">
+          <span class="e-step-dot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <span class="e-step-label">약관 · 인증</span>
+        </div>
+        <span class="e-step-line" style="background:var(--brand-300)"></span>
+        <div class="e-step is-done">
+          <span class="e-step-dot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <span class="e-step-label">추가 정보</span>
+        </div>
+        <span class="e-step-line" style="background:var(--brand-300)"></span>
+        <div class="e-step is-current">
+          <span class="e-step-dot">3</span>
+          <span class="e-step-label">가입 완료</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== 완료 카드 ======================== -->
+    <section class="e-card e-card-pad text-center py-12 md:py-16 e-anim-up">
+      <span class="w-20 h-20 rounded-full grid place-items-center mx-auto mb-7 text-white" style="background:var(--brand-grad);box-shadow:var(--sh-brand)">
+        <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </span>
+
+      <h1 class="t-h2">가입이 완료됐어요</h1>
+      <p class="t-lead mt-4 max-w-md mx-auto">
+        <b class="t-strong" id="doneNickname">매콤한김밥</b>님, 잇티웨이에 오신 것을 환영합니다.<br>
+        이제 로그인해서 맛집을 찾아보세요.
+      </p>
+
+      <div class="mt-9 flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+        <a href="login" class="btn btn-primary btn-lg w-full sm:flex-1" id="goLoginBtn">로그인하러 가기</a>
+        <a href="index" class="btn btn-outline btn-lg sm:w-36">홈으로</a>
+      </div>
+    </section>
   </div>
-</div>
-<script src="assets/js/api.js"></script>
+</main>
+
+<footer class="py-8 border-t border-[var(--line)] bg-white">
+  <div class="e-container flex flex-wrap items-center justify-between gap-3">
+    <p class="t-xs">&copy; 2026 Eatty way.</p>
+    <nav class="flex gap-4 t-xs">
+      <a href="terms-service" class="e-link">이용약관</a>
+      <a href="terms-privacy" class="e-link">개인정보처리방침</a>
+    </nav>
+  </div>
+</footer>
 </body>
 </html>

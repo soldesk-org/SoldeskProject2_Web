@@ -14,7 +14,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    # SQL 로그를 껐다(2026-08-05) — 콘솔에 매 요청마다 쿼리가 계속 찍혀서 실제 에러 스택트레이스가
+    # 묻히는 문제가 있었음. 쿼리 확인이 필요하면 이 값만 잠깐 true로 바꿔서 쓴다.
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -62,7 +64,9 @@ phone-crypto:
   hash-key: ${PHONE_HASH_KEY}
 
 password-reset:
-  frontend-url: ${PASSWORD_RESET_FRONTEND_URL:http://localhost:5173/reset-password}
+  # 기본값이 예전에 별도 Vite 프론트(5173)를 쓰려고 했을 때 남은 값이었음 — 이 프로젝트는 정적 리소스를
+  # Spring Boot(8081)가 직접 서빙하고, 실제 재설정 화면은 find-password-reset.html이다(2026-08-04 수정).
+  frontend-url: ${PASSWORD_RESET_FRONTEND_URL:http://localhost:8081/find-password-reset}
 
 mail-sender:
   # Daum SMTP는 인증 아이디(spring.mail.username, 도메인 없는 "eattyway")와
@@ -76,6 +80,12 @@ ppurio:
   account: ${PPURIO_ACCOUNT:}
   auth-key: ${PPURIO_AUTH_KEY:}
   sender-number: ${PPURIO_SENDER_NUMBER:07052364828}
+
+sms:
+  test-mode:
+    # 로컬 테스트용(2026-08-04 추가) — true면 실제 SMS 발송(뿌리오 비용 발생) 없이 인증번호가 항상
+    # 000000으로 고정된다. 기본값 false, 각자 로컬 .env에서만 켜서 쓰는 opt-in 설정(팀 공용 값 아님).
+    enabled: ${SMS_TEST_MODE_ENABLED:false}
 
 profile-image:
   # 로컬 디스크에 저장(클라우드 스토리지 미도입 — 이 프로젝트의 다른 파일 업로드도 별도 저장소를 쓰지 않음).
@@ -161,6 +171,28 @@ ncp-directions:
   base-url: ${NCP_DIRECTIONS_BASE_URL:https://maps.apigw.ntruss.com/map-direction/v1/driving}
   client-id: ${NCP_MAPS_CLIENT_ID:}
   client-secret: ${NCP_MAPS_CLIENT_SECRET:}
+
+ncp-geocoding:
+  # 사업자 회원가입 STEP2 주소 검색(2026-08-04 신규) — 도로명주소 문자열을 좌표로 변환하는 NCP Maps의
+  # 다른 서브 API(같은 Client ID/Secret 재사용, ncp-directions 설정 참고).
+  base-url: ${NCP_GEOCODING_BASE_URL:https://maps.apigw.ntruss.com/map-geocode/v2/geocode}
+
+hyperclova:
+  # AI 고객센터 챗봇(2026-07-31 신규) — 네이버클라우드플랫폼(NCP) CLOVA Studio의 HyperCLOVA X Chat
+  # Completions API. 서버 전용 API 키(Authorization: Bearer)로 인증하며, 잇티웨이 서비스 안내를
+  # 시스템 프롬프트로 고정해서 고객센터 문의 응대 용도로만 쓴다 - docs/25.AI고객센터챗봇 참고.
+  # 키가 없으면(로컬에서 발급 전) SUPPORT_CHAT_SERVICE_UNAVAILABLE로 응답하고 앱 기동 자체는 막지 않는다.
+  base-url: ${HYPERCLOVA_BASE_URL:https://clovastudio.stream.ntruss.com}
+  model: ${HYPERCLOVA_MODEL:HCX-DASH-002}
+  api-key: ${HYPERCLOVA_API_KEY:}
+
+support-chat-log:
+  # AI 고객센터 챗봇 대화 로그(2026-07-31 2차 추가) — 질문/답변을 JSON Lines 파일로 남기되, phone-crypto와
+  # 같은 AES-256-GCM 방식으로 대화 내용(question/answer)만 암호화해서 저장한다(세션ID/시각은 평문).
+  # 키가 없으면(아직 Jenkins Credentials 미등록 등) 로그 기록 자체를 건너뛰고 앱 기동은 막지 않는다
+  # (HYPERCLOVA_API_KEY와 같은 방어적 설계) — docs/25.AI고객센터챗봇 참고.
+  aes-key: ${CHAT_LOG_AES_KEY:}
+  log-file: ${CHAT_LOG_FILE_PATH:./logs/support-chat.jsonl}
 
 recommendation:
   # AI 추천(2026-07-22 추가) — 다른 팀원이 만든 Python(FastAPI) 서버 recommendation_api.py.

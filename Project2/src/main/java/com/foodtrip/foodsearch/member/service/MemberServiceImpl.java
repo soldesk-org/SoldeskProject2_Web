@@ -35,9 +35,14 @@ import com.foodtrip.foodsearch.member.dto.LoginResponseDto;
 import com.foodtrip.foodsearch.member.dto.LogoutRequestDto;
 import com.foodtrip.foodsearch.member.dto.LogoutResponseDto;
 import com.foodtrip.foodsearch.member.dto.MyProfileResponseDto;
+import com.foodtrip.foodsearch.member.dto.NicknameAvailabilityResponseDto;
+import com.foodtrip.foodsearch.member.dto.NotificationSettingsResponseDto;
+import com.foodtrip.foodsearch.member.dto.UpdateNotificationSettingsRequestDto;
 import com.foodtrip.foodsearch.member.dto.ProfileImageResponseDto;
 import com.foodtrip.foodsearch.member.dto.PasswordResetConfirmRequestDto;
 import com.foodtrip.foodsearch.member.dto.PasswordResetConfirmResponseDto;
+import com.foodtrip.foodsearch.member.dto.PasswordResetLinkOpenedResponseDto;
+import com.foodtrip.foodsearch.member.dto.PasswordResetPollResponseDto;
 import com.foodtrip.foodsearch.member.dto.PasswordResetRequestDto;
 import com.foodtrip.foodsearch.member.dto.PasswordResetResponseDto;
 import com.foodtrip.foodsearch.member.dto.RefreshRequestDto;
@@ -64,6 +69,7 @@ import com.foodtrip.foodsearch.member.util.EmailMasker;
 import com.foodtrip.foodsearch.phone.dto.PhoneResponseDto;
 import com.foodtrip.foodsearch.phone.entity.PhoneVerification;
 import com.foodtrip.foodsearch.phone.service.PhoneAuthService;
+import com.foodtrip.foodsearch.restaurant.dto.RestaurantClaimResult;
 import com.foodtrip.foodsearch.restaurant.service.RestaurantClaimService;
 import com.foodtrip.foodsearch.social.repository.SocialAccountRepository;
 
@@ -75,6 +81,7 @@ public class MemberServiceImpl implements MemberService {
 
     private static final String STATUS_SUSPENDED = "SUSPENDED";
     private static final String STATUS_WITHDRAWN = "WITHDRAWN";
+    private static final String ROLE_BUSINESS = "BUSINESS";
     private static final long REVEAL_VALID_MINUTES = 10;
 
     private final MemberRepository memberRepository;
@@ -144,6 +151,11 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    public NicknameAvailabilityResponseDto checkNicknameAvailable(String nickname) {
+        return new NicknameAvailabilityResponseDto(!memberRepository.existsByNickname(nickname));
+    }
+
+    @Override
     @Transactional
     public SignUpResponseDto signUp(SignUpRequestDto request) {
         if (!request.getPassword().equals(request.getPasswordConfirm())) {
@@ -179,6 +191,12 @@ public class MemberServiceImpl implements MemberService {
         }
 
         member.completeSignUp(request.getNickname(), request.getPhone(), phoneHash);
+        if (request.getNotifyRecommend() != null || request.getNotifyChat() != null) {
+            member.updateNotificationSettings(
+                    request.getNotifyRecommend() != null ? request.getNotifyRecommend() : member.isNotifyRecommend(),
+                    request.getNotifyChat() != null ? request.getNotifyChat() : member.isNotifyChat(),
+                    member.isNotifyMarketing());
+        }
 
         // 위의 existsByNickname/existsByPhoneHash 사전 체크만으로는 동시 요청 시 레이스 컨디션을 막을 수 없으므로,
         // 즉시 flush하여 DB의 UNIQUE 제약(nickname, phone_hash) 위반을 이 시점에 잡아낸다.
@@ -304,12 +322,15 @@ public class MemberServiceImpl implements MemberService {
             throw e;
         }
 
-        // 사업장 주소 자동귀속(2026-07-20 요구사항 추가) — OCR이 못 읽었거나 매칭 실패해도 회원가입
-        // 자체는 그대로 성공시킨다(귀속은 "되면 좋은" 부가 기능이지 가입의 필수 조건이 아님).
-        restaurantClaimService.tryAutoClaimByAddress(
-                member.getMemberId(), businessProfile.getBusinessProfileId(), verified.address());
+        // 사업장 주소+가게명 자동귀속(2026-07-20 요구사항 추가, 2026-08-07 가게명 매칭 추가) — OCR이 못
+        // 읽었거나 매칭 실패해도 회원가입 자체는 그대로 성공시킨다(귀속은 "되면 좋은" 부가 기능이지 가입의
+        // 필수 조건이 아님). 결과가 모호하면(AMBIGUOUS) 후보 목록을 응답에 실어 보내 프론트가 수동
+        // 귀속(POST /api/business/claim-restaurant)을 안내할 수 있게 한다.
+        RestaurantClaimResult claimResult = restaurantClaimService.tryAutoClaim(
+                member.getMemberId(), businessProfile.getBusinessProfileId(), verified.address(), request.getStoreName());
 
-        return new SignUpResponseDto(true, "사업자 회원가입이 완료되었습니다.", member.getMemberId());
+        return new SignUpResponseDto(true, "사업자 회원가입이 완료되었습니다.", member.getMemberId(),
+                claimResult.status(), claimResult.candidates().isEmpty() ? null : claimResult.candidates());
     }
 
     private String extractConstraintName(DataIntegrityViolationException e) {
@@ -406,16 +427,34 @@ public class MemberServiceImpl implements MemberService {
     public FindEmailResponseDto findEmail(FindEmailRequestDto request) {
         String phoneHash = phoneCryptoService.hash(request.getPhone());
 
-        // 닉네임만 맞음/전화번호만 맞음/둘 다 틀림/탈퇴 회원을 모두 동일하게 MEMBER_NOT_FOUND로 처리하여
-        // 부분 일치 여부로 회원 존재 여부가 노출되지 않도록 한다.
+        // 닉네임만 맞음/전화번호만 맞음/계정 유형(일반·사업자) 불일치/둘 다 틀림/탈퇴 회원을 모두 동일하게
+        // MEMBER_NOT_FOUND로 처리하여 부분 일치 여부로 회원 존재 여부가 노출되지 않도록 한다(2026-08-04
+        // 계정 유형 검증 추가 — 예전엔 화면의 "계정 유형" 라디오가 실제로 검증되지 않아, 일반 회원 정보로도
+        // "사업자 회원"을 선택하면 그대로 인증 절차를 통과하는 문제가 있었음).
         Member member = memberRepository.findByNicknameAndPhoneHash(request.getNickname(), phoneHash)
                 .filter(m -> !STATUS_WITHDRAWN.equals(m.getStatus()))
+                .filter(m -> matchesMemberType(m, request.getMemberType()))
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         String maskedEmail = EmailMasker.mask(member.getEmail());
         // memberId를 그대로 노출하지 않고, SMS 인증(전체공개) 단계에서만 쓸 단기 조회 세션 토큰을 발급한다.
         String verificationToken = findEmailVerificationSessionService.issue(member.getMemberId());
         return new FindEmailResponseDto(true, "일치하는 회원 정보를 찾았습니다.", maskedEmail, verificationToken);
+    }
+
+    // memberType 미전송(구버전 클라이언트 호환)이면 검증을 건너뛴다.
+    private boolean matchesMemberType(Member member, String memberType) {
+        if (memberType == null || memberType.isBlank()) {
+            return true;
+        }
+        boolean isBusiness = ROLE_BUSINESS.equals(member.getRole());
+        if ("business".equalsIgnoreCase(memberType)) {
+            return isBusiness;
+        }
+        if ("normal".equalsIgnoreCase(memberType)) {
+            return !isBusiness;
+        }
+        return true;
     }
 
     @Override
@@ -426,7 +465,7 @@ public class MemberServiceImpl implements MemberService {
             Member member = memberOpt.get();
             // member_credentials까지 있어야(=회원가입을 끝까지 완료한 회원) 재설정 메일을 보낸다.
             if (memberCredentialRepository.existsByMemberId(member.getMemberId())) {
-                String rawToken = passwordResetTokenService.issue(member.getMemberId());
+                String rawToken = passwordResetTokenService.issue(member.getMemberId(), request.getPollKey());
                 String resetUrl = passwordResetFrontendUrl + "?token=" + rawToken;
                 try {
                     mailService.sendPasswordResetMail(member.getEmail(), resetUrl);
@@ -439,6 +478,17 @@ public class MemberServiceImpl implements MemberService {
         }
         // 이메일 존재 여부와 무관하게 항상 동일한 응답을 반환한다 (계정 존재 여부 비노출).
         return new PasswordResetResponseDto(true, "입력하신 이메일로 비밀번호 재설정 안내를 보냈습니다.");
+    }
+
+    @Override
+    public PasswordResetPollResponseDto pollPasswordReset(String pollKey) {
+        String token = passwordResetTokenService.checkConfirmed(pollKey);
+        return new PasswordResetPollResponseDto(token != null, token);
+    }
+
+    @Override
+    public PasswordResetLinkOpenedResponseDto confirmPasswordResetLinkOpened(String token) {
+        return new PasswordResetLinkOpenedResponseDto(passwordResetTokenService.markLinkOpened(token));
     }
 
     @Override
@@ -536,6 +586,12 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public PhoneResponseDto sendProfilePhoneCode(String authorizationHeader, SendProfilePhoneCodeRequestDto request, String clientIp) {
         Long memberId = resolveMemberId(authorizationHeader);
+        // 이메일 변경(sendProfileUpdateCode)과 동일하게, 인증번호 발송 전에 먼저 중복 여부를 확인한다
+        // (2026-08-04 추가) — 예전엔 최종 저장 시점(updateProfile)에만 중복을 확인해서, 이미 다른
+        // 회원이 쓰고 있는 번호로도 SMS 발송+인증까지 다 끝낸 뒤에야 저장 단계에서 거부당했다.
+        if (memberRepository.existsByPhoneHashAndMemberIdNot(phoneCryptoService.hash(request.getPhone()), memberId)) {
+            throw new CustomException(ErrorCode.DUPLICATE_PHONE);
+        }
         phoneAuthService.sendVerificationCode(memberId, request.getPhone(), PhoneVerification.PURPOSE_PROFILE_UPDATE, clientIp);
         return new PhoneResponseDto(true, "인증번호가 발송되었습니다.");
     }
@@ -713,11 +769,34 @@ public class MemberServiceImpl implements MemberService {
             throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        member.withdraw();
+        member.withdraw(request.getReason());
 
         refreshTokenService.revoke(memberId);
         accessTokenSessionService.revoke(claims.getId());
 
         return new WithdrawResponseDto(true, "회원탈퇴가 완료되었습니다.");
+    }
+
+    // 알림 설정(2026-08-06 추가) — 마이페이지/회원가입 화면의 추천·채팅·마케팅 알림 토글 3개.
+    @Override
+    public NotificationSettingsResponseDto getNotificationSettings(String authorizationHeader) {
+        Long memberId = resolveMemberId(authorizationHeader);
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_LOGGED_IN));
+        return new NotificationSettingsResponseDto(member.isNotifyRecommend(), member.isNotifyChat(),
+                member.isNotifyMarketing());
+    }
+
+    @Override
+    @Transactional
+    public NotificationSettingsResponseDto updateNotificationSettings(String authorizationHeader,
+            UpdateNotificationSettingsRequestDto request) {
+        Long memberId = resolveMemberId(authorizationHeader);
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_LOGGED_IN));
+        member.updateNotificationSettings(request.getNotifyRecommend(), request.getNotifyChat(),
+                request.getNotifyMarketing());
+        return new NotificationSettingsResponseDto(member.isNotifyRecommend(), member.isNotifyChat(),
+                member.isNotifyMarketing());
     }
 }

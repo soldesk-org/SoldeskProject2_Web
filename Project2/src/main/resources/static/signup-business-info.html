@@ -1,96 +1,320 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>사업자 정보 입력 | 잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>매장 정보 입력 — 잇티웨이 사업자 회원가입</title>
+<meta name="description" content="잇티웨이 사업자 회원가입 2단계. 매장 기본 정보를 입력합니다.">
+
+<!--
+================================================================================
+ signup-business-info — 사업자 회원가입 STEP 2 (매장 정보)
+--------------------------------------------------------------------------------
+ ※ STEP1(signup-business)을 거치지 않고 바로 들어오면 STEP1로 돌려보냅니다(2026-08-04 추가,
+   sessionStorage biz_signup_email/biz_signup_at 확인, 30분 이내만 유효).
+
+ [스테퍼]  #bizSignupSteps  (1 완료 / 2 현재 / 3 대기)
+
+ [매장 기본]
+   #shopName            매장명 (name="shopName")
+   #shopCategory        카테고리 select (name="category")
+   #shopPhone           매장 전화번호 (name="shopPhone")
+   #shopPriceRange      평균 가격대 select (name="priceRange")
+
+ [주소] (2026-08-04 실제 연동)
+   #shopZipcode         우편번호 (name="zipcode", readonly)
+   #searchAddressBtn    주소 검색 ★ 행정안전부 도로명주소 팝업 API(business.juso.go.kr) 연동
+                        — window.jusoCallBack()이 팝업의 결과를 받으면, 그 도로명주소를
+                        POST /api/geocode(NCP Geocoding)로 좌표 변환한 뒤 지도에 표시한다.
+   #shopAddress1        기본 주소 (name="address1", readonly)
+   #shopAddress2        상세 주소 (name="address2")
+   #shopMapArea         선택 위치 지도 — new naver.maps.Map(...) + Marker, 주소 검색 전에는 비어있음
+   #shopLat / #shopLng  좌표 hidden (name="latitude"/"longitude") — geocode 성공 시 채워짐
+
+ [영업 정보]
+   #shopOpenTime / #shopCloseTime     영업시간 (name="openTime"/"closeTime")
+   input[name="holiday"]              휴무일 체크박스 #holidayMon ~ #holidaySun
+   #shopBreakTime                     브레이크타임 (name="breakTime")
+   #shopIntro                         매장 소개 (name="intro", maxlength=500)
+   #shopIntroCounter                  글자수 (data-counter="shopIntro")
+
+ [편의시설]
+   input[name="amenity"]  #amenityParking #amenityWifi #amenityPet
+                          #amenityKids #amenityDelivery #amenityTakeout
+                          #amenityGroup #amenityBarrierFree
+
+ [매장 사진] (2026-08-04 실제 연동 — 예전엔 정적 예시 마크업만 있고 실제 선택 반영이 안 됐음)
+   #shopPhotoDrop       드롭존 (data-dropzone)
+   #shopPhotoInput      파일 입력 (name="shopPhotos", multiple, 최대 5장)
+   #shopPhotoFileName   선택 파일명 → "N장 선택됨"으로 자동 갱신
+   #shopPhotoList       업로드된 썸네일 목록 — 실제 선택 파일로 렌더링, 첫 장 "대표" 배지, 장별 삭제 가능
+
+ [제출]
+   #bizSignupStep2Form  폼 루트
+   #bizSignupSubmitBtn  가입 진행하기 → signup-business-done (2026-08-04: "심사 신청하기"에서 변경 —
+                        실제 사업자 계정은 이미 STEP1 제출 시점에 생성 완료된 상태라 "심사 접수"라는
+                        표현이 부정확했음. 매장 정보를 저장하는 백엔드 API는 아직 없어 이 화면은
+                        입력만 받고 서버에는 보내지 않는다.)
+   ※ "나중에 입력하기" 건너뛰기는 없습니다(2026-08-04 제거) — 사업자 회원은 매장 정보를
+     입력해야만 다음 단계로 진행할 수 있습니다.
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/signup-business-info.js"></script>
 </head>
-<body>
-<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
-  <div class="relative flex w-full shrink-0 flex-col overflow-y-auto px-10 py-8 lg:w-[31%] lg:min-w-[440px] lg:max-w-[595px] lg:px-14">
-    <a href="index" class="flex items-center gap-3">
-      <div class="relative size-16 shrink-0 overflow-hidden">
-        <img src="assets/images/logo-icon.png" alt="Eatty way 로고" class="absolute left-[-36.79%] top-[-24.44%] size-[173.11%] max-w-none object-cover" />
-      </div>
-      <span class="bg-gradient-to-r from-[#fd6d4a] to-[#fea255] bg-clip-text text-[36px] font-bold tracking-[-1.8px] text-transparent">Eatty way</span>
+
+<body class="min-h-screen flex flex-col bg-[var(--bg-soft)]">
+
+<header class="e-header e-header--solid">
+  <div class="e-container e-header-inner">
+    <a href="index" class="e-logo">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text">잇티<em>웨이</em></span>
+      <span class="e-badge e-badge--dark ml-1">BUSINESS</span>
     </a>
+  </div>
+</header>
 
-    <div class="flex flex-1 flex-col justify-center py-8">
-      <div class="text-[#25374b]">
-        <h1 class="text-[30px] font-semibold leading-tight tracking-[-1.5px]">사업자 정보 입력</h1>
-        <p class="mt-3 text-[18px] font-medium leading-normal tracking-[-0.9px] opacity-80">사업자 회원 정보를 입력해주세요.</p>
+<main class="flex-1 py-10 md:py-16">
+  <div class="e-container e-container-narrow">
+
+    <div class="e-card e-card-flat p-5 mb-8">
+      <div class="e-steps" id="bizSignupSteps">
+        <div class="e-step is-done">
+          <span class="e-step-dot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <span class="e-step-label">약관 · 사업자 인증</span>
+        </div>
+        <span class="e-step-line" style="background:var(--brand-300)"></span>
+        <div class="e-step is-current">
+          <span class="e-step-dot">2</span>
+          <span class="e-step-label">매장 정보</span>
+        </div>
+        <span class="e-step-line"></span>
+        <div class="e-step">
+          <span class="e-step-dot">3</span>
+          <span class="e-step-label">가입 완료</span>
+        </div>
       </div>
-
-      <form id="signup-business-info-form" data-next="signup-business-done" class="mt-8 flex flex-col gap-3">
-        <label class="text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">상호명 (닉네임으로 사용됩니다)</label>
-        <input id="biz-nickname" placeholder="상호명을 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">대표자명</label>
-        <input id="biz-owner-name" placeholder="대표자명을 입력해주세요. (사업자등록증명원으로 대조됩니다)" class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">사업자등록번호</label>
-        <input id="biz-number" placeholder="000-00-00000 (사업자등록증명원으로 대조됩니다)" class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">이메일</label>
-        <input id="biz-email" type="email" placeholder="이메일을 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-        <button type="button" id="email-send" class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">인증코드 전송</button>
-        <div id="email-code-group" style="display:none">
-          <label class="mt-2 block text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">인증코드</label>
-          <div class="mt-1 flex items-center gap-3">
-            <input id="biz-email-code" placeholder="코드를 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-          </div>
-          <button type="button" id="email-confirm" class="mt-2 relative h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">인증 확인</button>
-          <p id="biz-email-verify-status" class="mt-1 text-[14px] font-medium text-[rgba(37,55,75,0.5)]"></p>
-        </div>
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">비밀번호</label>
-        <input id="biz-password" type="password" placeholder="비밀번호를 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">비밀번호 확인</label>
-        <input id="biz-password-confirm" type="password" placeholder="비밀번호를 다시 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">전화번호</label>
-        <input id="biz-phone" placeholder="전화번호를 입력해주세요. ('-' 없이)" class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-        <button type="button" id="phone-send" class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">인증코드 전송</button>
-        <div id="phone-code-group" style="display:none">
-          <label class="mt-2 block text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">인증코드</label>
-          <div class="mt-1 flex items-center gap-3">
-            <input id="biz-phone-code" placeholder="코드를 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-          </div>
-          <button type="button" id="phone-confirm" class="mt-2 relative h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">인증 확인</button>
-          <p id="biz-phone-verify-status" class="mt-1 text-[14px] font-medium text-[rgba(37,55,75,0.5)]"></p>
-        </div>
-
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">사업자등록증명원</label>
-        <div class="flex items-center gap-3">
-          <button type="button" id="biz-file-btn" class="flex h-[52px] flex-1 items-center gap-3 rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-[rgba(37,55,75,0.5)]"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m3 15 2 2 4-4"/></svg>
-            <span id="biz-file-label" class="truncate">파일 선택 (PDF, JPG, PNG)</span>
-          </button>
-          <input id="biz-file" type="file" accept="image/png,image/jpeg,application/pdf" class="hidden" />
-        </div>
-
-        <button type="button" id="biz-verify-btn" disabled class="relative h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]" style="opacity:0.5">인증하기</button>
-
-        <div id="biz-verified-banner" style="display:none" class="flex items-center gap-2 rounded-[10px] bg-[rgba(254,162,85,0.15)] px-5 py-4 text-[#fd6d4a]">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-          <span class="text-[17px] font-semibold tracking-[-0.85px]">사업자 인증이 완료되었습니다.</span>
-        </div>
-
-        <p id="biz-signup-error" class="text-[15px] font-medium text-red-500" style="display:none"></p>
-        <div class="mt-4">
-          <button type="submit" id="submit-btn" disabled class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90 opacity-50">가입하기</button>
-        </div>
-      </form>
     </div>
-  </div>
 
-  <div class="relative hidden flex-1 lg:block">
-    <img src="assets/images/map.png" alt="맛집 지도" class="absolute inset-0 size-full object-cover" />
+    <form id="bizSignupStep2Form" novalidate>
+
+      <!-- ==================== 매장 기본 정보 ==================== -->
+      <section class="e-card e-card-pad mb-5">
+        <h2 class="e-form-section-title">기본 정보</h2>
+        <p class="e-form-section-desc">고객에게 표시되는 대표 정보입니다.</p>
+
+        <div class="e-field">
+          <label class="e-label" for="shopName">매장명 <span class="req">*</span></label>
+          <input type="text" class="e-input" id="shopName" name="shopName" placeholder="클릭해서 매장을 검색해주세요" readonly required>
+        </div>
+
+        <div class="e-form-grid e-form-grid-2">
+          <div class="e-field">
+            <label class="e-label" for="shopCategory">카테고리 <span class="req">*</span></label>
+            <select class="e-select" id="shopCategory" name="category" required>
+              <option value="">카테고리 선택</option>
+              <option value="korean">한식</option>
+              <option value="western">양식</option>
+              <option value="chinese">중식</option>
+              <option value="japanese">일식</option>
+              <option value="asian">아시안</option>
+              <option value="cafe">카페 · 디저트</option>
+              <option value="bunsik">분식</option>
+              <option value="chicken">치킨 · 피자</option>
+              <option value="meat">고기 · 구이</option>
+              <option value="bar">술집 · 바</option>
+            </select>
+          </div>
+          <div class="e-field">
+            <label class="e-label" for="shopPriceRange">1인 평균 가격대 <span class="req">*</span></label>
+            <select class="e-select" id="shopPriceRange" name="priceRange" required>
+              <option value="">가격대 선택</option>
+              <option value="under10000">1만원 이하</option>
+              <option value="10000-20000">1~2만원</option>
+              <option value="20000-40000">2~4만원</option>
+              <option value="over40000">4만원 이상</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="e-field !mb-0">
+          <label class="e-label" for="shopPhone">매장 전화번호 <span class="req">*</span></label>
+          <div class="e-input-wrap has-icon">
+            <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 3h3l1.5 4.5-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2L21 14v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 5 5.2 2 2 0 0 1 7 3Z"/>
+            </svg>
+            <input type="tel" class="e-input t-num" id="shopPhone" name="shopPhone" placeholder="0212345678" inputmode="numeric" required>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 주소 ==================== -->
+      <section class="e-card e-card-pad mb-5">
+        <h2 class="e-form-section-title">매장 위치</h2>
+        <p class="e-form-section-desc">지도에 표시될 위치입니다. 주소 검색 후 핀 위치를 확인해주세요.</p>
+
+        <div class="e-field">
+          <label class="e-label" for="shopZipcode">우편번호 <span class="req">*</span></label>
+          <div class="e-input-row">
+            <input type="text" class="e-input t-num" id="shopZipcode" name="zipcode" placeholder="06236" readonly style="max-width:140px">
+            <button type="button" class="btn btn-outline" id="searchAddressBtn">주소 검색</button>
+          </div>
+        </div>
+
+        <div class="e-field">
+          <label class="e-label" for="shopAddress1">기본 주소 <span class="req">*</span></label>
+          <input type="text" class="e-input" id="shopAddress1" name="address1" placeholder="주소 검색을 이용해주세요" readonly>
+        </div>
+
+        <div class="e-field">
+          <label class="e-label" for="shopAddress2">상세 주소</label>
+          <input type="text" class="e-input" id="shopAddress2" name="address2" placeholder="예) 2층 201호">
+        </div>
+
+        <!-- 위치 확인용 지도 — 주소 검색(Juso) 후 좌표 변환(NCP Geocoding)한 위치에 실제 네이버 지도+마커를 표시한다(2026-08-04 실제 연동) -->
+        <div class="rounded-[var(--r-md)] overflow-hidden border border-[var(--line)]">
+          <div class="h-[260px]" id="shopMapArea"></div>
+        </div>
+        <input type="hidden" id="shopLat" name="latitude">
+        <input type="hidden" id="shopLng" name="longitude">
+      </section>
+
+      <!-- ==================== 영업 정보 ==================== -->
+      <section class="e-card e-card-pad mb-5">
+        <h2 class="e-form-section-title">영업 정보</h2>
+        <p class="e-form-section-desc">고객이 방문 전에 가장 많이 확인하는 정보입니다.</p>
+
+        <div class="e-form-grid e-form-grid-2">
+          <div class="e-field">
+            <label class="e-label" for="shopOpenTime">영업 시작</label>
+            <input type="time" class="e-input" id="shopOpenTime" name="openTime" value="11:00">
+          </div>
+          <div class="e-field">
+            <label class="e-label" for="shopCloseTime">영업 종료</label>
+            <input type="time" class="e-input" id="shopCloseTime" name="closeTime" value="22:00">
+          </div>
+        </div>
+
+        <div class="e-field">
+          <label class="e-label" for="shopBreakTime">브레이크타임 <span class="e-label-side">선택</span></label>
+          <input type="text" class="e-input" id="shopBreakTime" name="breakTime" placeholder="예) 15:00 ~ 17:00">
+        </div>
+
+        <div class="e-field">
+          <span class="e-label">정기 휴무일 <span class="e-label-side">복수 선택</span></span>
+          <div class="flex flex-wrap gap-2">
+            <label class="e-chip-check"><input type="checkbox" id="holidayMon" name="holiday" value="MON"><span class="e-chip e-chip-sm">월</span></label>
+            <label class="e-chip-check"><input type="checkbox" id="holidayTue" name="holiday" value="TUE"><span class="e-chip e-chip-sm">화</span></label>
+            <label class="e-chip-check"><input type="checkbox" id="holidayWed" name="holiday" value="WED"><span class="e-chip e-chip-sm">수</span></label>
+            <label class="e-chip-check"><input type="checkbox" id="holidayThu" name="holiday" value="THU"><span class="e-chip e-chip-sm">목</span></label>
+            <label class="e-chip-check"><input type="checkbox" id="holidayFri" name="holiday" value="FRI"><span class="e-chip e-chip-sm">금</span></label>
+            <label class="e-chip-check"><input type="checkbox" id="holidaySat" name="holiday" value="SAT"><span class="e-chip e-chip-sm">토</span></label>
+            <label class="e-chip-check"><input type="checkbox" id="holidaySun" name="holiday" value="SUN"><span class="e-chip e-chip-sm">일</span></label>
+          </div>
+        </div>
+
+        <div class="e-field !mb-0">
+          <label class="e-label" for="shopIntro">
+            매장 소개
+            <span class="e-label-side"><span id="shopIntroCounter" data-counter="shopIntro">0 / 500</span></span>
+          </label>
+          <textarea class="e-textarea" id="shopIntro" name="intro" maxlength="500"
+                    placeholder="대표 메뉴, 매장 분위기, 특징 등을 자유롭게 소개해주세요."></textarea>
+        </div>
+      </section>
+
+      <!-- ==================== 편의시설 ==================== -->
+      <section class="e-card e-card-pad mb-5">
+        <h2 class="e-form-section-title">편의시설</h2>
+        <p class="e-form-section-desc">해당하는 항목을 모두 선택해주세요. 검색 필터에 사용됩니다.</p>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <label class="e-choice" for="amenityParking">
+            <input type="checkbox" id="amenityParking" name="amenity" value="parking">
+            <span class="e-choice-body !p-3.5 text-center text-[13.5px] font-bold text-[var(--ink-800)]">주차 가능</span>
+          </label>
+          <label class="e-choice" for="amenityWifi">
+            <input type="checkbox" id="amenityWifi" name="amenity" value="wifi">
+            <span class="e-choice-body !p-3.5 text-center text-[13.5px] font-bold text-[var(--ink-800)]">무료 와이파이</span>
+          </label>
+          <label class="e-choice" for="amenityPet">
+            <input type="checkbox" id="amenityPet" name="amenity" value="pet">
+            <span class="e-choice-body !p-3.5 text-center text-[13.5px] font-bold text-[var(--ink-800)]">반려동물 동반</span>
+          </label>
+          <label class="e-choice" for="amenityKids">
+            <input type="checkbox" id="amenityKids" name="amenity" value="kids">
+            <span class="e-choice-body !p-3.5 text-center text-[13.5px] font-bold text-[var(--ink-800)]">유아 의자</span>
+          </label>
+          <label class="e-choice" for="amenityDelivery">
+            <input type="checkbox" id="amenityDelivery" name="amenity" value="delivery">
+            <span class="e-choice-body !p-3.5 text-center text-[13.5px] font-bold text-[var(--ink-800)]">배달 가능</span>
+          </label>
+          <label class="e-choice" for="amenityTakeout">
+            <input type="checkbox" id="amenityTakeout" name="amenity" value="takeout">
+            <span class="e-choice-body !p-3.5 text-center text-[13.5px] font-bold text-[var(--ink-800)]">포장 가능</span>
+          </label>
+          <label class="e-choice" for="amenityGroup">
+            <input type="checkbox" id="amenityGroup" name="amenity" value="group">
+            <span class="e-choice-body !p-3.5 text-center text-[13.5px] font-bold text-[var(--ink-800)]">단체석</span>
+          </label>
+          <label class="e-choice" for="amenityBarrierFree">
+            <input type="checkbox" id="amenityBarrierFree" name="amenity" value="barrierFree">
+            <span class="e-choice-body !p-3.5 text-center text-[13.5px] font-bold text-[var(--ink-800)]">휠체어 접근</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- ==================== 매장 사진 ==================== -->
+      <section class="e-card e-card-pad mb-8">
+        <h2 class="e-form-section-title">매장 사진</h2>
+        <p class="e-form-section-desc">첫 번째 사진이 대표 이미지로 사용됩니다. 최대 5장.</p>
+
+        <div class="e-dropzone" id="shopPhotoDrop" data-dropzone data-dropzone-filename="shopPhotoFileName">
+          <input type="file" id="shopPhotoInput" name="shopPhotos" accept="image/png,image/jpeg,image/webp" multiple aria-label="매장 사진 업로드">
+          <div class="e-dropzone-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5L5 20"/>
+            </svg>
+          </div>
+          <p class="text-[15px] font-extrabold text-[var(--ink-900)]">사진을 끌어다 놓거나 클릭해서 선택</p>
+          <p class="t-sm mt-1.5">JPG · PNG · WEBP / 장당 5MB 이하</p>
+          <p class="t-xs mt-3" id="shopPhotoFileName">선택된 파일이 없습니다</p>
+        </div>
+
+        <!-- 선택한 사진 썸네일 목록 — signup-business-info.js가 실제 선택 파일로 채운다(2026-08-04 실제 연동) -->
+        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2.5 mt-4" id="shopPhotoList"></div>
+      </section>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <a href="signup-business" class="btn btn-outline btn-lg sm:w-40">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
+          이전
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg w-full sm:flex-1" id="bizSignupSubmitBtn">가입 진행하기</button>
+      </div>
+    </form>
   </div>
-</div>
-<script src="assets/js/api.js"></script>
-<script src="assets/js/signup-business-info.js"></script>
+</main>
+
+<footer class="py-8 border-t border-[var(--line)] bg-white">
+  <div class="e-container flex flex-wrap items-center justify-between gap-3">
+    <p class="t-xs">&copy; 2026 Eatty way.</p>
+    <nav class="flex gap-4 t-xs">
+      <a href="terms-service" class="e-link">이용약관</a>
+      <a href="terms-privacy" class="e-link">개인정보처리방침</a>
+    </nav>
+  </div>
+</footer>
+
 </body>
 </html>

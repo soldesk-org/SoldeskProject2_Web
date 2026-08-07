@@ -7,13 +7,17 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.Valid;
 
 import com.foodtrip.foodsearch.admin.dto.AdminActionResponseDto;
 import com.foodtrip.foodsearch.admin.dto.AdminDashboardResponseDto;
 import com.foodtrip.foodsearch.admin.dto.AdminMemberResponseDto;
 import com.foodtrip.foodsearch.admin.dto.AdminReviewResponseDto;
+import com.foodtrip.foodsearch.admin.dto.BroadcastNotificationRequestDto;
 import com.foodtrip.foodsearch.admin.dto.SystemStatusItemDto;
 import com.foodtrip.foodsearch.admin.service.AdminService;
 import com.foodtrip.foodsearch.admin.service.SystemStatusService;
@@ -135,5 +139,11 @@ public class AdminController {
     @DeleteMapping("/api/admin/chat-rooms/{chatRoomId}")
     public ChatActionResponseDto explodeChatRoom(@PathVariable Long chatRoomId) {
         return adminChatService.explodeRoom(chatRoomId);
+    }
+
+    // 관리자 공지 발송(2026-08-06 추가) — 활성 회원 전체에게 알림 벨로 공지를 뿌린다.
+    @PostMapping("/api/admin/notifications/broadcast")
+    public AdminActionResponseDto broadcastNotification(@Valid @RequestBody BroadcastNotificationRequestDto request) {
+        return adminService.broadcastNotification(request.getTitle(), request.getBody());
     }
 }

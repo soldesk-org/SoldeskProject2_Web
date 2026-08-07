@@ -24,7 +24,12 @@ public class PasswordResetTokenService {
 
     private static final int TOKEN_BYTES = 32;
     private static final Duration TOKEN_TTL = Duration.ofHours(1);
+    private static final Duration POLL_CONFIRM_TTL = Duration.ofMinutes(10);
     private static final String KEY_PREFIX = "pwreset:";
+    private static final String POLL_KEY_PREFIX = "pwreset:poll:";
+    private static final String TOKEN_TO_POLL_PREFIX = "pwreset:tokenpoll:";
+    private static final String CONFIRMED_PREFIX = "pwreset:confirmed:";
+    private static final String OPENED_PREFIX = "pwreset:opened:";
 
     private final StringRedisTemplate redisTemplate;
     private final SecureRandom secureRandom = new SecureRandom();
@@ -35,14 +40,43 @@ public class PasswordResetTokenService {
 
     /**
      * 새 토큰을 발급하고 Redis에 (해시 -> memberId)로 저장한다. 반환값(rawToken)만 이메일로 보낸다.
+     * pollKey가 함께 오면(2026-08-04 추가, find-password.html이 요청 전 생성) 다른 탭에서
+     * "이메일 링크를 눌렀는지"를 폴링으로 확인할 수 있도록 상관관계도 함께 저장한다.
      */
-    public String issue(Long memberId) {
+    public String issue(Long memberId, String pollKey) {
         byte[] randomBytes = new byte[TOKEN_BYTES];
         secureRandom.nextBytes(randomBytes);
         String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 
         redisTemplate.opsForValue().set(key(rawToken), String.valueOf(memberId), TOKEN_TTL);
+
+        if (pollKey != null && !pollKey.isBlank()) {
+            redisTemplate.opsForValue().set(POLL_KEY_PREFIX + pollKey, rawToken, TOKEN_TTL);
+            redisTemplate.opsForValue().set(TOKEN_TO_POLL_PREFIX + sha256Hex(rawToken), pollKey, TOKEN_TTL);
+        }
         return rawToken;
+    }
+
+    /**
+     * 이메일 링크(find-password-reset.html?token=...)가 열렸을 때 호출 — 실제 토큰을 소비(1회용 처리)하지
+     * 않고, "이 링크가 클릭됐다"는 사실만 별도로 남긴다. 원본 탭의 폴링이 이 값을 확인한다.
+     * 반환값은 "이번이 처음 열린 것인지"(true=처음) — 같은 링크를 다시 열면 false를 돌려주고,
+     * 프론트(find-password-reset.js)는 이 경우 "이미 사용된 링크"로 안내한다(2026-08-04 추가).
+     */
+    public boolean markLinkOpened(String rawToken) {
+        String pollKey = redisTemplate.opsForValue().get(TOKEN_TO_POLL_PREFIX + sha256Hex(rawToken));
+        if (pollKey != null) {
+            redisTemplate.opsForValue().set(CONFIRMED_PREFIX + pollKey, rawToken, POLL_CONFIRM_TTL);
+        }
+        Boolean firstTime = redisTemplate.opsForValue().setIfAbsent(OPENED_PREFIX + sha256Hex(rawToken), "1", TOKEN_TTL);
+        return Boolean.TRUE.equals(firstTime);
+    }
+
+    /**
+     * find-password-sent.html이 주기적으로 호출 — 이메일 링크가 클릭됐으면 그 토큰을 돌려준다.
+     */
+    public String checkConfirmed(String pollKey) {
+        return redisTemplate.opsForValue().get(CONFIRMED_PREFIX + pollKey);
     }
 
     /**

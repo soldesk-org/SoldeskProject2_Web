@@ -1,29 +1,714 @@
 (function () {
-  if (!Api.requireRole("BUSINESS", "mypage")) return;
+  if (!Api.requireRole("BUSINESS")) return;
 
-  var tabs = ["store", "rating", "menu"];
-  var buttons = {};
-  var panels = {};
-  tabs.forEach(function (t) {
-    buttons[t] = document.getElementById("biz-tab-btn-" + t);
-    panels[t] = document.getElementById("biz-tab-panel-" + t);
-  });
+  // "리뷰 반응" 탭(통계/태그 분포/별점 분포/최근 리뷰)은 2026-08-06에 실제 API로 연동됐다
+  // (BusinessDashboardController — GET /api/business/me/stats, GET /api/business/me/reviews).
+  // 매장 정보 수정/메뉴 관리/사진 관리 탭은 여전히 뒷받침하는 백엔드가 없다 — 카카오 로컬 API
+  // 이용약관상 음식점 정보를 우리 DB에 저장/수정하지 않기로 확정했고(07 참고), 사업자 계정이
+  // "내 매장"을 소유·관리하는 그 기능 자체가 아직 안 만들어졌다. 이번 범위는 리뷰 관련 수치만이라
+  // 그 탭들은 손대지 않는다(안내 배너는 사용자 요청으로 제거).
 
-  function render(active) {
-    tabs.forEach(function (t) {
-      var isActive = t === active;
-      buttons[t].className =
-        "flex h-[56px] flex-1 items-center justify-center gap-2 rounded-[10px] text-[19px] font-semibold tracking-[-0.95px] transition-colors " +
-        (isActive
-          ? "bg-gradient-to-r from-[#fea255] to-[#fd6d4a] text-white"
-          : "border border-[rgba(37,55,75,0.2)] bg-white text-[#25374b] hover:bg-[rgba(254,162,85,0.08)]");
-      panels[t].style.display = isActive ? "" : "none";
+  function escapeHtml(text) {
+    return String(text == null ? "" : text)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function formatDate(iso) {
+    if (!iso) return "-";
+    return String(iso).slice(0, 10);
+  }
+  function starsHtml(rating) {
+    var html = "";
+    for (var i = 1; i <= 5; i++) {
+      html += '<svg viewBox="0 0 24 24" fill="currentColor" class="' + (i <= rating ? "is-on" : "") + '">' +
+        '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>';
+    }
+    return html;
+  }
+
+  var els = {
+    statReviewCount: document.getElementById("statReviewCount"),
+    statAvgRating: document.getElementById("statAvgRating"),
+    statFavoriteCount: document.getElementById("statFavoriteCount"),
+    statVisitCert: document.getElementById("statVisitCert"),
+    tabCount: document.getElementById("bizReviewTabCount"),
+    tagRatioPositive: document.getElementById("tagRatioPositive"),
+    tagRatioNegative: document.getElementById("tagRatioNegative"),
+    ratioBarPositive: document.getElementById("ratioBarPositive"),
+    ratioBarNegative: document.getElementById("ratioBarNegative"),
+    positiveTagList: document.getElementById("positiveTagList"),
+    negativeTagList: document.getElementById("negativeTagList"),
+    ratingSummaryAvg: document.getElementById("ratingSummaryAvg"),
+    ratingSummaryStars: document.getElementById("ratingSummaryStars"),
+    ratingSummaryCount: document.getElementById("ratingSummaryCount"),
+    ratingDistList: document.getElementById("ratingDistList"),
+    reviewList: document.getElementById("bizReviewList"),
+    reviewEmpty: document.getElementById("bizReviewEmpty"),
+    loadMoreBtn: document.getElementById("bizReviewLoadMoreBtn")
+  };
+  if (!els.statReviewCount) return;
+
+  var PAGE_SIZE = 5;
+  var currentPage = 0;
+
+  function loadStats() {
+    Api.request("/api/business/me/stats").then(function (data) {
+      els.statReviewCount.textContent = data.totalReviewCount;
+      if (els.tabCount) els.tabCount.textContent = data.totalReviewCount;
+      els.statAvgRating.textContent = data.totalReviewCount > 0 ? Number(data.avgRating || 0).toFixed(1) : "-";
+      els.statFavoriteCount.textContent = data.favoriteCount;
+      els.statVisitCert.textContent = data.visitCertThisMonth;
+    }).catch(function (err) {
+      if (err && err.code === "BUSINESS_RESTAURANT_NOT_CLAIMED") {
+        els.statReviewCount.textContent = "0";
+        if (els.tabCount) els.tabCount.textContent = "0";
+        els.statAvgRating.textContent = "-";
+        els.statFavoriteCount.textContent = "0";
+        els.statVisitCert.textContent = "0";
+        return;
+      }
+      Eatty.toast((err && err.message) || "매장 통계를 불러오지 못했습니다.", "error");
     });
   }
 
-  tabs.forEach(function (t) {
-    buttons[t].addEventListener("click", function () { render(t); });
+  function tagRowHtml(tag, maxCount, negative) {
+    var pct = maxCount > 0 ? Math.max(6, Math.round(tag.count / maxCount * 100)) : 0;
+    var barStyle = "width:" + pct + "%" + (negative ? ";background:var(--ink-400)" : "");
+    return (
+      '<div>' +
+        '<div class="flex items-center justify-between mb-1">' +
+          '<span class="t-xs font-bold text-[var(--ink-700)]">' + escapeHtml(tag.keyword) + '</span>' +
+          '<span class="t-xs t-num">' + tag.count + '</span>' +
+        '</div>' +
+        '<div class="e-progress e-progress-sm"><div class="e-progress-bar" style="' + barStyle + '"></div></div>' +
+      '</div>'
+    );
+  }
+
+  function renderReviewSummary(data) {
+    els.tagRatioPositive.textContent = data.positiveRatio;
+    els.tagRatioNegative.textContent = data.negativeRatio;
+    els.ratioBarPositive.style.width = data.positiveRatio + "%";
+    els.ratioBarNegative.style.width = data.negativeRatio + "%";
+
+    var posMax = data.positiveTags.length ? data.positiveTags[0].count : 0;
+    els.positiveTagList.innerHTML = data.positiveTags.length
+      ? data.positiveTags.map(function (t) { return tagRowHtml(t, posMax, false); }).join("")
+      : '<p class="t-xs">아직 긍정 태그가 없습니다.</p>';
+
+    var negMax = data.negativeTags.length ? data.negativeTags[0].count : 0;
+    els.negativeTagList.innerHTML = data.negativeTags.length
+      ? data.negativeTags.map(function (t) { return tagRowHtml(t, negMax, true); }).join("")
+      : '<p class="t-xs">아직 개선 태그가 없습니다.</p>';
+
+    var dist = data.ratingDistribution || {};
+    var totalCount = [5, 4, 3, 2, 1].reduce(function (s, k) { return s + (dist[k] || 0); }, 0);
+    var avg = totalCount > 0
+      ? [5, 4, 3, 2, 1].reduce(function (s, k) { return s + k * (dist[k] || 0); }, 0) / totalCount
+      : 0;
+    els.ratingSummaryAvg.textContent = totalCount > 0 ? avg.toFixed(1) : "-";
+    els.ratingSummaryStars.innerHTML = starsHtml(Math.round(avg));
+    els.ratingSummaryCount.textContent = totalCount;
+
+    els.ratingDistList.innerHTML = [5, 4, 3, 2, 1].map(function (score) {
+      var count = dist[score] || 0;
+      var pct = totalCount > 0 ? Math.round(count / totalCount * 100) : 0;
+      var barColor = score <= 2 ? ";background:var(--ink-300)" : "";
+      return (
+        '<div class="flex items-center gap-2.5">' +
+          '<span class="t-xs font-bold w-7 flex-none">' + score + '점</span>' +
+          '<div class="e-progress e-progress-sm flex-1"><div class="e-progress-bar" style="width:' + pct + '%' + barColor + '"></div></div>' +
+          '<span class="t-xs t-num w-9 text-right flex-none">' + count + '</span>' +
+        '</div>'
+      );
+    }).join("");
+  }
+
+  function reportSvg() {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>';
+  }
+
+  function renderReviewItemHtml(r) {
+    var nickname = r.nickname || "탈퇴한 회원";
+    var initial = nickname.charAt(0);
+    var tagsHtml = (r.keywords || []).map(function (k) {
+      var cls = k.sentiment === "NEGATIVE" ? "e-tag--neg" : "e-tag--pos";
+      return '<span class="e-tag ' + cls + '">' + escapeHtml(k.keyword) + '</span>';
+    }).join("");
+    return (
+      '<li class="pb-4 border-b border-[var(--line-soft)]">' +
+        '<div class="flex items-center gap-2.5">' +
+          '<span class="e-avatar e-avatar-sm" aria-hidden="true">' + escapeHtml(initial) + '</span>' +
+          '<div class="min-w-0 flex-1">' +
+            '<p class="text-[13.5px] font-bold text-[var(--ink-900)]">' + escapeHtml(nickname) + '</p>' +
+            '<div class="flex items-center gap-2">' +
+              '<span class="e-rating">' + starsHtml(r.rating) + '</span>' +
+              '<span class="t-xs t-num">' + formatDate(r.createdAt) + '</span>' +
+              (r.receiptVerified ? '<span class="e-badge e-badge--success">영수증 인증</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<button type="button" class="btn btn-ghost btn-xs flex-none" data-report-review data-review-id="' + r.reviewId + '" data-modal-open="bizReportModal">' +
+            reportSvg() + ' 신고' +
+          '</button>' +
+        '</div>' +
+        (tagsHtml ? '<div class="flex flex-wrap gap-1.5 mt-3">' + tagsHtml + '</div>' : '') +
+        (r.content ? '<p class="t-sm mt-2.5 leading-relaxed">' + escapeHtml(r.content) + '</p>' : '') +
+      '</li>'
+    );
+  }
+
+  function loadReviews(page, append) {
+    Api.request("/api/business/me/reviews?page=" + page + "&size=" + PAGE_SIZE).then(function (data) {
+      currentPage = page;
+      if (!append) {
+        renderReviewSummary(data);
+        els.reviewList.innerHTML = "";
+      }
+      if (!data.reviews.length) {
+        if (!append) els.reviewEmpty.hidden = false;
+      } else {
+        els.reviewEmpty.hidden = true;
+        els.reviewList.insertAdjacentHTML("beforeend", data.reviews.map(renderReviewItemHtml).join(""));
+      }
+      els.loadMoreBtn.hidden = !data.hasMore;
+    }).catch(function (err) {
+      if (err && err.code === "BUSINESS_RESTAURANT_NOT_CLAIMED") {
+        if (!append) {
+          renderReviewSummary({ positiveTags: [], negativeTags: [], positiveRatio: 0, negativeRatio: 0, ratingDistribution: {} });
+          els.reviewList.innerHTML = "";
+          els.reviewEmpty.hidden = false;
+        }
+        els.loadMoreBtn.hidden = true;
+        return;
+      }
+      Eatty.toast((err && err.message) || "리뷰를 불러오지 못했습니다.", "error");
+    });
+  }
+
+  if (els.loadMoreBtn) {
+    els.loadMoreBtn.addEventListener("click", function () {
+      loadReviews(currentPage + 1, true);
+    });
+  }
+
+  loadStats();
+  loadReviews(0, false);
+
+  // ------------------------------------------------------------------------
+  // 매장 정보 탭 — 도로명주소 검색 + 지도 마커(2026-08-06 추가)
+  // signup-business-info.js와 동일한 Juso 팝업/NCP Geocoding/네이버 지도 패턴을 그대로 재사용한다.
+  // ------------------------------------------------------------------------
+  var JUSO_CONFIRM_KEY = "U01TX0FVVEgyMDI2MDgwNDE0MTYwMzExOTkwNDA=";
+
+  var zipcodeInput = document.getElementById("bizZipcode");
+  var address1Input = document.getElementById("bizAddress1");
+  var address2Input = document.getElementById("bizAddress2");
+  var latInput = document.getElementById("bizShopLat");
+  var lngInput = document.getElementById("bizShopLng");
+  var mapArea = document.getElementById("bizMapArea");
+  var addressBtn = document.getElementById("bizSearchAddressBtn");
+
+  var bizMap = null;
+  var bizMarker = null;
+  var SHOP_MARKER_ICON = {
+    url: "img/markers/marker-shop-location.png",
+    size: new naver.maps.Size(32, 42),
+    scaledSize: new naver.maps.Size(32, 42),
+    anchor: new naver.maps.Point(16, 42)
+  };
+
+  function showOnMap(lat, lng) {
+    if (!mapArea || typeof naver === "undefined") return;
+    var position = new naver.maps.LatLng(lat, lng);
+    if (!bizMap) {
+      bizMap = new naver.maps.Map(mapArea, { center: position, zoom: 16 });
+      bizMarker = new naver.maps.Marker({ position: position, map: bizMap, icon: SHOP_MARKER_ICON });
+    } else {
+      bizMap.setCenter(position);
+      bizMarker.setPosition(position);
+    }
+  }
+
+  function geocodeAndShow(address) {
+    Api.request("/api/geocode?query=" + encodeURIComponent(address), { method: "GET", auth: false })
+      .then(function (res) {
+        if (latInput) latInput.value = res.latitude;
+        if (lngInput) lngInput.value = res.longitude;
+        showOnMap(res.latitude, res.longitude);
+      })
+      .catch(function (err) {
+        Eatty.toast((err && err.message) || "주소의 좌표를 찾지 못했습니다. 지도에는 표시되지 않지만 주소는 그대로 저장됩니다.", "error");
+      });
+  }
+
+  window.jusoCallBack = function (roadFullAddr, roadAddrPart1, addrDetail, roadAddrPart2, engAddr, jibunAddr, zipNo) {
+    if (zipcodeInput) zipcodeInput.value = zipNo;
+    if (address1Input) address1Input.value = roadAddrPart1;
+    if (address2Input) {
+      address2Input.value = addrDetail || "";
+      address2Input.focus();
+    }
+    geocodeAndShow(roadFullAddr || roadAddrPart1);
+  };
+
+  if (addressBtn) {
+    addressBtn.addEventListener("click", function () {
+      var popup = window.open("about:blank", "jusoPopup", "width=570,height=420,scrollbars=yes");
+      if (!popup || popup.closed || typeof popup.closed === "undefined") {
+        Eatty.toast("팝업이 차단되었습니다. 브라우저 주소창의 팝업 차단 아이콘에서 허용한 뒤 다시 시도해주세요.", "error");
+        return;
+      }
+
+      var form = document.createElement("form");
+      form.method = "POST";
+      form.action = "https://business.juso.go.kr/addrlink/addrLinkUrl.do";
+      form.target = "jusoPopup";
+      form.style.display = "none";
+
+      function hidden(name, value) {
+        var input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      }
+      hidden("confmKey", JUSO_CONFIRM_KEY);
+      hidden("returnUrl", window.location.origin + "/juso-callback");
+      hidden("resultType", "4");
+
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    });
+  }
+
+  // 매장 정보 탭을 처음 열었을 때 지도가 빈 채로 보이던 문제(2026-08-06) — 주소 검색을 하기 전에도
+  // 이미 입력칸에 있는 주소(실제 매장 주소 또는 기본값)를 곧바로 지도에 표시한다. 탭이 hidden 상태일
+  // 때 네이버 지도를 초기화하면 컨테이너 크기를 못 잡아 깨지므로, 탭이 실제로 보이게 된 시점에 1회만 실행.
+  var infoTabInitialized = false;
+  document.querySelectorAll('[data-tab-target="bizTabInfo"]').forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (infoTabInitialized) return;
+      infoTabInitialized = true;
+      setTimeout(function () {
+        if (address1Input && address1Input.value.trim()) {
+          geocodeAndShow(address1Input.value.trim());
+        }
+      }, 50);
+    });
   });
 
-  render("store");
+  // ------------------------------------------------------------------------
+  // 내 매장 restaurantId 확인 + "고객 화면으로 보기" 실제 링크(2026-08-06 추가)
+  // explore.js의 기존 ?shopId= 딥링크 모드(공유하기 버튼과 동일한 방식)를 그대로 재사용 —
+  // 그 매장 하나만 마커로 보여주고, 카테고리는 name을 넘기면 서버가 실시간으로 분류해준다.
+  // ------------------------------------------------------------------------
+  var state = { restaurantId: null };
+  var viewPublicPageBtn = document.getElementById("viewPublicPageBtn");
+  var claimRestaurantBtn = document.getElementById("claimRestaurantBtn");
+  var shopNameText = document.getElementById("shopNameText");
+  var shopAddressText = document.getElementById("shopAddressText");
+  var shopBizNumberText = document.getElementById("shopBizNumberText");
+  var shopCategoryText = document.getElementById("shopCategoryText");
+
+  // 매장 헤더(상호명/주소/사업자등록번호)가 계정과 무관하게 항상 같은 고정 시안 값으로 보이던 문제
+  // (2026-08-06) — business_profiles의 실제 값으로 채운다. 매장 카테고리는 우리 DB에 저장되지 않고
+  // 카카오 검색 결과에서만 실시간으로 나오는 값이라(07 참고) 여기서는 보여줄 실데이터가 없어 숨긴다.
+  function updateShopHeader(shop) {
+    if (shopNameText) shopNameText.textContent = (shop && shop.businessName) || "연결된 매장이 없습니다";
+    if (shopAddressText) shopAddressText.textContent = (shop && shop.businessAddress) || "";
+    if (shopBizNumberText) {
+      var digits = shop && shop.businessRegistrationNumber;
+      shopBizNumberText.textContent = digits
+        ? (digits.length === 10 ? digits.slice(0, 3) + "-" + digits.slice(3, 5) + "-" + digits.slice(5) : digits)
+        : "-";
+    }
+    if (shopCategoryText) shopCategoryText.hidden = true;
+    // 회원가입 시 자동귀속이 모호했던 계정을 위한 수동 연결 버튼(2026-08-07 추가) — 연결된 매장이
+    // 없을 때만 보인다.
+    if (claimRestaurantBtn) claimRestaurantBtn.hidden = !!(shop && shop.restaurantId);
+  }
+
+  function buildPublicPageUrl(lat, lng) {
+    if (!state.restaurantId) return null;
+    var params = new URLSearchParams();
+    params.set("shopId", state.restaurantId);
+    if (shopNameText) params.set("name", shopNameText.textContent.trim());
+    if (shopAddressText) {
+      params.set("address", shopAddressText.textContent.trim());
+      params.set("roadAddress", shopAddressText.textContent.trim());
+    }
+    if (lat != null && lng != null) {
+      params.set("latitude", lat);
+      params.set("longitude", lng);
+    }
+    return "explore?" + params.toString();
+  }
+
+  function updatePublicPageLink() {
+    if (!viewPublicPageBtn || !shopAddressText) return;
+    Api.request("/api/geocode?query=" + encodeURIComponent(shopAddressText.textContent.trim()), { method: "GET", auth: false })
+      .then(function (res) {
+        viewPublicPageBtn.href = buildPublicPageUrl(res.latitude, res.longitude);
+      })
+      .catch(function () {
+        viewPublicPageBtn.href = buildPublicPageUrl(null, null);
+      });
+  }
+
+  // ------------------------------------------------------------------------
+  // 메뉴 관리 탭(2026-08-06 추가) — 판매중지 메뉴도 함께 보여준다(OwnerMenuResponseDto).
+  // ------------------------------------------------------------------------
+  var menuList = document.getElementById("menuList");
+  var menuEmpty = document.getElementById("menuEmpty");
+  var menuTabCount = document.getElementById("bizMenuTabCount");
+  var menuModalTitle = document.getElementById("menuModalTitle");
+  var menuNameInput = document.getElementById("menuNameInput");
+  var menuPriceInput = document.getElementById("menuPriceInput");
+  var menuDescInput = document.getElementById("menuDescInput");
+  var menuSignatureSwitch = document.getElementById("menuSignatureSwitch");
+  var menuSaveBtn = document.getElementById("menuSaveBtn");
+  var addMenuBtn = document.getElementById("addMenuBtn");
+  var editingMenuId = null;
+
+  function menuItemHtml(m) {
+    return (
+      '<li class="e-file-item" data-menu-id="' + m.menuId + '">' +
+        '<span class="w-14 h-14 rounded-[10px] e-img-ph flex-none">' +
+          '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>' +
+        '</span>' +
+        '<div class="min-w-0 flex-1">' +
+          '<div class="flex items-center gap-2">' +
+            '<p class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(m.menuName) + '</p>' +
+            (m.signature ? '<span class="e-badge e-badge--brand-solid flex-none">시그니처</span>' : "") +
+            (!m.available ? '<span class="e-badge e-badge--gray flex-none">판매중지</span>' : "") +
+          '</div>' +
+          (m.description ? '<p class="t-xs mt-1">' + escapeHtml(m.description) + '</p>' : "") +
+        '</div>' +
+        '<span class="text-sm font-extrabold text-[var(--ink-900)] t-num flex-none">' + Number(m.price).toLocaleString() + '원</span>' +
+        '<div class="flex gap-1 flex-none">' +
+          '<button type="button" class="e-icon-btn !w-8 !h-8" data-edit-menu data-modal-open="menuModal" aria-label="메뉴 수정">' +
+            '<svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.5a2.1 2.1 0 0 1 3 3L7.5 14.2l-3.8 1 1-3.8 7.5-7.9Z"/><path d="M20 21H4"/></svg>' +
+          '</button>' +
+          '<button type="button" class="e-icon-btn !w-8 !h-8 hover:!text-[var(--danger)]" data-delete-menu aria-label="메뉴 삭제">' +
+            '<svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</li>'
+    );
+  }
+
+  var menuCache = [];
+
+  function loadMenus() {
+    if (!state.restaurantId) return;
+    Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/mine").then(function (menus) {
+      menuCache = menus;
+      if (menuTabCount) menuTabCount.textContent = menus.length;
+      menuList.innerHTML = "";
+      if (!menus.length) {
+        menuEmpty.hidden = false;
+        return;
+      }
+      menuEmpty.hidden = true;
+      menuList.insertAdjacentHTML("beforeend", menus.map(menuItemHtml).join(""));
+    }).catch(function (err) {
+      if (menuTabCount) menuTabCount.textContent = "0";
+      Eatty.toast((err && err.message) || "메뉴를 불러오지 못했습니다.", "error");
+    });
+  }
+
+  if (addMenuBtn) {
+    addMenuBtn.addEventListener("click", function () {
+      editingMenuId = null;
+      menuModalTitle.textContent = "메뉴 추가";
+      menuNameInput.value = "";
+      menuPriceInput.value = "";
+      menuDescInput.value = "";
+      menuSignatureSwitch.checked = false;
+    });
+  }
+
+  if (menuList) {
+    menuList.addEventListener("click", function (e) {
+      var editBtn = e.target.closest("[data-edit-menu]");
+      if (editBtn) {
+        var id = Number(editBtn.closest("[data-menu-id]").getAttribute("data-menu-id"));
+        var menu = menuCache.filter(function (m) { return m.menuId === id; })[0];
+        if (!menu) return;
+        editingMenuId = id;
+        menuModalTitle.textContent = "메뉴 수정";
+        menuNameInput.value = menu.menuName;
+        menuPriceInput.value = menu.price;
+        menuDescInput.value = menu.description || "";
+        menuSignatureSwitch.checked = !!menu.isSignature;
+        return;
+      }
+      var delBtn = e.target.closest("[data-delete-menu]");
+      if (delBtn) {
+        var delId = Number(delBtn.closest("[data-menu-id]").getAttribute("data-menu-id"));
+        if (!state.restaurantId) return;
+        Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/" + delId, { method: "DELETE" })
+          .then(function () { Eatty.toast("메뉴를 삭제했습니다."); loadMenus(); })
+          .catch(function (err) { Eatty.toast((err && err.message) || "메뉴 삭제에 실패했습니다.", "error"); });
+      }
+    });
+  }
+
+  if (menuSaveBtn) {
+    menuSaveBtn.addEventListener("click", function () {
+      var menuName = menuNameInput.value.trim();
+      var price = Number(String(menuPriceInput.value).replace(/[^0-9]/g, ""));
+      if (!menuName) { Eatty.toast("메뉴명을 입력해주세요.", "error"); return; }
+      if (!price) { Eatty.toast("가격을 입력해주세요.", "error"); return; }
+      if (!state.restaurantId) { Eatty.toast("매장 정보를 먼저 확인해주세요.", "error"); return; }
+
+      var body = {
+        menuName: menuName,
+        price: price,
+        description: menuDescInput.value.trim(),
+        isSignature: menuSignatureSwitch.checked
+      };
+      var request = editingMenuId
+        ? Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/" + editingMenuId,
+            { method: "PATCH", body: Object.assign({}, body, { isAvailable: true }) })
+        : Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus", { method: "POST", body: body });
+
+      request.then(function () {
+        Eatty.closeModal("menuModal");
+        Eatty.toast("메뉴를 저장했습니다.", "success");
+        loadMenus();
+      }).catch(function (err) {
+        Eatty.toast((err && err.message) || "메뉴 저장에 실패했습니다.", "error");
+      });
+    });
+  }
+
+  // ------------------------------------------------------------------------
+  // 사진 관리 탭(2026-08-06 추가) — 최대 4장, 실제 등록한 사진만 노출.
+  // ------------------------------------------------------------------------
+  var photoGrid = document.getElementById("photoGrid");
+  var photoTabCount = document.getElementById("bizPhotoTabCount");
+  var photoDrop = document.getElementById("photoDrop");
+  var photoInput = document.getElementById("photoInput");
+  var shopMainImageBox = document.getElementById("shopMainImageBox");
+  var PHOTO_LIMIT = 4;
+
+  // 매장 헤더의 "대표 이미지" 박스 — 사진 관리 탭에서 대표로 지정한 사진을 실제로 보여준다(2026-08-06).
+  function updateShopMainImage(url) {
+    if (!shopMainImageBox) return;
+    if (url) {
+      shopMainImageBox.innerHTML = '<img src="' + url + '" class="w-full h-full object-cover" alt="매장 대표 이미지">';
+    } else {
+      shopMainImageBox.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>' +
+        '<span class="e-img-ph-label">대표 이미지</span>';
+    }
+  }
+
+  function photoItemHtml(img) {
+    return (
+      '<div class="relative e-ratio-4-3 rounded-[var(--r-md)] overflow-hidden' + (img.main ? "" : "") + '" data-photo-id="' + img.imageId + '">' +
+        '<img src="' + img.imageUrl + '" class="w-full h-full object-cover" alt="매장 사진">' +
+        (img.main
+          ? '<span class="absolute left-2 top-2 e-badge e-badge--brand-solid !text-[10px] !px-2 !py-0.5">대표</span>'
+          : '<button type="button" class="absolute left-2 top-2 btn btn-white btn-xs" data-set-main-photo>대표로</button>') +
+        '<button type="button" class="absolute right-2 top-2 w-7 h-7 rounded-full bg-black/50 text-white grid place-items-center" data-delete-photo aria-label="사진 삭제">' +
+          '<svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>' +
+      '</div>'
+    );
+  }
+
+  function loadPhotos() {
+    if (!state.restaurantId) return;
+    Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/images").then(function (images) {
+      if (photoTabCount) photoTabCount.textContent = images.length;
+      photoGrid.innerHTML = images.map(photoItemHtml).join("");
+      if (photoDrop) photoDrop.hidden = images.length >= PHOTO_LIMIT;
+      var mainImage = images.filter(function (img) { return img.main; })[0];
+      updateShopMainImage(mainImage ? mainImage.imageUrl : null);
+    }).catch(function (err) {
+      if (photoTabCount) photoTabCount.textContent = "0";
+      Eatty.toast((err && err.message) || "사진을 불러오지 못했습니다.", "error");
+    });
+  }
+
+  function uploadPhoto(file) {
+    if (!state.restaurantId) {
+      Eatty.toast("연결된 매장이 없어 사진을 등록할 수 없습니다.", "error");
+      return;
+    }
+    var formData = new FormData();
+    formData.append("image", file);
+    Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/images",
+      { method: "POST", body: formData, isForm: true })
+      .then(function () { Eatty.toast("사진을 등록했습니다.", "success"); loadPhotos(); })
+      .catch(function (err) { Eatty.toast((err && err.message) || "사진 등록에 실패했습니다.", "error"); });
+  }
+
+  if (photoDrop && photoInput) {
+    photoDrop.addEventListener("eatty:filepicked", function () {
+      var file = photoInput.files && photoInput.files[0];
+      if (!file) return;
+      uploadPhoto(file);
+      photoInput.value = "";
+    });
+  }
+
+  if (photoGrid) {
+    photoGrid.addEventListener("click", function (e) {
+      var item = e.target.closest("[data-photo-id]");
+      if (!item || !state.restaurantId) return;
+      var imageId = item.getAttribute("data-photo-id");
+      if (e.target.closest("[data-set-main-photo]")) {
+        Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/images/" + imageId + "/main", { method: "PATCH" })
+          .then(function () { Eatty.toast("대표 이미지로 변경했습니다.", "success"); loadPhotos(); })
+          .catch(function (err) { Eatty.toast((err && err.message) || "대표 지정에 실패했습니다.", "error"); });
+        return;
+      }
+      if (e.target.closest("[data-delete-photo]")) {
+        Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/images/" + imageId, { method: "DELETE" })
+          .then(function () { Eatty.toast("사진을 삭제했습니다."); loadPhotos(); })
+          .catch(function (err) { Eatty.toast((err && err.message) || "사진 삭제에 실패했습니다.", "error"); });
+      }
+    });
+  }
+
+  // ------------------------------------------------------------------------
+  // 매장 정보 탭 — 전화번호/영업시간만 실제 API로 저장(2026-08-06). 매장이 처음 귀속된 시점엔
+  // 둘 다 비어있고(지어낸 기본값 없음), 사업자가 이 폼에서 실제로 저장해야 채워지는 흐름이다.
+  // 나머지 필드(매장명/카테고리/가격대/주소/편의시설/소개)는 저장 API가 없어 화면에만 반영된다
+  // (카카오 데이터를 우리 DB에 저장하지 않는다는 원칙, 07 참고 — 이름/주소는 애초에 우리 게 아니다).
+  // ------------------------------------------------------------------------
+  var DAY_CODES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  var bizInfoForm = document.getElementById("bizInfoForm");
+  var bizShopPhoneInput = document.getElementById("bizShopPhone");
+  var bizOpenTimeInput = document.getElementById("bizOpenTime");
+  var bizCloseTimeInput = document.getElementById("bizCloseTime");
+
+  function fillShopInfoForm(shop) {
+    if (bizShopPhoneInput) bizShopPhoneInput.value = shop.phone || "";
+    var hours = shop.businessHours || [];
+    document.querySelectorAll('input[name="holiday"]').forEach(function (cb) {
+      var entry = hours.filter(function (h) { return DAY_CODES[h.dayOfWeek] === cb.value; })[0];
+      cb.checked = !!(entry && entry.closed);
+    });
+    var openDay = hours.filter(function (h) { return !h.closed && h.openTime; })[0];
+    if (openDay) {
+      if (bizOpenTimeInput) bizOpenTimeInput.value = openDay.openTime.slice(0, 5);
+      if (bizCloseTimeInput) bizCloseTimeInput.value = openDay.closeTime ? openDay.closeTime.slice(0, 5) : "";
+    }
+  }
+
+  if (bizInfoForm) {
+    bizInfoForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (!state.restaurantId) {
+        Eatty.toast("연결된 매장이 없어 저장할 수 없습니다.", "error");
+        return;
+      }
+      var closedDays = Array.prototype.map.call(
+        document.querySelectorAll('input[name="holiday"]:checked'), function (cb) { return cb.value; });
+      var openTime = bizOpenTimeInput ? bizOpenTimeInput.value : "";
+      var closeTime = bizCloseTimeInput ? bizCloseTimeInput.value : "";
+      var businessHours = DAY_CODES.map(function (code, dayOfWeek) {
+        var isClosed = closedDays.indexOf(code) !== -1;
+        return {
+          dayOfWeek: dayOfWeek,
+          isClosed: isClosed,
+          openTime: isClosed ? null : (openTime || null),
+          closeTime: isClosed ? null : (closeTime || null)
+        };
+      });
+
+      var phone = (bizShopPhoneInput && bizShopPhoneInput.value.trim()) || "";
+      Promise.all([
+        phone ? Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/phone",
+          { method: "PATCH", body: { phone: phone } }) : Promise.resolve(),
+        Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/business-hours",
+          { method: "PUT", body: { businessHours: businessHours } })
+      ]).then(function () {
+        Eatty.toast("전화번호·영업시간을 저장했습니다.", "success");
+      }).catch(function (err) {
+        Eatty.toast((err && err.message) || "저장에 실패했습니다.", "error");
+      });
+    });
+  }
+
+  function loadShop() {
+    return Api.request("/api/business/me/shop").then(function (shop) {
+      state.restaurantId = shop.restaurantId;
+      updateShopHeader(shop);
+      updateShopMainImage(shop.imageUrl);
+      updatePublicPageLink();
+      fillShopInfoForm(shop);
+      loadMenus();
+      loadPhotos();
+    }).catch(function () {
+      // 아직 자동귀속된 매장이 없는 계정 — 매장 헤더가 다른 계정의 고정 시안 값을 그대로 보여주던 문제
+      // (2026-08-06, "다른 계정인데 저렇게 동일한 가게로 떠" 리포트) — 이 상태에서는 헤더도 명시적으로
+      // "연결된 매장 없음"으로 비우고, 메뉴/사진 탭도 빈 상태로 둔다(통계 탭과 동일한 처리).
+      updateShopHeader(null);
+      if (viewPublicPageBtn) viewPublicPageBtn.hidden = true;
+      if (menuTabCount) menuTabCount.textContent = "0";
+      if (photoTabCount) photoTabCount.textContent = "0";
+      menuEmpty.hidden = false;
+    });
+  }
+  loadShop();
+
+  // ------------------------------------------------------------------------
+  // 매장 연결(2026-08-07 추가, 2026-08-07 팝업창 방식으로 재변경) — 회원가입 시 자동귀속이 모호했던
+  // 계정이 별도 브라우저 창(store-search-popup.html)에서 검색해서 직접 연결한다 — 도로명주소 검색
+  // (Juso)과 동일한 "새 창 + opener 콜백" 패턴.
+  (function () {
+    if (!claimRestaurantBtn) return;
+
+    window.eattyStoreSearchCallback = function (item) {
+      claimRestaurantBtn.disabled = true;
+      Api.request("/api/business/claim-restaurant", {
+        method: "POST",
+        body: { restaurantId: item.restaurantId, address: item.address, roadAddress: item.roadAddress }
+      }).then(function () {
+        Eatty.toast("매장을 연결했습니다.", "success");
+        loadShop();
+      }).catch(function (err) {
+        Eatty.toast((err && err.message) || "매장 연결에 실패했습니다.", "error");
+      }).finally(function () {
+        claimRestaurantBtn.disabled = false;
+      });
+    };
+
+    claimRestaurantBtn.addEventListener("click", function () {
+      var popup = window.open("store-search-popup", "storeSearchPopup", "width=480,height=600,scrollbars=yes");
+      if (!popup || popup.closed || typeof popup.closed === "undefined") {
+        Eatty.toast("팝업이 차단되었습니다. 브라우저 주소창의 팝업 차단 아이콘에서 허용한 뒤 다시 시도해주세요.", "error");
+      }
+    });
+  })();
+})();
+
+/* ---------------------------------------------------------------------------
+   business-mypage 시안 데모 스크립트 — 실제 연동 시 business-mypage.js 로 대체
+   --------------------------------------------------------------------------- */
+(function () {
+  /* 임시 휴업 토글 */
+  var openSwitch = document.getElementById('toggleOpenSwitch');
+  openSwitch.addEventListener('change', function () {
+    var status = document.getElementById('shopOpenStatus');
+    if (openSwitch.checked) {
+      status.className = 'e-status e-status--off';
+      status.textContent = '임시 휴업';
+      Eatty.toast('임시 휴업으로 전환했습니다. 고객 화면에 표시됩니다.', 'default');
+    } else {
+      status.className = 'e-status e-status--on e-status--live';
+      status.textContent = '영업중';
+      Eatty.toast('영업중으로 전환했습니다.', 'success');
+    }
+  });
+
+  /* 주소 검색은 business-mypage.js가 실제 도로명주소 팝업 + 지도 마커로 처리한다(2026-08-06). */
+
+  /* 매장 정보(전화번호·영업시간) 저장, 메뉴 추가/수정/삭제, 사진 업로드/대표지정/삭제는
+     business-mypage.js가 실제 API로 처리한다(2026-08-06). */
 })();

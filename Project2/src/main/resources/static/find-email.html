@@ -1,58 +1,143 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>이메일 찾기 | 잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>이메일 찾기 — 잇티웨이</title>
+<meta name="description" content="가입 시 등록한 전화번호로 이메일을 찾습니다.">
+
+<!--
+================================================================================
+ find-email — 이메일(아이디) 찾기 STEP 1 : 본인 정보 입력
+--------------------------------------------------------------------------------
+ [스테퍼]  #findEmailSteps  (1 정보입력 / 2 인증 / 3 결과)
+
+ [폼]
+   #findEmailForm         폼 루트
+   #findName              이름 (name="name")
+   #findPhone             전화번호 (name="phone") — 입력하는 대로 자동 "-" 포맷팅(회원가입과 동일, 2026-08-04 추가)
+   ※ 필수값 누락, 일치 계정 없음 등 에러는 배너가 아니라 Eatty.toast()로 표시합니다(2026-08-04 인라인 에러 제거).
+   #findEmailNextBtn      다음 → find-email-verify
+                          ★ POST /api/auth/find-email/request
+
+ [계정 유형 선택]
+   input[name="memberType"]  #typeNormal(일반) / #typeBusiness(사업자) — 서버가 실제로 검증함
+                             (2026-08-04 추가, 계정의 실제 역할과 다르면 MEMBER_NOT_FOUND로 거부)
+
+ [링크]
+   #toLoginLink           → login
+   #toFindPasswordLink    → find-password
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/find-email.js"></script>
 </head>
-<body>
-<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
-  <div class="relative flex w-full shrink-0 flex-col overflow-y-auto px-10 py-8 lg:w-[31%] lg:min-w-[440px] lg:max-w-[595px] lg:px-14">
-    <a href="index" class="flex items-center gap-3">
-      <div class="relative size-16 shrink-0 overflow-hidden">
-        <img src="assets/images/logo-icon.png" alt="Eatty way 로고" class="absolute left-[-36.79%] top-[-24.44%] size-[173.11%] max-w-none object-cover" />
-      </div>
-      <span class="bg-gradient-to-r from-[#fd6d4a] to-[#fea255] bg-clip-text text-[36px] font-bold tracking-[-1.8px] text-transparent">Eatty way</span>
+
+<body class="min-h-screen flex flex-col bg-[var(--bg-soft)]">
+
+<header class="e-header e-header--solid">
+  <div class="e-container e-header-inner">
+    <a href="index" class="e-logo">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text">잇티<em>웨이</em></span>
     </a>
+    <div class="e-header-actions">
+      <a href="login" class="btn btn-outline btn-sm" id="toLoginLink">로그인</a>
+    </div>
+  </div>
+</header>
 
-    <div class="flex flex-1 flex-col justify-center py-8">
-      <div class="text-[#25374b]">
-        <h1 class="text-[30px] font-semibold leading-tight tracking-[-1.5px]">이메일을 잊으셨나요?</h1>
-        <p class="mt-3 text-[18px] font-medium leading-normal tracking-[-0.9px] opacity-80">가입하실 때 사용한 전화번호를 입력해주세요.</p>
-      </div>
-
-      <form id="find-email-form" class="mt-8 flex flex-col gap-3">
-        <label class="text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">닉네임</label>
-        <input id="fe-nickname" placeholder="닉네임을 입력해주세요." class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-        <label class="mt-2 text-[18px] font-medium tracking-[-0.9px] text-[#25374b]">전화번호</label>
-        <input id="fe-phone" placeholder="01012345678" class="h-[52px] w-full rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white px-6 text-[18px] font-medium tracking-[-0.9px] text-[#25374b] placeholder:text-[rgba(37,55,75,0.7)] outline-none focus:border-[#fd6d4a]" />
-        <p id="fe-error" class="text-[15px] font-medium text-red-500" style="display:none"></p>
-        <div class="mt-2">
-          <button type="submit" id="fe-submit-btn" class="h-[52px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">인증번호 전송</button>
+<main class="flex-1 grid place-items-center py-12 px-5">
+  <div class="w-full" style="max-width:520px">
+    <!-- 스테퍼 -->
+    <div class="e-card e-card-flat p-4 mb-5">
+      <div class="e-steps" id="findEmailSteps">
+        <div class="e-step is-current">
+          <span class="e-step-dot">1</span>
+          <span class="e-step-label">정보 입력</span>
         </div>
+        <span class="e-step-line"></span>
+        <div class="e-step">
+          <span class="e-step-dot">2</span>
+          <span class="e-step-label">본인 인증</span>
+        </div>
+        <span class="e-step-line"></span>
+        <div class="e-step">
+          <span class="e-step-dot">3</span>
+          <span class="e-step-label">결과 확인</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="e-card e-card-pad">
+
+      <form id="findEmailForm" novalidate>
+
+        <div class="e-field">
+          <span class="e-label">계정 유형</span>
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="e-choice" for="typeNormal">
+              <input type="radio" id="typeNormal" name="memberType" value="normal" checked>
+              <span class="e-choice-body !p-3.5 text-center">
+                <span class="block text-[14.5px] font-extrabold text-[var(--ink-900)]">일반 회원</span>
+              </span>
+            </label>
+            <label class="e-choice" for="typeBusiness">
+              <input type="radio" id="typeBusiness" name="memberType" value="business">
+              <span class="e-choice-body !p-3.5 text-center">
+                <span class="block text-[14.5px] font-extrabold text-[var(--ink-900)]">사업자 회원</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="e-field">
+          <label class="e-label" for="findName">닉네임 <span class="req">*</span></label>
+          <div class="e-input-wrap has-icon">
+            <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+            <input type="text" class="e-input" id="findName" name="nickname" placeholder="가입 시 등록한 닉네임" autocomplete="nickname" required>
+          </div>
+        </div>
+
+        <div class="e-field">
+          <label class="e-label" for="findPhone">전화번호 <span class="req">*</span></label>
+          <div class="e-input-wrap has-icon">
+            <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 3h3l1.5 4.5-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2L21 14v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 5 5.2 2 2 0 0 1 7 3Z"/>
+            </svg>
+            <input type="tel" class="e-input t-num" id="findPhone" name="phone" placeholder="010-1234-5678" inputmode="numeric" maxlength="13" autocomplete="tel" required>
+          </div>
+          <p class="e-hint">가입 시 인증했던 전화번호를 입력해주세요.</p>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-block" id="findEmailNextBtn">인증번호 받기</button>
       </form>
 
-      <div class="mt-6 flex items-center gap-4">
-        <span class="h-px flex-1 bg-[rgba(37,55,75,0.7)]"></span>
-        <span class="text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)]">또는</span>
-        <span class="h-px flex-1 bg-[rgba(37,55,75,0.7)]"></span>
-      </div>
+      <div class="e-divider">또는</div>
 
-      <div class="mt-6">
-        <a href="login" class="relative flex h-[52px] w-full items-center justify-center rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">
-          <span class="absolute left-6 top-1/2 -translate-y-1/2 text-[20px]">‹</span>
-          로그인으로 돌아가기
-        </a>
+      <div class="flex flex-col gap-2.5">
+        <a href="find-password" class="btn btn-outline btn-block" id="toFindPasswordLink">비밀번호 찾기</a>
+        <a href="signup" class="btn btn-ghost btn-block">회원가입</a>
       </div>
     </div>
   </div>
+</main>
 
-  <div class="relative hidden flex-1 lg:block">
-    <img src="assets/images/map.png" alt="맛집 지도" class="absolute inset-0 size-full object-cover" />
+<footer class="py-8 border-t border-[var(--line)] bg-white">
+  <div class="e-container flex flex-wrap items-center justify-between gap-3">
+    <p class="t-xs">&copy; 2026 Eatty way.</p>
+    <nav class="flex gap-4 t-xs">
+      <a href="terms-service" class="e-link">이용약관</a>
+      <a href="terms-privacy" class="e-link">개인정보처리방침</a>
+    </nav>
   </div>
-</div>
-<script src="assets/js/api.js"></script>
-<script src="assets/js/find-email.js"></script>
+</footer>
+
 </body>
 </html>

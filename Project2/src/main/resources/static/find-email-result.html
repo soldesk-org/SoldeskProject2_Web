@@ -1,55 +1,121 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>이메일 찾기 결과 | 잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
-</head>
-<body>
-<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
-  <div class="relative flex w-full shrink-0 flex-col overflow-y-auto px-10 py-8 lg:w-[31%] lg:min-w-[440px] lg:max-w-[595px] lg:px-14">
-    <a href="index" class="flex items-center gap-3">
-      <div class="relative size-16 shrink-0 overflow-hidden">
-        <img src="assets/images/logo-icon.png" alt="Eatty way 로고" class="absolute left-[-36.79%] top-[-24.44%] size-[173.11%] max-w-none object-cover" />
-      </div>
-      <span class="bg-gradient-to-r from-[#fd6d4a] to-[#fea255] bg-clip-text text-[36px] font-bold tracking-[-1.8px] text-transparent">Eatty way</span>
-    </a>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>이메일 찾기 결과 — 잇티웨이</title>
+<meta name="description" content="찾은 이메일 계정 정보입니다.">
 
-    <div class="flex flex-1 flex-col justify-center py-8">
-      <div class="mx-auto flex size-[180px] items-center justify-center rounded-full bg-[rgba(254,162,85,0.15)]">
-        <div class="bg-gradient-to-b from-[#fea255] to-[#fd6d4a] bg-clip-text text-transparent">
-          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+<!--
+================================================================================
+ find-email-result — 이메일 찾기 STEP 3 : 결과
+--------------------------------------------------------------------------------
+ [스테퍼]  #findEmailSteps  (1 완료 / 2 완료 / 3 현재)
+
+ [출력]  ★ 서버 응답으로 채워주세요. 계정이 여러 개면 #foundAccountList 안에 반복 렌더
+   #foundAccountList        찾은 계정 목록 컨테이너
+   .js-found-email          이메일 텍스트 (data-email="원본 이메일")
+   .js-found-joined         가입일
+   .js-found-type           계정 유형 배지 (일반 / 사업자)
+   #foundCount              찾은 계정 수
+
+ [액션]
+   #copyEmailBtn            이메일 복사 (버튼마다 data-copy-target 사용)
+   #goLoginWithEmailBtn     이 이메일로 로그인 → login?email=...
+   #goFindPasswordBtn       비밀번호도 잊은 경우 → find-password
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/find-email-result.js"></script>
+</head>
+
+<body class="min-h-screen flex flex-col bg-[var(--bg-soft)]">
+
+<header class="e-header e-header--solid">
+  <div class="e-container e-header-inner">
+    <a href="index" class="e-logo">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text">잇티<em>웨이</em></span>
+    </a>
+    <div class="e-header-actions">
+      <a href="index" class="btn btn-ghost btn-sm">홈으로</a>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 grid place-items-center py-12 px-5">
+  <div class="w-full" style="max-width:520px">
+    <div class="e-card e-card-flat p-4 mb-5">
+      <div class="e-steps" id="findEmailSteps">
+        <div class="e-step is-done">
+          <span class="e-step-dot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <span class="e-step-label">정보 입력</span>
+        </div>
+        <span class="e-step-line" style="background:var(--brand-300)"></span>
+        <div class="e-step is-done">
+          <span class="e-step-dot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <span class="e-step-label">본인 인증</span>
+        </div>
+        <span class="e-step-line" style="background:var(--brand-300)"></span>
+        <div class="e-step is-current">
+          <span class="e-step-dot">3</span>
+          <span class="e-step-label">결과 확인</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 찾은 계정 목록 ==================== -->
+    <div class="e-card e-card-pad">
+      <div id="foundAccountList" class="space-y-3">
+
+        <!-- 계정 카드 (여러 개면 이 블록을 반복) -->
+        <div class="p-5 rounded-[var(--r-md)]" style="border:1px solid var(--brand-100)">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="e-badge e-badge--brand js-found-type">일반 회원</span>
+            <span class="t-xs ml-auto">가입일 <b class="t-num js-found-joined">2025-04-18</b></span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="w-10 h-10 rounded-[12px] grid place-items-center flex-none bg-white" style="color:var(--brand-500)">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>
+              </svg>
+            </span>
+            <p class="text-[17px] font-extrabold text-[var(--ink-900)] break-all js-found-email" data-email="eatty@example.com">eatty@example.com</p>
+            <button type="button" class="e-icon-btn !w-9 !h-9 flex-none ml-auto" id="copyEmailBtn" data-copy-target="eatty@example.com" aria-label="이메일 복사">
+              <svg style="width:17px;height:17px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div class="mt-8 text-center text-[#25374b]">
-        <h1 class="text-[30px] font-semibold tracking-[-1.5px]">가입하신 이메일 입니다!</h1>
-        <p class="mt-3 text-[18px] font-medium tracking-[-0.9px] opacity-80">회원님의 이메일을 확인해주세요.</p>
+      <div class="mt-6 flex flex-col gap-2.5">
+        <a href="login" class="btn btn-primary btn-lg btn-block" id="goLoginWithEmailBtn">이 이메일로 로그인</a>
+        <a href="find-password" class="btn btn-outline btn-block" id="goFindPasswordBtn">비밀번호도 잊으셨나요?</a>
       </div>
-
-      <div id="fer-email" class="mt-8 flex h-[52px] w-full items-center justify-center rounded-[10px] bg-[rgba(254,162,85,0.15)] text-[18px] font-semibold tracking-[-0.9px] text-[#25374b]"></div>
-
-      <div class="mt-6 flex flex-col gap-3">
-        <a href="login" class="flex h-[52px] w-full items-center justify-center rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[20px] font-semibold tracking-[-1px] text-white transition-opacity hover:opacity-90">로그인 하러 가기</a>
-        <a href="find-email" class="flex h-[52px] w-full items-center justify-center rounded-[10px] border border-[rgba(37,55,75,0.7)] bg-white text-[18px] font-medium tracking-[-0.9px] text-[rgba(37,55,75,0.7)] transition-colors hover:bg-[rgba(37,55,75,0.04)]">다시 찾기</a>
-      </div>
-
-      <p class="mt-6 text-center text-[16px] font-medium tracking-[-0.8px] text-[rgba(37,55,75,0.7)]">
-        비밀번호를 잊으셨나요?&nbsp;&nbsp;<a href="find-password" class="bg-gradient-to-r from-[rgba(253,109,74,0.7)] to-[rgba(254,162,85,0.7)] bg-clip-text font-medium text-transparent">비밀번호 찾기</a>
-      </p>
     </div>
   </div>
+</main>
 
-  <div class="relative hidden flex-1 lg:block">
-    <img src="assets/images/map.png" alt="맛집 지도" class="absolute inset-0 size-full object-cover" />
+<footer class="py-8 border-t border-[var(--line)] bg-white">
+  <div class="e-container flex flex-wrap items-center justify-between gap-3">
+    <p class="t-xs">&copy; 2026 Eatty way.</p>
+    <nav class="flex gap-4 t-xs">
+      <a href="terms-service" class="e-link">이용약관</a>
+      <a href="terms-privacy" class="e-link">개인정보처리방침</a>
+    </nav>
   </div>
-</div>
-<script src="assets/js/api.js"></script>
-<script>
-  document.getElementById("fer-email").textContent = sessionStorage.getItem("fe_email") || "-";
-  sessionStorage.removeItem("fe_verification_token");
-  sessionStorage.removeItem("fe_phone");
-</script>
+</footer>
+
+
 </body>
 </html>

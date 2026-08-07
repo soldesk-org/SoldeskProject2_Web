@@ -1,288 +1,867 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-auth-state="admin">
 <head>
 <meta charset="UTF-8">
-<title>잇티웨이 관리자 콘솔</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<style>
-/* 잇티웨이 Admin Design System 토큰 — 사용자가 업로드한 파일의 tokens/*.css 값을 그대로 이식 (변형 없음) */
-:root{
-  --brand-navy:#25374B; --brand-orange:#FEA255; --brand-orange-deep:#F97316;
-  --ink-1:#25374B; --ink-2:#4E5E70; --ink-3:#7C8896; --ink-disabled:#AEB7C0;
-  --surface-page:#F6F8FA; --surface-card:#FFFFFF; --surface-sunken:#EEF1F4; --surface-navy:#25374B;
-  --border-1:#E3E8ED; --border-2:#CDD5DD; --border-focus:#25374B;
-  --accent:#FEA255; --accent-hover:#F28E3B; --accent-soft:#FFF3E8;
-  --positive:#2E9E5B; --positive-soft:#E7F6EC;
-  --danger:#E5484D; --danger-soft:#FDECEC;
-  --warning:#EE9500; --warning-soft:#FFF4E0;
-  --neutral-badge:#5B6B7C; --neutral-badge-soft:#EDF0F3;
-  --status-active:var(--positive); --status-active-bg:var(--positive-soft);
-  --status-suspended:var(--danger); --status-suspended-bg:var(--danger-soft);
-  --status-received:var(--warning); --status-received-bg:var(--warning-soft);
-  --status-done:var(--positive); --status-done-bg:var(--positive-soft);
-  --status-rejected:var(--neutral-badge); --status-rejected-bg:var(--neutral-badge-soft);
-  --overlay-scrim:rgba(37,55,75,0.35); --overlay-blur:6px;
-  --font-sans:"Inter","Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  --text-page-title:28px; --text-section-title:20px; --text-body-lg:16px; --text-body-md:14px;
-  --text-body-sm:13px; --text-caption:12px; --text-stat:36px;
-  --tracking-tight:-0.05em; --tracking-snug:-0.02em;
-  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px;
-  --sidebar-width:316px; --sidebar-width-compact:240px; --page-pad-x:40px; --page-pad-y:32px;
-  --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px; --radius-pill:999px;
-  --control-h-sm:32px; --control-h-md:40px; --control-h-lg:48px; --row-h:56px;
-  --shadow-sidebar:4px 0px 4px 0px rgba(37,55,75,0.05);
-  --shadow-card:0 1px 3px rgba(37,55,75,0.06),0 1px 2px rgba(37,55,75,0.04);
-  --shadow-modal:0 16px 48px rgba(37,55,75,0.18);
-  --ease-standard:cubic-bezier(.2,.6,.2,1); --dur-fast:120ms; --dur-normal:200ms;
-}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--surface-page)}
-body{font-family:var(--font-sans);color:var(--ink-1);-webkit-font-smoothing:antialiased}
-a{color:var(--brand-navy)}
-a:hover{color:var(--accent-hover)}
-#root{height:100%}
-.hidden{display:none !important}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>관리자 콘솔 — 잇티웨이</title>
+<meta name="description" content="잇티웨이 운영 관리자 콘솔. 회원 관리, 신고 처리, 서버 모니터링.">
 
-/* 원본 디자인 4개 화면(대시보드/회원/리뷰/신고)엔 없는 로그인 게이트만 최소한의 토큰 기반 스타일을
-   별도로 얹는다. (시스템 상태 화면은 2026-07-27 요청으로 제거함 — 필요해지면 별도 페이지로 재도입.) */
-.auth-card{width:380px;max-width:100%;background:var(--surface-card);border-radius:var(--radius-xl);box-shadow:var(--shadow-modal);padding:36px 32px;text-align:center}
-.auth-card h2{margin:4px 0 4px;font-size:22px;font-weight:700;color:var(--brand-navy);letter-spacing:var(--tracking-snug)}
-.auth-card .sub{font-size:13px;color:var(--ink-3);margin-bottom:24px}
-.auth-card label{display:block;text-align:left;font-size:13px;font-weight:600;color:var(--ink-1);margin:14px 0 6px}
-.auth-card .err{color:var(--danger);font-size:13px;margin-top:12px;min-height:16px}
-</style>
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
-<script src="js/admin-design-system.js"></script>
-<script src="assets/js/api.js"></script>
+<!--
+================================================================================
+ admin — 관리자 콘솔 (대시보드 / 회원관리 / 신고관리 / 서버 모니터링)
+--------------------------------------------------------------------------------
+ ※ 이 화면만 좌측 사이드바 구조를 유지합니다. (데이터 밀집 관리 화면 특성)
+
+ [사이드바]
+   #adminSide                  사이드바 루트 (모바일에서는 .is-open 토글)
+   #adminSideToggle            모바일 사이드바 열기
+   #adminSideClose             모바일 사이드바 닫기
+   a.e-admin-side-link[data-admin-nav]   섹션 이동 (dashboard|members|reports|monitor)
+
+ [상단바]
+   #adminSearchInput           전역 검색 (회원 이메일 / 신고 ID)
+   #adminAlertBtn              알림
+   #adminProfileBtn / #adminProfileMenu / #adminLogoutBtn
+   #adminRefreshBtn            데이터 새로고침
+   #adminLastUpdated           마지막 갱신 시각
+
+ 시안에는 페이지네이션 · CSV 내보내기 · 정지 사유/기간 기록 · 신고 처리 메모 · 알림 발송처럼
+ 실제로 대응하는 API가 없는 기능이 많이 있어, 아래 실제 엔드포인트에 맞춰 전부 들어냈다.
+ (알림 발송 섹션은 NotificationController 자체가 없어 섹션째로 제거)
+
+ 실제 구현된 백엔드 엔드포인트 (AdminController.java 기준, 전부 hasRole("ADMIN")):
+     GET    /api/admin/status                             ← 서버 모니터링
+     GET    /api/admin/dashboard                           ← 대시보드 KPI
+     GET    /api/admin/members?role=                       ← 회원 목록(페이지네이션 없음)
+     PATCH  /api/admin/members/{memberId}/suspend          (요청 바디 없음)
+     PATCH  /api/admin/members/{memberId}/unsuspend
+     GET    /api/admin/reviews                             ← 리뷰 목록(페이지네이션 없음)
+     DELETE /api/admin/reviews/{reviewId}
+     GET    /api/admin/reports?status=                     ← 리뷰 신고(PENDING/RESOLVED/REJECTED)
+     PATCH  /api/admin/reports/{reviewId}/resolve
+     PATCH  /api/admin/reports/{reviewId}/reject
+     GET    /api/admin/chat-reports?status=                ← 채팅 신고는 별도 API
+     PATCH  /api/admin/chat-reports/{chatReportId}/resolve
+     PATCH  /api/admin/chat-reports/{chatReportId}/reject
+     DELETE /api/admin/chat-messages/{chatMessageId}
+     DELETE /api/admin/chat-rooms/{chatRoomId}
+     POST   /api/admin/parking-lots/sync                   ← 주차장 데이터 동기화
+
+ ┌ 섹션 1 · 대시보드 (#sectionDashboard) ────────────────────────────────
+   ★ GET /api/admin/dashboard
+   #kpiTotalMembers #kpiGeneralMembers #kpiBusinessMembers #kpiAdminMembers
+   #kpiPendingReports (신고 목록에서 집계) #kpiTotalReviews #kpiReportedReviews
+ └──────────────────────────────────────────────────────────────────────
+
+ ┌ 섹션 2 · 회원 관리 (#sectionMembers) ─────────────────────────────────
+   ★ GET /api/admin/members (role 파라미터로 서버 필터, 나머지는 클라이언트 필터)
+   #memberSearchInput #memberRoleFilter #memberStatusFilter #memberSortSelect
+   #memberFilterResetBtn #memberTableBody
+   #memberCheckAll / input[name="memberCheck"] / #bulkActionBar
+   [data-suspend-member]  ★ PATCH /api/admin/members/{memberId}/suspend
+   [data-release-member]  ★ PATCH /api/admin/members/{memberId}/unsuspend
+   [data-view-member]     상세 보기 (data-modal-open="memberDetailModal")
+ └──────────────────────────────────────────────────────────────────────
+
+ ┌ 섹션 3 · 신고 관리 (#sectionReports) ─────────────────────────────────
+   ★ GET /api/admin/reports?status= + GET /api/admin/chat-reports?status= 를
+     합쳐서 대기중/처리완료/반려 3개 탭으로 표시
+   #reportTypeFilter #reportSearchInput #reportStatusTabs
+   #reportPendingBody / #reportDoneBody / #reportRejectedBody
+   #handleReportModal — 리뷰: PATCH /api/admin/reports/{reviewId}/resolve|reject
+                        채팅: PATCH /api/admin/chat-reports/{chatReportId}/resolve|reject
+   #reportDeleteContentCheck 체크 시 추가로 콘텐츠 삭제:
+     DELETE /api/admin/reviews/{reviewId} | /api/admin/chat-messages/{id} | /api/admin/chat-rooms/{id}
+ └──────────────────────────────────────────────────────────────────────
+
+ ┌ 섹션 4 · 리뷰 관리 (#sectionReviews) ─────────────────────────────────
+   ★ GET /api/admin/reviews (클라이언트 검색/필터/정렬)
+   #adminReviewTableBody, [data-view-review], [data-delete-review] ★ DELETE /api/admin/reviews/{id}
+ └──────────────────────────────────────────────────────────────────────
+
+ ┌ 섹션 5 · API 서버 모니터링 (#sectionMonitor) ─────────────────────────
+   ★ GET /api/admin/status (5초 폴링)
+   #monitorOverallStatus #monitorTableBody
+   #parkingSyncBtn ★ POST /api/admin/parking-lots/sync
+ └──────────────────────────────────────────────────────────────────────
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/admin.js"></script>
+
+<link rel="stylesheet" href="assets/css/admin.css">
+
 </head>
-<body>
-<div id="root"></div>
-<script>
-const API_BASE = '';
-const h = React.createElement;
-const DS = window.AdminDesignSystem_daf0d7;
-const REASON_LABELS = { SPAM:'스팸/도배', ABUSE:'욕설/비방', FALSE_INFO:'허위 사실', PRIVACY:'개인정보 노출', ETC:'기타' };
-function reasonLabel(code){ return REASON_LABELS[code] || code || '-'; }
-function fmtDate(iso){ return iso ? iso.slice(0,10).replace(/-/g,'.') : ''; }
-const STATUS_MAP_TO_MOCK = { PENDING:'received', RESOLVED:'done', REJECTED:'rejected' };
 
-/* ---- 실 백엔드 DTO를 원본 디자인의 mock 데이터 모양(data.js)으로 맞추는 어댑터 ---- */
-function mapMember(m){
-  return { id:m.memberId, name:m.nickname, email:m.email,
-    type: m.role === 'BUSINESS' ? '사업자' : m.role === 'ADMIN' ? '관리자' : '일반',
-    status: m.status === 'SUSPENDED' ? 'suspended' : 'active',
-    joined: fmtDate(m.createdAt), raw:m };
-}
-function mapReview(r, membersById){
-  const author = membersById[r.memberId];
-  return { id:r.reviewId, author:r.nickname, email: author ? author.email : '',
-    place: r.restaurantName || r.restaurantId, rating:r.rating, content:r.content,
-    date: fmtDate(r.createdAt), raw:r };
-}
-function mapReviewReport(r){
-  return { id:'review-' + r.reviewId, kind:'review', category: reasonLabel(r.latestReasonCode),
-    content: `신고 ${r.reportCount}건 · 최근 사유: ${reasonLabel(r.latestReasonCode)}`,
-    target: r.content, targetUser: r.authorNickname, reporter: '',
-    status: STATUS_MAP_TO_MOCK[r.status] || 'received', date: fmtDate(r.latestReportedAt), raw:r };
-}
-function mapChatReport(c){
-  const isRoom = c.targetType === 'ROOM';
-  return { id:(isRoom ? 'chatroom-' : 'chat-') + c.chatReportId, kind: isRoom ? 'chatroom' : 'chat',
-    category: reasonLabel(c.reasonCode), content: c.detail || '(상세 내용 없음)',
-    target: isRoom ? (c.roomTitle || '-') : (c.contentSnapshot || '-'), targetUser:'',
-    reporter: c.reporterNickname, status: STATUS_MAP_TO_MOCK[c.status] || 'received',
-    date: fmtDate(c.createdAt), raw:c };
-}
+<body class="bg-[var(--bg-soft)]">
 
-function AuthCard({ children }){
-  return h('div', { style:{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24 } },
-    h('div', { className:'auth-card' }, children));
-}
+<div class="e-admin-shell">
 
-function DeniedScreen({ message, onBack }){
-  const { Button } = DS;
-  return h(AuthCard, null,
-    h('img', { src:'img/admin/logo.png', alt:'잇티웨이', width:72, height:72, style:{ marginBottom:8, objectFit:'contain' } }),
-    h('h2', null, '접근할 수 없습니다'),
-    h('div', { className:'err', style:{ marginTop:0 } }, message),
-    h(Button, { variant:'outline', fullWidth:true, style:{ marginTop:18 }, onClick:onBack }, '메인으로 돌아가기'));
-}
+  <!-- ============================ 사이드바 ============================ -->
+  <div class="e-drawer-backdrop lg:hidden" data-drawer-backdrop="adminSide"></div>
 
-function App(){
-  const { Sidebar } = DS;
-  const [screen, setScreen] = React.useState('checking'); // checking | denied | app
-  const [deniedMessage, setDeniedMessage] = React.useState('');
-  const [page, setPage] = React.useState(localStorage.getItem('eattway-admin-page') || 'dash');
+  <aside class="e-admin-side" id="adminSide" aria-label="관리자 메뉴">
+    <!-- 로고 -->
+    <div class="flex items-center gap-2 px-5 h-16 border-b border-black/10 flex-none">
+      <a href="index" class="e-logo">
+        <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+        <span class="e-logo-text !text-[17px]">잇티<em>웨이</em></span>
+      </a>
+      <button type="button" class="e-modal-close !text-[var(--ink-600)] hover:!bg-black/10 ml-auto lg:hidden"
+              id="adminSideClose" data-drawer-close="adminSide" aria-label="메뉴 닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
 
-  const [members, setMembers] = React.useState([]);
-  const [reviews, setReviews] = React.useState([]);
-  const [reports, setReports] = React.useState([]);
+    <!-- 메뉴 -->
+    <nav class="flex-1 py-3 overflow-y-auto">
+      <p class="e-admin-side-label">운영</p>
+      <a class="e-admin-side-link is-active" href="#sectionDashboard" data-admin-nav="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>
+          <rect x="14" y="10" width="7" height="11" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        </svg>
+        대시보드
+      </a>
+      <a class="e-admin-side-link" href="#sectionMembers" data-admin-nav="members">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/><path d="M17 11a3 3 0 1 0 0-6"/>
+        </svg>
+        회원 관리
+      </a>
+      <a class="e-admin-side-link" href="#sectionReports" data-admin-nav="reports">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/>
+        </svg>
+        신고 관리
+        <span class="ml-auto e-badge e-badge--danger !text-[10px]" id="sidePendingReportBadge" hidden>0</span>
+      </a>
+      <a class="e-admin-side-link" href="#sectionReviews" data-admin-nav="reviews">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/>
+        </svg>
+        리뷰 관리
+      </a>
+      <a class="e-admin-side-link" href="#sectionMonitor" data-admin-nav="monitor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h4l2.5-6 4 12 2.5-6h5"/>
+        </svg>
+        서버 모니터링
+      </a>
+    </nav>
 
-  const accessTokenRef = React.useRef(Api.getAccessToken());
-  const authHeaders = React.useCallback(() =>
-    accessTokenRef.current ? { Authorization: 'Bearer ' + accessTokenRef.current } : {}, []);
+  </aside>
 
-  React.useEffect(() => { localStorage.setItem('eattway-admin-page', page); }, [page]);
+  <!-- ============================= 본문 ============================= -->
+  <div class="e-admin-main">
 
-  async function reloadMembers(){
-    const res = await fetch(`${API_BASE}/api/admin/members`, { headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || '회원 목록 조회 실패');
-    setMembers(data.map(mapMember));
-    return data;
-  }
-  async function reloadReviews(membersRaw){
-    const res = await fetch(`${API_BASE}/api/admin/reviews`, { headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || '리뷰 목록 조회 실패');
-    const byId = {};
-    (membersRaw || []).forEach(m => { byId[m.memberId] = m; });
-    setReviews(data.map(r => mapReview(r, byId)));
-  }
-  async function reloadReports(){
-    const statuses = ['PENDING', 'RESOLVED', 'REJECTED'];
-    const calls = [];
-    statuses.forEach(st => {
-      calls.push(fetch(`${API_BASE}/api/admin/reports?status=${st}`, { headers: authHeaders() }).then(r => r.ok ? r.json() : []));
-      calls.push(fetch(`${API_BASE}/api/admin/chat-reports?status=${st}`, { headers: authHeaders() }).then(r => r.ok ? r.json() : []));
-    });
-    const results = await Promise.all(calls);
-    let merged = [];
-    statuses.forEach((st, i) => {
-      merged = merged.concat(results[i * 2].map(mapReviewReport));
-      merged = merged.concat(results[i * 2 + 1].map(mapChatReport));
-    });
-    setReports(merged);
-  }
-  async function reloadAll(){
-    const membersRaw = await reloadMembers();
-    await Promise.all([reloadReviews(membersRaw), reloadReports()]);
-  }
+    <!-- 상단바 -->
+    <header class="adm-topbar">
+      <button type="button" class="e-icon-btn lg:hidden flex-none" id="adminSideToggle" data-drawer-open="adminSide" aria-label="메뉴 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
 
-  async function checkAdminAccess(){
-    if (!accessTokenRef.current) { window.location.href = 'login'; return; }
-    const res = await fetch(`${API_BASE}/api/admin/members`, { headers: authHeaders() });
-    if (res.status === 401) { Api.clearSession(); window.location.href = 'login'; return; }
-    if (res.status === 403) { setDeniedMessage('관리자 권한이 없는 계정입니다. 이 계정은 일반 API는 계속 정상 사용할 수 있고, 관리자 페이지만 막힙니다.'); setScreen('denied'); return; }
-    setScreen('app');
-    await reloadAll();
-  }
+      <div class="e-input-wrap has-icon has-suffix flex-1" style="max-width:380px">
+        <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" class="e-input e-input-sm" id="adminSearchInput" placeholder="회원 이메일 또는 신고 ID 검색" aria-label="관리자 전역 검색">
+        <span class="e-input-suffix">
+          <button type="button" class="e-eye" id="adminSearchClearBtn" aria-label="검색어 지우기">
+            <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </span>
+      </div>
 
-  React.useEffect(() => { checkAdminAccess(); }, []);
+      <div class="ml-auto flex items-center gap-2">
+        <span class="t-xs hidden md:block">갱신 <b class="t-num" id="adminLastUpdated">14:38:02</b></span>
 
-  function goBackToMain(){
-    window.location.href = Api.landingPageForRole();
-  }
+        <button type="button" class="e-icon-btn" id="adminRefreshBtn" aria-label="데이터 새로고침">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
 
-  function findMemberById(id){ return members.find(m => m.id === id); }
-  function findMemberByEmail(email){ return members.find(m => m.email === email); }
-  function findMemberByName(name){ return members.find(m => m.name === name); }
+        <!-- 알림 벨 — eatty-ui.js 의 Eatty.notify 가 패널을 자동 부착합니다 -->
+        <button type="button" class="e-icon-btn" id="adminAlertBtn" data-noti-btn aria-label="알림">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+        </button>
 
-  async function onToggleStatus(memberId){
-    const m = findMemberById(memberId);
-    if (!m) return;
-    const suspend = m.status === 'active';
-    const res = await fetch(`${API_BASE}/api/admin/members/${memberId}/${suspend ? 'suspend' : 'unsuspend'}`, { method:'PATCH', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '처리 실패'); return; }
-    await reloadAll();
-  }
-  async function onDeleteReview(reviewId){
-    const res = await fetch(`${API_BASE}/api/admin/reviews/${reviewId}`, { method:'DELETE', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '삭제 실패'); return; }
-    await reloadAll();
-  }
-  async function onSuspendMember(email){
-    const m = findMemberByEmail(email);
-    if (!m) { alert('이 이메일의 회원을 찾을 수 없습니다.'); return; }
-    await onToggleStatus(m.id);
-  }
-  function parseReportId(id){
-    const idx = id.indexOf('-');
-    return { kind: id.slice(0, idx), realId: id.slice(idx + 1) };
-  }
-  async function onDeleteReport(id){
-    const { kind, realId } = parseReportId(id);
-    let res;
-    if (kind === 'review') res = await fetch(`${API_BASE}/api/admin/reviews/${realId}`, { method:'DELETE', headers: authHeaders() });
-    else if (kind === 'chatroom') res = await fetch(`${API_BASE}/api/admin/chat-rooms/${realId}`, { method:'DELETE', headers: authHeaders() });
-    else {
-      const row = reports.find(r => r.id === id);
-      const chatMessageId = row && row.raw && row.raw.chatMessageId;
-      if (!chatMessageId) { alert('삭제할 메시지를 찾을 수 없습니다.'); return; }
-      res = await fetch(`${API_BASE}/api/admin/chat-messages/${chatMessageId}`, { method:'DELETE', headers: authHeaders() });
-    }
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '삭제 실패'); return; }
-    await reloadAll();
-  }
-  async function onSuspendMemberByName(name){
-    if (!name) { alert('채팅 신고는 백엔드 응답에 신고당한 사람의 신원이 포함되지 않아(신고자만 알 수 있음) 이 화면에서 회원 정지를 걸 수 없습니다. 메시지 삭제/방 폭파로 조치해 주세요.'); return; }
-    const m = findMemberByName(name);
-    if (!m) { alert('이 닉네임의 회원을 찾을 수 없습니다.'); return; }
-    await onToggleStatus(m.id);
-  }
-  async function reportAction(id, action){
-    const { kind, realId } = parseReportId(id);
-    if (kind !== 'review') { await chatReportAction(realId, action); return; }
-    const res = await fetch(`${API_BASE}/api/admin/reports/${realId}/${action}`, { method:'PATCH', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '처리 실패'); return; }
-    await reloadReports();
-  }
-  async function chatReportAction(chatReportId, action){
-    const res = await fetch(`${API_BASE}/api/admin/chat-reports/${chatReportId}/${action}`, { method:'PATCH', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '처리 실패'); return; }
-    await reloadReports();
-  }
+        <div class="e-dropdown">
+          <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
+                  id="adminProfileBtn" data-dropdown-toggle="adminProfileMenu" aria-expanded="false" aria-haspopup="true">
+            <span class="e-avatar e-avatar-sm flex-none" id="adminTopbarAvatar" aria-hidden="true">관</span>
+            <span class="hidden md:block text-sm font-bold text-[var(--ink-800)]" id="adminTopbarName">관리자</span>
+            <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="e-dropdown-menu" id="adminProfileMenu">
+            <div class="e-dropdown-head">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]" id="adminMenuName">관리자</p>
+              <p class="text-xs text-[var(--ink-500)] mt-0.5" id="adminMenuEmail"></p>
+              <span class="e-badge e-badge--dark mt-2">관리자</span>
+            </div>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="adminLogoutBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
 
-  if (screen === 'checking') return h(AuthCard, null, h('h2', null, '확인 중...'));
-  if (screen === 'denied') return h(DeniedScreen, { message: deniedMessage, onBack: goBackToMain });
+    <main id="adminMain" class="p-5 md:p-7">
 
-  const ic = (paths) => h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, fill:'none', stroke:'currentColor', strokeWidth:1.75, strokeLinecap:'round', strokeLinejoin:'round' },
-    paths.map((d, i) => h('path', { key:i, d })));
-  // 실제 번들 코드를 까보니 Sidebar는 logoSrc를 주면 사이드바 폭 전체를 채우는 정사각 배너 이미지로
-  // 렌더링한다(원본 zip의 "작은 아이콘+텍스트" 헤더와는 다른, 더 최신 버전). 2026-07-26 실제 로고
-  // (1024×1024 정사각) 전달받아 적용.
-  const logoSrc = 'img/admin/logo.png';
-  const dashIcon = h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, fill:'none', stroke:'currentColor', strokeWidth:1.75, strokeLinecap:'round', strokeLinejoin:'round' },
-    h('rect', { x:3, y:3, width:8, height:8, rx:1.5 }), h('rect', { x:13, y:3, width:8, height:8, rx:1.5 }),
-    h('rect', { x:3, y:13, width:8, height:8, rx:1.5 }), h('rect', { x:13, y:13, width:8, height:8, rx:1.5 }));
-  const personIcon = h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, stroke:'var(--brand-navy)', fill:'none', strokeWidth:1.75, strokeLinecap:'round' },
-    h('circle', { cx:12, cy:8, r:4 }), h('path', { d:'M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5' }));
-  const reviewIcon = ic(['M12 20s-7-4.35-9.5-8.5C.8 8.1 2.2 4.5 5.7 4.5c2 0 3.4 1.1 4.3 2.6C10.9 5.6 12.3 4.5 14.3 4.5c3.5 0 4.9 3.6 3.2 7C15 15.65 12 20 12 20z']);
-  const reportIcon = ic(['M4 21V4', 'M4 4h13l-2.5 4L17 12H4']);
+      <!-- ================================================================
+           섹션 1 · 대시보드
+           ================================================================ -->
+      <section class="adm-section" id="sectionDashboard">
 
-  const exitIcon = ic(['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'M16 17l5-5-5-5', 'M21 12H9']);
+        <div class="mb-6">
+          <h1 class="e-page-title">대시보드</h1>
+          <p class="e-page-desc">서비스 전체 현황을 한눈에 확인합니다.</p>
+        </div>
 
-  return h('div', { style:{ display:'flex', minHeight:'100vh' } },
-    h(Sidebar, {
-      logoSrc, brand:'잇티웨이', active: page,
-      onSelect: id => id === 'exit' ? goBackToMain() : setPage(id),
-      items: [
-        { id:'dash', label:'대시보드', icon: dashIcon },
-        { id:'members', label:'회원 관리', icon: personIcon },
-        { id:'reviews', label:'리뷰 관리', icon: reviewIcon },
-        { id:'reports', label:'신고 관리', icon: reportIcon },
-        { id:'exit', label:'메인으로 돌아가기', icon: exitIcon },
-      ],
-    }),
-    h('main', { style:{ flex:1, minWidth:0, padding:'var(--page-pad-y) var(--page-pad-x)' } },
-      page === 'dash' && h(window.DashboardScreen, { members, reports }),
-      page === 'members' && h(window.MembersScreen, { members, onToggleStatus }),
-      page === 'reviews' && h(window.ReviewsScreen, { reviews, members, onDeleteReview, onSuspendMember }),
-      page === 'reports' && h(window.ReportsScreen, {
-        reports, members, onDeleteReport, onSuspendMemberByName,
-        onResolveReport: id => reportAction(id, 'resolve'),
-        onRejectReport: id => reportAction(id, 'reject'),
-      })));
-}
+        <!-- KPI 카드 (GET /api/admin/dashboard + 신고 목록에서 집계) -->
+        <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+          <div class="e-card e-stat">
+            <p class="e-stat-label">총 회원</p>
+            <p class="e-stat-value !text-[24px]" id="kpiTotalMembers">-</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">일반 회원</p>
+            <p class="e-stat-value !text-[24px]" id="kpiGeneralMembers">-</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">사업자 회원</p>
+            <p class="e-stat-value !text-[24px]" id="kpiBusinessMembers">-</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">관리자</p>
+            <p class="e-stat-value !text-[24px]" id="kpiAdminMembers">-</p>
+          </div>
+          <div class="e-card e-stat" style="border-color:#fbd5d5">
+            <p class="e-stat-label">미처리 신고</p>
+            <p class="e-stat-value !text-[24px] !text-[var(--danger)]" id="kpiPendingReports">-</p>
+          </div>
+          <div class="e-card e-stat">
+            <p class="e-stat-label">총 리뷰</p>
+            <p class="e-stat-value !text-[24px]" id="kpiTotalReviews">-</p>
+            <p class="e-stat-sub">신고 <b class="t-num" id="kpiReportedReviews">-</b>건</p>
+          </div>
+        </div>
 
-ReactDOM.createRoot(document.getElementById('root')).render(h(App));
-</script>
+        <!-- 빠른 이동 -->
+        <div class="e-card">
+          <div class="e-card-head">
+            <p class="e-card-title">빠른 이동</p>
+          </div>
+          <div class="e-card-body">
+            <div class="grid sm:grid-cols-3 gap-3">
+              <a href="#sectionReports" class="e-card e-card-flat border border-[var(--line)] p-4 e-card-hover" data-admin-nav="reports">
+                <span class="e-stat-ico e-stat-ico--danger mb-3">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>
+                </span>
+                <p class="text-sm font-extrabold text-[var(--ink-900)]">신고 관리</p>
+                <p class="t-xs mt-1">리뷰 · 채팅 신고 처리</p>
+              </a>
+              <a href="#sectionMembers" class="e-card e-card-flat border border-[var(--line)] p-4 e-card-hover" data-admin-nav="members">
+                <span class="e-stat-ico e-stat-ico--info mb-3">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/></svg>
+                </span>
+                <p class="text-sm font-extrabold text-[var(--ink-900)]">회원 관리</p>
+                <p class="t-xs mt-1">정지 · 해제 처리</p>
+              </a>
+              <a href="#sectionMonitor" class="e-card e-card-flat border border-[var(--line)] p-4 e-card-hover" data-admin-nav="monitor">
+                <span class="e-stat-ico e-stat-ico--success mb-3">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"/></svg>
+                </span>
+                <p class="text-sm font-extrabold text-[var(--ink-900)]">서버 모니터링</p>
+                <p class="t-xs mt-1" id="quickMonitorStatus">확인 중...</p>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 공지 발송(2026-08-06 추가) — 활성 회원 전체에게 알림 벨로 공지를 뿌린다 (★ POST /api/admin/notifications/broadcast) -->
+        <div class="e-card mt-6">
+          <div class="e-card-head">
+            <p class="e-card-title">공지 발송</p>
+          </div>
+          <div class="e-card-body">
+            <form id="broadcastForm" class="space-y-3">
+              <div>
+                <label class="e-label" for="broadcastTitle">제목</label>
+                <input type="text" id="broadcastTitle" class="e-input" maxlength="200" placeholder="예) 8월 6일 서버 점검 안내" required>
+              </div>
+              <div>
+                <label class="e-label" for="broadcastBody">내용</label>
+                <textarea id="broadcastBody" class="e-input" rows="3" maxlength="500" placeholder="공지 내용을 입력하세요."></textarea>
+              </div>
+              <div class="flex justify-end">
+                <button type="submit" class="btn btn-primary" id="broadcastSubmitBtn">전체 회원에게 발송</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           섹션 2 · 회원 관리
+           ================================================================ -->
+      <section class="adm-section" id="sectionMembers" hidden>
+
+        <div class="mb-6">
+          <h1 class="e-page-title">회원 관리</h1>
+          <p class="e-page-desc">역할과 상태로 회원을 검색하고 정지 · 해제를 처리합니다.</p>
+        </div>
+
+        <!-- 필터 -->
+        <div class="e-card e-card-pad !py-4 mb-5">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="e-input-wrap has-icon has-suffix flex-1" style="min-width:220px;max-width:320px">
+              <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="search" class="e-input e-input-sm" id="memberSearchInput" placeholder="이메일 또는 닉네임 검색" aria-label="회원 검색">
+              <span class="e-input-suffix">
+                <button type="button" class="e-eye" id="memberSearchClearBtn" aria-label="검색어 지우기">
+                  <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </span>
+            </div>
+
+            <select class="e-select e-input-sm" id="memberRoleFilter" aria-label="역할 필터" style="width:auto">
+              <option value="all">역할 전체</option>
+              <option value="user">일반 회원</option>
+              <option value="business">사업자 회원</option>
+              <option value="admin">관리자</option>
+            </select>
+
+            <select class="e-select e-input-sm" id="memberStatusFilter" aria-label="상태 필터" style="width:auto">
+              <option value="all">상태 전체</option>
+              <option value="active">정상</option>
+              <option value="suspended">정지</option>
+              <option value="withdrawn">탈퇴</option>
+            </select>
+
+            <select class="e-select e-input-sm" id="memberSortSelect" aria-label="정렬" style="width:auto">
+              <option value="recent">최근 가입순</option>
+              <option value="oldest">오래된 가입순</option>
+            </select>
+
+            <div class="ml-auto flex gap-2">
+              <button type="button" class="btn btn-ghost btn-sm" id="memberFilterResetBtn">초기화</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 일괄 처리 바 -->
+        <div class="e-card e-card-pad !py-3 mb-4" id="bulkActionBar" hidden style="border-color:var(--brand-300);background:var(--brand-50)">
+          <div class="flex flex-wrap items-center gap-3">
+            <p class="text-sm font-bold text-[var(--brand-700)]">
+              <b class="t-num" id="selectedCount">0</b>명 선택됨
+            </p>
+            <div class="ml-auto flex gap-2">
+              <button type="button" class="btn btn-danger-soft btn-sm" id="bulkSuspendBtn">일괄 정지</button>
+              <button type="button" class="btn btn-outline btn-sm" id="bulkReleaseBtn">일괄 해제</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 회원 테이블 -->
+        <div class="e-table-wrap">
+          <table class="e-table" id="memberTable">
+            <thead>
+              <tr>
+                <th style="width:44px">
+                  <label class="e-check">
+                    <input type="checkbox" id="memberCheckAll">
+                    <span class="sr-only-e">전체 선택</span>
+                  </label>
+                </th>
+                <th style="min-width:220px">회원</th>
+                <th style="width:110px">역할</th>
+                <th style="width:120px">상태</th>
+                <th style="width:140px">가입일</th>
+                <th style="width:170px" class="!text-right">관리</th>
+              </tr>
+            </thead>
+            <tbody id="memberTableBody">
+            </tbody>
+          </table>
+        </div>
+
+      </section>
+
+      <!-- ================================================================
+           섹션 3 · 신고 관리
+           ================================================================ -->
+      <section class="adm-section" id="sectionReports" hidden>
+
+        <div class="mb-6">
+          <h1 class="e-page-title">신고 관리</h1>
+          <p class="e-page-desc">리뷰 및 채팅 신고를 검토하고 처리합니다.</p>
+        </div>
+
+        <!-- 필터 -->
+        <div class="e-card e-card-pad !py-4 mb-5">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="e-input-wrap has-icon has-suffix flex-1" style="min-width:220px;max-width:320px">
+              <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="search" class="e-input e-input-sm" id="reportSearchInput" placeholder="신고 ID, 신고자, 대상 검색" aria-label="신고 검색">
+              <span class="e-input-suffix">
+                <button type="button" class="e-eye" id="reportSearchClearBtn" aria-label="검색어 지우기">
+                  <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </span>
+            </div>
+
+            <select class="e-select e-input-sm" id="reportTypeFilter" aria-label="신고 유형 필터" style="width:auto">
+              <option value="all">유형 전체</option>
+              <option value="review">리뷰 신고</option>
+              <option value="chat">채팅 신고</option>
+            </select>
+
+            <div class="ml-auto flex items-center gap-2">
+              <span class="e-badge e-badge--danger e-badge-lg" id="reportCountPending">대기 0</span>
+              <span class="e-badge e-badge--success e-badge-lg" id="reportCountDone">완료 0</span>
+              <span class="e-badge e-badge--gray e-badge-lg" id="reportCountRejected">반려 0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 상태 탭 -->
+        <div class="e-card" data-tabs id="reportStatusTabs">
+          <div class="px-5 md:px-6 pt-1">
+            <div class="e-tabs" role="tablist" aria-label="신고 처리 상태">
+              <button type="button" class="e-tab" data-tab-target="tabReportPending" role="tab" aria-selected="true">
+                대기중 <span class="e-tab-count" id="tabCountPending">0</span>
+              </button>
+              <button type="button" class="e-tab" data-tab-target="tabReportDone" role="tab" aria-selected="false">
+                처리완료 <span class="e-tab-count" id="tabCountDone">0</span>
+              </button>
+              <button type="button" class="e-tab" data-tab-target="tabReportRejected" role="tab" aria-selected="false">
+                반려 <span class="e-tab-count" id="tabCountRejected">0</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ---- 대기중 ---- -->
+          <div class="p-5 md:p-6" id="tabReportPending" data-tab-panel>
+            <div class="e-table-wrap">
+              <table class="e-table" id="reportPendingTable">
+                <thead>
+                  <tr>
+                    <th style="width:90px">유형</th>
+                    <th style="min-width:260px">신고 사유 · 내용</th>
+                    <th style="width:150px">대상</th>
+                    <th style="width:130px">신고자</th>
+                    <th style="width:110px">접수일</th>
+                    <th style="width:200px" class="!text-right">처리</th>
+                  </tr>
+                </thead>
+                <tbody id="reportPendingBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ---- 처리완료 ---- -->
+          <div class="p-5 md:p-6" id="tabReportDone" data-tab-panel hidden>
+            <div class="e-table-wrap">
+              <table class="e-table" id="reportDoneTable">
+                <thead>
+                  <tr>
+                    <th style="width:90px">유형</th>
+                    <th style="min-width:260px">신고 사유 · 내용</th>
+                    <th style="width:150px">대상</th>
+                    <th style="width:130px">신고자</th>
+                    <th style="width:110px">접수일</th>
+                  </tr>
+                </thead>
+                <tbody id="reportDoneBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ---- 반려 ---- -->
+          <div class="p-5 md:p-6" id="tabReportRejected" data-tab-panel hidden>
+            <div class="e-table-wrap">
+              <table class="e-table" id="reportRejectedTable">
+                <thead>
+                  <tr>
+                    <th style="width:90px">유형</th>
+                    <th style="min-width:260px">신고 사유 · 내용</th>
+                    <th style="width:150px">대상</th>
+                    <th style="width:130px">신고자</th>
+                    <th style="width:110px">접수일</th>
+                  </tr>
+                </thead>
+                <tbody id="reportRejectedBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           섹션 4 · 리뷰 관리
+           ----------------------------------------------------------------
+           ★ GET    /api/admin/reviews?q=&rating=&period=&sort=&page=
+             DELETE /api/admin/reviews/{reviewId}
+
+           [필터]
+             #reviewSearchInput      가게명 · 작성자 · 내용 검색
+             #reviewRatingFilter     별점 필터 (all|5|4|3|2|1)
+             #reviewPeriodFilter     기간 필터 (all|1m|3m|1y)
+             #reviewReportedOnly     신고 접수된 리뷰만 보기
+             #reviewSortSelect       정렬 (recent|rating-low|reports)
+             #adminReviewResetBtn    필터 초기화
+
+           [목록]
+             #adminReviewTable       테이블
+             #reviewCheckAll         전체 선택
+             input[name="reviewCheck"]
+             #reviewBulkBar          일괄 처리 바 (기본 hidden)
+             #reviewBulkDeleteBtn / #reviewSelectedCount
+             [data-view-review]      원문 보기 (data-modal-open="adminReviewModal")
+             [data-delete-review]    삭제 (data-modal-open="deleteReviewModal")
+
+           [모달]
+             #adminReviewModal       리뷰 원문 모달
+             #deleteReviewModal      삭제 확인 (#deleteReviewTarget, #deleteReviewConfirmBtn)
+           ================================================================ -->
+      <section class="adm-section" id="sectionReviews" hidden>
+
+        <div class="mb-6">
+          <h1 class="e-page-title">리뷰 관리</h1>
+          <p class="e-page-desc">영수증 인증 리뷰를 검색하고 부적절한 리뷰를 삭제합니다.</p>
+        </div>
+
+        <!-- 필터 -->
+        <div class="e-card e-card-pad !py-4 mb-5">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="e-input-wrap has-icon has-suffix flex-1" style="min-width:220px;max-width:320px">
+              <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="search" class="e-input e-input-sm" id="reviewSearchInput" placeholder="가게명 · 작성자 · 내용 검색" aria-label="리뷰 검색">
+              <span class="e-input-suffix">
+                <button type="button" class="e-eye" id="reviewSearchClearBtn" aria-label="검색어 지우기">
+                  <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </span>
+            </div>
+
+            <select class="e-select e-input-sm" id="reviewRatingFilter" aria-label="별점 필터" style="width:auto">
+              <option value="all">별점 전체</option>
+              <option value="5">5점</option>
+              <option value="4">4점</option>
+              <option value="3">3점</option>
+              <option value="2">2점</option>
+              <option value="1">1점</option>
+            </select>
+
+            <select class="e-select e-input-sm" id="reviewSortSelect" aria-label="정렬" style="width:auto">
+              <option value="recent">최신순</option>
+              <option value="rating-low">별점 낮은순</option>
+            </select>
+
+            <button type="button" class="btn btn-ghost btn-sm ml-auto" id="adminReviewResetBtn">초기화</button>
+          </div>
+        </div>
+
+        <!-- 일괄 처리 -->
+        <div class="e-card e-card-pad !py-3 mb-4" id="reviewBulkBar" hidden style="border-color:#fbd5d5;background:var(--danger-soft)">
+          <div class="flex flex-wrap items-center gap-3">
+            <p class="text-sm font-bold" style="color:var(--danger-ink)">
+              <b class="t-num" id="reviewSelectedCount">0</b>건 선택됨
+            </p>
+            <button type="button" class="btn btn-danger btn-sm ml-auto" id="reviewBulkDeleteBtn">선택 삭제</button>
+          </div>
+        </div>
+
+        <!-- 목록 -->
+        <div class="e-table-wrap">
+          <table class="e-table" id="adminReviewTable">
+            <thead>
+              <tr>
+                <th style="width:44px">
+                  <label class="e-check">
+                    <input type="checkbox" id="reviewCheckAll">
+                    <span class="sr-only-e">전체 선택</span>
+                  </label>
+                </th>
+                <th style="width:90px">리뷰 ID</th>
+                <th style="min-width:180px">가게</th>
+                <th style="width:130px">작성자</th>
+                <th style="width:80px">별점</th>
+                <th style="min-width:220px">내용</th>
+                <th style="min-width:160px">태그</th>
+                <th style="width:110px">작성일</th>
+                <th style="width:130px" class="!text-right">관리</th>
+              </tr>
+            </thead>
+            <tbody id="adminReviewTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+
+      <!-- ================================================================
+           섹션 4 · API 서버 모니터링
+           ================================================================ -->
+      <section class="adm-section" id="sectionMonitor" hidden>
+
+        <div class="flex flex-wrap items-center gap-4 mb-6">
+          <div>
+            <h1 class="e-page-title">API 서버 모니터링</h1>
+            <p class="e-page-desc">서비스별 상태를 확인합니다.</p>
+          </div>
+          <div class="ml-auto flex items-center gap-4">
+            <label class="e-switch" for="monitorAutoRefreshSwitch">
+              <input type="checkbox" id="monitorAutoRefreshSwitch" checked>
+              <span class="e-switch-track"></span>
+              <span class="text-[13px] font-bold text-[var(--ink-700)] whitespace-nowrap">5초 자동 갱신</span>
+            </label>
+            <span class="e-badge e-badge--success e-badge-lg" id="monitorOverallStatus">확인 중</span>
+          </div>
+        </div>
+
+        <!-- 서비스별 상태 (GET /api/admin/status) -->
+        <div class="e-card mb-5">
+          <div class="e-card-head">
+            <p class="e-card-title">서비스별 상태</p>
+          </div>
+          <div class="e-table-wrap !border-0 !rounded-none">
+            <table class="e-table e-table-compact" id="monitorTable">
+              <thead>
+                <tr>
+                  <th style="min-width:200px">서비스</th>
+                  <th style="width:130px">상태</th>
+                  <th style="width:110px" class="!text-right">응답시간</th>
+                  <th style="min-width:220px">비고</th>
+                </tr>
+              </thead>
+              <tbody id="monitorTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- ==================== 회원 정지 모달 ==================== -->
+<div class="e-modal" id="suspendModal" role="dialog" aria-modal="true" aria-labelledby="suspendTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel">
+    <div class="e-modal-head">
+      <div>
+        <span class="e-modal-icon e-modal-icon--danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9h2v6H9zM13 9h2v6h-2z"/></svg>
+        </span>
+        <h2 class="e-modal-title" id="suspendTitle">회원 정지 처리</h2>
+        <p class="e-modal-desc">
+          <b class="t-strong" id="suspendTargetName">-</b> 계정의 서비스 이용을 즉시 제한합니다.
+          정지 중에는 로그인이 차단되며, 관리자가 직접 해제하기 전까지 유지됩니다.
+        </p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-danger" id="suspendConfirmBtn">정지 처리</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 회원 상세 모달 ==================== -->
+<div class="e-modal" id="memberDetailModal" role="dialog" aria-modal="true" aria-labelledby="memberDetailTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--lg">
+    <div class="e-modal-head">
+      <div>
+        <h2 class="e-modal-title" id="memberDetailTitle">회원 상세</h2>
+        <p class="e-modal-desc">계정 정보를 확인합니다.</p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-body">
+      <!-- 프로필 -->
+      <div class="flex items-center gap-4 pb-5">
+        <span class="e-avatar e-avatar-lg flex-none" id="memberDetailAvatar" aria-hidden="true">잇</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <p class="text-[17px] font-extrabold text-[var(--ink-900)]" id="memberDetailName">-</p>
+            <span class="e-badge e-badge--gray" id="memberDetailRole">-</span>
+            <span class="e-status e-status--on !text-[12.5px]" id="memberDetailStatus">-</span>
+          </div>
+          <p class="t-sm mt-1" id="memberDetailEmail">-</p>
+        </div>
+      </div>
+
+      <!-- 요약 정보 -->
+      <div class="grid grid-cols-2 gap-4 pb-5">
+        <div>
+          <p class="t-xs">가입일</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] t-num mt-1" id="memberDetailJoined">-</p>
+        </div>
+        <div>
+          <p class="t-xs">회원 ID</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] t-num mt-1" id="memberDetailId">-</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>닫기</button>
+      <button type="button" class="btn btn-danger-soft" data-modal-close data-modal-open="suspendModal">정지 처리</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 리뷰 원문 모달 ==================== -->
+<div class="e-modal" id="adminReviewModal" role="dialog" aria-modal="true" aria-labelledby="adminReviewTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--lg">
+    <div class="e-modal-head">
+      <div>
+        <h2 class="e-modal-title" id="adminReviewTitle">리뷰 원문 <span class="t-num t-brand" id="adminReviewId">#-</span></h2>
+        <p class="e-modal-desc">영수증 인증 리뷰 원문을 확인합니다.</p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-body">
+      <div class="grid sm:grid-cols-3 gap-4 pb-5 border-b border-[var(--line)]">
+        <div>
+          <p class="t-xs">가게</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] mt-1" id="adminReviewShop">-</p>
+        </div>
+        <div>
+          <p class="t-xs">작성자</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] mt-1" id="adminReviewAuthor">-</p>
+        </div>
+        <div>
+          <p class="t-xs">작성일</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] t-num mt-1" id="adminReviewDate">-</p>
+        </div>
+      </div>
+
+      <div class="pt-5">
+        <div class="flex items-center gap-2.5 mb-3">
+          <span class="e-rating" id="adminReviewRating"></span>
+        </div>
+
+        <p class="t-body leading-relaxed" id="adminReviewContent"></p>
+
+        <div class="flex flex-wrap gap-1.5 mt-3" id="adminReviewTags"></div>
+      </div>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>닫기</button>
+      <button type="button" class="btn btn-danger" id="adminReviewDeleteBtn">리뷰 삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 리뷰 삭제 확인 모달 ==================== -->
+<div class="e-modal" id="deleteReviewModal" role="dialog" aria-modal="true" aria-labelledby="deleteReviewTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--sm">
+    <div class="e-modal-head">
+      <div>
+        <span class="e-modal-icon e-modal-icon--danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>
+        </span>
+        <h2 class="e-modal-title" id="deleteReviewTitle">리뷰를 삭제할까요?</h2>
+        <p class="e-modal-desc">
+          <b class="t-strong" id="deleteReviewTarget">-</b><br>
+          삭제하면 복구할 수 없습니다.
+        </p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-danger" id="deleteReviewConfirmBtn">삭제하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 신고 처리 모달 ==================== -->
+<div class="e-modal" id="handleReportModal" role="dialog" aria-modal="true" aria-labelledby="handleReportTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--lg">
+    <div class="e-modal-head">
+      <div>
+        <h2 class="e-modal-title" id="handleReportTitle">신고 처리</h2>
+        <p class="e-modal-desc">신고 내용을 확인하고 처리 · 반려를 선택해주세요.</p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="e-modal-body">
+
+      <!-- 신고 정보 -->
+      <div class="grid sm:grid-cols-3 gap-4 pb-5 border-b border-[var(--line)]">
+        <div>
+          <p class="t-xs">신고 유형</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] mt-1" id="handleReportType">-</p>
+        </div>
+        <div>
+          <p class="t-xs">신고자</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] mt-1" id="handleReportReporter">-</p>
+        </div>
+        <div>
+          <p class="t-xs">접수일</p>
+          <p class="text-sm font-bold text-[var(--ink-900)] t-num mt-1" id="handleReportDate">-</p>
+        </div>
+      </div>
+
+      <!-- 신고 사유 -->
+      <div class="py-5 border-b border-[var(--line)]">
+        <p class="t-xs mb-2">신고 사유</p>
+        <span class="e-badge e-badge--danger e-badge-lg" id="handleReportReasonBadge">-</span>
+        <p class="t-sm mt-3 leading-relaxed" id="handleReportDetail"></p>
+      </div>
+
+      <!-- 신고 대상 콘텐츠 -->
+      <div class="py-5">
+        <p class="t-xs mb-2.5">신고 대상</p>
+        <div class="p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]" id="reportTargetContent"></div>
+      </div>
+
+      <!-- 조치 선택 -->
+      <div class="pt-5 space-y-2.5" id="handleReportActions">
+        <label class="e-check" for="reportDeleteContentCheck">
+          <input type="checkbox" id="reportDeleteContentCheck">
+          <span>신고 대상 콘텐츠도 함께 삭제합니다</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" id="handleReportRejectBtn">반려</button>
+      <button type="button" class="btn btn-primary" id="handleReportConfirmBtn">처리 완료</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

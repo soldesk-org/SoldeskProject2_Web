@@ -24,8 +24,9 @@ public class PageRoutingController {
             "find-email", "find-email-verify", "find-email-result",
             "find-password", "find-password-sent", "find-password-reset", "find-password-done",
             "terms-service", "terms-privacy",
-            "explore", "recommend", "taste-quiz", "receipt-upload",
-            "mypage", "mypage-edit", "mypage-reviews", "chat", "business-mypage", "admin"
+            "explore", "recommend", "taste-quiz", "receipt-upload", "roulette",
+            "mypage", "mypage-edit", "mypage-reviews", "chat", "business-mypage", "admin",
+            "support", "admin-test", "store-search-popup"
     );
 
     @GetMapping("/")

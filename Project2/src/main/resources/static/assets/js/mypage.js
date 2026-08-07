@@ -1,120 +1,299 @@
 (function () {
   if (!Api.requireLogin()) return;
 
-  var tabs = ["info", "favorites", "reviews"];
-  var buttons = {};
-  var panels = {};
-  tabs.forEach(function (t) {
-    buttons[t] = document.getElementById("tab-btn-" + t);
-    panels[t] = document.getElementById("tab-panel-" + t);
+  function escapeHtml(text) {
+    return String(text == null ? "" : text)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function formatDate(iso) {
+    if (!iso) return "-";
+    return String(iso).slice(0, 10);
+  }
+
+  // ---- 프로필 ----
+  // 이메일/전화번호는 마이페이지 요약 카드에는 노출하지 않는다(2026-08-04 변경 — 필요하면 프로필 수정
+  // 화면에서 확인). data.email/data.phone 자체는 이 API 응답에 계속 포함되지만 이 페이지에서는 안 쓴다.
+  Api.request("/api/members/me").then(function (data) {
+    document.getElementById("profileNickname").textContent = data.nickname || "";
+    var avatar = document.getElementById("profileAvatar");
+    if (data.profileImageUrl) {
+      avatar.innerHTML = '<img src="' + data.profileImageUrl + '" class="size-full object-cover rounded-full" alt="프로필 사진">';
+    } else if (data.nickname) {
+      avatar.textContent = data.nickname.charAt(0);
+    }
+
+    var btiBadge = document.getElementById("profileBtiBadge");
+    var btiEmptyBox = document.getElementById("profileBtiEmptyBox");
+    if (data.foodBti) {
+      btiBadge.lastChild.textContent = " " + data.foodBti;
+      btiBadge.hidden = false;
+      if (btiEmptyBox) btiEmptyBox.hidden = true;
+    } else {
+      btiBadge.hidden = true;
+      if (btiEmptyBox) btiEmptyBox.hidden = false;
+    }
+  }).catch(function () {});
+
+  // ---- 즐겨찾기 ----
+  var favoriteList = document.getElementById("favoriteList");
+  var favoriteEmpty = document.getElementById("favoriteEmpty");
+  var statFavoriteCount = document.getElementById("statFavoriteCount");
+
+  var tabFavoriteCount = document.getElementById("tabFavoriteCount");
+  var favoritePagination = document.getElementById("favoritePagination");
+  var favoritePagePrev = document.getElementById("favoritePagePrev");
+  var favoritePageNext = document.getElementById("favoritePageNext");
+  var favoritePageNumbers = document.getElementById("favoritePageNumbers");
+  var FAVORITES_PAGE_SIZE = 10;
+  var favoritesAll = [];
+  var favoritesPage = 1;
+
+  function favoriteItemHtml(it) {
+    return (
+      '<div class="e-shop-card !cursor-default">' +
+        '<span class="e-shop-thumb e-img-ph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg></span>' +
+        '<div class="min-w-0 flex-1">' +
+          '<div class="flex items-center gap-2"><span class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">' + escapeHtml(it.name) + '</span></div>' +
+          '<p class="t-xs mt-1.5 truncate">' + escapeHtml(it.roadAddress || it.address || "") + '</p>' +
+          '<p class="t-xs mt-1">저장 <b class="t-num">' + formatDate(it.recordedAt) + '</b></p>' +
+        '</div>' +
+        '<div class="flex flex-col gap-1.5 flex-none">' +
+          '<button type="button" class="btn btn-ghost btn-xs !text-[var(--danger)]" data-remove-favorite data-restaurant-id="' + escapeHtml(it.restaurantId) + '">해제</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function renderFavoritesPage() {
+    favoriteList.innerHTML = "";
+    var items = favoritesAll;
+    if (!items.length) {
+      favoriteEmpty.hidden = false;
+      if (favoritePagination) favoritePagination.hidden = true;
+      return;
+    }
+    favoriteEmpty.hidden = true;
+
+    var totalPages = Math.max(1, Math.ceil(items.length / FAVORITES_PAGE_SIZE));
+    if (favoritesPage > totalPages) favoritesPage = totalPages;
+    var start = (favoritesPage - 1) * FAVORITES_PAGE_SIZE;
+    items.slice(start, start + FAVORITES_PAGE_SIZE).forEach(function (it) {
+      var li = document.createElement("li");
+      li.className = "fav-item";
+      li.setAttribute("data-shop-id", it.restaurantId);
+      li.innerHTML = favoriteItemHtml(it);
+      favoriteList.appendChild(li);
+    });
+
+    if (!favoritePagination) return;
+    if (totalPages <= 1) {
+      favoritePagination.hidden = true;
+      return;
+    }
+    favoritePagination.hidden = false;
+    favoritePageNumbers.innerHTML = "";
+    for (var p = 1; p <= totalPages; p++) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "e-page-btn";
+      btn.textContent = String(p);
+      if (p === favoritesPage) btn.setAttribute("aria-current", "page");
+      (function (targetPage) {
+        btn.addEventListener("click", function () { favoritesPage = targetPage; renderFavoritesPage(); });
+      })(p);
+      favoritePageNumbers.appendChild(btn);
+    }
+    favoritePagePrev.disabled = favoritesPage === 1;
+    favoritePageNext.disabled = favoritesPage === totalPages;
+  }
+
+  if (favoritePagePrev) {
+    favoritePagePrev.addEventListener("click", function () {
+      if (favoritesPage > 1) { favoritesPage--; renderFavoritesPage(); }
+    });
+  }
+  if (favoritePageNext) {
+    favoritePageNext.addEventListener("click", function () {
+      var totalPages = Math.max(1, Math.ceil(favoritesAll.length / FAVORITES_PAGE_SIZE));
+      if (favoritesPage < totalPages) { favoritesPage++; renderFavoritesPage(); }
+    });
+  }
+
+  function renderFavorites(items) {
+    favoritesAll = items;
+    favoritesPage = 1;
+    if (statFavoriteCount) statFavoriteCount.textContent = items.length;
+    if (tabFavoriteCount) tabFavoriteCount.textContent = items.length;
+    renderFavoritesPage();
+  }
+
+  function loadFavorites() {
+    return Api.request("/api/mypage/favorites").then(renderFavorites).catch(function () { renderFavorites([]); });
+  }
+
+  favoriteList.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-remove-favorite]");
+    if (!btn) return;
+    var restaurantId = btn.getAttribute("data-restaurant-id");
+    btn.disabled = true;
+    Api.request("/api/restaurants/" + encodeURIComponent(restaurantId) + "/favorite", { method: "DELETE" })
+      .then(function () { Eatty.toast("즐겨찾기에서 해제했습니다.", "success"); return loadFavorites(); })
+      .catch(function (err) { Eatty.toast(err.message || "해제에 실패했습니다.", "error"); btn.disabled = false; });
   });
 
-  function currentTab() {
-    var params = new URLSearchParams(window.location.search);
-    return tabs.indexOf(params.get("tab")) >= 0 ? params.get("tab") : "info";
-  }
+  // ---- 방문기록(영수증 인증된 리뷰) ----
+  var visitList = document.getElementById("visitList");
+  var visitEmpty = document.getElementById("visitEmpty");
+  var statVisitCount = document.getElementById("statVisitCount");
 
-  function render() {
-    var active = currentTab();
-    tabs.forEach(function (t) {
-      var isActive = t === active;
-      buttons[t].className =
-        "relative pb-4 text-[22px] font-semibold tracking-[-1.1px] transition-colors " +
-        (isActive ? "text-[#fd6d4a]" : "text-[rgba(37,55,75,0.5)] hover:text-[#25374b]");
-      buttons[t].querySelector(".tab-indicator").style.display = isActive ? "" : "none";
-      panels[t].style.display = isActive ? "" : "none";
-    });
-  }
+  var tabVisitCount = document.getElementById("tabVisitCount");
 
-  function goTab(t) {
-    var url = new URL(window.location.href);
-    if (t === "info") url.searchParams.delete("tab");
-    else url.searchParams.set("tab", t);
-    window.history.pushState({}, "", url);
-    render();
-    if (window.refreshSidebarActive) window.refreshSidebarActive();
-  }
-
-  tabs.forEach(function (t) { buttons[t].addEventListener("click", function () { goTab(t); }); });
-
-  var seeReviewsLink = document.getElementById("see-reviews-link");
-  if (seeReviewsLink) seeReviewsLink.addEventListener("click", function () { goTab("reviews"); });
-
-  window.addEventListener("popstate", render);
-  render();
-
-  function escapeHtml(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-  }
-  function formatDate(s) {
-    if (!s) return "";
-    return String(s).slice(0, 10).replace(/-/g, ".");
-  }
-
-  document.getElementById("profile-avatar").innerHTML = Api.avatarPlaceholder;
-
-  Api.request("/api/members/me", {})
-    .then(function (me) {
-      document.getElementById("profile-nickname").textContent = me.nickname;
-      document.getElementById("profile-email").textContent = me.email;
-      if (me.profileImageUrl) {
-        document.getElementById("profile-avatar").innerHTML = '<img src="' + me.profileImageUrl + '" class="size-full object-cover" />';
-      }
-      if (me.foodBti) {
-        document.getElementById("foodbti-code").textContent = me.foodBti;
-        document.getElementById("foodbti-result").style.display = "";
-      } else {
-        document.getElementById("foodbti-empty").style.display = "";
-      }
-    })
-    .catch(function () {});
-
-  Api.request("/api/mypage/favorites", {})
-    .then(function (favorites) {
-      document.getElementById("favorites-count").textContent = favorites.length + "개";
-      var grid = document.getElementById("favorites-grid");
-      if (favorites.length === 0) { grid.innerHTML = '<p class="text-[16px] text-[rgba(37,55,75,0.5)]">즐겨찾기한 맛집이 없어요.</p>'; return; }
-      grid.innerHTML = "";
-      favorites.forEach(function (f) {
-        var card = document.createElement("div");
-        card.className = "rounded-[14px] border border-[rgba(37,55,75,0.1)] p-5 shadow-[0px_4px_4px_0px_rgba(0,0,0,0.05)]";
-        card.innerHTML =
-          '<div class="flex gap-4">' +
-          '<div class="size-[64px] shrink-0 overflow-hidden rounded-[10px]">' + Api.photoPlaceholder + "</div>" +
+  function renderVisits(items) {
+    visitList.innerHTML = "";
+    if (statVisitCount) statVisitCount.textContent = items.length;
+    if (tabVisitCount) tabVisitCount.textContent = items.length;
+    if (!items.length) { visitEmpty.hidden = false; return; }
+    visitEmpty.hidden = true;
+    items.forEach(function (it) {
+      var li = document.createElement("li");
+      li.className = "visit-item";
+      li.innerHTML =
+        '<div class="e-shop-card !cursor-default">' +
+          '<span class="e-shop-thumb e-img-ph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg></span>' +
           '<div class="min-w-0 flex-1">' +
-          '<h3 class="text-[22px] font-semibold tracking-[-1.1px] text-[#25374b]">' + escapeHtml(f.name) + "</h3>" +
-          '<p class="mt-1 text-[16px] font-medium text-[rgba(37,55,75,0.6)]">' + escapeHtml(f.roadAddress || f.address || "") + "</p>" +
-          "</div></div>";
-        grid.appendChild(card);
-      });
-    })
-    .catch(function () {});
+            '<p class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">' + escapeHtml(it.name) + '</p>' +
+            '<p class="t-xs mt-1.5 truncate">' + escapeHtml(it.roadAddress || it.address || "") + '</p>' +
+            '<p class="t-xs mt-1">방문 <b class="t-num">' + formatDate(it.recordedAt) + '</b></p>' +
+          '</div>' +
+        '</div>';
+      visitList.appendChild(li);
+    });
+  }
 
-  Api.request("/api/mypage/reviews", {})
-    .then(function (reviews) {
-      document.getElementById("reviews-count-label").textContent = "내가 남긴 리뷰 " + reviews.length + "개";
+  function loadVisits() {
+    return Api.request("/api/mypage/visits").then(renderVisits).catch(function () { renderVisits([]); });
+  }
 
-      var recentEl = document.getElementById("recent-reviews-list");
-      var listEl = document.getElementById("reviews-list");
-      if (reviews.length === 0) {
-        recentEl.innerHTML = '<p class="text-[16px] text-[rgba(37,55,75,0.5)]">아직 작성한 리뷰가 없어요.</p>';
-        listEl.innerHTML = '<p class="text-[16px] text-[rgba(37,55,75,0.5)]">아직 작성한 리뷰가 없어요.</p>';
+  // ---- 검색기록 ----
+  var searchHistoryList = document.getElementById("searchHistoryList");
+  var searchHistoryEmpty = document.getElementById("searchHistoryEmpty");
+
+  var tabSearchCount = document.getElementById("tabSearchCount");
+
+  function renderSearchHistories(items) {
+    searchHistoryList.innerHTML = "";
+    if (tabSearchCount) tabSearchCount.textContent = items.length;
+    if (!items.length) { searchHistoryEmpty.hidden = false; return; }
+    searchHistoryEmpty.hidden = true;
+    items.forEach(function (it) {
+      var li = document.createElement("li");
+      li.className = "sh-item flex items-center gap-3 py-3.5";
+      li.setAttribute("data-history-id", it.searchHistoryId);
+      li.innerHTML =
+        '<svg style="width:16px;height:16px" class="text-[var(--ink-400)] flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>' +
+        '<span class="flex-1 text-sm font-semibold text-[var(--ink-800)] truncate">' + escapeHtml(it.keyword) + '</span>' +
+        '<span class="t-xs flex-none">' + formatDate(it.createdAt) + '</span>' +
+        '<button type="button" class="e-icon-btn !w-8 !h-8 flex-none" data-remove-history="' + it.searchHistoryId + '" aria-label="검색기록 삭제">' +
+          '<svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>';
+      searchHistoryList.appendChild(li);
+    });
+  }
+
+  function loadSearchHistories() {
+    return Api.request("/api/mypage/search-histories").then(renderSearchHistories).catch(function () { renderSearchHistories([]); });
+  }
+
+  searchHistoryList.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-remove-history]");
+    if (!btn) return;
+    var id = btn.getAttribute("data-remove-history");
+    Api.request("/api/mypage/search-histories/" + id, { method: "DELETE" })
+      .then(function () { return loadSearchHistories(); })
+      .catch(function (err) { Eatty.toast(err.message || "삭제에 실패했습니다.", "error"); });
+  });
+
+  var clearAllBtn = document.getElementById("clearHistoryConfirmBtn");
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener("click", function () {
+      Api.request("/api/mypage/search-histories", { method: "DELETE" })
+        .then(function () {
+          Eatty.closeModal("clearHistoryModal");
+          Eatty.toast("검색기록을 모두 삭제했습니다.", "success");
+          return loadSearchHistories();
+        })
+        .catch(function (err) { Eatty.toast(err.message || "삭제에 실패했습니다.", "error"); });
+    });
+  }
+
+  // ---- 리뷰 수/평균 별점(통계 카드 — 내 리뷰 목록으로 직접 계산, 별도 통계 API 없음) ----
+  Api.request("/api/mypage/reviews").then(function (reviews) {
+    var statReviewCount = document.getElementById("statReviewCount");
+    var statAvgRating = document.getElementById("statAvgRating");
+    var statReviewMonthCount = document.getElementById("statReviewMonthCount");
+    var goMyReviewsSub = document.getElementById("goMyReviewsSub");
+    if (statReviewCount) statReviewCount.textContent = reviews.length;
+    if (goMyReviewsSub) goMyReviewsSub.textContent = reviews.length + "건 · 수정 및 삭제";
+    if (statAvgRating) {
+      if (reviews.length) {
+        var avg = reviews.reduce(function (s, r) { return s + r.rating; }, 0) / reviews.length;
+        statAvgRating.textContent = avg.toFixed(1);
+      } else {
+        statAvgRating.textContent = "-";
+      }
+    }
+    if (statReviewMonthCount) {
+      var thisMonthPrefix = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+      var monthCount = reviews.filter(function (r) {
+        return r.createdAt && String(r.createdAt).slice(0, 7) === thisMonthPrefix;
+      }).length;
+      statReviewMonthCount.textContent = monthCount + "건";
+    }
+  }).catch(function () {});
+
+  // ---- 참여 중인 채팅방 수(19.오픈채팅 — 안읽은 메시지 수 API는 없어 방 개수만 표시) ----
+  Api.request("/api/chat/rooms/my").then(function (rooms) {
+    var goChatSub = document.getElementById("goChatSub");
+    if (goChatSub) goChatSub.textContent = rooms.length ? rooms.length + "개 참여 중" : "참여 중인 채팅방 없음";
+  }).catch(function () {
+    var goChatSub = document.getElementById("goChatSub");
+    if (goChatSub) goChatSub.textContent = "참여 중인 채팅방 없음";
+  });
+
+  loadFavorites();
+  loadVisits();
+  loadSearchHistories();
+
+  // ---- 회원탈퇴 ----
+  var withdrawConfirmBtn = document.getElementById("withdrawConfirmBtn");
+  if (withdrawConfirmBtn) {
+    withdrawConfirmBtn.addEventListener("click", function () {
+      var confirmText = document.getElementById("withdrawConfirmInput").value.trim();
+      var password = document.getElementById("withdrawPassword").value;
+      var reason = document.getElementById("withdrawReasonSelect").value;
+      var pwError = document.getElementById("withdrawPasswordError");
+      pwError.classList.remove("is-visible");
+
+      if (confirmText !== "탈퇴합니다") {
+        Eatty.toast('"탈퇴합니다"를 정확히 입력해주세요.', "error");
+        return;
+      }
+      if (!password) {
+        pwError.classList.add("is-visible");
         return;
       }
 
-      function reviewRow(r) {
-        return '<div class="flex items-center gap-5 rounded-[10px] border border-[rgba(37,55,75,0.1)] p-5 shadow-[0px_4px_4px_0px_rgba(0,0,0,0.05)]">' +
-          '<div class="size-[90px] shrink-0 overflow-hidden rounded-[10px]">' + Api.photoPlaceholder + "</div>" +
-          '<div class="flex flex-1 items-baseline justify-between">' +
-          '<span class="text-[24px] font-semibold tracking-[-1.2px] text-[#25374b]">' + escapeHtml(r.restaurantName) + "</span>" +
-          '<span class="text-[18px] font-medium text-[rgba(37,55,75,0.45)]">' + formatDate(r.createdAt) + "</span>" +
-          "</div></div>";
-      }
-
-      recentEl.innerHTML = reviews.slice(0, 4).map(reviewRow).join("");
-      listEl.innerHTML = reviews.map(reviewRow).join("");
-    })
-    .catch(function () {});
+      withdrawConfirmBtn.disabled = true;
+      Api.request("/api/members/me", { method: "DELETE", body: { password: password, reason: reason } })
+        .then(function () {
+          Api.clearSession();
+          window.location.href = "index";
+        })
+        .catch(function (err) {
+          pwError.textContent = err.message || "비밀번호가 올바르지 않습니다.";
+          pwError.classList.add("is-visible");
+        })
+        .finally(function () { withdrawConfirmBtn.disabled = false; });
+    });
+  }
 })();
