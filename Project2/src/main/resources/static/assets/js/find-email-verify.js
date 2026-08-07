@@ -3,32 +3,27 @@
   var phone = sessionStorage.getItem("fe_phone");
   if (!token || !phone) { window.location.href = "find-email"; return; }
 
-  document.getElementById("fev-phone").textContent = phone;
+  var maskedPhoneEl = document.getElementById("maskedPhone");
+  if (maskedPhoneEl) maskedPhoneEl.textContent = phone.replace(/^(\d{3})-(\d{2})\d{2}-(\d{4})$/, "$1-$2**-$3");
 
-  var inputs = document.querySelectorAll(".otp-input");
-  var errorEl = document.getElementById("fev-error");
-  var confirmBtn = document.getElementById("fev-confirm-btn");
-  var resendBtn = document.getElementById("fev-resend-btn");
+  var codeInput = document.getElementById("verifyCode");
+  var errorEl = document.getElementById("verifyCodeError");
+  var form = document.getElementById("verifyCodeForm");
+  var submitBtn = document.getElementById("verifySubmitBtn");
+  var resendBtn = document.getElementById("resendCodeBtn");
 
-  function showError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = msg ? "" : "none";
-  }
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    errorEl.classList.remove("is-visible");
 
-  function code() {
-    return Array.prototype.map.call(inputs, function (i) { return i.value; }).join("");
-  }
+    var code = codeInput.value.trim();
+    if (code.length !== 6) { errorEl.classList.add("is-visible"); return; }
 
-  confirmBtn.addEventListener("click", function () {
-    showError("");
-    var c = code();
-    if (c.length < inputs.length) { showError("인증번호 6자리를 모두 입력해주세요."); return; }
-
-    confirmBtn.disabled = true;
+    submitBtn.disabled = true;
     Api.request("/api/members/find-email/verify-phone/confirm", {
       method: "POST",
       auth: false,
-      body: { verificationToken: token, phone: phone, code: c },
+      body: { verificationToken: token, phone: phone, code: code },
     })
       .then(function () {
         return Api.request("/api/members/find-email/reveal", { method: "POST", auth: false, body: { verificationToken: token } });
@@ -37,13 +32,20 @@
         sessionStorage.setItem("fe_email", data.email);
         window.location.href = "find-email-result";
       })
-      .catch(function (err) { showError(err.message || "인증에 실패했습니다."); })
-      .finally(function () { confirmBtn.disabled = false; });
+      .catch(function (err) {
+        errorEl.textContent = err.message || "인증번호가 일치하지 않습니다.";
+        errorEl.classList.add("is-visible");
+      })
+      .finally(function () { submitBtn.disabled = false; });
   });
 
   resendBtn.addEventListener("click", function () {
-    showError("");
     Api.request("/api/members/find-email/verify-phone/send-code", { method: "POST", auth: false, body: { verificationToken: token, phone: phone } })
-      .catch(function (err) { showError(err.message || "재전송에 실패했습니다."); });
+      .then(function () {
+        var t = document.getElementById("verifyCodeTimer");
+        if (t) t.dispatchEvent(new Event("eatty:timer-restart"));
+        Eatty.toast("인증번호를 다시 보냈습니다.", "success");
+      })
+      .catch(function (err) { Eatty.toast(err.message || "재전송에 실패했습니다.", "error"); });
   });
 })();

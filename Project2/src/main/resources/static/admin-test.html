@@ -1,315 +1,835 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-auth-state="admin">
 <head>
 <meta charset="UTF-8">
-<title>잇티웨이 관리자 콘솔</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[개발용] 관리자 테스트 화면 — 잇티웨이</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!--
+================================================================================
+ admin-test — 개발/테스트용 관리자 화면
+--------------------------------------------------------------------------------
+ 목적
+   admin 과 동일한 기능을 최소한의 마크업(단순 표 + 기본 폼)으로만 제공합니다.
+   API 응답을 눈으로 빠르게 확인하고, 각 엔드포인트를 개별 호출해 검증하는 용도입니다.
+   ※ 디자인 우선순위 낮음. 실서비스 배포 대상 아님.
+
+ [API 테스트 콘솔]
+   #apiMethodSelect       HTTP 메서드
+   #apiPathInput          엔드포인트 경로
+   #apiBodyInput          요청 본문 (JSON)
+   #apiSendBtn            요청 실행   ★ 팀에서 fetch() 연결
+   #apiResponseBox        응답 출력 (pre)
+   #apiStatusText         응답 상태 코드 / 소요 시간
+   #apiPresetList         자주 쓰는 엔드포인트 프리셋 (button[data-preset-method][data-preset-path])
+
+ [회원 관리]
+   #testMemberRoleFilter / #testMemberStatusFilter / #testMemberSearchInput
+   #testMemberLoadBtn     목록 조회   ★ GET /api/admin/members
+   #testMemberTable       결과 표
+   [data-test-suspend]    정지        ★ POST /api/admin/members/{id}/suspend
+   [data-test-release]    해제        ★ POST /api/admin/members/{id}/release
+
+ [신고 관리]
+   #testReportStatusFilter / #testReportTypeFilter
+   #testReportLoadBtn     목록 조회   ★ GET /api/admin/reports
+   #testReportTable       결과 표
+   [data-test-handle]     처리        ★ POST /api/admin/reports/{id}/handle
+   [data-test-reject]     반려        ★ POST /api/admin/reports/{id}/reject
+
+ [서버 상태]
+   #testHealthLoadBtn     상태 조회   ★ GET /api/admin/health
+   #testHealthTable       결과 표
+
+ [통계]
+   #testStatsLoadBtn      통계 조회   ★ GET /api/admin/stats/summary
+   #testStatsTable        결과 표
+
+ [WebSocket 테스트]
+   #wsUrlInput            연결 URL (예: /ws-stomp)
+   #wsRoomInput           구독 방 ID
+   #wsConnectBtn / #wsDisconnectBtn / #wsSendInput / #wsSendBtn
+   #wsLogBox              송수신 로그
+================================================================================
+-->
+
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/eatty-ui.js"></script>
 <style>
-/* 잇티웨이 Admin Design System 토큰 — 사용자가 업로드한 파일의 tokens/*.css 값을 그대로 이식 (변형 없음) */
-:root{
-  --brand-navy:#25374B; --brand-orange:#FEA255; --brand-orange-deep:#F97316;
-  --ink-1:#25374B; --ink-2:#4E5E70; --ink-3:#7C8896; --ink-disabled:#AEB7C0;
-  --surface-page:#F6F8FA; --surface-card:#FFFFFF; --surface-sunken:#EEF1F4; --surface-navy:#25374B;
-  --border-1:#E3E8ED; --border-2:#CDD5DD; --border-focus:#25374B;
-  --accent:#FEA255; --accent-hover:#F28E3B; --accent-soft:#FFF3E8;
-  --positive:#2E9E5B; --positive-soft:#E7F6EC;
-  --danger:#E5484D; --danger-soft:#FDECEC;
-  --warning:#EE9500; --warning-soft:#FFF4E0;
-  --neutral-badge:#5B6B7C; --neutral-badge-soft:#EDF0F3;
-  --status-active:var(--positive); --status-active-bg:var(--positive-soft);
-  --status-suspended:var(--danger); --status-suspended-bg:var(--danger-soft);
-  --status-received:var(--warning); --status-received-bg:var(--warning-soft);
-  --status-done:var(--positive); --status-done-bg:var(--positive-soft);
-  --status-rejected:var(--neutral-badge); --status-rejected-bg:var(--neutral-badge-soft);
-  --overlay-scrim:rgba(37,55,75,0.35); --overlay-blur:6px;
-  --font-sans:"Inter","Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  --text-page-title:28px; --text-section-title:20px; --text-body-lg:16px; --text-body-md:14px;
-  --text-body-sm:13px; --text-caption:12px; --text-stat:36px;
-  --tracking-tight:-0.05em; --tracking-snug:-0.02em;
-  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px;
-  --sidebar-width:316px; --sidebar-width-compact:240px; --page-pad-x:40px; --page-pad-y:32px;
-  --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px; --radius-pill:999px;
-  --control-h-sm:32px; --control-h-md:40px; --control-h-lg:48px; --row-h:56px;
-  --shadow-sidebar:4px 0px 4px 0px rgba(37,55,75,0.05);
-  --shadow-card:0 1px 3px rgba(37,55,75,0.06),0 1px 2px rgba(37,55,75,0.04);
-  --shadow-modal:0 16px 48px rgba(37,55,75,0.18);
-  --ease-standard:cubic-bezier(.2,.6,.2,1); --dur-fast:120ms; --dur-normal:200ms;
-}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--surface-page)}
-body{font-family:var(--font-sans);color:var(--ink-1);-webkit-font-smoothing:antialiased}
-a{color:var(--brand-navy)}
-a:hover{color:var(--accent-hover)}
-#root{height:100%}
-.hidden{display:none !important}
-
-/* 원본 디자인 4개 화면(대시보드/회원/리뷰/신고)엔 없는 로그인 게이트만 최소한의 토큰 기반 스타일을
-   별도로 얹는다. (시스템 상태 화면은 2026-07-27 요청으로 제거함 — 필요해지면 별도 페이지로 재도입.) */
-.auth-card{width:380px;max-width:100%;background:var(--surface-card);border-radius:var(--radius-xl);box-shadow:var(--shadow-modal);padding:36px 32px;text-align:center}
-.auth-card h2{margin:4px 0 4px;font-size:22px;font-weight:700;color:var(--brand-navy);letter-spacing:var(--tracking-snug)}
-.auth-card .sub{font-size:13px;color:var(--ink-3);margin-bottom:24px}
-.auth-card label{display:block;text-align:left;font-size:13px;font-weight:600;color:var(--ink-1);margin:14px 0 6px}
-.auth-card .err{color:var(--danger);font-size:13px;margin-top:12px;min-height:16px}
+  /* 이 화면은 Tailwind 없이 최소 스타일만 사용합니다 (의존성 축소) */
+  body { padding: 0; background: #f7f6fa; }
+  .tw { max-width: 1280px; margin: 0 auto; padding: 20px 16px 60px; }
+  .tsec {
+    background: #fff; border: 1px solid var(--line);
+    border-radius: var(--r-md); margin-bottom: 18px;
+  }
+  .tsec > h2 {
+    font-size: 14px; font-weight: 800; color: var(--ink-900);
+    padding: 12px 16px; border-bottom: 1px solid var(--line);
+    background: var(--bg-soft);
+    border-radius: var(--r-md) var(--r-md) 0 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tsec > h2 code {
+    font-size: 11.5px; font-weight: 600; color: var(--ink-500);
+    background: var(--bg-muted); padding: 2px 7px; border-radius: 5px;
+  }
+  .tbody { padding: 14px 16px; }
+  .trow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .trow label { font-size: 12px; font-weight: 700; color: var(--ink-600); }
+  .tin {
+    height: 32px; padding: 0 9px; font-size: 13px;
+    border: 1px solid var(--line-bold); border-radius: 6px;
+    background: #fff; color: var(--ink-900); font-family: inherit;
+  }
+  .tin:focus { outline: 2px solid var(--brand-500); outline-offset: -1px; }
+  textarea.tin { height: auto; padding: 8px 9px; line-height: 1.5; width: 100%; }
+  .tbtn {
+    height: 32px; padding: 0 12px; font-size: 12.5px; font-weight: 700;
+    border: 1px solid var(--line-bold); border-radius: 6px;
+    background: #fff; color: var(--ink-800); cursor: pointer;
+  }
+  .tbtn:hover { background: var(--bg-soft); }
+  .tbtn--primary { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
+  .tbtn--primary:hover { background: var(--brand-600); }
+  .tbtn--danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .tbtn--danger:hover { background: #cf3b40; }
+  .tbtn--xs { height: 26px; padding: 0 8px; font-size: 11.5px; }
+  pre.tout {
+    margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px; line-height: 1.65;
+    background: #181519; color: #d7d3de;
+    padding: 12px 14px; border-radius: 8px;
+    overflow: auto; max-height: 320px; white-space: pre-wrap; word-break: break-all;
+  }
+  .thint { font-size: 11.5px; color: var(--ink-500); margin-top: 6px; }
+  .tnote {
+    font-size: 12px; color: var(--warning-ink); background: var(--warning-soft);
+    border: 1px solid #fbe8bf; border-radius: 8px; padding: 10px 12px; margin-bottom: 18px;
+  }
+  .tstatus { font-size: 12px; font-weight: 700; margin-left: auto; }
+  .tstatus--ok { color: var(--success-ink); }
+  .tstatus--err { color: var(--danger); }
+  .tpreset { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .tgrid2 { display: grid; grid-template-columns: 1fr; gap: 18px; }
+  @media (min-width: 960px) { .tgrid2 { grid-template-columns: 1fr 1fr; } }
 </style>
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
-<script src="js/admin-design-system.js"></script>
 </head>
+
 <body>
-<div id="root"></div>
+<div class="tw">
+
+  <!-- ==================== 헤더 ==================== -->
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <h1 style="font-size:19px;font-weight:800;color:var(--ink-900)">
+      관리자 테스트 화면
+    </h1>
+    <span class="e-badge e-badge--warning">개발용 · noindex</span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <a href="admin" class="tbtn">← 관리자 콘솔</a>
+      <a href="index" class="tbtn">서비스 홈</a>
+    </div>
+  </div>
+
+  <div class="tnote">
+    이 화면은 API 응답 확인과 기능 검증 전용입니다. 스타일은 최소한으로만 적용했고,
+    각 버튼에는 아직 <code>fetch()</code>가 연결되어 있지 않습니다.
+    주석에 표기된 엔드포인트를 참고해 연결해주세요. 실서비스 배포 시 이 파일은 제외합니다.
+  </div>
+
+  <!-- ==================== API 테스트 콘솔 ==================== -->
+  <section class="tsec">
+    <h2>API 테스트 콘솔 <code>fetch()</code></h2>
+    <div class="tbody">
+
+      <div class="tpreset" id="apiPresetList">
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/stats/summary">통계 요약</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/members?page=0&size=20">회원 목록</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/reports?status=PENDING">신고 목록(대기)</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/health">서버 상태</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="POST" data-preset-path="/api/admin/members/1002/suspend">회원 정지</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="POST" data-preset-path="/api/admin/members/1002/release">정지 해제</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="POST" data-preset-path="/api/admin/reports/2419/handle">신고 처리</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/shops/search?q=파스타">가게 검색</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="POST" data-preset-path="/api/ocr/receipt">영수증 OCR</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="POST" data-preset-path="/api/recommend">AI 추천</button>
+      </div>
+
+      <div class="trow">
+        <label for="apiMethodSelect">Method</label>
+        <select class="tin" id="apiMethodSelect">
+          <option>GET</option>
+          <option>POST</option>
+          <option>PATCH</option>
+          <option>PUT</option>
+          <option>DELETE</option>
+        </select>
+
+        <label for="apiPathInput">Path</label>
+        <input type="text" class="tin" id="apiPathInput" value="/api/admin/stats/summary" style="flex:1;min-width:260px">
+
+        <button type="button" class="tbtn tbtn--primary" id="apiSendBtn">요청 보내기</button>
+        <span class="tstatus" id="apiStatusText">대기 중</span>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label for="apiBodyInput" style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:5px">
+          Request Body (JSON)
+        </label>
+        <textarea class="tin" id="apiBodyInput" rows="4" placeholder='{ "period": 30, "reason": "FAKE_REVIEW" }'></textarea>
+      </div>
+
+      <pre class="tout" id="apiResponseBox">// 응답이 여기에 표시됩니다.
+// fetch() 연결 예시:
+//
+// const res = await fetch(path, {
+//   method,
+//   headers: { 'Content-Type': 'application/json' },
+//   credentials: 'include',
+//   body: method === 'GET' ? undefined : bodyText
+// });
+// const json = await res.json();</pre>
+      <p class="thint">
+        인증이 필요한 엔드포인트는 <code>credentials: 'include'</code> 또는 Authorization 헤더가 필요합니다.
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================== 회원 관리 ==================== -->
+  <section class="tsec">
+    <h2>회원 관리 <code>GET /api/admin/members</code></h2>
+    <div class="tbody">
+      <div class="trow">
+        <label for="testMemberRoleFilter">역할</label>
+        <select class="tin" id="testMemberRoleFilter">
+          <option value="all">전체</option>
+          <option value="user">USER</option>
+          <option value="business">BUSINESS</option>
+          <option value="admin">ADMIN</option>
+        </select>
+
+        <label for="testMemberStatusFilter">상태</label>
+        <select class="tin" id="testMemberStatusFilter">
+          <option value="all">전체</option>
+          <option value="active">ACTIVE</option>
+          <option value="suspended">SUSPENDED</option>
+          <option value="pending">PENDING</option>
+          <option value="withdrawn">WITHDRAWN</option>
+        </select>
+
+        <label for="testMemberSearchInput">검색</label>
+        <input type="search" class="tin" id="testMemberSearchInput" placeholder="email / nickname" style="min-width:200px">
+
+        <button type="button" class="tbtn tbtn--primary" id="testMemberLoadBtn">조회</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="e-table-plain" id="testMemberTable">
+          <thead>
+            <tr>
+              <th style="width:70px">id</th>
+              <th style="width:160px">email</th>
+              <th style="width:110px">nickname</th>
+              <th style="width:90px">role</th>
+              <th style="width:100px">status</th>
+              <th style="width:60px">reviews</th>
+              <th style="width:60px">reports</th>
+              <th style="width:100px">createdAt</th>
+              <th style="width:150px">action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-member-id="1001">
+              <td>1001</td>
+              <td>eatty@example.com</td>
+              <td>잇티러버</td>
+              <td>USER</td>
+              <td>ACTIVE</td>
+              <td>18</td>
+              <td>0</td>
+              <td>2025-04-18</td>
+              <td>
+                <button type="button" class="tbtn tbtn--xs tbtn--danger" data-test-suspend>suspend</button>
+                <button type="button" class="tbtn tbtn--xs" data-test-release>release</button>
+              </td>
+            </tr>
+            <tr data-member-id="1002">
+              <td>1002</td>
+              <td>spam@test.com</td>
+              <td>광고맛집왕</td>
+              <td>USER</td>
+              <td>SUSPENDED</td>
+              <td>46</td>
+              <td>12</td>
+              <td>2025-11-02</td>
+              <td>
+                <button type="button" class="tbtn tbtn--xs tbtn--danger" data-test-suspend>suspend</button>
+                <button type="button" class="tbtn tbtn--xs" data-test-release>release</button>
+              </td>
+            </tr>
+            <tr data-member-id="1003">
+              <td>1003</td>
+              <td>owner@myshop.com</td>
+              <td>잇티식당 강남점</td>
+              <td>BUSINESS</td>
+              <td>ACTIVE</td>
+              <td>0</td>
+              <td>1</td>
+              <td>2026-03-11</td>
+              <td>
+                <button type="button" class="tbtn tbtn--xs tbtn--danger" data-test-suspend>suspend</button>
+                <button type="button" class="tbtn tbtn--xs" data-test-release>release</button>
+              </td>
+            </tr>
+            <tr data-member-id="1004">
+              <td>1004</td>
+              <td>cheongdam@shop.com</td>
+              <td>청담옥 신사점</td>
+              <td>BUSINESS</td>
+              <td>PENDING</td>
+              <td>0</td>
+              <td>0</td>
+              <td>2026-07-30</td>
+              <td>
+                <button type="button" class="tbtn tbtn--xs tbtn--primary" data-test-approve>approve</button>
+                <button type="button" class="tbtn tbtn--xs" data-test-reject-biz>reject</button>
+              </td>
+            </tr>
+            <tr data-member-id="1005">
+              <td>1005</td>
+              <td>fire@mail.com</td>
+              <td>불사조</td>
+              <td>USER</td>
+              <td>ACTIVE</td>
+              <td>31</td>
+              <td>4</td>
+              <td>2025-08-14</td>
+              <td>
+                <button type="button" class="tbtn tbtn--xs tbtn--danger" data-test-suspend>suspend</button>
+                <button type="button" class="tbtn tbtn--xs" data-test-release>release</button>
+              </td>
+            </tr>
+            <tr data-member-id="1006">
+              <td>1006</td>
+              <td>admin@eattyway.com</td>
+              <td>운영관리자</td>
+              <td>ADMIN</td>
+              <td>ACTIVE</td>
+              <td>0</td>
+              <td>0</td>
+              <td>2025-03-02</td>
+              <td>-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="thint">
+        suspend 는 <code>POST /api/admin/members/{id}/suspend</code> ·
+        release 는 <code>POST /api/admin/members/{id}/release</code> 로 연결하세요.
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================== 신고 관리 ==================== -->
+  <section class="tsec">
+    <h2>신고 관리 <code>GET /api/admin/reports</code></h2>
+    <div class="tbody">
+      <div class="trow">
+        <label for="testReportStatusFilter">status</label>
+        <select class="tin" id="testReportStatusFilter">
+          <option value="PENDING">PENDING (대기중)</option>
+          <option value="DONE">DONE (처리완료)</option>
+          <option value="REJECTED">REJECTED (반려)</option>
+          <option value="all">전체</option>
+        </select>
+
+        <label for="testReportTypeFilter">type</label>
+        <select class="tin" id="testReportTypeFilter">
+          <option value="all">전체</option>
+          <option value="REVIEW">REVIEW</option>
+          <option value="CHAT">CHAT</option>
+        </select>
+
+        <button type="button" class="tbtn tbtn--primary" id="testReportLoadBtn">조회</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="e-table-plain" id="testReportTable">
+          <thead>
+            <tr>
+              <th style="width:90px">id</th>
+              <th style="width:80px">type</th>
+              <th style="width:150px">reason</th>
+              <th style="width:120px">reporter</th>
+              <th style="width:120px">target</th>
+              <th style="width:90px">status</th>
+              <th style="width:100px">createdAt</th>
+              <th style="width:150px">action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-report-id="2419">
+              <td>R-2419</td>
+              <td>REVIEW</td>
+              <td>FAKE_REVIEW</td>
+              <td>매콤한김밥</td>
+              <td>광고맛집왕</td>
+              <td>PENDING</td>
+              <td>2026-07-29</td>
+              <td>
+                <button type="button" class="tbtn tbtn--xs tbtn--primary" data-test-handle>handle</button>
+                <button type="button" class="tbtn tbtn--xs" data-test-reject>reject</button>
+              </td>
+            </tr>
+            <tr data-report-id="2420">
+              <td>R-2420</td>
+              <td>CHAT</td>
+              <td>ABUSE</td>
+              <td>조용한김밥</td>
+              <td>불사조</td>
+              <td>PENDING</td>
+              <td>2026-07-30</td>
+              <td>
+                <button type="button" class="tbtn tbtn--xs tbtn--primary" data-test-handle>handle</button>
+                <button type="button" class="tbtn tbtn--xs" data-test-reject>reject</button>
+              </td>
+            </tr>
+            <tr data-report-id="2421">
+              <td>R-2421</td>
+              <td>REVIEW</td>
+              <td>IRRELEVANT</td>
+              <td>잇티식당 강남점</td>
+              <td>한우사랑</td>
+              <td>PENDING</td>
+              <td>2026-07-31</td>
+              <td>
+                <button type="button" class="tbtn tbtn--xs tbtn--primary" data-test-handle>handle</button>
+                <button type="button" class="tbtn tbtn--xs" data-test-reject>reject</button>
+              </td>
+            </tr>
+            <tr data-report-id="2422">
+              <td>R-2422</td>
+              <td>CHAT</td>
+              <td>PRIVACY</td>
+              <td>가성비왕</td>
+              <td>민초파</td>
+              <td>PENDING</td>
+              <td>2026-07-31</td>
+              <td>
+                <button type="button" class="tbtn tbtn--xs tbtn--primary" data-test-handle>handle</button>
+                <button type="button" class="tbtn tbtn--xs" data-test-reject>reject</button>
+              </td>
+            </tr>
+            <tr data-report-id="2418">
+              <td>R-2418</td>
+              <td>REVIEW</td>
+              <td>FAKE_REVIEW</td>
+              <td>매콤한김밥</td>
+              <td>광고맛집왕</td>
+              <td>DONE</td>
+              <td>2026-07-28</td>
+              <td>-</td>
+            </tr>
+            <tr data-report-id="2415">
+              <td>R-2415</td>
+              <td>REVIEW</td>
+              <td>FALSE_FACT</td>
+              <td>잇티식당 강남점</td>
+              <td>매콤한김밥</td>
+              <td>REJECTED</td>
+              <td>2026-07-27</td>
+              <td>-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="trow" style="margin-top:12px;margin-bottom:0">
+        <label for="testReportAction">action</label>
+        <select class="tin" id="testReportAction">
+          <option value="HIDE_CONTENT">HIDE_CONTENT</option>
+          <option value="DELETE_CONTENT">DELETE_CONTENT</option>
+          <option value="WARN">WARN</option>
+          <option value="HIDE_AND_WARN">HIDE_AND_WARN</option>
+          <option value="SUSPEND_7">SUSPEND_7</option>
+          <option value="SUSPEND_30">SUSPEND_30</option>
+          <option value="SUSPEND_PERMANENT">SUSPEND_PERMANENT</option>
+        </select>
+        <label for="testReportMemo">memo</label>
+        <input type="text" class="tin" id="testReportMemo" placeholder="처리 메모" style="flex:1;min-width:200px">
+      </div>
+      <p class="thint">
+        handle 은 <code>POST /api/admin/reports/{id}/handle</code> (body: action, memo) ·
+        reject 는 <code>POST /api/admin/reports/{id}/reject</code> 로 연결하세요.
+      </p>
+    </div>
+  </section>
+
+  <div class="tgrid2">
+
+    <!-- ==================== 서버 상태 ==================== -->
+    <section class="tsec">
+      <h2>서버 상태 <code>GET /api/admin/health</code></h2>
+      <div class="tbody">
+        <div class="trow">
+          <button type="button" class="tbtn tbtn--primary" id="testHealthLoadBtn">상태 조회</button>
+          <span class="tstatus tstatus--ok" id="testHealthStatus">UP</span>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="e-table-plain" id="testHealthTable">
+            <thead>
+              <tr>
+                <th style="width:150px">service</th>
+                <th style="width:80px">status</th>
+                <th style="width:90px">latency</th>
+                <th style="width:80px">errorRate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>rest-api</td><td>UP</td><td>96ms</td><td>0.08%</td></tr>
+              <tr><td>websocket-stomp</td><td>UP</td><td>42ms</td><td>0.02%</td></tr>
+              <tr><td>database</td><td>UP</td><td>12ms</td><td>0.00%</td></tr>
+              <tr><td>ocr-service</td><td>DEGRADED</td><td>1842ms</td><td>0.42%</td></tr>
+              <tr><td>ai-recommend</td><td>UP</td><td>684ms</td><td>0.21%</td></tr>
+              <tr><td>naver-map</td><td>UP</td><td>148ms</td><td>0.05%</td></tr>
+              <tr><td>mail-smtp</td><td>UP</td><td>312ms</td><td>0.11%</td></tr>
+              <tr><td>sms-sender</td><td>UP</td><td>268ms</td><td>0.09%</td></tr>
+              <tr><td>oauth-naver</td><td>DOWN</td><td>timeout</td><td>12.4%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 통계 ==================== -->
+    <section class="tsec">
+      <h2>통계 요약 <code>GET /api/admin/stats/summary</code></h2>
+      <div class="tbody">
+        <div class="trow">
+          <button type="button" class="tbtn tbtn--primary" id="testStatsLoadBtn">통계 조회</button>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="e-table-plain" id="testStatsTable">
+            <thead>
+              <tr><th style="width:200px">key</th><th>value</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>totalMembers</td><td>128412</td></tr>
+              <tr><td>newMembersToday</td><td>318</td></tr>
+              <tr><td>activeMembers7d</td><td>42907</td></tr>
+              <tr><td>suspendedMembers</td><td>64</td></tr>
+              <tr><td>businessMembers</td><td>3598</td></tr>
+              <tr><td>businessPending</td><td>12</td></tr>
+              <tr><td>totalReviews</td><td>42916</td></tr>
+              <tr><td>totalShops</td><td>31650</td></tr>
+              <tr><td>pendingReports</td><td>17</td></tr>
+              <tr><td>doneReports</td><td>2481</td></tr>
+              <tr><td>rejectedReports</td><td>316</td></tr>
+              <tr><td>activeChatRooms</td><td>2180</td></tr>
+              <tr><td>wsSessions</td><td>1842</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==================== WebSocket 테스트 ==================== -->
+  <section class="tsec">
+    <h2>WebSocket (STOMP) 테스트 <code>/ws-stomp</code></h2>
+    <div class="tbody">
+      <div class="trow">
+        <label for="wsUrlInput">URL</label>
+        <input type="text" class="tin" id="wsUrlInput" value="/ws-stomp" style="min-width:200px">
+
+        <label for="wsRoomInput">roomId</label>
+        <input type="text" class="tin" id="wsRoomInput" value="1" style="width:80px">
+
+        <button type="button" class="tbtn tbtn--primary" id="wsConnectBtn">connect</button>
+        <button type="button" class="tbtn" id="wsDisconnectBtn">disconnect</button>
+        <span class="tstatus" id="wsStatusText">disconnected</span>
+      </div>
+
+      <div class="trow">
+        <label for="wsSendInput">message</label>
+        <input type="text" class="tin" id="wsSendInput" placeholder="테스트 메시지" style="flex:1;min-width:240px">
+        <button type="button" class="tbtn" id="wsSendBtn">send</button>
+      </div>
+
+      <pre class="tout" id="wsLogBox">// 구독: /topic/rooms/{roomId}
+// 발행: /app/rooms/{roomId}/send
+//
+// 연결 예시 (SockJS + StompJS):
+// const sock = new SockJS(url);
+// const client = Stomp.over(sock);
+// client.connect({}, () => {
+//   client.subscribe(`/topic/rooms/${roomId}`, (msg) => log(msg.body));
+// });</pre>
+    </div>
+  </section>
+
+  <!-- ==================== 화면 링크 목록 ==================== -->
+  <section class="tsec">
+    <h2>전체 화면 링크 <code>30 pages</code></h2>
+    <div class="tbody">
+      <div style="overflow-x:auto">
+        <table class="e-table-plain">
+          <thead>
+            <tr><th style="width:130px">그룹</th><th>화면</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>공통 / 인증</td>
+              <td style="line-height:2.2">
+                <a href="index">index</a> ·
+                <a href="login">login</a> ·
+                <a href="login-business">login-business</a> ·
+                <a href="signup">signup</a> ·
+                <a href="signup-info">signup-info</a> ·
+                <a href="signup-done">signup-done</a> ·
+                <a href="signup-business">signup-business</a> ·
+                <a href="signup-business-info">signup-business-info</a> ·
+                <a href="signup-business-done">signup-business-done</a> ·
+                <a href="find-email">find-email</a> ·
+                <a href="find-email-verify">find-email-verify</a> ·
+                <a href="find-email-result">find-email-result</a> ·
+                <a href="find-password">find-password</a> ·
+                <a href="find-password-sent">find-password-sent</a> ·
+                <a href="find-password-reset">find-password-reset</a> ·
+                <a href="find-password-done">find-password-done</a> ·
+                <a href="terms-service">terms-service</a> ·
+                <a href="terms-privacy">terms-privacy</a>
+              </td>
+            </tr>
+            <tr>
+              <td>탐색 / 추천</td>
+              <td style="line-height:2.2">
+                <a href="explore">explore</a> ·
+                <a href="recommend">recommend</a> ·
+                <a href="receipt-upload">receipt-upload</a> ·
+                <a href="taste-quiz">taste-quiz</a>
+              </td>
+            </tr>
+            <tr>
+              <td>마이페이지</td>
+              <td style="line-height:2.2">
+                <a href="mypage">mypage</a> ·
+                <a href="mypage-edit">mypage-edit</a> ·
+                <a href="mypage-reviews">mypage-reviews</a> ·
+                <a href="business-mypage">business-mypage</a>
+              </td>
+            </tr>
+            <tr>
+              <td>커뮤니티</td>
+              <td style="line-height:2.2"><a href="chat">chat</a></td>
+            </tr>
+            <tr>
+              <td>고객센터</td>
+              <td style="line-height:2.2"><a href="support">support</a> (AI 챗봇 상담)</td>
+            </tr>
+            <tr>
+              <td>관리자</td>
+              <td style="line-height:2.2">
+                <a href="admin">admin</a> ·
+                <a href="admin-test">admin-test</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 로그인 상태 전환 ==================== -->
+  <section class="tsec">
+    <h2>로그인 상태 전환 <code>Eatty.setAuth()</code></h2>
+    <div class="tbody">
+      <div class="trow" style="margin-bottom:0">
+        <button type="button" class="tbtn" data-auth-set="guest">guest (비로그인)</button>
+        <button type="button" class="tbtn" data-auth-set="user">user (일반회원)</button>
+        <button type="button" class="tbtn" data-auth-set="business">business (사업자)</button>
+        <button type="button" class="tbtn" data-auth-set="admin">admin (관리자)</button>
+        <span class="tstatus" id="currentAuthText">현재: admin</span>
+      </div>
+      <p class="thint">
+        전환 후 다른 화면으로 이동하면 헤더/네비게이션이 해당 상태로 표시됩니다.
+        (localStorage <code>eatty:demoAuthState</code> 에 저장)
+      </p>
+    </div>
+  </section>
+</div>
+
 <script>
-const API_BASE = '';
-const h = React.createElement;
-const DS = window.AdminDesignSystem_daf0d7;
-const REASON_LABELS = { SPAM:'스팸/도배', ABUSE:'욕설/비방', FALSE_INFO:'허위 사실', PRIVACY:'개인정보 노출', ETC:'기타' };
-function reasonLabel(code){ return REASON_LABELS[code] || code || '-'; }
-function fmtDate(iso){ return iso ? iso.slice(0,10).replace(/-/g,'.') : ''; }
-const STATUS_MAP_TO_MOCK = { PENDING:'received', RESOLVED:'done', REJECTED:'rejected' };
+/* ---------------------------------------------------------------------------
+   admin-test 데모 스크립트
+   실제 API 연결 시 아래 TODO 위치에 fetch() 를 넣으면 됩니다.
+   --------------------------------------------------------------------------- */
+(function () {
+  var out = document.getElementById('apiResponseBox');
+  var statusEl = document.getElementById('apiStatusText');
 
-/* ---- 실 백엔드 DTO를 원본 디자인의 mock 데이터 모양(data.js)으로 맞추는 어댑터 ---- */
-function mapMember(m){
-  return { id:m.memberId, name:m.nickname, email:m.email,
-    type: m.role === 'BUSINESS' ? '사업자' : m.role === 'ADMIN' ? '관리자' : '일반',
-    status: m.status === 'SUSPENDED' ? 'suspended' : 'active',
-    joined: fmtDate(m.createdAt), raw:m };
-}
-function mapReview(r, membersById){
-  const author = membersById[r.memberId];
-  return { id:r.reviewId, author:r.nickname, email: author ? author.email : '',
-    place: r.restaurantName || r.restaurantId, rating:r.rating, content:r.content,
-    date: fmtDate(r.createdAt), raw:r };
-}
-function mapReviewReport(r){
-  return { id:'review-' + r.reviewId, kind:'review', category: reasonLabel(r.latestReasonCode),
-    content: `신고 ${r.reportCount}건 · 최근 사유: ${reasonLabel(r.latestReasonCode)}`,
-    target: r.content, targetUser: r.authorNickname, reporter: '',
-    status: STATUS_MAP_TO_MOCK[r.status] || 'received', date: fmtDate(r.latestReportedAt), raw:r };
-}
-function mapChatReport(c){
-  const isRoom = c.targetType === 'ROOM';
-  return { id:(isRoom ? 'chatroom-' : 'chat-') + c.chatReportId, kind: isRoom ? 'chatroom' : 'chat',
-    category: reasonLabel(c.reasonCode), content: c.detail || '(상세 내용 없음)',
-    target: isRoom ? (c.roomTitle || '-') : (c.contentSnapshot || '-'), targetUser:'',
-    reporter: c.reporterNickname, status: STATUS_MAP_TO_MOCK[c.status] || 'received',
-    date: fmtDate(c.createdAt), raw:c };
-}
-
-function AuthCard({ children }){
-  return h('div', { style:{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24 } },
-    h('div', { className:'auth-card' }, children));
-}
-
-function LoginScreen({ onLogin, error }){
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const { Input, Button } = DS;
-  return h(AuthCard, null,
-    h('img', { src:'img/admin/logo.png', alt:'잇티웨이', width:72, height:72, style:{ marginBottom:8, objectFit:'contain' } }),
-    h('h2', null, '잇티웨이 관리자 콘솔'),
-    h('div', { className:'sub' }, 'ADMIN 권한 계정으로 로그인하세요'),
-    h('label', null, '이메일'),
-    h(Input, { type:'email', placeholder:'admin@test.com', value:email, onChange:e=>setEmail(e.target.value) }),
-    h('label', null, '비밀번호'),
-    h(Input, { type:'password', value:password, onChange:e=>setPassword(e.target.value) }),
-    h('div', { className:'err' }, error || ''),
-    h(Button, { fullWidth:true, style:{ marginTop:18 }, onClick:()=>onLogin(email, password) }, '로그인'));
-}
-
-function DeniedScreen({ message, onLogout }){
-  const { Button } = DS;
-  return h(AuthCard, null,
-    h('div', { className:'err', style:{ marginTop:0 } }, message),
-    h(Button, { variant:'outline', fullWidth:true, style:{ marginTop:18 }, onClick:onLogout }, '로그아웃'));
-}
-
-function App(){
-  const { Sidebar } = DS;
-  const [screen, setScreen] = React.useState('login'); // login | denied | app
-  const [deniedMessage, setDeniedMessage] = React.useState('');
-  const [loginError, setLoginError] = React.useState('');
-  const [page, setPage] = React.useState(localStorage.getItem('eattway-admin-page') || 'dash');
-  const [loginEmail, setLoginEmail] = React.useState(localStorage.getItem('tmp_test_admin_email') || '');
-
-  const [members, setMembers] = React.useState([]);
-  const [reviews, setReviews] = React.useState([]);
-  const [reports, setReports] = React.useState([]);
-
-  const accessTokenRef = React.useRef(localStorage.getItem('tmp_test_access_token') || null);
-  const authHeaders = React.useCallback(() =>
-    accessTokenRef.current ? { Authorization: 'Bearer ' + accessTokenRef.current } : {}, []);
-
-  React.useEffect(() => { localStorage.setItem('eattway-admin-page', page); }, [page]);
-
-  async function reloadMembers(){
-    const res = await fetch(`${API_BASE}/api/admin/members`, { headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || '회원 목록 조회 실패');
-    setMembers(data.map(mapMember));
-    return data;
-  }
-  async function reloadReviews(membersRaw){
-    const res = await fetch(`${API_BASE}/api/admin/reviews`, { headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || '리뷰 목록 조회 실패');
-    const byId = {};
-    (membersRaw || []).forEach(m => { byId[m.memberId] = m; });
-    setReviews(data.map(r => mapReview(r, byId)));
-  }
-  async function reloadReports(){
-    const statuses = ['PENDING', 'RESOLVED', 'REJECTED'];
-    const calls = [];
-    statuses.forEach(st => {
-      calls.push(fetch(`${API_BASE}/api/admin/reports?status=${st}`, { headers: authHeaders() }).then(r => r.ok ? r.json() : []));
-      calls.push(fetch(`${API_BASE}/api/admin/chat-reports?status=${st}`, { headers: authHeaders() }).then(r => r.ok ? r.json() : []));
-    });
-    const results = await Promise.all(calls);
-    let merged = [];
-    statuses.forEach((st, i) => {
-      merged = merged.concat(results[i * 2].map(mapReviewReport));
-      merged = merged.concat(results[i * 2 + 1].map(mapChatReport));
-    });
-    setReports(merged);
-  }
-  async function reloadAll(){
-    const membersRaw = await reloadMembers();
-    await Promise.all([reloadReviews(membersRaw), reloadReports()]);
+  function print(obj, ok) {
+    out.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+    statusEl.textContent = ok ? '200 OK · 0ms (mock)' : 'ERROR';
+    statusEl.className = 'tstatus ' + (ok ? 'tstatus--ok' : 'tstatus--err');
   }
 
-  async function checkAdminAccess(){
-    if (!accessTokenRef.current) { setScreen('login'); return; }
-    const res = await fetch(`${API_BASE}/api/admin/members`, { headers: authHeaders() });
-    if (res.status === 401) { setDeniedMessage('로그인이 필요합니다 (401 NOT_LOGGED_IN).'); setScreen('denied'); return; }
-    if (res.status === 403) { setDeniedMessage('관리자 권한이 없는 계정입니다 (403 ADMIN_ACCESS_DENIED). 이 계정은 일반 API는 계속 정상 사용할 수 있고, /api/admin/** 만 막힙니다.'); setScreen('denied'); return; }
-    setScreen('app');
-    await reloadAll();
-  }
+  /* 프리셋 */
+  document.getElementById('apiPresetList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-preset-path]');
+    if (!b) return;
+    document.getElementById('apiMethodSelect').value = b.getAttribute('data-preset-method');
+    document.getElementById('apiPathInput').value = b.getAttribute('data-preset-path');
+  });
 
-  React.useEffect(() => { checkAdminAccess(); }, []);
+  /* 요청 보내기 */
+  document.getElementById('apiSendBtn').addEventListener('click', function () {
+    var method = document.getElementById('apiMethodSelect').value;
+    var path = document.getElementById('apiPathInput').value.trim();
+    var body = document.getElementById('apiBodyInput').value.trim();
 
-  async function doLogin(email, password){
-    setLoginError('');
-    try {
-      const res = await fetch(`${API_BASE}/api/members/login`, {
-        method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ email, password }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || '로그인 실패');
-      accessTokenRef.current = data.accessToken;
-      localStorage.setItem('tmp_test_access_token', data.accessToken);
-      localStorage.setItem('tmp_test_admin_email', email);
-      setLoginEmail(email);
-      await checkAdminAccess();
-    } catch (e) { setLoginError(e.message); }
-  }
-  function doLogout(){
-    accessTokenRef.current = null;
-    localStorage.removeItem('tmp_test_access_token');
-    setScreen('login');
-  }
+    /* ---------------- TODO: 실제 fetch 연결 ----------------
+    fetch(path, {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: (method === 'GET' || !body) ? undefined : body
+    })
+      .then(function (res) { return res.json().then(function (j) { return { ok: res.ok, status: res.status, json: j }; }); })
+      .then(function (r) { print(r.json, r.ok); })
+      .catch(function (err) { print(String(err), false); });
+    ------------------------------------------------------- */
 
-  function findMemberById(id){ return members.find(m => m.id === id); }
-  function findMemberByEmail(email){ return members.find(m => m.email === email); }
-  function findMemberByName(name){ return members.find(m => m.name === name); }
+    print({
+      _mock: true,
+      request: { method: method, path: path, body: body ? JSON.parse(body || '{}') : null },
+      message: '아직 fetch() 가 연결되지 않았습니다. 스크립트의 TODO 주석을 해제하세요.'
+    }, true);
+  });
 
-  async function onToggleStatus(memberId){
-    const m = findMemberById(memberId);
-    if (!m) return;
-    const suspend = m.status === 'active';
-    const res = await fetch(`${API_BASE}/api/admin/members/${memberId}/${suspend ? 'suspend' : 'unsuspend'}`, { method:'PATCH', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '처리 실패'); return; }
-    await reloadAll();
-  }
-  async function onDeleteReview(reviewId){
-    const res = await fetch(`${API_BASE}/api/admin/reviews/${reviewId}`, { method:'DELETE', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '삭제 실패'); return; }
-    await reloadAll();
-  }
-  async function onSuspendMember(email){
-    const m = findMemberByEmail(email);
-    if (!m) { alert('이 이메일의 회원을 찾을 수 없습니다.'); return; }
-    await onToggleStatus(m.id);
-  }
-  function parseReportId(id){
-    const idx = id.indexOf('-');
-    return { kind: id.slice(0, idx), realId: id.slice(idx + 1) };
-  }
-  async function onDeleteReport(id){
-    const { kind, realId } = parseReportId(id);
-    let res;
-    if (kind === 'review') res = await fetch(`${API_BASE}/api/admin/reviews/${realId}`, { method:'DELETE', headers: authHeaders() });
-    else if (kind === 'chatroom') res = await fetch(`${API_BASE}/api/admin/chat-rooms/${realId}`, { method:'DELETE', headers: authHeaders() });
-    else {
-      const row = reports.find(r => r.id === id);
-      const chatMessageId = row && row.raw && row.raw.chatMessageId;
-      if (!chatMessageId) { alert('삭제할 메시지를 찾을 수 없습니다.'); return; }
-      res = await fetch(`${API_BASE}/api/admin/chat-messages/${chatMessageId}`, { method:'DELETE', headers: authHeaders() });
+  /* 회원 정지 / 해제 */
+  document.getElementById('testMemberTable').addEventListener('click', function (e) {
+    var row = e.target.closest('tr[data-member-id]');
+    if (!row) return;
+    var id = row.getAttribute('data-member-id');
+
+    if (e.target.closest('[data-test-suspend]')) {
+      /* TODO: POST /api/admin/members/{id}/suspend */
+      row.children[4].textContent = 'SUSPENDED';
+      print({ _mock: true, action: 'suspend', memberId: id }, true);
     }
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '삭제 실패'); return; }
-    await reloadAll();
-  }
-  async function onSuspendMemberByName(name){
-    if (!name) { alert('채팅 신고는 백엔드 응답에 신고당한 사람의 신원이 포함되지 않아(신고자만 알 수 있음) 이 화면에서 회원 정지를 걸 수 없습니다. 메시지 삭제/방 폭파로 조치해 주세요.'); return; }
-    const m = findMemberByName(name);
-    if (!m) { alert('이 닉네임의 회원을 찾을 수 없습니다.'); return; }
-    await onToggleStatus(m.id);
-  }
-  async function reportAction(id, action){
-    const { kind, realId } = parseReportId(id);
-    if (kind !== 'review') { await chatReportAction(realId, action); return; }
-    const res = await fetch(`${API_BASE}/api/admin/reports/${realId}/${action}`, { method:'PATCH', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '처리 실패'); return; }
-    await reloadReports();
-  }
-  async function chatReportAction(chatReportId, action){
-    const res = await fetch(`${API_BASE}/api/admin/chat-reports/${chatReportId}/${action}`, { method:'PATCH', headers: authHeaders() });
-    const data = await res.json();
-    if (!res.ok) { alert(data.message || '처리 실패'); return; }
-    await reloadReports();
+    if (e.target.closest('[data-test-release]')) {
+      /* TODO: POST /api/admin/members/{id}/release */
+      row.children[4].textContent = 'ACTIVE';
+      print({ _mock: true, action: 'release', memberId: id }, true);
+    }
+    if (e.target.closest('[data-test-approve]')) {
+      /* TODO: POST /api/admin/business/{id}/approve */
+      row.children[4].textContent = 'ACTIVE';
+      print({ _mock: true, action: 'approve', memberId: id }, true);
+    }
+    if (e.target.closest('[data-test-reject-biz]')) {
+      /* TODO: POST /api/admin/business/{id}/reject */
+      row.children[4].textContent = 'REJECTED';
+      print({ _mock: true, action: 'rejectBusiness', memberId: id }, true);
+    }
+  });
+
+  /* 신고 처리 / 반려 */
+  document.getElementById('testReportTable').addEventListener('click', function (e) {
+    var row = e.target.closest('tr[data-report-id]');
+    if (!row) return;
+    var id = row.getAttribute('data-report-id');
+
+    if (e.target.closest('[data-test-handle]')) {
+      /* TODO: POST /api/admin/reports/{id}/handle */
+      row.children[5].textContent = 'DONE';
+      print({
+        _mock: true, action: 'handle', reportId: id,
+        body: {
+          action: document.getElementById('testReportAction').value,
+          memo: document.getElementById('testReportMemo').value
+        }
+      }, true);
+    }
+    if (e.target.closest('[data-test-reject]')) {
+      /* TODO: POST /api/admin/reports/{id}/reject */
+      row.children[5].textContent = 'REJECTED';
+      print({ _mock: true, action: 'reject', reportId: id }, true);
+    }
+  });
+
+  /* 목록 조회 버튼들 */
+  document.getElementById('testMemberLoadBtn').addEventListener('click', function () {
+    print({
+      _mock: true, endpoint: 'GET /api/admin/members',
+      params: {
+        role: document.getElementById('testMemberRoleFilter').value,
+        status: document.getElementById('testMemberStatusFilter').value,
+        q: document.getElementById('testMemberSearchInput').value
+      }
+    }, true);
+  });
+
+  document.getElementById('testReportLoadBtn').addEventListener('click', function () {
+    print({
+      _mock: true, endpoint: 'GET /api/admin/reports',
+      params: {
+        status: document.getElementById('testReportStatusFilter').value,
+        type: document.getElementById('testReportTypeFilter').value
+      }
+    }, true);
+  });
+
+  document.getElementById('testHealthLoadBtn').addEventListener('click', function () {
+    print({ _mock: true, endpoint: 'GET /api/admin/health' }, true);
+  });
+
+  document.getElementById('testStatsLoadBtn').addEventListener('click', function () {
+    print({ _mock: true, endpoint: 'GET /api/admin/stats/summary' }, true);
+  });
+
+  /* WebSocket 테스트 (mock 로그) */
+  var wsLog = document.getElementById('wsLogBox');
+  var wsStatus = document.getElementById('wsStatusText');
+  function wlog(line) {
+    wsLog.textContent += '\n' + new Date().toLocaleTimeString() + '  ' + line;
+    wsLog.scrollTop = wsLog.scrollHeight;
   }
 
-  if (screen === 'login') return h(LoginScreen, { onLogin: doLogin, error: loginError });
-  if (screen === 'denied') return h(DeniedScreen, { message: deniedMessage, onLogout: doLogout });
+  document.getElementById('wsConnectBtn').addEventListener('click', function () {
+    /* TODO: SockJS + Stomp 연결 */
+    wsStatus.textContent = 'connected (mock)';
+    wsStatus.className = 'tstatus tstatus--ok';
+    wlog('CONNECT ' + document.getElementById('wsUrlInput').value);
+    wlog('SUBSCRIBE /topic/rooms/' + document.getElementById('wsRoomInput').value);
+  });
 
-  const ic = (paths) => h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, fill:'none', stroke:'currentColor', strokeWidth:1.75, strokeLinecap:'round', strokeLinejoin:'round' },
-    paths.map((d, i) => h('path', { key:i, d })));
-  // 실제 번들 코드를 까보니 Sidebar는 logoSrc를 주면 사이드바 폭 전체를 채우는 정사각 배너 이미지로
-  // 렌더링한다(원본 zip의 "작은 아이콘+텍스트" 헤더와는 다른, 더 최신 버전). 2026-07-26 실제 로고
-  // (1024×1024 정사각) 전달받아 적용.
-  const logoSrc = 'img/admin/logo.png';
-  const dashIcon = h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, fill:'none', stroke:'currentColor', strokeWidth:1.75, strokeLinecap:'round', strokeLinejoin:'round' },
-    h('rect', { x:3, y:3, width:8, height:8, rx:1.5 }), h('rect', { x:13, y:3, width:8, height:8, rx:1.5 }),
-    h('rect', { x:3, y:13, width:8, height:8, rx:1.5 }), h('rect', { x:13, y:13, width:8, height:8, rx:1.5 }));
-  const personIcon = h('svg', { viewBox:'0 0 24 24', style:{ width:22, height:22 }, stroke:'var(--brand-navy)', fill:'none', strokeWidth:1.75, strokeLinecap:'round' },
-    h('circle', { cx:12, cy:8, r:4 }), h('path', { d:'M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5' }));
-  const reviewIcon = ic(['M12 20s-7-4.35-9.5-8.5C.8 8.1 2.2 4.5 5.7 4.5c2 0 3.4 1.1 4.3 2.6C10.9 5.6 12.3 4.5 14.3 4.5c3.5 0 4.9 3.6 3.2 7C15 15.65 12 20 12 20z']);
-  const reportIcon = ic(['M4 21V4', 'M4 4h13l-2.5 4L17 12H4']);
+  document.getElementById('wsDisconnectBtn').addEventListener('click', function () {
+    wsStatus.textContent = 'disconnected';
+    wsStatus.className = 'tstatus';
+    wlog('DISCONNECT');
+  });
 
-  return h('div', { style:{ display:'flex', minHeight:'100vh' } },
-    h(Sidebar, {
-      logoSrc, brand:'잇티웨이', active: page, onSelect: setPage,
-      items: [
-        { id:'dash', label:'대시보드', icon: dashIcon },
-        { id:'members', label:'회원 관리', icon: personIcon },
-        { id:'reviews', label:'리뷰 관리', icon: reviewIcon },
-        { id:'reports', label:'신고 관리', icon: reportIcon },
-      ],
-    }),
-    h('main', { style:{ flex:1, minWidth:0, padding:'var(--page-pad-y) var(--page-pad-x)' } },
-      page === 'dash' && h(window.DashboardScreen, { members, reports }),
-      page === 'members' && h(window.MembersScreen, { members, onToggleStatus }),
-      page === 'reviews' && h(window.ReviewsScreen, { reviews, members, onDeleteReview, onSuspendMember }),
-      page === 'reports' && h(window.ReportsScreen, {
-        reports, members, onDeleteReport, onSuspendMemberByName,
-        onResolveReport: id => reportAction(id, 'resolve'),
-        onRejectReport: id => reportAction(id, 'reject'),
-      })));
-}
+  document.getElementById('wsSendBtn').addEventListener('click', function () {
+    var msg = document.getElementById('wsSendInput').value.trim();
+    if (!msg) return;
+    /* TODO: client.send('/app/rooms/{roomId}/send', {}, JSON.stringify({ content: msg })) */
+    wlog('SEND /app/rooms/' + document.getElementById('wsRoomInput').value + '/send  ' + JSON.stringify({ content: msg }));
+    document.getElementById('wsSendInput').value = '';
+  });
 
-ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+  /* 현재 로그인 상태 표시 */
+  function syncAuthText() {
+    var el = document.getElementById('currentAuthText');
+    if (el && window.Eatty) el.textContent = '현재: ' + Eatty.getAuth();
+  }
+  document.addEventListener('eatty:authchange', syncAuthText);
+  setTimeout(syncAuthText, 100);
+})();
 </script>
 </body>
 </html>
