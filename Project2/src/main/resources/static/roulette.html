@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>메뉴 룰렛 — 잇티웨이</title>
+<meta name="description" content="먹고 싶은 음식 카테고리를 골라 룰렛을 돌리고 오늘의 메뉴를 정해보세요.">
+
+<!--
+================================================================================
+ roulette — 메뉴 룰렛 (카테고리 선택 → 룰렛 생성 → 스핀 → 당첨 결과)
+--------------------------------------------------------------------------------
+ 백엔드 신규 API 없음. 카테고리 목록만 07(음식점-메뉴-검색)의 기존 공개 API를 재사용한다.
+   ★ GET /api/restaurants/categories   (categoryId는 환경마다 달라질 수 있어 하드코딩하지 않고 받아옴)
+
+ 화면은 2개 상태로 전환된다. (섹션 hidden 토글)
+   #rouletteSetupSection  →  #roulettePlaySection
+
+ [카테고리 선택]
+   #rouletteSetupSection   섹션 루트
+   #categoryGrid           카테고리 버튼 목록 (button[data-category-code], aria-pressed로 선택 표시)
+   #selectedCount          현재 선택 개수
+   #selectAllBtn           전체 선택
+   #clearAllBtn            전체 해제
+   #buildRouletteBtn       룰렛 만들기 (2개 미만이면 disabled)
+
+ [룰렛]
+   #roulettePlaySection    섹션 루트 (기본 hidden)
+   #wheelSvg / #wheelGroup 룰렛 본체. 회전은 #wheelGroup 의 CSS transform(rotate)으로만 처리한다.
+   #spinBtn                뽑기
+   #resetBtn               카테고리 다시 고르기 (선택 화면으로 복귀)
+
+ [결과 모달]
+   #resultModal            당첨 결과 (#resultName, #resultIcon)
+   #respinBtn              그대로 다시 뽑기
+   #excludeBtn             당첨 항목을 빼고 다시 (칸이 2개 미만이 되면 숨김)
+
+ 회전각 계산 방식은 assets/js/roulette.js 상단 주석 참고 — "당첨 칸을 먼저 뽑고 그 칸이 포인터에 오도록
+ 각도를 역산"하는 방식이라, 애니메이션이 끝난 시점의 포인터 위치와 결과가 항상 일치한다.
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/roulette.js"></script>
+
+<link rel="stylesheet" href="assets/css/roulette.css">
+</head>
+<body>
+
+<!-- ============================== 헤더 ============================== -->
+<header class="e-header" id="siteHeader">
+  <div class="e-container e-container-wide e-header-inner">
+    <a href="index" class="e-logo" id="logoHome">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
+    </a>
+
+    <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
+      <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
+      <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
+    </nav>
+
+    <div class="e-header-actions">
+      <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest">
+        <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
+        <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
+      </div>
+
+      <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth" hidden>
+        <button type="button" class="e-icon-btn" id="headerNotiBtn" aria-label="알림">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+          <span class="e-dot"></span>
+        </button>
+        <div class="e-dropdown">
+          <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
+                  id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
+            <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="e-dropdown-menu" id="headerProfileMenu">
+            <div class="e-dropdown-head">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
+              <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
+            </div>
+            <a class="e-dropdown-item" href="mypage">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
+            <div class="e-dropdown-sep"></div>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn">로그아웃</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="e-header-burger" id="drawerOpenBtn" data-drawer-open="mainDrawer" aria-label="메뉴 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- 모바일 드로어 -->
+<div class="e-drawer-backdrop" data-drawer-backdrop="mainDrawer"></div>
+<aside class="e-drawer" id="mainDrawer" aria-hidden="true" aria-label="모바일 메뉴">
+  <div class="e-drawer-head">
+    <span class="e-logo-text">잇티<em>웨이</em></span>
+    <button type="button" class="e-modal-close" data-drawer-close="mainDrawer" aria-label="메뉴 닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="e-drawer-body">
+    <a class="e-drawer-link" href="explore" data-nav-page="explore">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+    <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+  </div>
+</aside>
+
+<main id="mainContent" class="py-8 md:py-12 flex items-center">
+  <div class="e-container w-full" style="max-width:720px">
+
+    <!-- ==================================================================
+         1단계 · 카테고리 고르기
+         ================================================================== -->
+    <section id="rouletteSetupSection">
+      <!-- 히어로 — 룰렛을 만들고 나면(2단계) 화면이 복잡해지지 않도록 이 단계에서만 보여준다(2026-08-07). -->
+      <div class="text-center mb-8">
+        <h1 class="t-h2">오늘 뭐 먹지?</h1>
+        <p class="t-lead mt-3">
+          먹고 싶은 카테고리를 골라 담고 룰렛을 돌리면,<br>
+          고민하던 메뉴가 <b class="t-brand">한 방에</b> 정해져요.
+        </p>
+      </div>
+
+      <div class="e-card e-card-pad">
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+          <h2 class="e-form-section-title !mb-0">먹고 싶은 카테고리 고르기</h2>
+          <div class="flex items-center gap-1.5">
+            <button type="button" class="btn btn-ghost btn-xs" id="selectAllBtn">전체 선택</button>
+            <button type="button" class="btn btn-ghost btn-xs" id="clearAllBtn">전체 해제</button>
+          </div>
+        </div>
+        <p class="e-form-section-desc">
+          최소 <b>2개</b> 이상 고르면 룰렛을 만들 수 있어요. 지금 <b class="t-brand" id="selectedCount">0</b>개 선택됨
+        </p>
+
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2.5" id="categoryGrid">
+          <!-- roulette.js 가 GET /api/restaurants/categories 응답으로 채웁니다 -->
+        </div>
+
+        <p class="t-sm t-muted text-center mt-5" id="categoryLoadError" hidden>
+          카테고리를 불러오지 못했어요. 잠시 후 새로고침 해주세요.
+        </p>
+
+        <button type="button" class="btn btn-primary btn-lg w-full mt-6" id="buildRouletteBtn" disabled>
+          룰렛 만들기
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         2단계 · 룰렛 돌리기
+         ================================================================== -->
+    <section id="roulettePlaySection" hidden>
+      <div class="e-card e-card-pad">
+        <div class="wheel-stage mb-7">
+          <!-- 포인터(12시 방향) — 회전하지 않음 -->
+          <svg class="wheel-pointer" viewBox="0 0 30 38" aria-hidden="true">
+            <path d="M15 38 3 13a13.5 13.5 0 1 1 24 0Z" fill="#fd6d4a"/>
+            <circle cx="15" cy="13" r="4.6" fill="#fff"/>
+          </svg>
+
+          <svg id="wheelSvg" viewBox="0 0 320 320" role="img" aria-label="음식 카테고리 룰렛">
+            <g id="wheelGroup"></g>
+            <circle cx="160" cy="160" r="155" fill="none" stroke="#fff" stroke-width="8"/>
+          </svg>
+
+          <!-- 가운데 축 — 회전하지 않음 -->
+          <div class="wheel-hub" aria-hidden="true">잇티</div>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-lg w-full" id="spinBtn">뽑기</button>
+        <button type="button" class="btn btn-outline btn-lg w-full mt-2.5" id="resetBtn">카테고리 다시 고르기</button>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- ==================== 당첨 결과 모달(토스 스타일, 2026-08-07 개편) ==================== -->
+<div class="e-modal" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--sm result-modal-panel" id="resultModalPanel">
+    <button type="button" class="e-modal-close result-modal-close" data-modal-close aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+
+    <p class="result-eyebrow">오늘의 메뉴 카테고리는</p>
+    <div class="result-icon-wrap" id="resultIcon"></div>
+    <h2 class="result-name" id="resultTitle"><span id="resultName">-</span></h2>
+
+    <div class="result-modal-actions">
+      <button type="button" class="btn-toss-primary" id="respinBtn">다시 뽑기</button>
+      <button type="button" class="btn-toss-ghost" id="excludeBtn">이건 빼고 다시</button>
+    </div>
+  </div>
+</div>
+
+<!-- 모바일 하단 탭바 -->
+<nav class="e-tabbar" aria-label="모바일 주요 메뉴">
+  <a class="e-tabbar-item" href="index">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10V20h13V10"/></svg>
+    홈
+  </a>
+  <a class="e-tabbar-item" href="explore">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    탐색
+  </a>
+  <a class="e-tabbar-item" href="recommend">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+    AI추천
+  </a>
+  <a class="e-tabbar-item" href="roulette" data-nav-page="roulette">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2.5v7M12 14.5v7M2.5 12h7M14.5 12h7"/></svg>
+    룰렛
+  </a>
+  <a class="e-tabbar-item" href="mypage">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    내정보
+  </a>
+</nav>
+
+</body>
+</html>

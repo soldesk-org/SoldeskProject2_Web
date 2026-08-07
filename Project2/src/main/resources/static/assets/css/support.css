@@ -1,0 +1,28 @@
+  /* 풀스크린 채팅 레이아웃 (chat.html의 .e-chat-room과 같은 톤, 사이드바 없는 단일 패널) */
+  .e-support-shell {
+    height: calc(100vh - var(--header-h));
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-soft);
+  }
+  .e-support-shell #chatActive,
+  .e-support-shell #chatEnded {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .e-support-shell #chatEnded { overflow-y: auto; justify-content: center; }
+  #chatEnded .e-lock { display: none; }
+  #ratingBox { border-top: 0; }
+  #ratingBox h3 { font-size: 30px; }
+  #ratingBox > .max-w-md > p.t-sm { font-size: 17px; margin-top: 10px; }
+  #supportRatingInput { gap: 10px; margin-top: 24px !important; }
+  #supportRatingInput svg { width: 64px; height: 64px; }
+  /* #chatActive/#chatEnded에 준 display:flex가 Tailwind CDN의 나중 로드 순서 때문에 네이티브
+     [hidden]{display:none} 규칙을 이겨서, hidden 속성이 있어도 계속 보이는 문제(이 세션에서 chat.html/
+     receipt-upload.html 등 여러 곳에서 이미 겪은 것과 같은 종류) - 명시적으로 되돌린다. */
+  .e-support-shell #chatActive[hidden],
+  .e-support-shell #chatEnded[hidden],
+  .e-support-shell #sessionBar[hidden] { display: none !important; }

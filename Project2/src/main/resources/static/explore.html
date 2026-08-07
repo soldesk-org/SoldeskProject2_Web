@@ -31,7 +31,7 @@
    #categoryFilterList      카테고리 칩 목록
      button[data-category]  값: all|korean|western|chinese|japanese|asian|cafe|bunsik|chicken|meat|bar
    #priceFilterList         가격 칩 목록 (빠른 선택)
-     button[data-price]     값: all|under10000|10000-20000|20000-40000|over40000
+     button[data-price]     값: all|under10000|10000-20000|20000-30000|30000-40000|over40000
      각 칩에 data-price-min / data-price-max (원 단위) 가 함께 있습니다.
    #filterMinPrice          검색에 실려가는 최소 금액 hidden (name="minPrice")
    #filterMaxPrice          검색에 실려가는 최대 금액 hidden (name="maxPrice")
@@ -60,8 +60,10 @@
  [상세 패널]
    #shopDetailPanel         상세 패널 루트 (.is-open 으로 노출)
    #detailCloseBtn          닫기
+   #detailImageBox          매장 사진(갤러리 여러 장이면 좌우 넘기기 버튼, 대표가 항상 첫 장, 2026-08-06)
    #detailShopName #detailCategory #detailRating #detailReviewCount
-   #detailAddress #detailPhone #detailHours #detailPriceRange
+   #detailReceiptReviewCount #detailReviewTabCount   (전부 reviewCount와 동일한 값 — 모든 리뷰는 영수증 인증 필수)
+   #detailAddress #detailPhone #detailHours #detailTagsWrap #detailTags
    #favoriteBtn             즐겨찾기 토글 (aria-pressed) ★ POST/DELETE /api/favorites
    #directionBtn            길찾기 실행
    #directionsResult        길찾기 결과 영역 (기본 hidden)
@@ -70,7 +72,6 @@
      #directionsLoading / #directionsBody / #directionsError
      #routeDuration #routeDistance #routeFare #routeTransfer #routeSummary
      #routeExtraWrap        환승 정보 래퍼 (TRANSIT 일 때만 노출)
-     #openNaverRouteBtn     네이버 지도 앱으로 열기
      #directionsCloseBtn    결과 닫기
 
    #detailParking           주변 주차장 목록
@@ -103,64 +104,10 @@
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/explore.js"></script>
 
-<style>
-  /* ===== explore 전용 레이아웃 ===== */
-  .ex-shell {
-    display: grid;
-    grid-template-rows: auto 1fr;
-    height: calc(100vh - var(--header-h));
-    min-height: 560px;
-  }
-  .ex-body { position: relative; display: grid; min-height: 0; }
-  .ex-list {
-    background: var(--bg);
-    border-right: 1px solid var(--line);
-    display: flex; flex-direction: column; min-height: 0;
-  }
-  .ex-map-wrap { position: relative; min-height: 0; }
-
-  /* 데스크탑: 리스트 | 지도 */
-  @media (min-width: 1024px) {
-    .ex-body { grid-template-columns: 396px 1fr; }
-  }
-  /* 모바일: 지도 위 / 리스트 아래 */
-  @media (max-width: 1023px) {
-    .ex-shell { height: auto; min-height: 0; }
-    .ex-body { grid-template-rows: 300px auto; }
-    .ex-map-wrap { order: 1; }
-    .ex-list { order: 2; border-right: 0; border-top: 1px solid var(--line); }
-  }
-
-  /* 상세 패널 */
-  .ex-detail {
-    position: absolute; inset: 0 auto 0 0; z-index: 20;
-    width: 400px; max-width: 100%;
-    background: var(--bg);
-    border-right: 1px solid var(--line);
-    box-shadow: var(--sh-lg);
-    transform: translateX(-102%);
-    transition: transform .3s var(--ease);
-    display: flex; flex-direction: column;
-  }
-  .ex-detail.is-open { transform: translateX(0); }
-  @media (max-width: 1023px) {
-    .ex-detail {
-      position: fixed; inset: 0; width: 100%; z-index: 95;
-      border-right: 0; transform: translateY(100%);
-    }
-    .ex-detail.is-open { transform: translateY(0); }
-  }
-
-  /* 필터 바 */
-  .ex-filterbar {
-    background: var(--bg);
-    border-bottom: 1px solid var(--line);
-  }
-</style>
+<link rel="stylesheet" href="assets/css/explore.css">
 </head>
 
 <body>
-<a href="#resultList" class="skip-link">검색 결과로 건너뛰기</a>
 
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header e-header--solid" id="siteHeader">
@@ -173,9 +120,10 @@
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
       <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
       <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
       <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
@@ -196,7 +144,7 @@
         <div class="e-dropdown">
           <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
                   id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
-            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
             <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="e-dropdown-menu" id="headerProfileMenu">
@@ -249,18 +197,18 @@
     </div>
     <div data-auth-view="auth" hidden>
       <a href="mypage" class="e-card p-4 mb-4 flex items-center gap-3">
-        <span class="e-avatar e-avatar-lg" aria-hidden="true">잇</span>
+        <span class="e-avatar e-avatar-lg" id="drawerAvatar" aria-hidden="true">잇</span>
         <span class="min-w-0">
-          <span class="block text-sm font-extrabold text-[var(--ink-900)]">잇티러버</span>
-          <span class="block text-xs text-[var(--ink-500)] truncate">eatty@example.com</span>
+          <span class="block text-sm font-extrabold text-[var(--ink-900)]" id="drawerNickname">잇티러버</span>
+          <span class="block text-xs text-[var(--ink-500)] truncate" id="drawerEmail">eatty@example.com</span>
         </span>
       </a>
     </div>
     <a class="e-drawer-link" href="explore" data-nav-page="explore">지도 탐색</a>
     <a class="e-drawer-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-    <a class="e-drawer-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
     <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
     <div data-auth-view="auth" hidden>
       <div class="e-drawer-sep"></div>
       <a class="e-drawer-link" href="mypage">마이페이지</a>
@@ -350,15 +298,14 @@
           </div>
         </div>
 
-        <span class="w-px h-6 bg-[var(--line)] flex-none hidden md:block"></span>
-
         <div class="e-scroll-x hidden md:block flex-none">
           <div class="flex items-center gap-2" id="priceFilterList" role="group" aria-label="가격 필터">
             <button type="button" class="e-chip" data-price="all" data-price-min="0" data-price-max="50000" data-toggle-press data-toggle-group="price" aria-pressed="true">가격 전체</button>
             <button type="button" class="e-chip" data-price="under10000" data-price-min="0" data-price-max="10000" data-toggle-press data-toggle-group="price" aria-pressed="false">1만원 이하</button>
             <button type="button" class="e-chip" data-price="10000-20000" data-price-min="10000" data-price-max="20000" data-toggle-press data-toggle-group="price" aria-pressed="false">1~2만원</button>
-            <button type="button" class="e-chip" data-price="20000-40000" data-price-min="20000" data-price-max="40000" data-toggle-press data-toggle-group="price" aria-pressed="false">2~4만원</button>
-            <button type="button" class="e-chip" data-price="over40000" data-toggle-press data-toggle-group="price" aria-pressed="false">4만원+</button>
+            <button type="button" class="e-chip" data-price="20000-30000" data-price-min="20000" data-price-max="30000" data-toggle-press data-toggle-group="price" aria-pressed="false">2~3만원</button>
+            <button type="button" class="e-chip" data-price="30000-40000" data-price-min="30000" data-price-max="40000" data-toggle-press data-toggle-group="price" aria-pressed="false">3~4만원</button>
+            <button type="button" class="e-chip" data-price="over40000" data-price-min="40000" data-toggle-press data-toggle-group="price" aria-pressed="false">4만원+</button>
           </div>
         </div>
 
@@ -384,136 +331,47 @@
     <section class="ex-list" aria-label="검색 결과 목록">
       <div class="flex items-center gap-2 px-4 py-3 border-b border-[var(--line)]">
         <p class="text-sm font-bold text-[var(--ink-800)]">
-          검색 결과 <b class="t-brand t-num" id="resultCount">24</b>곳
+          검색 결과 <b class="t-brand t-num" id="resultCount">0</b>곳
         </p>
-        <span class="e-badge e-badge--gray ml-auto">강남역 반경 1km</span>
+        <span class="e-badge e-badge--gray ml-auto" id="searchRadiusBadge">현재 지도 범위</span>
       </div>
 
       <div class="e-scroll flex-1 p-3.5 space-y-2.5" id="resultList">
 
-        <!-- 결과 카드 1 -->
-        <button type="button" class="e-shop-card is-active" data-shop-id="1">
-          <span class="e-shop-thumb e-img-ph">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
-            <span class="absolute left-1.5 top-1.5 e-badge e-badge--brand-solid !text-[10px] !px-2 !py-0.5">인증 42</span>
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="flex items-center gap-2">
-              <b class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">라 스텔라 파스타</b>
-              <span class="e-badge e-badge--gray flex-none">양식</span>
-            </span>
-            <span class="e-rating mt-1">
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <span class="e-rating-score">4.6</span>
-              <span class="t-xs ml-1">(42)</span>
-            </span>
-            <span class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
-              <span class="t-xs">240m · 강남역 3번 출구</span>
-              <span class="e-status e-status--on !text-[11px]">영업중</span>
-            </span>
-            <span class="flex flex-wrap gap-1 mt-2">
-              <span class="e-tag e-tag--pos">조용해요</span>
-              <span class="e-tag e-tag--pos">재방문 의사</span>
-            </span>
-          </span>
-        </button>
-
-        <!-- 결과 카드 2 -->
-        <button type="button" class="e-shop-card" data-shop-id="2">
-          <span class="e-shop-thumb e-img-ph">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="flex items-center gap-2">
-              <b class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">청담옥 강남점</b>
-              <span class="e-badge e-badge--gray flex-none">한식</span>
-            </span>
-            <span class="e-rating mt-1">
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <span class="e-rating-score">4.8</span>
-              <span class="t-xs ml-1">(128)</span>
-            </span>
-            <span class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
-              <span class="t-xs">410m · 강남역 11번 출구</span>
-              <span class="e-status e-status--on !text-[11px]">영업중</span>
-            </span>
-            <span class="flex flex-wrap gap-1 mt-2">
-              <span class="e-tag e-tag--pos">맛이 좋아요</span>
-              <span class="e-tag e-tag--neg">웨이팅 길어요</span>
-            </span>
-          </span>
-        </button>
-
-        <!-- 결과 카드 3 -->
-        <button type="button" class="e-shop-card" data-shop-id="3">
-          <span class="e-shop-thumb e-img-ph">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="flex items-center gap-2">
-              <b class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">오스테리아 무니</b>
-              <span class="e-badge e-badge--gray flex-none">양식</span>
-            </span>
-            <span class="e-rating mt-1">
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <span class="e-rating-score">4.4</span>
-              <span class="t-xs ml-1">(67)</span>
-            </span>
-            <span class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
-              <span class="t-xs">620m · 신논현역 방향</span>
-              <span class="e-status e-status--idle !text-[11px]">브레이크타임</span>
-            </span>
-            <span class="flex flex-wrap gap-1 mt-2">
-              <span class="e-tag e-tag--pos">분위기 좋아요</span>
-              <span class="e-tag e-tag--pos">주차 편해요</span>
-            </span>
-          </span>
-        </button>
-
-        <!-- 결과 카드 4 -->
-        <button type="button" class="e-shop-card" data-shop-id="4">
-          <span class="e-shop-thumb e-img-ph">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="flex items-center gap-2">
-              <b class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">호무랑 라멘</b>
-              <span class="e-badge e-badge--gray flex-none">일식</span>
-            </span>
-            <span class="e-rating mt-1">
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
-              <span class="e-rating-score">4.2</span>
-              <span class="t-xs ml-1">(214)</span>
-            </span>
-            <span class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
-              <span class="t-xs">180m · 강남역 2번 출구</span>
-              <span class="e-status e-status--on !text-[11px]">영업중</span>
-            </span>
-            <span class="flex flex-wrap gap-1 mt-2">
-              <span class="e-tag e-tag--pos">혼밥 좋아요</span>
-              <span class="e-tag e-tag--pos">가성비 좋아요</span>
-            </span>
-          </span>
-        </button>
-
         <!-- 로딩 스켈레톤 -->
-        <div id="resultLoading" hidden>
+        <div id="resultLoading" class="space-y-2.5" hidden>
+          <div class="e-shop-card !cursor-default">
+            <span class="e-skeleton w-[84px] h-[84px] rounded-[var(--r)] flex-none"></span>
+            <span class="flex-1 space-y-2">
+              <span class="e-skeleton block h-4 w-3/5 rounded"></span>
+              <span class="e-skeleton block h-3 w-2/5 rounded"></span>
+              <span class="e-skeleton block h-3 w-4/5 rounded"></span>
+            </span>
+          </div>
+          <div class="e-shop-card !cursor-default">
+            <span class="e-skeleton w-[84px] h-[84px] rounded-[var(--r)] flex-none"></span>
+            <span class="flex-1 space-y-2">
+              <span class="e-skeleton block h-4 w-3/5 rounded"></span>
+              <span class="e-skeleton block h-3 w-2/5 rounded"></span>
+              <span class="e-skeleton block h-3 w-4/5 rounded"></span>
+            </span>
+          </div>
+          <div class="e-shop-card !cursor-default">
+            <span class="e-skeleton w-[84px] h-[84px] rounded-[var(--r)] flex-none"></span>
+            <span class="flex-1 space-y-2">
+              <span class="e-skeleton block h-4 w-3/5 rounded"></span>
+              <span class="e-skeleton block h-3 w-2/5 rounded"></span>
+              <span class="e-skeleton block h-3 w-4/5 rounded"></span>
+            </span>
+          </div>
+          <div class="e-shop-card !cursor-default">
+            <span class="e-skeleton w-[84px] h-[84px] rounded-[var(--r)] flex-none"></span>
+            <span class="flex-1 space-y-2">
+              <span class="e-skeleton block h-4 w-3/5 rounded"></span>
+              <span class="e-skeleton block h-3 w-2/5 rounded"></span>
+              <span class="e-skeleton block h-3 w-4/5 rounded"></span>
+            </span>
+          </div>
           <div class="e-shop-card !cursor-default">
             <span class="e-skeleton w-[84px] h-[84px] rounded-[var(--r)] flex-none"></span>
             <span class="flex-1 space-y-2">
@@ -533,11 +391,6 @@
           <p class="e-empty-desc">필터를 줄이거나 지도를 넓게 이동해보세요.</p>
           <button type="button" class="btn btn-outline btn-sm mt-5" id="emptyFilterResetBtn">필터 초기화</button>
         </div>
-
-        <button type="button" class="btn btn-outline btn-block mt-1" id="loadMoreBtn">
-          결과 더 보기
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
       </div>
     </section>
 
@@ -545,7 +398,7 @@
     <section class="ex-map-wrap" aria-label="지도">
 
       <!-- 네이버 지도 삽입 영역 -->
-      <div class="e-map w-full h-full" id="naverMap"></div>
+      <div class="e-map w-full h-full" id="naverMap" style="background:#eceff3"></div>
 
       <!-- 현재 영역 재검색 -->
       <div class="absolute left-1/2 -translate-x-1/2 top-4 z-10">
@@ -571,21 +424,19 @@
       </div>
 
       <!-- ==================== 상세 패널 ==================== -->
-      <aside class="ex-detail" id="shopDetailPanel" aria-label="가게 상세 정보" aria-hidden="true">
+      <aside class="ex-detail" id="shopDetailPanel" aria-label="가게 상세 정보" aria-hidden="true" hidden>
 
-        <!-- 상단 이미지 + 닫기 -->
+        <!-- 상단 이미지 + 닫기 — 매장이 등록한 사진이 있으면 실제 이미지(여러 장이면 좌우 넘기기)로 교체(2026-08-06) -->
         <div class="relative flex-none">
-          <div class="e-img-ph h-[190px]">
+          <div class="e-img-ph h-[190px]" id="detailImageBox">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
-            <span class="e-img-ph-label">대표 이미지 영역</span>
           </div>
           <button type="button" class="absolute right-3 top-3 w-9 h-9 rounded-full bg-white/95 grid place-items-center shadow-[var(--sh-sm)] hover:bg-white"
                   id="detailCloseBtn" aria-label="상세 닫기">
             <svg class="w-4.5 h-4.5 text-[var(--ink-700)]" style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
           <span class="absolute left-3 bottom-3 e-badge e-badge--dark e-badge-lg">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/></svg>
-            영수증 인증 리뷰 42건
+            영수증 인증 리뷰 <span id="detailReceiptReviewCount">0</span>건
           </span>
         </div>
 
@@ -614,12 +465,12 @@
               </div>
 
               <!-- 즐겨찾기 -->
-              <button type="button" class="flex flex-col items-center gap-1 flex-none px-2 py-1.5 rounded-[var(--r)] hover:bg-[var(--ink-50)] transition"
+              <button type="button" class="e-heart-btn flex flex-col items-center gap-1 flex-none px-2 py-1.5 rounded-[var(--r)] hover:bg-[var(--ink-50)] transition"
                       id="favoriteBtn" aria-pressed="false">
-                <svg class="w-6 h-6 text-[var(--ink-300)]" id="favoriteIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="e-heart-icon w-6 h-6 text-[var(--ink-300)]" id="favoriteIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 0 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1Z"/>
                 </svg>
-                <span class="text-[11px] font-bold text-[var(--ink-500)]">저장</span>
+                <span class="text-[11px] font-bold text-[var(--ink-500)]" id="favoriteLabel">저장</span>
               </button>
             </div>
 
@@ -639,31 +490,24 @@
               </button>
             </div>
 
+            <!-- 리뷰 작성 (로그인 상태별) -->
+            <div class="mt-2.5" data-auth-view="auth" hidden>
+              <a href="receipt-upload" class="btn btn-soft btn-sm btn-block" id="writeReviewBtn">
+                <svg viewBox="0 0 384 512" fill="currentColor"><path d="M14 2.2C22.5-1.7 32.5-.3 39.6 5.8L80 40.4 120.4 5.8c9-7.7 22.3-7.7 31.2 0L192 40.4 232.4 5.8c9-7.7 22.3-7.7 31.2 0L304 40.4 344.4 5.8c7.1-6.1 17.1-7.5 25.6-3.6s14 12.4 14 21.8l0 464c0 9.4-5.5 17.9-14 21.8s-18.5 2.5-25.6-3.6L304 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L192 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L80 471.6 39.6 506.2c-7.1 6.1-17.1 7.5-25.6 3.6S0 497.4 0 488L0 24C0 14.6 5.5 6.1 14 2.2zM96 144c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 144zM80 352c0 8.8 7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 336c-8.8 0-16 7.2-16 16zM96 240c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 240z"/></svg>
+                영수증으로 리뷰 쓰기
+              </a>
+            </div>
+            <div class="mt-2.5" data-auth-view="guest">
+              <a href="login" class="btn btn-soft btn-sm btn-block">
+                로그인하고 리뷰 쓰기
+              </a>
+            </div>
+
             <!-- ==================== 길찾기 결과 ====================
                  ★ GET /api/directions?startLat=&startLng=&endLat=&endLng=&mode=
                  길찾기 버튼을 누르면 노출됩니다. (기본 hidden)
                  이동수단 전환 시 같은 API 를 mode 만 바꿔 재호출하세요. -->
-            <div class="mt-3" id="directionsResult" hidden>
-              <div class="flex items-center gap-2 mb-2.5">
-                <div class="e-route-modes" id="routeModeGroup" role="group" aria-label="이동수단 선택">
-                  <button type="button" class="e-route-mode" data-route-mode="TRANSIT" aria-pressed="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="14" rx="2.5"/><path d="M5 11h14M8 21l1.5-4M16 21l-1.5-4"/></svg>
-                    대중교통
-                  </button>
-                  <button type="button" class="e-route-mode" data-route-mode="WALK" aria-pressed="false">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="m13 6-2.5 4.5 3.5 2 1 5"/><path d="m10.5 10.5-3 2.5 1.5 4"/></svg>
-                    도보
-                  </button>
-                  <button type="button" class="e-route-mode" data-route-mode="CAR" aria-pressed="false">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M4 17V11l2-5h12l2 5v6"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>
-                    자동차
-                  </button>
-                </div>
-                <button type="button" class="e-icon-btn !w-7 !h-7 ml-auto flex-none" id="directionsCloseBtn" aria-label="길찾기 결과 닫기">
-                  <svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                </button>
-              </div>
-
+            <div class="mt-4 pt-4 border-t border-[var(--line)]" id="directionsResult" hidden>
               <!-- 로딩 -->
               <div id="directionsLoading" hidden>
                 <div class="e-route">
@@ -686,12 +530,6 @@
                     </div>
                     <p class="t-xs mt-2" id="routeSummary">강남역 2호선 승차 → 역삼역 하차 → 도보 4분</p>
                   </div>
-                  <div class="e-route-side">
-                    <a href="https://map.naver.com" target="_blank" rel="noopener" class="btn btn-primary btn-xs" id="openNaverRouteBtn">
-                      지도앱
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3"/></svg>
-                    </a>
-                  </div>
                 </div>
               </div>
 
@@ -706,19 +544,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- 리뷰 작성 (로그인 상태별) -->
-            <div class="mt-2.5" data-auth-view="auth" hidden>
-              <a href="receipt-upload" class="btn btn-soft btn-sm btn-block" id="writeReviewBtn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6"/></svg>
-                영수증으로 리뷰 쓰기
-              </a>
-            </div>
-            <div class="mt-2.5" data-auth-view="guest">
-              <a href="login" class="btn btn-soft btn-sm btn-block">
-                로그인하고 리뷰 쓰기
-              </a>
-            </div>
           </div>
 
           <!-- 탭 -->
@@ -726,7 +551,7 @@
             <div class="e-tabs" role="tablist" aria-label="가게 상세 탭">
               <button type="button" class="e-tab" data-tab-target="detailTabInfo" role="tab" aria-selected="true">정보</button>
               <button type="button" class="e-tab" data-tab-target="detailTabReview" role="tab" aria-selected="false">
-                리뷰 <span class="e-tab-count">42</span>
+                리뷰 <span class="e-tab-count" id="detailReviewTabCount">0</span>
               </button>
               <button type="button" class="e-tab" data-tab-target="detailTabMenu" role="tab" aria-selected="false">메뉴</button>
             </div>
@@ -741,7 +566,6 @@
                 </dt>
                 <dd class="min-w-0">
                   <p class="text-sm font-semibold text-[var(--ink-800)]" id="detailAddress">서울 강남구 테헤란로 123, 2층</p>
-                  <p class="t-xs mt-0.5">강남역 3번 출구에서 240m</p>
                 </dd>
               </div>
               <div class="flex gap-3">
@@ -750,7 +574,6 @@
                 </dt>
                 <dd>
                   <p class="text-sm font-semibold text-[var(--ink-800)]" id="detailHours">11:30 ~ 22:00</p>
-                  <p class="t-xs mt-0.5">브레이크타임 15:00~17:00 · 월요일 휴무</p>
                 </dd>
               </div>
               <div class="flex gap-3">
@@ -759,23 +582,12 @@
                 </dt>
                 <dd><p class="text-sm font-semibold text-[var(--ink-800)] t-num" id="detailPhone">02-1234-5678</p></dd>
               </div>
-              <div class="flex gap-3">
-                <dt class="flex-none w-5 pt-0.5">
-                  <svg class="w-4.5 h-4.5 text-[var(--ink-400)]" style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                </dt>
-                <dd><p class="text-sm font-semibold text-[var(--ink-800)]" id="detailPriceRange">1인 평균 2~4만원</p></dd>
-              </div>
             </dl>
 
-            <!-- 편의시설 -->
-            <div class="mt-6">
+            <!-- 편의시설(음식점 태그) — 실제 등록된 태그가 있을 때만 노출 (가짜 데이터 금지) -->
+            <div class="mt-6" id="detailTagsWrap" hidden>
               <p class="text-[13px] font-extrabold text-[var(--ink-900)] mb-2.5">편의시설</p>
-              <div class="flex flex-wrap gap-1.5">
-                <span class="e-tag">주차 가능</span>
-                <span class="e-tag">무료 와이파이</span>
-                <span class="e-tag">단체석</span>
-                <span class="e-tag">포장 가능</span>
-              </div>
+              <div class="flex flex-wrap gap-1.5" id="detailTags"></div>
             </div>
 
             <!-- ==================== 주변 주차장 ====================
@@ -874,8 +686,6 @@
               <div id="parkingError" hidden>
                 <p class="t-sm py-4 text-center">주차장 정보를 불러오지 못했습니다.</p>
               </div>
-
-              <p class="e-hint">공영주차장 데이터 기준이며, 요금과 잔여 면수는 실제와 다를 수 있습니다.</p>
             </div>
 
             <!-- 태그 분포 (실제 리뷰의 keywords 데이터로 클라이언트에서 집계) -->

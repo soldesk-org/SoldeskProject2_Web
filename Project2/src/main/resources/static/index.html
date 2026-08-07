@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>잇티웨이 (Eatty way) — AI가 찾아주는 진짜 맛집</title>
-<meta name="description" content="영수증 인증 리뷰, 자연어 AI 추천, 실시간 오픈채팅, 음식 취향 테스트(음BTI)를 하나로 묶은 통합 맛집 플랫폼.">
+<meta name="description" content="영수증 인증 리뷰, 자연어 AI 추천, 실시간 오픈채팅, 음식 취향 테스트(음식 취향 찾기)를 하나로 묶은 통합 맛집 플랫폼.">
 
 <!--
 ================================================================================
@@ -44,15 +44,15 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
+<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
 <script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 </head>
 
 <body class="has-tabbar">
-<a href="#mainContent" class="skip-link">본문으로 건너뛰기</a>
 
 <!-- ============================== 헤더 ============================== -->
-<header class="e-header" id="siteHeader">
+<header class="e-header e-header--solid" id="siteHeader">
   <div class="e-container e-header-inner">
 
     <a href="index" class="e-logo" id="logoHome">
@@ -63,9 +63,9 @@
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
       <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
       <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
       <a class="e-nav-link" href="business-mypage" id="headerBusinessLink" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
       <a class="e-nav-link" href="admin" id="headerAdminLink" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
@@ -91,7 +91,7 @@
         <div class="e-dropdown">
           <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
                   id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
-            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
             <span class="hidden md:block text-sm font-bold text-[var(--ink-800)]" id="headerNickname">잇티러버</span>
             <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
@@ -164,7 +164,7 @@
     <!-- 로그인: 프로필 요약 -->
     <div data-auth-view="auth" class="block" hidden>
       <a href="mypage" class="e-card p-4 mb-4 flex items-center gap-3">
-        <span class="e-avatar e-avatar-lg" aria-hidden="true">잇</span>
+        <span class="e-avatar e-avatar-lg" id="drawerAvatar" aria-hidden="true">잇</span>
         <span class="min-w-0">
           <span class="block text-sm font-extrabold text-[var(--ink-900)]" id="drawerNickname"></span>
           <span class="block text-xs text-[var(--ink-500)] truncate" id="drawerEmail"></span>
@@ -182,17 +182,17 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
       AI 자연어 추천
     </a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2.5v7M12 14.5v7M2.5 12h7M14.5 12h7"/></svg>
+      메뉴 룰렛
+    </a>
     <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/><circle cx="12" cy="12" r="9.5"/></svg>
-      음BTI 테스트
+      음식 취향 찾기 테스트
     </a>
 
     <div class="e-drawer-sep"></div>
     <p class="e-drawer-label">참여하기</p>
-    <a class="e-drawer-link" href="receipt-upload" data-nav-page="receipt-upload">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>
-      영수증 인증 리뷰
-    </a>
     <a class="e-drawer-link" href="chat" data-nav-page="chat">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
       잇티챗 오픈채팅
@@ -245,11 +245,6 @@
       <div class="grid lg:grid-cols-[1.05fr_.95fr] gap-12 lg:gap-16 items-center">
 
         <div class="e-anim-up">
-          <span class="e-eyebrow">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
-            AI 기반 맛집 검색 · 추천 · 커뮤니티
-          </span>
-
           <h1 class="t-h1 mt-6">
             먹고 싶은 걸 말하면,<br>
             <span class="t-grad">잇티웨이</span>가 찾아줍니다
@@ -419,8 +414,7 @@
   <section class="py-16 md:py-24">
     <div class="e-container">
       <div class="max-w-2xl">
-        <span class="e-eyebrow">CORE FEATURES</span>
-        <h2 class="t-h2 mt-5">맛집 찾는 모든 과정을<br>한 곳에서</h2>
+        <h2 class="t-h2">맛집 찾는 모든 과정을<br>한 곳에서</h2>
         <p class="t-lead mt-4">검색부터 리뷰, 대화까지. 흩어져 있던 맛집 경험을 잇티웨이 하나로 묶었습니다.</p>
       </div>
 
@@ -428,7 +422,7 @@
 
         <a href="recommend" class="e-card e-card-pad e-card-hover block">
           <span class="w-12 h-12 rounded-[14px] grid place-items-center text-white mb-5" style="background:var(--brand-grad)">
-            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+            <svg class="w-6 h-6" viewBox="0 0 576 512" fill="currentColor"><path d="M234.7 42.7L197 56.8c-3 1.1-5 4-5 7.2s2 6.1 5 7.2l37.7 14.1L248.8 123c1.1 3 4 5 7.2 5s6.1-2 7.2-5l14.1-37.7L315 71.2c3-1.1 5-4 5-7.2s-2-6.1-5-7.2L277.3 42.7 263.2 5c-1.1-3-4-5-7.2-5s-6.1 2-7.2 5L234.7 42.7zM46.1 395.4c-18.7 18.7-18.7 49.1 0 67.9l34.6 34.6c18.7 18.7 49.1 18.7 67.9 0L529.9 116.5c18.7-18.7 18.7-49.1 0-67.9L495.3 14.1c-18.7-18.7-49.1-18.7-67.9 0L46.1 395.4zM484.6 82.6l-105 105-23.3-23.3 105-105 23.3 23.3zM7.5 117.2C3 118.9 0 123.2 0 128s3 9.1 7.5 10.8L64 160l21.2 56.5c1.7 4.5 6 7.5 10.8 7.5s9.1-3 10.8-7.5L128 160l56.5-21.2c4.5-1.7 7.5-6 7.5-10.8s-3-9.1-7.5-10.8L128 96 106.8 39.5C105.1 35 100.8 32 96 32s-9.1 3-10.8 7.5L64 96 7.5 117.2zm352 256c-4.5 1.7-7.5 6-7.5 10.8s3 9.1 7.5 10.8L416 416l21.2 56.5c1.7 4.5 6 7.5 10.8 7.5s9.1-3 10.8-7.5L480 416l56.5-21.2c4.5-1.7 7.5-6 7.5-10.8s-3-9.1-7.5-10.8L480 352l-21.2-56.5c-1.7-4.5-6-7.5-10.8-7.5s-9.1 3-10.8 7.5L416 352l-56.5 21.2z"/></svg>
           </span>
           <h3 class="t-h4">자연어 AI 추천</h3>
           <p class="t-sm mt-2.5 leading-relaxed">"조용한", "가성비", "혼밥 가능" 같은 조건을 문장으로 말하면 AI가 후보를 골라줍니다.</p>
@@ -438,21 +432,21 @@
           </span>
         </a>
 
-        <a href="receipt-upload" class="e-card e-card-pad e-card-hover block">
+        <a href="explore" class="e-card e-card-pad e-card-hover block">
           <span class="w-12 h-12 rounded-[14px] grid place-items-center mb-5" style="background:var(--brand-50);color:var(--brand-500)">
-            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>
+            <svg class="w-6 h-6" viewBox="0 0 384 512" fill="currentColor"><path d="M14 2.2C22.5-1.7 32.5-.3 39.6 5.8L80 40.4 120.4 5.8c9-7.7 22.3-7.7 31.2 0L192 40.4 232.4 5.8c9-7.7 22.3-7.7 31.2 0L304 40.4 344.4 5.8c7.1-6.1 17.1-7.5 25.6-3.6s14 12.4 14 21.8l0 464c0 9.4-5.5 17.9-14 21.8s-18.5 2.5-25.6-3.6L304 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L192 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L80 471.6 39.6 506.2c-7.1 6.1-17.1 7.5-25.6 3.6S0 497.4 0 488L0 24C0 14.6 5.5 6.1 14 2.2zM96 144c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 144zM80 352c0 8.8 7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 336c-8.8 0-16 7.2-16 16zM96 240c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 240z"/></svg>
           </span>
           <h3 class="t-h4">영수증 인증 리뷰</h3>
           <p class="t-sm mt-2.5 leading-relaxed">영수증을 OCR로 확인한 방문자만 리뷰를 남깁니다. 광고성 후기를 걸러냅니다.</p>
           <span class="e-link-brand text-[13px] inline-flex items-center gap-1 mt-4">
-            리뷰 작성
+            맛집 찾아보기
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
           </span>
         </a>
 
         <a href="chat" class="e-card e-card-pad e-card-hover block">
           <span class="w-12 h-12 rounded-[14px] grid place-items-center mb-5" style="background:var(--info-soft);color:var(--info)">
-            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+            <svg class="w-6 h-6" viewBox="0 0 640 512" fill="currentColor"><path d="M208 352c114.9 0 208-78.8 208-176S322.9 0 208 0S0 78.8 0 176c0 38.6 14.7 74.3 39.6 103.4c-3.5 9.4-8.7 17.7-14.2 24.7c-4.8 6.2-9.7 11-13.3 14.3c-1.8 1.6-3.3 2.9-4.3 3.7c-.5 .4-.9 .7-1.1 .8l-.2 .2s0 0 0 0s0 0 0 0C1 327.2-1.4 334.4 .8 340.9S9.1 352 16 352c21.8 0 43.8-5.6 62.1-12.5c9.2-3.5 17.8-7.4 25.2-11.4C134.1 343.3 169.8 352 208 352zM448 176c0 112.3-99.1 196.9-216.5 207C255.8 457.4 336.4 512 432 512c38.2 0 73.9-8.7 104.7-23.9c7.5 4 16 7.9 25.2 11.4c18.3 6.9 40.3 12.5 62.1 12.5c6.9 0 13.1-4.5 15.2-11.1c2.1-6.6-.2-13.8-5.8-17.9c0 0 0 0 0 0s0 0 0 0l-.2-.2c-.2-.2-.6-.4-1.1-.8c-1-.8-2.5-2-4.3-3.7c-3.6-3.3-8.5-8.1-13.3-14.3c-5.5-7-10.7-15.4-14.2-24.7c24.9-29 39.6-64.7 39.6-103.4c0-92.8-84.9-168.9-192.6-175.5c.4 5.1 .6 10.3 .6 15.5z"/></svg>
           </span>
           <h3 class="t-h4">잇티챗 오픈채팅</h3>
           <p class="t-sm mt-2.5 leading-relaxed">참가코드로 바로 입장. 같이 갈 사람을 찾거나 실시간으로 맛집 정보를 나눠요.</p>
@@ -464,9 +458,9 @@
 
         <a href="taste-quiz" class="e-card e-card-pad e-card-hover block">
           <span class="w-12 h-12 rounded-[14px] grid place-items-center mb-5" style="background:var(--warning-soft);color:var(--warning)">
-            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/></svg>
+            <svg class="w-6 h-6" viewBox="0 0 384 512" fill="currentColor"><path d="M192 0c-41.8 0-77.4 26.7-90.5 64L64 64C28.7 64 0 92.7 0 128L0 448c0 35.3 28.7 64 64 64l256 0c35.3 0 64-28.7 64-64l0-320c0-35.3-28.7-64-64-64l-37.5 0C269.4 26.7 233.8 0 192 0zm0 64a32 32 0 1 1 0 64 32 32 0 1 1 0-64zM72 272a24 24 0 1 1 48 0 24 24 0 1 1 -48 0zm112-16l96 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-96 0c-8.8 0-16-7.2-16-16s7.2-16 16-16zM72 368a24 24 0 1 1 48 0 24 24 0 1 1 -48 0zm112-16l96 0c8.8 0 16 7.2 16 16s-7.2 16-16 16l-96 0c-8.8 0-16-7.2-16-16s7.2-16 16-16z"/></svg>
           </span>
-          <h3 class="t-h4">음BTI 취향 테스트</h3>
+          <h3 class="t-h4">음식 취향 찾기 취향 테스트</h3>
           <p class="t-sm mt-2.5 leading-relaxed">12문항으로 내 음식 취향 유형을 진단하고, 유형에 맞는 메뉴를 추천받습니다.</p>
           <span class="e-link-brand text-[13px] inline-flex items-center gap-1 mt-4">
             테스트 시작
@@ -483,36 +477,12 @@
       <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <div class="order-2 lg:order-1">
           <div class="e-card overflow-hidden shadow-[var(--sh-md)]">
-            <div class="e-map h-[340px] md:h-[420px]">
-              <div class="e-map-note">
-                네이버 지도(Naver Maps) 삽입 영역
-                <span>실제 서비스에서는 이 영역에 지도가 렌더링됩니다</span>
-              </div>
-              <div class="e-marker is-active" style="left:32%;top:38%">
-                <div class="e-marker-pin">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
-                  라 스텔라
-                </div>
-              </div>
-              <div class="e-marker" style="left:63%;top:56%">
-                <div class="e-marker-pin">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
-                  무니
-                </div>
-              </div>
-              <div class="e-marker" style="left:48%;top:22%">
-                <div class="e-marker-pin">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
-                  청담옥
-                </div>
-              </div>
-            </div>
+            <div id="heroMap" class="h-[340px] md:h-[420px]" style="background:#eceff3"></div>
           </div>
         </div>
 
         <div class="order-1 lg:order-2">
-          <span class="e-eyebrow">MAP SEARCH</span>
-          <h2 class="t-h2 mt-5">지도에서 바로,<br>지금 갈 수 있는 곳</h2>
+          <h2 class="t-h2">지도에서 바로,<br>지금 갈 수 있는 곳</h2>
           <p class="t-lead mt-4">현재 위치 기준으로 카테고리와 가격대를 걸러 보세요. 마커를 누르면 리뷰와 길찾기까지 한 번에 이어집니다.</p>
 
           <ul class="mt-8 space-y-4">
@@ -549,8 +519,7 @@
   <section class="py-16 md:py-24">
     <div class="e-container">
       <div class="text-center max-w-xl mx-auto">
-        <span class="e-eyebrow">HOW IT WORKS</span>
-        <h2 class="t-h2 mt-5">3단계로 끝나는 맛집 찾기</h2>
+        <h2 class="t-h2">3단계로 끝나는 맛집 찾기</h2>
       </div>
 
       <div class="mt-12 grid md:grid-cols-3 gap-5">
@@ -558,7 +527,7 @@
           <span class="absolute right-6 top-5 text-[54px] font-extrabold leading-none" style="color:var(--brand-100)">01</span>
           <span class="e-badge e-badge--brand-solid">검색</span>
           <h3 class="t-h4 mt-4">조건을 말합니다</h3>
-          <p class="t-sm mt-2.5 leading-relaxed">지도에서 필터로 좁히거나, AI에게 문장으로 물어보세요. 음BTI 결과가 있으면 취향까지 반영됩니다.</p>
+          <p class="t-sm mt-2.5 leading-relaxed">지도에서 필터로 좁히거나, AI에게 문장으로 물어보세요. 음식 취향 찾기 결과가 있으면 취향까지 반영됩니다.</p>
         </div>
         <div class="e-card e-card-pad relative">
           <span class="absolute right-6 top-5 text-[54px] font-extrabold leading-none" style="color:var(--brand-100)">02</span>
@@ -576,54 +545,8 @@
     </div>
   </section>
 
-  <!-- ========================= 사용자 유형 안내 ========================= -->
-  <section class="py-16 md:py-24 bg-white border-y border-[var(--line)]">
-    <div class="e-container">
-      <div class="max-w-xl">
-        <span class="e-eyebrow">FOR EVERYONE</span>
-        <h2 class="t-h2 mt-5">역할에 맞는 화면을 제공합니다</h2>
-        <p class="t-lead mt-4">일반 회원, 사업자 회원, 운영 관리자가 각각 필요한 기능만 보게 됩니다.</p>
-      </div>
-
-      <div class="mt-12 grid md:grid-cols-3 gap-5">
-        <div class="e-card e-card-pad flex flex-col">
-          <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-5" style="background:var(--brand-50);color:var(--brand-500)">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
-          </span>
-          <h3 class="t-h4">일반 회원</h3>
-          <p class="t-sm mt-2.5 leading-relaxed flex-1">맛집 검색 · AI 추천 · 영수증 리뷰 · 즐겨찾기 · 오픈채팅 · 음BTI를 모두 이용합니다.</p>
-          <div class="flex gap-2 mt-6">
-            <a href="signup" class="btn btn-primary btn-sm flex-1">회원가입</a>
-            <a href="login" class="btn btn-outline btn-sm flex-1">로그인</a>
-          </div>
-        </div>
-
-        <div class="e-card e-card-pad flex flex-col">
-          <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-5" style="background:var(--info-soft);color:var(--info)">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 5 4h14l2 5M3 9h18v11H3V9Z"/><path d="M9 20v-6h6v6"/></svg>
-          </span>
-          <h3 class="t-h4">사업자 회원</h3>
-          <p class="t-sm mt-2.5 leading-relaxed flex-1">사업자등록번호와 증명원 인증 후, 내 매장 정보와 리뷰 반응을 관리합니다.</p>
-          <div class="flex gap-2 mt-6">
-            <a href="signup-business" class="btn btn-secondary btn-sm flex-1">사업자 가입</a>
-            <a href="login-business" class="btn btn-outline btn-sm flex-1">사업자 로그인</a>
-          </div>
-        </div>
-
-        <div class="e-card e-card-pad flex flex-col e-card-dark">
-          <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-5" style="background:rgba(255,255,255,.1);color:#fff">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.3 3.4 9.4 8 11 4.6-1.6 8-5.7 8-11V5l-8-3Z"/></svg>
-          </span>
-          <h3 class="t-h4 !text-white">운영 관리자</h3>
-          <p class="text-[13.5px] mt-2.5 leading-relaxed flex-1 text-[var(--ink-400)]">회원 정지/해제, 리뷰·채팅 신고 처리, API 서버 상태를 한 화면에서 확인합니다.</p>
-          <a href="admin" class="btn btn-white btn-sm mt-6">관리자 콘솔 열기</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- ============================== CTA ============================== -->
-  <section class="py-16 md:py-24">
+  <section class="py-16 md:py-24 bg-white">
     <div class="e-container">
       <div class="rounded-[var(--r-xl)] p-8 md:p-14 text-center relative overflow-hidden" style="background:var(--brand-grad);box-shadow:var(--sh-brand)">
         <div class="absolute w-[380px] h-[380px] rounded-full -right-24 -top-32" style="background:rgba(255,255,255,.12)"></div>
@@ -660,9 +583,6 @@
           AI 기반 맛집 검색·추천 및 커뮤니티 서비스.<br>
           영수증으로 인증된 진짜 리뷰만 모읍니다.
         </p>
-        <p class="text-xs mt-5 text-[var(--ink-500)]">
-          본 서비스는 학습/포트폴리오 목적의 프로젝트입니다.
-        </p>
       </div>
 
       <div>
@@ -670,8 +590,7 @@
         <nav class="e-footer-list">
           <a href="explore">지도 탐색</a>
           <a href="recommend">AI 추천</a>
-          <a href="receipt-upload">영수증 리뷰</a>
-          <a href="taste-quiz">음BTI 테스트</a>
+          <a href="taste-quiz">음식 취향 찾기 테스트</a>
           <a href="chat">잇티챗</a>
         </nav>
       </div>
@@ -691,10 +610,9 @@
       <div>
         <p class="e-footer-title">고객지원 · 정책</p>
         <nav class="e-footer-list">
-          <a href="support">고객센터 · AI 상담</a>
+          <a href="support">고객센터</a>
           <a href="terms-service">이용약관</a>
           <a href="terms-privacy">개인정보처리방침</a>
-          <a href="admin">관리자 콘솔</a>
         </nav>
       </div>
     </div>
@@ -729,32 +647,6 @@
   </a>
 </nav>
 
-<script>
-/* 인기 검색 칩 클릭 시 검색창 채우기 */
-document.addEventListener('click', function (e) {
-  var chip = e.target.closest('[data-keyword]');
-  if (!chip) return;
-  var input = document.getElementById('heroSearchInput');
-  if (input) { input.value = chip.getAttribute('data-keyword'); input.focus(); }
-});
-
-/* 헤더 드롭다운/드로어의 닉네임·이메일·음BTI는 api.js가 못 채우는 중복 표시 영역이라 여기서 채운다. */
-if (window.Api && Api.isLoggedIn()) {
-  Api.request('/api/members/me').then(function (me) {
-    ['headerNicknameHead', 'drawerNickname'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.textContent = me.nickname || '';
-    });
-    var drawerEmail = document.getElementById('drawerEmail');
-    if (drawerEmail) drawerEmail.textContent = me.email || '';
-    if (me.foodBti) {
-      ['headerFoodBtiBadge', 'drawerFoodBtiBadge'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) { el.textContent = '음BTI · ' + me.foodBti; el.hidden = false; }
-      });
-    }
-  }).catch(function () {});
-}
-</script>
+<script defer src="assets/js/index.js"></script>
 </body>
 </html>

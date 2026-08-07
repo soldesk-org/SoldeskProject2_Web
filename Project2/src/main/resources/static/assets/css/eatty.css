@@ -112,7 +112,24 @@ html body {
   line-height: 1.6;
 }
 
-html { scroll-behavior: smooth; }
+/* html 자체에도 배경색을 줘야 한다(2026-08-07) — "html body{...}"는 body에만 적용되고 html은 계속
+   투명이라, 모바일 Safari의 elastic overscroll(화면 끝에서 더 당기면 튕기는 바운스 효과) 때 body
+   바깥의 흰 여백이 그대로 드러나 "배경이 옆에 덜 채워진 것처럼" 보이는 문제가 있었다(실기기 확인). */
+html { background-color: var(--bg-soft); scroll-behavior: smooth; }
+
+/* 페이지 전체 세로 스크롤바(2026-08-07 추가) — Windows Chrome은 기본적으로 non-overlay 스크롤바를
+   그리는데, 그 트랙 색이 항상 흰색/회색 계열 OS 기본값이라 페이지 배경(--bg-soft, 살짝 라벤더 톤)과
+   미묘하게 달라서 "화면 오른쪽 끝이 배경이 덜 채워진 것처럼" 보이는 원인이었다(실측 확인 — 실기기
+   Safari의 오버스크롤 문제와는 별개). 트랙을 페이지 배경과 같은 색으로 맞춘다.
+   #resultList 등 내부 콘텐츠 전용 스크롤(.e-scroll)은 이미 자기 색이 있어 영향 없음. */
+html { scrollbar-width: thin; scrollbar-color: var(--ink-200) var(--bg-soft); }
+html::-webkit-scrollbar { width: 10px; }
+html::-webkit-scrollbar-track { background: var(--bg-soft); }
+html::-webkit-scrollbar-thumb {
+  background: var(--ink-200); border-radius: var(--r-full);
+  border: 2px solid var(--bg-soft); background-clip: padding-box;
+}
+html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-clip: padding-box; }
 
 *, *::before, *::after { -webkit-tap-highlight-color: transparent; }
 
@@ -135,14 +152,6 @@ html { scroll-behavior: smooth; }
 }
 
 /* 건너뛰기 링크 */
-.skip-link {
-  position: absolute; left: 16px; top: -60px; z-index: 200;
-  background: var(--ink-900); color: #fff; padding: 10px 16px;
-  border-radius: var(--r-sm); font-size: 14px; font-weight: 600;
-  transition: top var(--dur) var(--ease);
-}
-.skip-link:focus { top: 16px; }
-
 /* =============================== 3. 레이아웃 ============================== */
 .e-container {
   width: 100%;
@@ -241,8 +250,13 @@ html { scroll-behavior: smooth; }
 }
 
 /* --- 모바일 드로어 ------------------------------------------------------- */
+/* z-index 90→96, 91→97(2026-08-07 수정) — explore.html의 가게 상세 오버레이(.ex-detail, z-index:95)가
+   열려있는 상태에서 햄버거 메뉴를 눌러 이 드로어를 열면, 드로어/backdrop이 상세 패널보다 z-index가
+   낮아서(90/91 < 95) 상세 패널 내용이 드로어 위로 뚫고 나와 보이고 하단 탭바만 흐릿하게 깔린 배경으로
+   보이는 등 화면이 뒤섞이는 문제가 있었다(실측 확인). 드로어 스택 전체를 상세 패널보다 위로 올려서
+   열면 항상 깔끔하게 그 위를 완전히 덮도록 한다. */
 .e-drawer-backdrop {
-  position: fixed; inset: 0; z-index: 90;
+  position: fixed; inset: 0; z-index: 96;
   background: rgba(24, 21, 25, .45);
   opacity: 0; visibility: hidden;
   transition: opacity var(--dur) var(--ease), visibility var(--dur);
@@ -250,7 +264,7 @@ html { scroll-behavior: smooth; }
 .e-drawer-backdrop.is-open { opacity: 1; visibility: visible; }
 
 .e-drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 91;
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 97;
   width: min(88vw, 340px);
   background: var(--bg);
   box-shadow: var(--sh-lg);
@@ -387,10 +401,16 @@ html { scroll-behavior: smooth; }
 /* --- 관리자 사이드바 ---------------------------------------------------- */
 .e-admin-shell { display: flex; min-height: 100vh; }
 .e-admin-side {
-  position: fixed; inset: 0 auto 0 0; z-index: 80;
+  /* z-index 92→98(2026-08-07) — .e-drawer-backdrop을 96으로 올렸을 때 이 값도 같이 올리지 않으면
+     예전에 고쳤던 "사이드바가 backdrop보다 아래라 까맣게 가려지는" 문제가 재발한다. */
+  position: fixed; inset: 0 auto 0 0; z-index: 98;
   width: var(--admin-side-w);
-  background: var(--ink-900);
-  color: var(--ink-300);
+  background: rgba(255, 255, 255, .88);
+  /* 배경이 밝아져서 본문 흰 배경과 붙어 보이는 걸 막기 위한 경계선 + 살짝 블러(반투명이라 뒤 콘텐츠가
+     스크롤될 때 글자가 비쳐 보이는 것도 같이 방지). */
+  border-right: 1px solid var(--line);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  color: var(--ink-600);
   display: flex; flex-direction: column;
   transform: translateX(-100%);
   transition: transform .26s var(--ease);
@@ -406,15 +426,15 @@ html { scroll-behavior: smooth; }
   display: flex; align-items: center; gap: 11px;
   margin: 2px 10px; padding: 11px 13px;
   border-radius: var(--r);
-  font-size: 14.5px; font-weight: 600; color: var(--ink-400);
+  font-size: 14.5px; font-weight: 600; color: var(--ink-600);
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
-.e-admin-side-link:hover { background: rgba(255, 255, 255, .07); color: #fff; }
+.e-admin-side-link:hover { background: rgba(0, 0, 0, .05); color: var(--ink-900); }
 .e-admin-side-link.is-active { background: var(--brand-grad); color: #fff; box-shadow: var(--sh-brand-sm); }
 .e-admin-side-link svg { width: 18px; height: 18px; flex: none; }
 .e-admin-side-label {
   padding: 18px 23px 7px; font-size: 11px; font-weight: 700;
-  letter-spacing: .09em; text-transform: uppercase; color: var(--ink-600);
+  letter-spacing: .09em; text-transform: uppercase; color: var(--ink-500);
 }
 
 /* ========================== 4. 타이포그래피 유틸 ========================= */
@@ -608,6 +628,10 @@ html { scroll-behavior: smooth; }
   appearance: none;
 }
 .e-input::placeholder, .e-textarea::placeholder { color: var(--ink-400); }
+/* type="search" 기본 취소(X) 아이콘은 브라우저마다 색/모양이 제각각이라 항상 숨기고,
+   대신 마크업에서 .e-eye 버튼으로 커스텀 X를 직접 붙인다(explore.html 검색창과 동일한 패턴). */
+.e-input[type="search"]::-webkit-search-cancel-button,
+.e-input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
 .e-input:hover, .e-textarea:hover, .e-select:hover { border-color: var(--ink-400); }
 .e-input:focus, .e-textarea:focus, .e-select:focus {
   outline: none;
@@ -765,6 +789,7 @@ html { scroll-behavior: smooth; }
 }
 .e-choice input { position: absolute; opacity: 0; pointer-events: none; }
 .e-choice-body {
+  display: block;
   border: 1.5px solid var(--line); border-radius: var(--r-md);
   background: var(--bg); padding: 18px;
   transition: all .18s var(--ease);
@@ -941,6 +966,8 @@ html { scroll-behavior: smooth; }
 @media (max-width: 380px) { .e-shop-thumb { width: 70px; height: 70px; } }
 
 /* ========================= 8. 배지 · 칩 · 태그 ========================== */
+.e-badge[hidden] { display: none !important; }
+#viewPublicPageBtn[hidden] { display: none !important; }
 .e-badge {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 10px; border-radius: var(--r-full);
@@ -988,7 +1015,6 @@ html { scroll-behavior: smooth; }
 .e-chip:hover { border-color: var(--brand-300); color: var(--brand-600); background: var(--brand-50); }
 .e-chip[aria-pressed="true"], .e-chip.is-active {
   background: var(--brand-grad); border-color: transparent; color: #fff;
-  box-shadow: var(--sh-brand-sm);
 }
 .e-chip-sm { height: 32px; padding: 0 12px; font-size: 12.5px; }
 
@@ -1043,6 +1069,9 @@ html { scroll-behavior: smooth; }
 }
 .e-tag--pos { background: var(--brand-50); color: var(--brand-700); }
 .e-tag--neg { background: var(--ink-100); color: var(--ink-600); }
+/* 표 안에서 태그가 2줄 이상으로 줄바꿈될 때 위/아래 줄이 붙어보이지 않도록 세로 간격을 준다
+   (2026-08-06 추가 — 관리자 리뷰 관리 표, .e-tag를 공백 문자만으로 이어붙이던 걸 이 래퍼로 교체). */
+.e-tag-wrap { display: flex; flex-wrap: wrap; gap: 6px 8px; }
 
 /* ==================== 9. 탭 / 세그먼트 / 스테퍼 ========================= */
 /* 밑줄형 탭 */
@@ -1116,6 +1145,11 @@ html { scroll-behavior: smooth; }
 @media (max-width: 640px) {
   .e-step-label { display: none; }
   .e-step.is-current .e-step-label { display: block; }
+  /* 라벨을 숨겨도 아주 좁은 화면(작은 iPhone 등)에서는 여전히 몇 px 넘칠 수 있어(2026-08-07,
+     find-password 등에서 실측) 넘치면 스테퍼 자체가 가로 스크롤되게 안전장치를 둔다 — 페이지 전체가
+     옆으로 늘어나는 것보다 이 좁은 영역만 스크롤되는 쪽이 훨씬 낫다. */
+  .e-steps { overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+  .e-steps::-webkit-scrollbar { display: none; }
 }
 
 /* 진행률 바 */
@@ -1132,6 +1166,7 @@ html { scroll-behavior: smooth; }
 
 /* 페이지네이션 */
 .e-pagination { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.e-pagination[hidden] { display: none !important; }
 .e-page-btn {
   min-width: 38px; height: 38px; padding: 0 10px;
   display: inline-grid; place-items: center;
@@ -1220,7 +1255,7 @@ html { scroll-behavior: smooth; }
 .e-modal-desc { margin-top: 6px; font-size: 14px; color: var(--ink-500); line-height: 1.65; }
 .e-modal-body { padding: 20px 24px; }
 .e-modal-foot {
-  display: flex; gap: 10px; padding: 8px 24px 24px;
+  display: flex; gap: 10px; padding: 8px 24px 24px; margin-top: 10px;
 }
 .e-modal-foot > .btn { flex: 1; }
 .e-modal-close {
@@ -1351,14 +1386,17 @@ body.is-modal-open { overflow: hidden; }
 /* 이미지 플레이스홀더 — 실제 이미지로 교체할 자리 */
 .e-img-ph {
   position: relative; overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(253, 109, 74, .13) 0%, rgba(254, 162, 85, .2) 100%),
-    var(--bg-muted);
+  background-image: url('../../img/no-image.png'), none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 60%;
+  background-color: var(--bg-muted);
   display: grid; place-items: center;
 }
-.e-img-ph svg { width: 26%; max-width: 40px; height: auto; color: rgba(253, 109, 74, .5); }
-.e-img-ph--gray { background: var(--bg-muted); }
-.e-img-ph--gray svg { color: var(--ink-300); }
+.e-img-ph svg { display: none; }
+.e-img-ph--gray { background-color: var(--bg-muted); }
+/* 작은 썸네일(84px 안팎)에서는 60%로 축소하면 "NO IMAGE" 글자가 안 보여서 더 크게 채운다 */
+.e-shop-thumb.e-img-ph { background-size: 130%; }
 .e-img-ph-label {
   position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
   font-size: 10px; font-weight: 700; color: rgba(24, 21, 25, .38);
@@ -1384,6 +1422,15 @@ body.is-modal-open { overflow: hidden; }
 .e-rating-input button:hover { transform: scale(1.15); }
 .e-rating-input svg { width: 34px; height: 34px; color: var(--ink-200); transition: color .14s var(--ease); }
 .e-rating-input button.is-on svg { color: #ffb020; }
+
+/* 즐겨찾기(하트) 아이콘 공통 — 눌리면 빨간색으로 채워짐 */
+.e-heart-icon { transition: fill .15s var(--ease), color .15s var(--ease); }
+.e-heart-btn[aria-pressed="true"] .e-heart-icon,
+.e-heart-btn.is-active .e-heart-icon,
+.e-heart-icon.is-active {
+  fill: var(--danger);
+  color: var(--danger);
+}
 
 /* ======================= 13. 지도 영역 (네이버 지도) ==================== */
 /* 실제 라이브러리는 미연결. 아래 요소에 new naver.maps.Map(el, ...) 을 붙인다. */
@@ -1490,6 +1537,14 @@ body.is-modal-open { overflow: hidden; }
 }
 .e-chat-list { border-right: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; min-height: 0; }
 .e-chat-room { background: var(--bg-soft); display: flex; flex-direction: column; min-height: 0; }
+/* #chatRoomEmpty(grid)/#chatRoomActive(flex)는 Tailwind CDN의 display 유틸리티 클래스를 갖고 있어,
+   그 클래스의 명시도가 브라우저 기본 [hidden]{display:none} 규칙과 같은 값(0,1,0)이면서 스타일시트에서
+   더 나중에 로드되어 hidden 속성을 이겨버린다(2026-08-05 발견 - "방을 선택해도 안내 화면이 그대로 보임"
+   버그의 원인). !important로 확실히 되돌린다. */
+#chatRoomEmpty[hidden], #chatRoomActive[hidden] { display: none !important; }
+/* 방 만들기 모달 - 생성 완료 후 입력 필드/취소 버튼을 hidden으로 감추는 부분도 같은 부류(.btn이
+   inline-flex라 버튼 쪽이 특히 취약) - 확실히 하기 위해 명시적으로 override. */
+#newRoomNameField[hidden], #newRoomMaxMembersField[hidden], #createRoomCancelBtn[hidden] { display: none !important; }
 
 .e-chat-item {
   display: flex; gap: 12px; width: 100%; text-align: left;
@@ -1599,7 +1654,11 @@ body.is-modal-open { overflow: hidden; }
 .e-scroll::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-clip: padding-box; }
 .e-scroll { scrollbar-width: thin; scrollbar-color: var(--ink-200) transparent; }
 
-.e-scroll-x { overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+/* min-width:0(2026-08-07 추가) — flex/grid 아이템의 기본 min-width는 auto라, 내용(칩 목록 등)이
+   길면 overflow-x:auto가 있어도 부모가 그 내용 너비만큼 안 줄어들어서 페이지 전체가 옆으로 늘어나는
+   문제가 있었다(explore.html 카테고리 필터 줄에서 실측). min-width:0을 줘야 실제로 좁아지면서
+   내부 스크롤이 동작한다. */
+.e-scroll-x { overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; min-width: 0; }
 .e-scroll-x::-webkit-scrollbar { display: none; }
 
 /* 히어로 배경 장식 */
@@ -1807,7 +1866,7 @@ body.is-modal-open { overflow: hidden; }
 
 /* 진행 단계 문구 (질문 이해 → 자료 검색 → 답변 작성) */
 .e-thinking-step {
-  margin-top: 8px;
+  margin-top: 0;
   font-size: 12.5px; font-weight: 700; color: var(--ink-500);
   display: flex; align-items: center; gap: 6px;
 }
@@ -1982,7 +2041,7 @@ body.is-modal-open { overflow: hidden; }
 /* 벨 버튼 위 미읽음 카운트 */
 .e-noti-count {
   position: absolute; top: 5px; right: 5px;
-  min-width: 18px; height: 18px; padding: 0 5px;
+  min-width: 18px; height: 18px;
   border-radius: var(--r-full);
   background: var(--brand-500); color: #fff;
   border: 2px solid #fff;
@@ -1993,10 +2052,15 @@ body.is-modal-open { overflow: hidden; }
 .e-noti-count[hidden] { display: none !important; }
 
 /* --- 패널 ------------------------------------------------------------- */
+/* position:fixed(2026-08-07 수정) — body에 바로 붙는 패널이라(eatty-ui.js notiBuildPanel 참고)
+   더 이상 .e-dropdown 기준 position:absolute로 앵커링하지 않는다. top/right는 데스크탑에서
+   notiPositionPanel()이 버튼 좌표로 인라인 설정한다. */
 .e-noti-panel {
-  position: absolute; right: 0; top: calc(100% + 10px);
+  /* z-index 75→99(2026-08-07) — explore.html의 가게 상세 오버레이(.ex-detail, z-index:95)가 열린
+     상태에서 알림을 열면 같은 이유로 화면이 뒤섞이던 문제(드로어와 동일 원인)를 막는다. */
+  position: fixed;
   width: 380px; max-width: calc(100vw - 32px);
-  z-index: 75;
+  z-index: 99;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -2023,7 +2087,7 @@ body.is-modal-open { overflow: hidden; }
 
 /* 모바일 패널 뒤 배경 */
 .e-noti-backdrop {
-  position: fixed; inset: 0; z-index: 74;
+  position: fixed; inset: 0; z-index: 98;
   background: rgba(24, 21, 25, .4);
   opacity: 0; visibility: hidden;
   transition: opacity .2s var(--ease), visibility .2s;

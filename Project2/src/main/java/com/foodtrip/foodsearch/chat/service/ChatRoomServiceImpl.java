@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.foodtrip.foodsearch.chat.dto.ChatActionResponseDto;
 import com.foodtrip.foodsearch.chat.dto.ChatMessageResponseDto;
+import com.foodtrip.foodsearch.chat.dto.ChatRoomMemberResponseDto;
 import com.foodtrip.foodsearch.chat.dto.ChatRoomResponseDto;
 import com.foodtrip.foodsearch.chat.entity.ChatMessage;
 import com.foodtrip.foodsearch.chat.entity.ChatRoom;
@@ -91,6 +92,13 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         }
 
         long memberCount = chatRoomMemberRepository.countByChatRoomIdAndLeftAtIsNull(room.getChatRoomId());
+        // 2026-08-05 추가 - "인원도 실시간으로 표시" 요청. 이미 활성 참가자였던 재입장(alreadyActive)은
+        // 인원수가 바뀌지 않으므로 브로드캐스트하지 않는다.
+        if (!alreadyActive) {
+            String nickname = memberRepository.findById(memberId).map(Member::getNickname).orElse("참가자");
+            messagingTemplate.convertAndSend("/topic/rooms/" + room.getChatRoomId(),
+                    ChatMessageResponseDto.memberUpdate(room.getChatRoomId(), nickname + "님이 입장했습니다.", memberCount));
+        }
         return toDto(room, memberCount);
     }
 
@@ -131,6 +139,29 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 .toList();
     }
 
+    // 2026-08-05 신규 - "참여자 목록이 안 보인다"는 요청으로 현재 활성 참가자 개별 목록을 노출한다.
+    // 방에 참가 중인 회원만 조회할 수 있다(비참가자는 requireActiveMember에서 403).
+    @Override
+    public List<ChatRoomMemberResponseDto> listMembers(String authorizationHeader, Long chatRoomId) {
+        Long memberId = resolveMemberId(authorizationHeader);
+        requireActiveMember(chatRoomId, memberId);
+
+        ChatRoom room = chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+        List<ChatRoomMember> members = chatRoomMemberRepository
+                .findByChatRoomIdAndLeftAtIsNullOrderByJoinedAtAsc(chatRoomId);
+
+        List<Long> memberIds = members.stream().map(ChatRoomMember::getMemberId).toList();
+        Map<Long, String> nicknameByMemberId = memberRepository.findAllById(memberIds).stream()
+                .collect(Collectors.toMap(Member::getMemberId, Member::getNickname));
+
+        return members.stream()
+                .map(m -> new ChatRoomMemberResponseDto(m.getMemberId(),
+                        nicknameByMemberId.getOrDefault(m.getMemberId(), "알 수 없음"),
+                        m.getMemberId().equals(room.getHostMemberId()), m.getJoinedAt()))
+                .toList();
+    }
+
     @Override
     @Transactional
     public ChatActionResponseDto leaveRoom(String authorizationHeader, Long chatRoomId) {
@@ -139,6 +170,12 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 .filter(ChatRoomMember::isActive)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_NOT_MEMBER));
         membership.leave();
+
+        // 2026-08-05 추가 - joinRoom과 동일한 이유로 퇴장도 실시간 인원수 갱신을 브로드캐스트한다.
+        long memberCount = chatRoomMemberRepository.countByChatRoomIdAndLeftAtIsNull(chatRoomId);
+        String nickname = memberRepository.findById(memberId).map(Member::getNickname).orElse("참가자");
+        messagingTemplate.convertAndSend("/topic/rooms/" + chatRoomId,
+                ChatMessageResponseDto.memberUpdate(chatRoomId, nickname + "님이 나갔습니다.", memberCount));
         return new ChatActionResponseDto(true, "채팅방에서 나갔습니다.");
     }
 

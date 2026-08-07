@@ -13,16 +13,9 @@
   var chatRoomEmpty = document.getElementById("chatRoomEmpty");
   var chatRoomActive = document.getElementById("chatRoomActive");
   var messageArea = document.getElementById("messageArea");
-  var connectionStatus = document.getElementById("connectionStatus");
 
   var currentRoom = null;
   var stompClient = null;
-
-  function setConnectionStatus(connected) {
-    connectionStatus.textContent = connected ? "실시간 연결됨" : "연결 중...";
-    connectionStatus.classList.toggle("e-status--on", connected);
-    connectionStatus.classList.toggle("e-status--off", !connected);
-  }
 
   // ---- 방 목록 ----
   function renderRoomItem(room) {
@@ -72,14 +65,21 @@
       sys.textContent = m.content;
       messageArea.appendChild(sys);
       scrollToBottom();
+      // 2026-08-05 추가 - 입장/퇴장 알림에는 갱신된 인원수가 함께 실려온다("인원도 실시간으로 표시"
+      // 요청). 화면 여러 곳(방 헤더, 참여자 모달, 사이드바 목록)의 인원수 표시를 재조회 없이 갱신한다.
+      if (m.memberCount != null && currentRoom && currentRoom.chatRoomId === m.chatRoomId) {
+        currentRoom.memberCount = m.memberCount;
+        document.getElementById("roomMemberCount").textContent = m.memberCount + " / " + currentRoom.maxMembers;
+        document.getElementById("memberListTitle").textContent = "참여자 " + m.memberCount + "명";
+        if (!document.getElementById("memberListModal").hasAttribute("aria-hidden") ||
+            document.getElementById("memberListModal").getAttribute("aria-hidden") === "false") {
+          loadMemberList(currentRoom.chatRoomId);
+        }
+        loadMyRooms();
+      }
       return;
     }
     if (m.type === "ROOM_CLOSED") {
-      var closed = document.createElement("div");
-      closed.className = "e-msg-system e-msg-system--danger";
-      closed.textContent = m.content;
-      messageArea.appendChild(closed);
-      scrollToBottom();
       Eatty.toast("방이 폭파되어 나가집니다.", "error");
       setTimeout(backToList, 900);
       return;
@@ -129,7 +129,6 @@
   // ---- STOMP ----
   function connectStomp(roomId) {
     disconnectStomp();
-    setConnectionStatus(false);
     var wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     stompClient = new StompJs.Client({
       brokerURL: wsProtocol + "//" + window.location.host + "/ws-chat",
@@ -137,19 +136,38 @@
       reconnectDelay: 3000,
     });
     stompClient.onConnect = function () {
-      setConnectionStatus(true);
       stompClient.subscribe("/topic/rooms/" + roomId, function (frame) { renderMessage(JSON.parse(frame.body)); });
       stompClient.subscribe("/user/queue/errors", function (frame) {
         var err = JSON.parse(frame.body);
         Eatty.toast(err.message || "메시지 전송에 실패했습니다.", "error");
       });
     };
-    stompClient.onWebSocketClose = function () { setConnectionStatus(false); };
     stompClient.activate();
   }
   function disconnectStomp() {
     if (stompClient) { stompClient.deactivate(); stompClient = null; }
   }
+
+  // ---- 참여자 목록 ---- (2026-08-05 신규: GET /api/chat/rooms/{id}/members, 현재 활성 참가자만)
+  function loadMemberList(roomId) {
+    var memberList = document.getElementById("memberList");
+    Api.request("/api/chat/rooms/" + roomId + "/members").then(function (members) {
+      memberList.innerHTML = (members || []).map(function (m) {
+        var isMe = m.memberId === myMemberId;
+        return '<li class="flex items-center gap-3 py-3">' +
+          '<span class="e-avatar e-avatar-sm flex-none" aria-hidden="true">' + escapeHtml((m.nickname || "?").charAt(0)) + '</span>' +
+          '<div class="min-w-0 flex-1"><p class="text-sm font-bold text-[var(--ink-900)]">' + escapeHtml(m.nickname) +
+          (isMe ? ' <span class="t-xs font-semibold">(나)</span>' : '') + '</p></div>' +
+          (m.host ? '<span class="e-badge e-badge--brand-solid flex-none">방장</span>' : '') +
+          '</li>';
+      }).join("");
+    }).catch(function () {});
+  }
+  document.querySelectorAll('[data-modal-open="memberListModal"]').forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (currentRoom) loadMemberList(currentRoom.chatRoomId);
+    });
+  });
 
   // ---- 방 입장/목록 전환 ----
   function enterRoom(room) {
@@ -160,15 +178,8 @@
     document.getElementById("roomMemberCount").textContent = room.memberCount + " / " + room.maxMembers;
     document.getElementById("roomCodeBadge").textContent = "코드 " + room.joinCode;
     document.getElementById("memberListTitle").textContent = "참여자 " + room.memberCount + "명";
-
-    var memberList = document.getElementById("memberList");
-    memberList.innerHTML =
-      '<li class="flex items-center gap-3 py-3">' +
-      '<span class="e-avatar e-avatar-sm flex-none" aria-hidden="true">' + escapeHtml((room.hostNickname || "?").charAt(0)) + '</span>' +
-      '<div class="min-w-0 flex-1"><p class="text-sm font-bold text-[var(--ink-900)]">' + escapeHtml(room.hostNickname) +
-      (isOwner ? ' <span class="t-xs font-semibold">(나)</span>' : '') + '</p></div>' +
-      '<span class="e-badge e-badge--brand-solid flex-none">방장</span></li>' +
-      '<li class="py-3"><p class="t-xs">현재 인원 ' + room.memberCount + ' / ' + room.maxMembers + '명</p></li>';
+    document.getElementById("memberListDesc").textContent = room.title + " · 최대 " + room.maxMembers + "명";
+    loadMemberList(room.chatRoomId);
 
     chatRoomEmpty.hidden = true;
     chatRoomActive.hidden = false;
@@ -196,9 +207,7 @@
   document.getElementById("joinCodeSubmitBtn").addEventListener("click", function () {
     var input = document.getElementById("joinCodeInput");
     var code = input.value.trim();
-    var errorEl = document.getElementById("joinCodeError");
     if (!code) return;
-    errorEl.classList.remove("is-visible");
     Api.request("/api/chat/rooms/join", { method: "POST", body: { joinCode: code } })
       .then(function (room) {
         Eatty.closeModal("joinCodeModal");
@@ -206,8 +215,7 @@
         enterRoom(room);
       })
       .catch(function (err) {
-        document.getElementById("joinCodeErrorText").textContent = err.message || "존재하지 않는 코드이거나 만석인 방입니다.";
-        errorEl.classList.add("is-visible");
+        Eatty.toast(err.message || "존재하지 않는 코드이거나 만석인 방입니다.", "error");
       });
   });
   document.getElementById("joinCodeInput").addEventListener("input", function () {
@@ -221,9 +229,15 @@
   });
 
   var createdRoom = null;
+  var newRoomNameField = document.getElementById("newRoomNameField");
+  var newRoomMaxMembersField = document.getElementById("newRoomMaxMembersField");
+  var createRoomCancelBtn = document.getElementById("createRoomCancelBtn");
   document.getElementById("createRoomBtn").addEventListener("click", function () {
     createdRoom = null;
     document.getElementById("createdCodeBox").hidden = true;
+    newRoomNameField.hidden = false;
+    newRoomMaxMembersField.hidden = false;
+    createRoomCancelBtn.hidden = false;
     document.getElementById("newRoomName").value = "";
     document.getElementById("newRoomName").disabled = false;
     maxRange.value = 5;
@@ -244,20 +258,45 @@
         createdRoom = room;
         document.getElementById("createdCodeText").textContent = room.joinCode;
         document.getElementById("createdCodeBox").hidden = false;
-        document.getElementById("newRoomName").disabled = true;
+        // 2026-08-05 후속 - "만들기 단계 필드는 이제 필요 없으니 참가코드+입장 버튼만" 요청으로,
+        // 생성 완료 후에는 방 제목/최대 인원 입력과 취소 버튼을 숨기고 결과만 보여준다.
+        newRoomNameField.hidden = true;
+        newRoomMaxMembersField.hidden = true;
+        createRoomCancelBtn.hidden = true;
         document.getElementById("createRoomSubmitBtn").textContent = "채팅방 입장하기";
-        Eatty.toast("방을 만들었습니다. 참가코드를 공유해주세요.", "brand");
+        Eatty.toast("방을 만들었습니다. 참가코드를 공유해주세요.", "success");
       })
       .catch(function (err) { Eatty.toast(err.message || "채팅방 생성에 실패했습니다.", "error"); });
   });
 
+  // navigator.clipboard는 HTTPS/localhost가 아니면(사설 IP로 접속하는 팀원 등) undefined라 아무 반응이
+  // 없었다("복사 시 복사해주고" 요청) - textarea + execCommand로 폴백한다.
+  function copyText(text) {
+    if (navigator.clipboard) {
+      return navigator.clipboard.writeText(text).then(function () { Eatty.toast("복사되었습니다.", "success"); });
+    }
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand("copy");
+      Eatty.toast("복사되었습니다.", "success");
+    } catch (e) {
+      Eatty.toast("복사에 실패했습니다.", "error");
+    }
+    document.body.removeChild(ta);
+    return Promise.resolve();
+  }
   document.getElementById("copyCreatedCodeBtn").addEventListener("click", function () {
-    var t = document.getElementById("createdCodeText").textContent.trim();
-    if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { Eatty.toast("참가코드를 복사했습니다.", "success"); });
+    copyText(document.getElementById("createdCodeText").textContent.trim());
   });
   document.getElementById("copyRoomCodeBtn").addEventListener("click", function () {
     if (!currentRoom) return;
-    if (navigator.clipboard) navigator.clipboard.writeText(currentRoom.joinCode).then(function () { Eatty.toast("참가코드를 복사했습니다.", "success"); });
+    copyText(currentRoom.joinCode);
   });
 
   // ---- 메시지 전송 ----

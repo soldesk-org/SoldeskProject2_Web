@@ -32,15 +32,61 @@
   var resultsCache = [];
   var selectedCategoryId = null;
   var priceMin = 0, priceMax = 50000;
+  var openNowOnly = false;
+  var currentSearchType = "all";
   var lastKeyword = "";
   var currentDetail = null;
   var directionsLine = null;
+  var detailImages = [];
+  var detailImageIndex = 0;
+  var detailImageBox = document.getElementById("detailImageBox");
+  var DETAIL_IMG_PLACEHOLDER =
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>';
+
+  // 매장 사진 갤러리(2026-08-06 추가) — 대표 이미지가 항상 0번(백엔드가 그렇게 정렬해서 준다). 상세를
+  // 새로 열거나 새로고침할 때마다 detailImageIndex를 0으로 되돌려 항상 대표 이미지부터 보여준다.
+  function renderDetailImage() {
+    if (!detailImageBox) return;
+    if (!detailImages.length) {
+      detailImageBox.innerHTML = DETAIL_IMG_PLACEHOLDER;
+      return;
+    }
+    var showArrows = detailImages.length > 1;
+    detailImageBox.innerHTML =
+      '<img src="' + escapeHtml(detailImages[detailImageIndex]) + '" class="size-full object-cover" alt="">' +
+      (showArrows ?
+        '<button type="button" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 grid place-items-center shadow-[var(--sh-sm)] hover:bg-white" data-detail-img-prev aria-label="이전 사진">' +
+          '<svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>' +
+        '</button>' +
+        '<button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 grid place-items-center shadow-[var(--sh-sm)] hover:bg-white" data-detail-img-next aria-label="다음 사진">' +
+          '<svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>' +
+        '</button>' +
+        '<div class="absolute left-1/2 -translate-x-1/2 bottom-3 flex items-center gap-1.5">' +
+          detailImages.map(function (_, i) {
+            return '<span class="w-1.5 h-1.5 rounded-full ' + (i === detailImageIndex ? "bg-white" : "bg-white/50") + '"></span>';
+          }).join("") +
+        '</div>'
+        : "");
+  }
+
+  if (detailImageBox) {
+    detailImageBox.addEventListener("click", function (e) {
+      if (e.target.closest("[data-detail-img-prev]")) {
+        detailImageIndex = (detailImageIndex - 1 + detailImages.length) % detailImages.length;
+        renderDetailImage();
+      } else if (e.target.closest("[data-detail-img-next]")) {
+        detailImageIndex = (detailImageIndex + 1) % detailImages.length;
+        renderDetailImage();
+      }
+    });
+  }
 
   var searchForm = document.getElementById("exploreSearchForm");
   var searchInput = document.getElementById("exploreSearchInput");
   var resultList = document.getElementById("resultList");
   var resultCount = document.getElementById("resultCount");
   var resultEmpty = document.getElementById("resultEmpty");
+  var resultLoading = document.getElementById("resultLoading");
   var researchAreaBtn = document.getElementById("researchAreaBtn");
   var detailPanel = document.getElementById("shopDetailPanel");
 
@@ -50,32 +96,47 @@
     return { minLat: sw.lat(), maxLat: ne.lat(), minLng: sw.lng(), maxLng: ne.lng() };
   }
 
-  var DEFAULT_MARKER_ICON = {
-    content:
-      '<div style="width:27px;height:35px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))">' +
-      '<svg width="27" height="35" viewBox="0 0 27 35" xmlns="http://www.w3.org/2000/svg">' +
-      '<path d="M13.5 0C6.04 0 0 6.04 0 13.5 0 22.5 13.5 35 13.5 35S27 22.5 27 13.5C27 6.04 20.96 0 13.5 0Z" fill="#fd6d4a"/>' +
-      '<circle cx="13.5" cy="13.5" r="5.5" fill="#fff"/></svg></div>',
-    size: new naver.maps.Size(27, 35),
-    anchor: new naver.maps.Point(13.5, 35),
-  };
+  // 지도 중심에서 화면 가장자리까지의 대략적인 거리(하버사인 공식)를 "반경"으로 표시
+  var searchRadiusBadge = document.getElementById("searchRadiusBadge");
+  function haversineMeters(lat1, lng1, lat2, lng2) {
+    var R = 6371000;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLng = (lng2 - lng1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+  function updateRadiusBadge() {
+    if (!map || !searchRadiusBadge) return;
+    var bounds = getBounds();
+    var center = map.getCenter();
+    var meters = haversineMeters(center.y, center.x, bounds.maxLat, bounds.maxLng);
+    var label = meters < 1000 ? Math.round(meters / 50) * 50 + "m" : (meters / 1000).toFixed(1) + "km";
+    searchRadiusBadge.textContent = "현재 지도 반경 " + label;
+  }
+
   function markerIcon(categoryName) {
     var url = CATEGORY_MARKER[categoryName];
-    if (!url) return DEFAULT_MARKER_ICON;
     return { url: url, size: new naver.maps.Size(27, 35), scaledSize: new naver.maps.Size(27, 35), anchor: new naver.maps.Point(13.5, 35) };
   }
   function clearMarkers() {
     markers.forEach(function (m) { m.setMap(null); });
     markers = [];
   }
-  function renderMarkers(list) {
+  function renderMarkers(list, alwaysShow) {
     clearMarkers();
     list.forEach(function (item) {
       if (item.latitude == null || item.longitude == null) return;
+      var classified = !!CATEGORY_MARKER[item.category];
+      // 카테고리 분류가 안 된 매장은 지도 전체 브라우징 중엔 기본 마커 대신 생략하지만(마커 바다 방지),
+      // alwaysShow(공유 링크로 들어와 그 가게 하나만 보여줄 때)는 미분류라도 네이버 기본 마커로 보여준다.
+      if (!classified && !alwaysShow) return;
       var marker = new naver.maps.Marker({
         position: new naver.maps.LatLng(item.latitude, item.longitude),
-        map: map, title: item.name, icon: markerIcon(item.category),
+        map: map, title: item.name,
       });
+      if (classified) marker.setIcon(markerIcon(item.category));
       naver.maps.Event.addListener(marker, "click", function () { openDetail(item); });
       markers.push(marker);
     });
@@ -121,8 +182,17 @@
     return btn;
   }
 
-  function renderResults(list) {
+  function showLoading() {
+    resultList.querySelectorAll(".e-shop-card").forEach(function (el) { el.remove(); });
+    resultEmpty.hidden = true;
+    var lm = document.getElementById("loadMoreBtn");
+    if (lm) lm.hidden = true;
+    resultLoading.hidden = false;
+  }
+
+  function renderResults(list, alwaysShowMarkers) {
     resultsCache = list;
+    resultLoading.hidden = true;
     resultList.querySelectorAll(".e-shop-card").forEach(function (el) { el.remove(); });
     if (resultCount) resultCount.textContent = list.length;
     if (!list.length) {
@@ -138,33 +208,42 @@
       var lm = document.getElementById("loadMoreBtn");
       if (lm) lm.hidden = true; // 서버가 페이지네이션 커서를 안 쓰는 방식이라 "더 보기"는 단순화해서 숨김
     }
-    renderMarkers(list);
+    renderMarkers(list, alwaysShowMarkers);
   }
 
   function searchArea() {
     if (!map) return;
+    closeDetail();
     var bounds = getBounds();
+    updateRadiusBadge();
     if (researchAreaBtn) researchAreaBtn.parentElement.style.display = "none";
+    showLoading();
     fetchList("/api/restaurants/filter", {
       minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng,
       categoryId: selectedCategoryId,
       minPrice: priceMin > 0 ? priceMin : null,
       maxPrice: priceMax >= 50000 ? null : priceMax,
+      openNow: openNowOnly ? true : null,
       page: 0, size: 50,
     }).then(function (data) { renderResults(data.restaurants || []); }).catch(function () { renderResults([]); });
   }
 
   function searchKeyword(keyword) {
     lastKeyword = keyword;
+    closeDetail();
     var bounds = map ? getBounds() : {};
+    showLoading();
     fetchList("/api/restaurants/search", {
       keyword: keyword,
       minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng,
+      openNow: openNowOnly ? true : null,
+      type: currentSearchType,
       page: 0, size: 50,
     }).then(function (data) {
       renderResults(data.restaurants || []);
       var first = (data.restaurants || [])[0];
       if (first && first.latitude != null) map.setCenter(new naver.maps.LatLng(first.latitude, first.longitude));
+      updateRadiusBadge();
     }).catch(function () { renderResults([]); });
   }
 
@@ -176,6 +255,18 @@
       if (kw) searchKeyword(kw); else searchArea();
     });
   }
+  // 검색 대상 세그먼트(전체/가게명/메뉴명) — 탭 자체의 선택 표시(is-active/aria-selected)는
+  // eatty-ui.js의 공용 [data-tabs] 핸들러가 처리하고, 여기서는 실제 검색 조건만 갱신한다.
+  var searchTypeGroup = document.getElementById("searchTypeGroup");
+  if (searchTypeGroup) {
+    searchTypeGroup.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-search-type]");
+      if (!btn) return;
+      currentSearchType = btn.getAttribute("data-search-type");
+      if (searchInput && searchInput.value.trim()) searchKeyword(searchInput.value.trim());
+    });
+  }
+
   var searchClearBtn = document.getElementById("searchClearBtn");
   if (searchClearBtn) {
     searchClearBtn.addEventListener("click", function () { searchInput.value = ""; searchArea(); });
@@ -187,7 +278,7 @@
   if (categoryFilterList) {
     var allBtn = categoryFilterList.querySelector('[data-category="all"]');
     Api.request("/api/restaurants/categories").then(function (categories) {
-      (categories || []).forEach(function (c) {
+      (categories || []).filter(function (c) { return c.categoryName !== "그 외"; }).forEach(function (c) {
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "e-chip";
@@ -229,7 +320,7 @@
   var filterResetBtn = document.getElementById("filterResetBtn");
   if (filterResetBtn) {
     filterResetBtn.addEventListener("click", function () {
-      selectedCategoryId = null; priceMin = 0; priceMax = 50000;
+      selectedCategoryId = null; priceMin = 0; priceMax = 50000; openNowOnly = false;
       searchInput.value = "";
       if (categoryFilterList) {
         categoryFilterList.querySelectorAll("[data-category-id], [data-category='all']").forEach(function (b) {
@@ -237,16 +328,18 @@
         });
       }
       document.querySelectorAll('[data-price]').forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-price") === "all" ? "true" : "false"); });
+      if (openNowSwitch) openNowSwitch.checked = false;
       searchArea();
     });
   }
 
-  // "영업중만" 토글은 목록 단건마다 실시간 영업 상태를 계산할 API가 없어(목록 응답에 businessHours가
-  // 없음) 실제로 필터링하지 못한다 — 지어낸 필터링을 하는 대신 있는 그대로 안내만 한다.
+  // "영업중만" 토글(2026-08-03) — 사업자가 영업시간을 등록한 가게만 대상으로 서버(openNow 파라미터)가
+  // 실제로 필터링한다. 영업시간 미등록 가게는 열려있는지 알 방법이 없어 결과에서 함께 빠진다.
   var openNowSwitch = document.getElementById("openNowSwitch");
   if (openNowSwitch) {
     openNowSwitch.addEventListener("change", function () {
-      if (openNowSwitch.checked) Eatty.toast("영업중 필터는 아직 지원되지 않습니다.", "default");
+      openNowOnly = openNowSwitch.checked;
+      searchArea();
     });
   }
   // 정렬도 서버가 지원하는 정렬 기준이 다르므로, 받아온 결과를 클라이언트에서 재정렬한다.
@@ -281,7 +374,7 @@
   function renderMenus(menus) {
     var el = document.getElementById("detailTabMenu");
     if (!el) return;
-    if (!menus || !menus.length) { el.innerHTML = '<p class="t-sm">등록된 메뉴 정보가 없습니다.</p>'; return; }
+    if (!menus || !menus.length) { el.innerHTML = '<p class="t-sm py-4 text-center">등록된 메뉴 정보가 없습니다.</p>'; return; }
     el.innerHTML = '<div class="space-y-2.5">' + menus.map(function (m) {
       return '<div class="flex items-center justify-between"><span class="text-sm font-semibold text-[var(--ink-800)]">' + escapeHtml(m.name) + '</span>' +
         '<span class="text-sm font-bold text-[var(--ink-800)]">' + (m.price != null ? Number(m.price).toLocaleString() + "원" : "") + '</span></div>';
@@ -305,7 +398,10 @@
           '</div>' +
           (keywords ? '<div class="flex flex-wrap gap-1 mt-2">' + keywords + '</div>' : "") +
           '<p class="t-sm mt-2.5 leading-relaxed">' + escapeHtml(r.content) + '</p>' +
-          '<button type="button" class="btn btn-ghost btn-xs mt-2" data-report-review="' + r.reviewId + '">🚩 신고</button>' +
+          '<button type="button" class="btn btn-ghost btn-xs mt-2 inline-flex items-center gap-1" data-report-review="' + r.reviewId + '">' +
+            '<svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>' +
+            '신고' +
+          '</button>' +
           '</li>';
       }).join("");
     }
@@ -372,6 +468,7 @@
 
   function openDetail(item) {
     currentDetail = item;
+    detailPanel.hidden = false;
     detailPanel.classList.add("is-open");
     detailPanel.setAttribute("aria-hidden", "false");
     document.getElementById("directionsResult").hidden = true;
@@ -380,35 +477,88 @@
     if (tagDistWrap) tagDistWrap.hidden = true;
 
     document.getElementById("detailShopName").textContent = item.name;
-    document.getElementById("detailCategory").textContent = item.category || "";
+    var categoryEl = document.getElementById("detailCategory");
+    categoryEl.textContent = item.category || "";
+    categoryEl.hidden = !item.category;
     document.getElementById("detailRating").innerHTML = starsHtml(item.averageRating) +
       '<span class="e-rating-score">' + (item.averageRating != null ? Number(item.averageRating).toFixed(1) : "-") + '</span>';
     document.getElementById("detailReviewCount").textContent = item.reviewCount || 0;
+    // 리뷰 작성이 영수증 인증 필수라서(2026-07-23 정책) 전체 리뷰 수 = 영수증 인증 리뷰 수다.
+    var receiptBadgeEl = document.getElementById("detailReceiptReviewCount");
+    if (receiptBadgeEl) receiptBadgeEl.textContent = item.reviewCount || 0;
+    var reviewTabCountEl = document.getElementById("detailReviewTabCount");
+    if (reviewTabCountEl) reviewTabCountEl.textContent = item.reviewCount || 0;
     document.getElementById("detailAddress").textContent = item.roadAddress || item.address || "";
+
+    // 상세 갤러리 — 목록에서 이미 알고 있는 대표 이미지로 우선 보여주고(즉시 표시), 아래 상세 조회가
+    // 끝나면 전체 갤러리(여러 장)로 다시 채운다. 매번 0번(대표)부터 시작한다.
+    detailImages = item.imageUrl ? [item.imageUrl] : [];
+    detailImageIndex = 0;
+    renderDetailImage();
 
     var favBtn = document.getElementById("favoriteBtn");
     favBtn.setAttribute("aria-pressed", item.favorite ? "true" : "false");
     favBtn.classList.toggle("is-active", !!item.favorite);
+    document.getElementById("favoriteLabel").textContent = item.favorite ? "저장됨" : "저장";
 
     var callBtn = document.getElementById("callBtn");
     var writeReviewBtn = document.getElementById("writeReviewBtn");
     if (writeReviewBtn) {
-      var params = new URLSearchParams();
-      params.set("restaurantId", item.restaurantId);
-      params.set("name", item.name || "");
-      if (item.address) params.set("address", item.address);
-      if (item.roadAddress) params.set("roadAddress", item.roadAddress);
-      if (item.latitude != null) params.set("latitude", item.latitude);
-      if (item.longitude != null) params.set("longitude", item.longitude);
-      writeReviewBtn.setAttribute("href", "receipt-upload?" + params.toString());
+      // restaurantId만 URL에 남기고(딥링크/새로고침용 식별자일 뿐), 가게 이름/주소/좌표 같은 실제
+      // 표시 정보는 URL이 아니라 이 시점에 sessionStorage에 통째로 심어두는 스냅샷에서만 읽는다
+      // (2026-08-05 강화) — restaurantId는 그대로 두고 name 등 다른 파라미터만 주소창에서 바꿔서
+      // 엉뚱한 가게 이름으로 리뷰를 남기려는 시도를 막기 위함. receipt-upload.js는 URL의 name/address
+      // 등은 아예 신뢰하지 않는다.
+      writeReviewBtn.setAttribute("href", "receipt-upload?restaurantId=" + encodeURIComponent(item.restaurantId));
+      writeReviewBtn.onclick = function () {
+        sessionStorage.setItem("ru_entry_restaurant", JSON.stringify({
+          restaurantId: item.restaurantId,
+          name: item.name || "",
+          address: item.address || "",
+          roadAddress: item.roadAddress || "",
+          latitude: item.latitude != null ? item.latitude : null,
+          longitude: item.longitude != null ? item.longitude : null,
+        }));
+        sessionStorage.setItem("ru_entry_at", String(Date.now()));
+      };
     }
 
     var shareBtn = document.getElementById("shareBtn");
     if (shareBtn) {
       shareBtn.onclick = function () {
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(window.location.origin + "/explore?shopId=" + item.restaurantId);
+        var shareParams = new URLSearchParams();
+        shareParams.set("shopId", item.restaurantId);
+        if (item.name) shareParams.set("name", item.name);
+        if (item.category) shareParams.set("category", item.category);
+        if (item.address) shareParams.set("address", item.address);
+        if (item.roadAddress) shareParams.set("roadAddress", item.roadAddress);
+        if (item.latitude != null) shareParams.set("latitude", item.latitude);
+        if (item.longitude != null) shareParams.set("longitude", item.longitude);
+        var shareUrl = window.location.origin + "/explore?" + shareParams.toString();
+        function fallbackCopy(text) {
+          var textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          var ok = false;
+          try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+          document.body.removeChild(textarea);
+          return ok;
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(shareUrl).then(function () {
+            Eatty.toast("링크를 복사했습니다.", "success");
+          }).catch(function () {
+            var copied = fallbackCopy(shareUrl);
+            Eatty.toast(copied ? "링크를 복사했습니다." : "링크 복사에 실패했습니다.", copied ? "success" : "error");
+          });
+        } else if (fallbackCopy(shareUrl)) {
           Eatty.toast("링크를 복사했습니다.", "success");
+        } else {
+          Eatty.toast("링크 복사에 실패했습니다.", "error");
         }
       };
     }
@@ -424,6 +574,23 @@
         document.getElementById("detailHours").textContent = renderHours(detail.businessHours);
         if (callBtn) callBtn.setAttribute("href", detail.phone ? "tel:" + detail.phone : "tel:");
         renderMenus(detail.menus);
+
+        detailImages = (detail.images && detail.images.length) ? detail.images : (detail.imageUrl ? [detail.imageUrl] : []);
+        detailImageIndex = 0;
+        renderDetailImage();
+
+        var tagsWrap = document.getElementById("detailTagsWrap");
+        var tagsEl = document.getElementById("detailTags");
+        if (tagsWrap && tagsEl) {
+          var tags = detail.tags || [];
+          if (tags.length) {
+            tagsEl.innerHTML = tags.map(function (t) { return '<span class="e-tag">' + escapeHtml(t) + '</span>'; }).join("");
+            tagsWrap.hidden = false;
+          } else {
+            tagsEl.innerHTML = "";
+            tagsWrap.hidden = true;
+          }
+        }
       })
       .catch(function () {});
 
@@ -436,12 +603,15 @@
     }
   }
 
-  document.getElementById("detailCloseBtn").addEventListener("click", function () {
+  function closeDetail() {
     detailPanel.classList.remove("is-open");
     detailPanel.setAttribute("aria-hidden", "true");
+    detailPanel.hidden = true;
     currentDetail = null;
     if (directionsLine) { directionsLine.setMap(null); directionsLine = null; }
-  });
+  }
+
+  document.getElementById("detailCloseBtn").addEventListener("click", closeDetail);
 
   document.getElementById("favoriteBtn").addEventListener("click", function () {
     if (!currentDetail) return;
@@ -457,6 +627,7 @@
       item.favorite = res.favorite;
       btn.setAttribute("aria-pressed", item.favorite ? "true" : "false");
       btn.classList.toggle("is-active", !!item.favorite);
+      document.getElementById("favoriteLabel").textContent = item.favorite ? "저장됨" : "저장";
     }).catch(function (err) { Eatty.toast(err.message || "즐겨찾기 처리에 실패했습니다.", "error"); })
       .finally(function () { btn.disabled = false; });
   });
@@ -509,19 +680,7 @@
     });
   });
 
-  // 대중교통/도보 경로는 실제로 지원하는 API가 없다(NCP Direction 5는 자동차 경로만 지원) — 자동차로
-  // 안내하고, 다른 이동수단 버튼은 안내만 하도록 처리.
-  var routeModeGroup = document.getElementById("routeModeGroup");
-  if (routeModeGroup) {
-    routeModeGroup.addEventListener("click", function (e) {
-      var btn = e.target.closest("[data-route-mode]");
-      if (!btn) return;
-      routeModeGroup.querySelectorAll("[data-route-mode]").forEach(function (b) { b.setAttribute("aria-pressed", b === btn ? "true" : "false"); });
-      if (btn.getAttribute("data-route-mode") !== "CAR") {
-        Eatty.toast("현재는 자동차 경로만 지원합니다.", "default");
-      }
-    });
-  }
+  // 대중교통/도보 경로는 실제로 지원하는 API가 없다(NCP Direction 5는 자동차 경로만 지원) — 자동차 결과만 보여준다.
   var directionsCloseBtn = document.getElementById("directionsCloseBtn");
   if (directionsCloseBtn) {
     directionsCloseBtn.addEventListener("click", function () {
@@ -542,7 +701,7 @@
         var countBadge = document.getElementById("parkingCountBadge");
         if (countBadge) countBadge.textContent = (lots || []).length + "곳";
         if (!lots || !lots.length) {
-          listEl.innerHTML = '<p class="t-sm">주변에 등록된 주차장이 없습니다.</p>';
+          listEl.innerHTML = '<p class="t-sm py-4 text-center">주변에 등록된 주차장이 없습니다.</p>';
           return;
         }
         listEl.innerHTML = lots.slice(0, 5).map(function (p) {
@@ -565,9 +724,65 @@
   // ---- 지도 초기화 ----
   function initMap(center) {
     map = new naver.maps.Map("naverMap", { center: new naver.maps.LatLng(center.lat, center.lng), zoom: 15 });
-    naver.maps.Event.addListener(map, "dragend", function () { if (researchAreaBtn) researchAreaBtn.parentElement.style.display = ""; });
-    naver.maps.Event.addListener(map, "zoom_changed", function () { if (researchAreaBtn) researchAreaBtn.parentElement.style.display = ""; });
-    searchArea();
+    naver.maps.Event.addListener(map, "dragend", function () { if (researchAreaBtn) researchAreaBtn.parentElement.style.display = ""; updateRadiusBadge(); });
+    naver.maps.Event.addListener(map, "zoom_changed", function () { if (researchAreaBtn) researchAreaBtn.parentElement.style.display = ""; updateRadiusBadge(); });
+
+    var qp = new URLSearchParams(window.location.search);
+    var sharedShopId = qp.get("shopId");
+    var initialKeyword = qp.get("q");
+    if (sharedShopId) {
+      openSharedRestaurant(sharedShopId, qp);
+    } else if (initialKeyword && initialKeyword.trim()) {
+      if (searchInput) searchInput.value = initialKeyword.trim();
+      searchKeyword(initialKeyword.trim());
+    } else {
+      searchArea();
+    }
+  }
+
+  // 공유 링크(?shopId=...)로 들어온 경우 — 카카오는 place id 단건 재조회가 안 되므로 링크에
+  // 함께 실어보낸 name/address/roadAddress/latitude/longitude 를 그대로 상세조회 API에 넘긴다.
+  // 이 경우 지도/리스트는 주변 전체가 아니라 공유받은 그 가게 하나만 보여준다(searchArea() 미호출).
+  function openSharedRestaurant(shopId, qp) {
+    var name = qp.get("name") || "";
+    var categoryQ = qp.get("category") || "";
+    var address = qp.get("address") || "";
+    var roadAddress = qp.get("roadAddress") || "";
+    var latQ = qp.get("latitude");
+    var lngQ = qp.get("longitude");
+    if (latQ && lngQ) map.setCenter(new naver.maps.LatLng(Number(latQ), Number(lngQ)));
+    if (researchAreaBtn) researchAreaBtn.parentElement.style.display = "none";
+    showLoading();
+    Api.request("/api/restaurants/" + encodeURIComponent(shopId) +
+      "?name=" + encodeURIComponent(name) +
+      "&address=" + encodeURIComponent(address) +
+      "&roadAddress=" + encodeURIComponent(roadAddress) +
+      (latQ ? "&latitude=" + latQ : "") +
+      (lngQ ? "&longitude=" + lngQ : ""))
+      .then(function (detail) {
+        var item = {
+          restaurantId: detail.restaurantId || shopId,
+          name: detail.name || name,
+          category: detail.category || categoryQ || null,
+          averageRating: detail.averageRating,
+          reviewCount: detail.reviewCount,
+          address: detail.address || address,
+          roadAddress: detail.roadAddress || roadAddress,
+          latitude: detail.latitude != null ? Number(detail.latitude) : (latQ ? Number(latQ) : null),
+          longitude: detail.longitude != null ? Number(detail.longitude) : (lngQ ? Number(lngQ) : null),
+          favorite: detail.favorite,
+          imageUrl: detail.imageUrl,
+        };
+        renderResults([item], true);
+        if (item.latitude != null && item.longitude != null) {
+          map.setCenter(new naver.maps.LatLng(item.latitude, item.longitude));
+        }
+        openDetail(item);
+      })
+      .catch(function () {
+        renderResults([]);
+        Eatty.toast("공유된 가게 정보를 불러오지 못했습니다.", "error");
+      });
   }
 
   if (navigator.geolocation) {

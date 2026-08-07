@@ -16,8 +16,7 @@
    입장/퇴장 시스템 메시지도 같은 토픽으로 수신한다고 가정합니다.
 
  실제 오픈채팅은 참가코드로만 입장 가능하고(카카오톡 오픈채팅과 동일한 방식), 전체 공개방 브라우징/검색
- API가 없어 시안의 검색창·전체 공개방 탭·카테고리·비공개 스위치는 제거했다. 참여자 개별 목록/강제 퇴장
- API도 없어 참여자 목록은 방장 닉네임 + 인원수만 표시한다.
+ API가 없어 시안의 검색창·전체 공개방 탭·카테고리·비공개 스위치는 제거했다. 강제 퇴장 API는 없다.
 
  [좌측 · 채팅방 목록]
    #chatListPane            목록 패널 루트
@@ -27,11 +26,11 @@
    #createRoomBtn           방 만들기 (data-modal-open="createRoomModal")
 
  [참가코드 입장 모달]  ★ POST /api/chat/rooms/join {joinCode}
-   #joinCodeModal / #joinCodeInput / #joinCodeError / #joinCodeSubmitBtn
+   #joinCodeModal / #joinCodeInput / #joinCodeSubmitBtn (실패 시 토스트로만 안내)
 
  [방 만들기 모달]  ★ POST /api/chat/rooms {title, maxMembers}
    #createRoomModal / #newRoomName / #newRoomNameCounter
-   #newRoomMaxMembers       최대 인원 (name="maxMembers", 2~50, 기본 5)
+   #newRoomMaxMembers       최대 인원 (name="maxMembers", 2~5, 기본 5)
    #maxMembersText / #createRoomSubmitBtn
    #createdCodeBox / #createdCodeText / #copyCreatedCodeBtn
 
@@ -50,7 +49,7 @@
    #messageForm / #messageInput / #sendMessageBtn
    #connectionStatus        WebSocket 연결 상태 표시
 
- [참여자 목록 모달] — 실제로는 방장 닉네임 + 인원수만 알 수 있음(개별 참여자 목록 API 없음)
+ [참여자 목록 모달] ★ GET /api/chat/rooms/{roomId}/members (현재 활성 참가자만)
    #memberListModal / #memberList
 
  [신고 모달] ★ POST /api/chat/messages/{id}/report 또는 /api/chat/rooms/{id}/report
@@ -73,22 +72,10 @@
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/chat.js"></script>
 
-<style>
-  /* 모바일: 목록 ↔ 방 화면 전환 */
-  @media (max-width: 1023px) {
-    .e-chat-shell { grid-template-columns: 1fr; height: calc(100vh - var(--header-h)); }
-    body.chat-room-open .e-chat-list { display: none; }
-    body:not(.chat-room-open) .e-chat-room { display: none; }
-  }
-  /* 방장 전용 요소 */
-  [data-owner-only] { display: none; }
-  body[data-room-role="owner"] [data-owner-only] { display: flex; }
-  body[data-room-role="owner"] button[data-owner-only].e-dropdown-item { display: flex; }
-</style>
+<link rel="stylesheet" href="assets/css/chat.css">
 </head>
 
 <body data-room-role="member">
-<a href="#messageArea" class="skip-link">대화 내용으로 건너뛰기</a>
 
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header e-header--solid" id="siteHeader">
@@ -101,16 +88,15 @@
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
       <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
       <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
       <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
 
     <div class="e-header-actions">
-      <span class="e-status e-status--on e-status--live hidden md:flex !text-[12px] mr-1" id="connectionStatus">실시간 연결됨</span>
-
       <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest" hidden>
         <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
         <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
@@ -125,7 +111,7 @@
         <div class="e-dropdown">
           <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
                   id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
-            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
             <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="e-dropdown-menu" id="headerProfileMenu">
@@ -161,9 +147,9 @@
   <div class="e-drawer-body">
     <a class="e-drawer-link" href="explore">지도 탐색</a>
     <a class="e-drawer-link" href="recommend">AI 추천</a>
-    <a class="e-drawer-link" href="receipt-upload">영수증 리뷰</a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
     <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz">음BTI</a>
+    <a class="e-drawer-link" href="taste-quiz">음식 취향 찾기</a>
     <div class="e-drawer-sep"></div>
     <a class="e-drawer-link" href="support">고객센터</a>
     <a class="e-drawer-link" href="mypage">마이페이지</a>
@@ -206,13 +192,6 @@
         <p class="e-empty-title">참여 중인 방이 없어요</p>
         <p class="e-empty-desc">방을 만들거나 참가코드로 입장해보세요.</p>
       </div>
-    </div>
-
-    <!-- 하단 안내 -->
-    <div class="p-3.5 border-t border-[var(--line)]">
-      <p class="t-xs leading-relaxed">
-        오픈채팅은 누구나 볼 수 있어요. 연락처 등 개인정보는 공유하지 마세요.
-      </p>
     </div>
   </section>
 
@@ -326,11 +305,8 @@
   <div class="e-modal-panel e-modal-panel--sm">
     <div class="e-modal-head">
       <div>
-        <span class="e-modal-icon e-modal-icon--brand">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0"/></svg>
-        </span>
         <h2 class="e-modal-title" id="joinCodeTitle">참가코드로 입장</h2>
-        <p class="e-modal-desc">방장에게 받은 6자리 코드를 입력해주세요.</p>
+        <p class="e-modal-desc">방장에게 받은 8자리 코드를 입력해주세요.</p>
       </div>
       <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -340,12 +316,8 @@
     <div class="e-modal-body">
       <div class="e-field !mb-0">
         <label class="e-label" for="joinCodeInput">참가코드 <span class="req">*</span></label>
-        <input type="text" class="e-input e-input-lg text-center tracking-[.4em] font-extrabold uppercase"
-               id="joinCodeInput" placeholder="ABC123" maxlength="6" autocomplete="off" data-modal-autofocus>
-        <p class="e-error" id="joinCodeError">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-          <span id="joinCodeErrorText">존재하지 않는 코드이거나 만석인 방입니다.</span>
-        </p>
+        <input type="text" class="e-input e-input-lg text-center tracking-[.3em] font-extrabold uppercase"
+               id="joinCodeInput" placeholder="ABCD1234" maxlength="8" autocomplete="off" data-modal-autofocus>
         <p class="e-hint">대소문자를 구분하지 않습니다.</p>
       </div>
     </div>
@@ -372,7 +344,7 @@
     </div>
 
     <div class="e-modal-body">
-      <div class="e-field">
+      <div class="e-field" id="newRoomNameField">
         <label class="e-label" for="newRoomName">
           방 제목 <span class="req">*</span>
           <span class="e-label-side"><span id="newRoomNameCounter" data-counter="newRoomName">0 / 30</span></span>
@@ -382,21 +354,21 @@
       </div>
 
       <!-- 최대 인원 -->
-      <div class="e-field !mb-0">
+      <div class="e-field !mb-0" id="newRoomMaxMembersField">
         <label class="e-label" for="newRoomMaxMembers">
           최대 인원 <span class="req">*</span>
           <span class="e-label-side"><b class="t-brand t-num" id="maxMembersText">5</b>명</span>
         </label>
         <input type="range" class="w-full accent-[var(--brand-500)]" id="newRoomMaxMembers" name="maxMembers"
-               min="2" max="50" step="1" value="5">
+               min="2" max="5" step="1" value="5">
         <div class="flex justify-between t-xs mt-1.5">
-          <span>2명</span><span>25명</span><span>50명</span>
+          <span>2명</span><span>3명</span><span>4명</span><span>5명</span>
         </div>
         <p class="e-hint">인원이 가득 차면 추가 입장이 제한됩니다.</p>
       </div>
 
-      <!-- 생성 결과 (참가코드) -->
-      <div class="mt-5" id="createdCodeBox" hidden>
+      <!-- 생성 결과 (참가코드) - 생성 전에는 방 제목/최대 인원 필드가, 생성 후에는 이 박스만 보인다 -->
+      <div id="createdCodeBox" hidden>
         <div class="p-5 rounded-[var(--r-md)] text-center" style="background:var(--brand-grad-soft);border:1px solid var(--brand-100)">
           <p class="text-[13px] font-bold text-[var(--brand-700)]">방이 만들어졌어요! 참가코드를 공유해주세요</p>
           <p class="text-[30px] font-extrabold tracking-[.2em] t-grad mt-3" id="createdCodeText">EAT7K2</p>
@@ -409,7 +381,7 @@
     </div>
 
     <div class="e-modal-foot">
-      <button type="button" class="btn btn-outline" data-modal-close>취소</button>
+      <button type="button" class="btn btn-outline" data-modal-close id="createRoomCancelBtn">취소</button>
       <button type="button" class="btn btn-primary" id="createRoomSubmitBtn">방 만들기</button>
     </div>
   </div>
@@ -421,8 +393,8 @@
   <div class="e-modal-panel e-modal-panel--sm">
     <div class="e-modal-head">
       <div>
-        <h2 class="e-modal-title" id="memberListTitle">참여자 8명</h2>
-        <p class="e-modal-desc">강남 맛집 같이 갈 사람 · 최대 12명</p>
+        <h2 class="e-modal-title" id="memberListTitle">참여자 목록</h2>
+        <p class="e-modal-desc" id="memberListDesc"></p>
       </div>
       <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -431,11 +403,6 @@
 
     <div class="e-modal-body">
       <ul class="divide-y divide-[var(--line-soft)]" id="memberList"></ul>
-      <p class="e-hint mt-2">방장 외 참여자 개별 목록은 제공되지 않습니다.</p>
-    </div>
-
-    <div class="e-modal-foot">
-      <button type="button" class="btn btn-outline" data-modal-close>닫기</button>
     </div>
   </div>
 </div>
@@ -539,14 +506,6 @@
     </div>
 
     <div class="e-modal-body">
-      <div class="e-alert e-alert--danger mb-4">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-        <div>
-          <p class="e-alert-title">삭제되는 항목</p>
-          <p>대화 내용 전체 · 참가코드</p>
-        </div>
-      </div>
-
       <div class="e-field !mb-0">
         <label class="e-label" for="explodeConfirmInput">
           확인을 위해 <b class="t-brand">방 폭파</b> 를 입력해주세요 <span class="req">*</span>
@@ -562,6 +521,29 @@
   </div>
 </div>
 
+<!-- 모바일 하단 탭바(2026-08-07 추가) — 다른 페이지엔 다 있는데 이 페이지에만 빠져있었다. -->
+<nav class="e-tabbar" aria-label="모바일 주요 메뉴">
+  <a class="e-tabbar-item" href="index">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
+    홈
+  </a>
+  <a class="e-tabbar-item" href="explore">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    탐색
+  </a>
+  <a class="e-tabbar-item" href="recommend">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+    AI추천
+  </a>
+  <a class="e-tabbar-item" href="chat" data-nav-page="chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+    잇티챗
+  </a>
+  <a class="e-tabbar-item" href="mypage">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    내정보
+  </a>
+</nav>
 
 </body>
 </html>

@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -29,6 +31,8 @@ import com.foodtrip.foodsearch.common.exception.ErrorCode;
 @Component
 public class ReceiptOcrClient {
 
+    private static final Logger log = LoggerFactory.getLogger(ReceiptOcrClient.class);
+
     private final RestClient restClient;
 
     public ReceiptOcrClient(@Value("${business-verify.base-url}") String baseUrl) {
@@ -51,7 +55,8 @@ public class ReceiptOcrClient {
                     .filename(file.getOriginalFilename() != null ? file.getOriginalFilename() : "receipt")
                     .contentType(contentType);
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.INVALID_INPUT, "영수증 파일을 읽을 수 없습니다: " + e.getMessage());
+            log.warn("영수증 파일을 읽는 중 오류", e);
+            throw new CustomException(ErrorCode.INVALID_INPUT, "영수증 파일을 읽을 수 없습니다.");
         }
 
         Map<String, Object> body;
@@ -66,8 +71,10 @@ public class ReceiptOcrClient {
         } catch (RestClientResponseException e) {
             throw mapErrorResponse(e);
         } catch (RestClientException e) {
-            throw new CustomException(ErrorCode.RECEIPT_OCR_SERVICE_UNAVAILABLE,
-                    "영수증 인식 서버와 통신할 수 없습니다: " + e.getMessage());
+            // 원인(연결 거부, 타임아웃 등) 내부 예외 메시지는 사용자에게 그대로 노출하지 않고 로그로만
+            // 남긴다(2026-08-05 — business_auth.py의 serviceKey 노출 건과 같은 종류의 문제 방지).
+            log.warn("영수증 인식 서버와 통신 실패", e);
+            throw new CustomException(ErrorCode.RECEIPT_OCR_SERVICE_UNAVAILABLE);
         }
 
         if (body == null) {
@@ -80,16 +87,21 @@ public class ReceiptOcrClient {
     // 매핑한다(001-02 7장 표). 부분 인식 결과("parsed")는 CustomException이 추가 페이로드를 담는 구조가
     // 아니라서 이번엔 넘기지 않는다(001-03에서 필요성이 실제로 확인되면 그때 CustomException 확장 검토).
     private CustomException mapErrorResponse(RestClientResponseException e) {
-        String code;
-        String message;
+        String code = null;
+        // Python 서버가 직접 내려준 message만 사용자에게 보여준다(그쪽이 이미 사용자 노출을 염두에 두고
+        // 작성한 문구라 안전함) — HTTP 예외 자체의 e.getMessage()(상태줄 등 내부 정보)는 그대로 노출하지
+        // 않는다(2026-08-05). 파싱 실패/필드 없음이면 null로 두고 ErrorCode 기본 메시지를 쓴다.
+        String message = null;
         try {
             Map<String, Object> errorBody = e.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
             });
-            code = errorBody != null ? String.valueOf(errorBody.get("error")) : null;
-            message = errorBody != null ? String.valueOf(errorBody.getOrDefault("message", e.getMessage())) : e.getMessage();
+            if (errorBody != null) {
+                code = String.valueOf(errorBody.get("error"));
+                Object rawMessage = errorBody.get("message");
+                if (rawMessage != null) message = String.valueOf(rawMessage);
+            }
         } catch (Exception parseFailure) {
-            code = null;
-            message = e.getMessage();
+            log.warn("영수증 인식 서버 오류 응답 파싱 실패", parseFailure);
         }
 
         ErrorCode errorCode = switch (String.valueOf(code)) {
@@ -102,7 +114,7 @@ public class ReceiptOcrClient {
             case "TRANSACTION_ID_NOT_FOUND" -> ErrorCode.RECEIPT_TRANSACTION_ID_NOT_FOUND;
             default -> ErrorCode.RECEIPT_OCR_SERVICE_UNAVAILABLE;
         };
-        return new CustomException(errorCode, message);
+        return message != null ? new CustomException(errorCode, message) : new CustomException(errorCode);
     }
 
     @SuppressWarnings("unchecked")

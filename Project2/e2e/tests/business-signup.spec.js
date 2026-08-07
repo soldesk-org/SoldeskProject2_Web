@@ -54,6 +54,9 @@ function businessSignUpForm(overrides = {}) {
     passwordConfirm: overrides.passwordConfirm ?? VALID_PASSWORD,
     nickname: overrides.nickname ?? randomNickname('biz'),
     phone: overrides.phone ?? randomPhone(),
+    // 매장 자동귀속용 가게명(2026-08-07 필수 입력 추가) - 이 테스트들은 어차피 사업자 인증 서버 호출
+    // 이전 게이트만 검증하므로 실존 여부와 무관한 더미 값이면 충분하다.
+    storeName: overrides.storeName ?? '테스트가게',
     businessLicenseFile: overrides.businessLicenseFile ?? dummyLicenseFile,
   };
 }

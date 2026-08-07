@@ -21,9 +21,17 @@ public class ChatMessageResponseDto {
     private final String content;
     private final String type;
     private final LocalDateTime createdAt;
+    // 2026-08-05 추가 - 입장/퇴장 SYSTEM 메시지에 실어 보내는 현재 인원수. 다른 타입(MESSAGE/DELETED/
+    // ROOM_CLOSED)이나 입장/퇴장이 아닌 일반 SYSTEM 안내에서는 항상 null이며, 클라이언트는 null이면 무시한다.
+    private final Long memberCount;
 
     public ChatMessageResponseDto(Long chatMessageId, Long chatRoomId, Long memberId, String nickname,
                                    String content, String type, LocalDateTime createdAt) {
+        this(chatMessageId, chatRoomId, memberId, nickname, content, type, createdAt, null);
+    }
+
+    public ChatMessageResponseDto(Long chatMessageId, Long chatRoomId, Long memberId, String nickname,
+                                   String content, String type, LocalDateTime createdAt, Long memberCount) {
         this.chatMessageId = chatMessageId;
         this.chatRoomId = chatRoomId;
         this.memberId = memberId;
@@ -31,10 +39,18 @@ public class ChatMessageResponseDto {
         this.content = content;
         this.type = type;
         this.createdAt = createdAt;
+        this.memberCount = memberCount;
     }
 
     public static ChatMessageResponseDto system(Long chatRoomId, String content) {
         return new ChatMessageResponseDto(null, chatRoomId, null, null, content, TYPE_SYSTEM, LocalDateTime.now());
+    }
+
+    // 입장/퇴장 알림 - 안내 문구와 함께 갱신된 인원수를 실어 보내, 접속 중인 클라이언트가 재조회 없이
+    // 화면의 인원수 표시를 실시간으로 갱신할 수 있게 한다(001-01 "인원도 실시간으로 표시" 요청).
+    public static ChatMessageResponseDto memberUpdate(Long chatRoomId, String content, long memberCount) {
+        return new ChatMessageResponseDto(null, chatRoomId, null, null, content, TYPE_SYSTEM, LocalDateTime.now(),
+                memberCount);
     }
 
     public static ChatMessageResponseDto roomClosed(Long chatRoomId, String content) {
@@ -73,5 +89,9 @@ public class ChatMessageResponseDto {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Long getMemberCount() {
+        return memberCount;
     }
 }

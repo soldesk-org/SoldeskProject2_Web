@@ -16,6 +16,8 @@ import com.foodtrip.foodsearch.common.exception.ErrorCode;
 import com.foodtrip.foodsearch.member.entity.Member;
 import com.foodtrip.foodsearch.member.repository.MemberRepository;
 import com.foodtrip.foodsearch.member.service.RefreshTokenService;
+import com.foodtrip.foodsearch.notification.entity.Notification;
+import com.foodtrip.foodsearch.notification.service.NotificationService;
 import com.foodtrip.foodsearch.report.service.AdminReportService;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantRepository;
 import com.foodtrip.foodsearch.review.entity.Review;
@@ -38,16 +40,19 @@ public class AdminServiceImpl implements AdminService {
     private final RefreshTokenService refreshTokenService;
     private final AdminReportService adminReportService;
     private final ReviewKeywordDao reviewKeywordDao;
+    private final NotificationService notificationService;
 
     public AdminServiceImpl(MemberRepository memberRepository, ReviewRepository reviewRepository,
                              RestaurantRepository restaurantRepository, RefreshTokenService refreshTokenService,
-                             AdminReportService adminReportService, ReviewKeywordDao reviewKeywordDao) {
+                             AdminReportService adminReportService, ReviewKeywordDao reviewKeywordDao,
+                             NotificationService notificationService) {
         this.memberRepository = memberRepository;
         this.reviewRepository = reviewRepository;
         this.restaurantRepository = restaurantRepository;
         this.refreshTokenService = refreshTokenService;
         this.adminReportService = adminReportService;
         this.reviewKeywordDao = reviewKeywordDao;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -131,6 +136,16 @@ public class AdminServiceImpl implements AdminService {
         review.delete();
         refreshRatingCache(review.getRestaurantId());
         return new AdminActionResponseDto(true, "리뷰를 삭제했습니다.");
+    }
+
+    @Override
+    @Transactional
+    public AdminActionResponseDto broadcastNotification(String title, String body) {
+        List<Long> activeMemberIds = memberRepository.findMemberIdsByStatus("ACTIVE");
+        for (Long memberId : activeMemberIds) {
+            notificationService.create(memberId, Notification.TYPE_NOTICE, title, body, null);
+        }
+        return new AdminActionResponseDto(true, activeMemberIds.size() + "명에게 공지를 발송했습니다.");
     }
 
     // 리뷰 삭제(10.리뷰) 때와 동일한 평점 캐시 재계산 — 관리자가 리뷰를 지워도 그 음식점의 avgRating/

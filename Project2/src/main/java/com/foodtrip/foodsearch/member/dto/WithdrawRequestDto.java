@@ -11,6 +11,10 @@ public class WithdrawRequestDto {
     @NotBlank(message = "비밀번호는 필수입니다.")
     private String password;
 
+    // 탈퇴 사유(2026-08-06 추가) — mypage.html #withdrawReasonSelect의 코드값(NOT_USEFUL/FEW_SHOPS/
+    // HARD_TO_USE/PRIVACY/ETC). "선택하지 않음"이면 빈 문자열/null로 온다 — 선택 사항이라 검증 없음.
+    private String reason;
+
     protected WithdrawRequestDto() {
     }
 
@@ -20,5 +24,9 @@ public class WithdrawRequestDto {
 
     public String getPassword() {
         return password;
+    }
+
+    public String getReason() {
+        return reason;
     }
 }

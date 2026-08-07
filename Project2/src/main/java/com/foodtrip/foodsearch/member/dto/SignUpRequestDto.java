@@ -33,6 +33,12 @@ public class SignUpRequestDto {
     @Pattern(regexp = "^010-\\d{4}-\\d{4}$", message = "전화번호는 010-XXXX-XXXX 형식이어야 합니다.")
     private String phone;
 
+    // 알림 설정(2026-08-06 추가) — signup-info.html의 추천/채팅 알림 토글. null이면(구버전 클라이언트 호환)
+    // Member 엔티티 기본값(둘 다 true)을 그대로 둔다.
+    private Boolean notifyRecommend;
+
+    private Boolean notifyChat;
+
     protected SignUpRequestDto() {
     }
 
@@ -62,5 +68,13 @@ public class SignUpRequestDto {
 
     public String getPhone() {
         return phone;
+    }
+
+    public Boolean getNotifyRecommend() {
+        return notifyRecommend;
+    }
+
+    public Boolean getNotifyChat() {
+        return notifyChat;
     }
 }

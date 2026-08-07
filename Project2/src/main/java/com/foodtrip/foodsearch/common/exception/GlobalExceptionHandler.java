@@ -26,9 +26,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
+        // 필드명("phone: ...")을 그대로 노출하지 않고 사용자에게 보여줄 문구(@NotBlank 등의 message)만 반환한다.
         String message = e.getBindingResult().getFieldErrors().stream()
                 .findFirst()
-                .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
+                .map(org.springframework.validation.FieldError::getDefaultMessage)
                 .orElse(ErrorCode.INVALID_INPUT.getDefaultMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(ErrorCode.INVALID_INPUT.name(), message));

@@ -1,0 +1,132 @@
+  /* ---------- 카테고리 선택 카드 ---------- */
+  .cat-pick {
+    position: relative;               /* .cat-pick-check(absolute)의 기준점 */
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 16px 8px 14px;
+    border: 1.5px solid var(--line); border-radius: var(--r-md);
+    background: var(--bg); cursor: pointer;
+    transition: border-color .16s var(--ease), background .16s var(--ease), transform .16s var(--ease);
+  }
+  .cat-pick:hover { border-color: var(--brand-300); transform: translateY(-2px); }
+  .cat-pick img { width: 34px; height: 44px; object-fit: contain; pointer-events: none; }
+  .cat-pick-name { font-size: 13.5px; font-weight: 700; color: var(--ink-700); }
+  .cat-pick[aria-pressed="true"] {
+    border-color: var(--brand-500); background: var(--brand-50);
+    box-shadow: var(--sh-brand-sm);
+  }
+  .cat-pick[aria-pressed="true"] .cat-pick-name { color: var(--brand-700); }
+  /* 선택됨 체크 배지 */
+  .cat-pick-check {
+    position: absolute; top: 8px; right: 8px;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: none; place-items: center;
+    background: var(--brand-grad); color: #fff;
+  }
+  .cat-pick-check svg { width: 12px; height: 12px; }
+  .cat-pick[aria-pressed="true"] .cat-pick-check { display: grid; }
+
+  /* ---------- 룰렛 ---------- */
+  .wheel-stage {
+    position: relative; width: 100%; max-width: 360px; margin: 0 auto;
+    aspect-ratio: 1 / 1;
+  }
+  #wheelSvg { width: 100%; height: 100%; display: block; overflow: visible; }
+  /* 회전은 이 그룹에만 건다. 포인터/중심축은 회전하지 않도록 SVG 바깥에 둔다.
+     transform-box:fill-box 를 줘야 transform-origin:center 가 (뷰포트가 아니라) 이 그룹의
+     바운딩박스 중심 = 룰렛 원 중심을 가리킨다. */
+  #wheelGroup { transform-box: fill-box; transform-origin: center; }
+  #wheelGroup.is-spinning { transition: transform 4.6s cubic-bezier(.13, .72, .12, 1); }
+  /* 칸 이름/아이콘은 장식이라 마우스 대상이 되지 않게 한다(칸 자체만 잡히도록). */
+  #wheelGroup text, #wheelGroup image { pointer-events: none; }
+  /* font-size는 칸 개수에 따라 roulette.js가 요소마다 지정한다(CSS에 적으면 그 값이 덮어써짐). */
+  .wheel-label {
+    font-weight: 800; fill: #fff;
+    paint-order: stroke; stroke: rgba(24, 21, 25, .22); stroke-width: 2.5px;  /* 밝은 칸에서도 읽히게 */
+  }
+
+  /* 12시 방향 포인터 */
+  .wheel-pointer {
+    position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+    width: 30px; height: 38px; z-index: 2;
+    filter: drop-shadow(0 3px 6px rgba(24, 21, 25, .28));
+  }
+  /* 가운데 축 */
+  .wheel-hub {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 64px; height: 64px; border-radius: 50%; z-index: 2;
+    display: grid; place-items: center;
+    background: #fff; border: 4px solid var(--brand-500);
+    box-shadow: 0 6px 18px rgba(24, 21, 25, .16);
+    font-size: 12.5px; font-weight: 800; color: var(--brand-600);
+  }
+
+  /* ---------- 결과 모달(토스 스타일, 2026-08-07 개편) ----------
+     당첨 칸 색상(SLICE_COLORS)에 맞춰 포인트 색을 바꿔봤으나, 칸이 2개일 때는 둘 다 주황 계열이라
+     마커 아이콘 고유색(예: 술집=보라)과 안 어울려서(2026-08-07 재수정) 브랜드 고정 색상으로 되돌렸다.
+     여백을 넉넉히 두고 장식을 절제해 차분하고 고급스러운 톤을 유지한다. */
+  .result-modal-panel {
+    padding: 44px 32px 28px;
+    border-radius: 28px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 24px 60px rgba(24, 21, 25, .16), 0 4px 18px rgba(24, 21, 25, .06);
+  }
+  .result-modal-panel.is-showing { animation: resultPop .4s var(--ease); }
+  @keyframes resultPop {
+    from { opacity: 0; transform: scale(.94) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .result-modal-close { position: absolute; top: 16px; right: 16px; }
+  .result-eyebrow {
+    font-size: 13px; font-weight: 700; letter-spacing: .01em;
+    color: var(--ink-400); margin-bottom: 20px;
+  }
+  .result-icon-wrap {
+    width: 108px; height: 108px; margin: 0 auto 22px;
+    display: grid; place-items: center;
+    border-radius: 50%; background: var(--brand-50);
+  }
+  .result-icon-wrap.is-showing { animation: resultIconPop .5s cubic-bezier(.34, 1.56, .64, 1) .05s both; }
+  @keyframes resultIconPop {
+    from { opacity: 0; transform: scale(.55); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .result-icon-wrap img { width: 54px; height: 70px; object-fit: contain; }
+  .result-name {
+    font-size: 30px; font-weight: 800; letter-spacing: -.02em;
+    color: var(--ink-900); margin-bottom: 32px;
+  }
+  .result-modal-actions { display: flex; flex-direction: column; gap: 10px; }
+  .btn-toss-primary {
+    width: 100%; padding: 16px; border: none; border-radius: 16px;
+    background: var(--brand-grad); color: #fff;
+    font-size: 16px; font-weight: 800; cursor: pointer;
+    transition: filter .12s var(--ease), transform .12s var(--ease);
+  }
+  .btn-toss-primary:hover { filter: brightness(1.06); }
+  .btn-toss-primary:active { transform: scale(.98); }
+  .btn-toss-ghost {
+    width: 100%; padding: 14px; border: none; border-radius: 16px;
+    background: var(--ink-50); color: var(--ink-600);
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: background .12s var(--ease);
+  }
+  .btn-toss-ghost:hover { background: var(--ink-100); }
+
+  /* #mainContent의 세로 중앙 정렬 기준(2026-08-07) — 인라인 style로 두면 특정도가 너무 높아 아래
+     모바일 미디어쿼리로 못 덮어써서, 여기 스타일시트로 옮겨왔다. */
+  #mainContent { min-height: calc(100vh - var(--header-h)); }
+
+  /* 모바일 하단 탭바(.e-tabbar, position:fixed, 실측 높이 약 61px) 대응(2026-08-07, 재수정) —
+     처음엔 #mainContent의 padding-bottom만 늘렸는데, 그러면 위/아래 여백이 비대칭이 되어 카드가
+     아래로 치우쳐 보이는 문제가 생겼다(패딩이 위 32px/아래 88px로 달라지면 flex 중앙 정렬 기준점 자체가
+     아래로 밀림). 그래서 역할을 분리한다 —
+     1) #mainContent는 위아래 패딩을 그대로 두고(py-8, 32px 대칭), min-height에서 탭바 높이까지 빼서
+        "보이는 안전영역" 안에서 정확히 중앙 정렬되게 한다.
+     2) 탭바가 페이지 맨 끝 콘텐츠를 가리지 않도록(내용이 넘쳐서 스크롤되는 경우 대비) 그 여백은
+        main이 아니라 body에 별도로 둔다 — main의 중앙 정렬 계산에 전혀 영향을 주지 않는 곳이라야
+        비대칭 문제가 재발하지 않는다. */
+  @media (max-width: 767px) {
+    #mainContent { min-height: calc(100vh - var(--header-h) - 61px); }
+    body { padding-bottom: 61px; }
+  }

@@ -1,6 +1,7 @@
 package com.foodtrip.foodsearch.restaurant.service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,14 +14,18 @@ import com.foodtrip.foodsearch.common.storage.RestaurantImageStorageService;
 import com.foodtrip.foodsearch.member.service.AccessTokenSessionService;
 import com.foodtrip.foodsearch.restaurant.dto.BusinessHourItemDto;
 import com.foodtrip.foodsearch.restaurant.dto.CreateMenuRequestDto;
+import com.foodtrip.foodsearch.restaurant.dto.OwnerMenuResponseDto;
 import com.foodtrip.foodsearch.restaurant.dto.RestaurantDetailResponseDto;
+import com.foodtrip.foodsearch.restaurant.dto.RestaurantImageResponseDto;
 import com.foodtrip.foodsearch.restaurant.dto.UpdateMenuRequestDto;
 import com.foodtrip.foodsearch.restaurant.entity.Menu;
 import com.foodtrip.foodsearch.restaurant.entity.Restaurant;
 import com.foodtrip.foodsearch.restaurant.entity.RestaurantBusinessHour;
+import com.foodtrip.foodsearch.restaurant.entity.RestaurantImage;
 import com.foodtrip.foodsearch.restaurant.entity.RestaurantManager;
 import com.foodtrip.foodsearch.restaurant.repository.MenuRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantBusinessHourRepository;
+import com.foodtrip.foodsearch.restaurant.repository.RestaurantImageRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantManagerRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantRepository;
 
@@ -31,10 +36,13 @@ import io.jsonwebtoken.JwtException;
 @Transactional
 public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
 
+    private static final int GALLERY_IMAGE_LIMIT = 4;
+
     private final RestaurantRepository restaurantRepository;
     private final RestaurantManagerRepository restaurantManagerRepository;
     private final RestaurantBusinessHourRepository restaurantBusinessHourRepository;
     private final MenuRepository menuRepository;
+    private final RestaurantImageRepository restaurantImageRepository;
     private final RestaurantImageStorageService restaurantImageStorageService;
     private final RestaurantService restaurantService;
     private final JwtProvider jwtProvider;
@@ -44,6 +52,7 @@ public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
                                        RestaurantManagerRepository restaurantManagerRepository,
                                        RestaurantBusinessHourRepository restaurantBusinessHourRepository,
                                        MenuRepository menuRepository,
+                                       RestaurantImageRepository restaurantImageRepository,
                                        RestaurantImageStorageService restaurantImageStorageService,
                                        RestaurantService restaurantService,
                                        JwtProvider jwtProvider,
@@ -52,6 +61,7 @@ public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
         this.restaurantManagerRepository = restaurantManagerRepository;
         this.restaurantBusinessHourRepository = restaurantBusinessHourRepository;
         this.menuRepository = menuRepository;
+        this.restaurantImageRepository = restaurantImageRepository;
         this.restaurantImageStorageService = restaurantImageStorageService;
         this.restaurantService = restaurantService;
         this.jwtProvider = jwtProvider;
@@ -124,6 +134,80 @@ public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
         restaurantImageStorageService.delete(restaurant.getImageUrl());
         restaurant.updateImageUrl(null);
         return restaurantService.getDetail(restaurantId, authorizationHeader, null, null, null, null, null);
+    }
+
+    @Override
+    public List<OwnerMenuResponseDto> listMyMenus(String restaurantId, String authorizationHeader) {
+        resolveOwnedRestaurant(restaurantId, authorizationHeader);
+        return menuRepository.findByRestaurantIdAndDeletedAtIsNullOrderByIsSignatureDescPriceAsc(restaurantId)
+                .stream()
+                .map(m -> new OwnerMenuResponseDto(m.getMenuId(), m.getMenuName(), m.getPrice(), m.getDescription(),
+                        Boolean.TRUE.equals(m.getIsSignature()), Boolean.TRUE.equals(m.getIsAvailable())))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RestaurantImageResponseDto> listGalleryImages(String restaurantId, String authorizationHeader) {
+        resolveOwnedRestaurant(restaurantId, authorizationHeader);
+        return toImageDtos(restaurantId);
+    }
+
+    @Override
+    public List<RestaurantImageResponseDto> addGalleryImage(String restaurantId, String authorizationHeader, MultipartFile file) {
+        Restaurant restaurant = resolveOwnedRestaurant(restaurantId, authorizationHeader);
+        long existingCount = restaurantImageRepository.countByRestaurantId(restaurantId);
+        if (existingCount >= GALLERY_IMAGE_LIMIT) {
+            throw new CustomException(ErrorCode.RESTAURANT_IMAGE_LIMIT_EXCEEDED);
+        }
+        String url = restaurantImageStorageService.store(file);
+        boolean isFirst = existingCount == 0;
+        RestaurantImage image = restaurantImageRepository.save(RestaurantImage.create(restaurantId, url, isFirst));
+        if (isFirst) {
+            restaurant.updateImageUrl(image.getImageUrl());
+        }
+        return toImageDtos(restaurantId);
+    }
+
+    @Override
+    public List<RestaurantImageResponseDto> deleteGalleryImage(String restaurantId, Long imageId, String authorizationHeader) {
+        Restaurant restaurant = resolveOwnedRestaurant(restaurantId, authorizationHeader);
+        RestaurantImage image = restaurantImageRepository.findByRestaurantImageIdAndRestaurantId(imageId, restaurantId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESTAURANT_IMAGE_NOT_FOUND));
+        boolean wasMain = image.isMain();
+        restaurantImageStorageService.delete(image.getImageUrl());
+        restaurantImageRepository.delete(image);
+
+        List<RestaurantImage> remaining = restaurantImageRepository.findByRestaurantIdOrderByIsMainDescCreatedAtAsc(restaurantId);
+        if (wasMain && !remaining.isEmpty()) {
+            RestaurantImage newMain = remaining.get(0);
+            newMain.markMain();
+            restaurant.updateImageUrl(newMain.getImageUrl());
+        } else if (remaining.isEmpty()) {
+            restaurant.updateImageUrl(null);
+        }
+        return toImageDtos(restaurantId);
+    }
+
+    @Override
+    public List<RestaurantImageResponseDto> setMainGalleryImage(String restaurantId, Long imageId, String authorizationHeader) {
+        Restaurant restaurant = resolveOwnedRestaurant(restaurantId, authorizationHeader);
+        RestaurantImage target = restaurantImageRepository.findByRestaurantImageIdAndRestaurantId(imageId, restaurantId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESTAURANT_IMAGE_NOT_FOUND));
+        for (RestaurantImage image : restaurantImageRepository.findByRestaurantIdOrderByIsMainDescCreatedAtAsc(restaurantId)) {
+            if (image.getRestaurantImageId().equals(target.getRestaurantImageId())) {
+                image.markMain();
+            } else {
+                image.unmarkMain();
+            }
+        }
+        restaurant.updateImageUrl(target.getImageUrl());
+        return toImageDtos(restaurantId);
+    }
+
+    private List<RestaurantImageResponseDto> toImageDtos(String restaurantId) {
+        return restaurantImageRepository.findByRestaurantIdOrderByIsMainDescCreatedAtAsc(restaurantId).stream()
+                .map(img -> new RestaurantImageResponseDto(img.getRestaurantImageId(), img.getImageUrl(), img.isMain()))
+                .collect(Collectors.toList());
     }
 
     // 존재 확인(RESTAURANT_NOT_FOUND) + 로그인 필수(NOT_LOGGED_IN) + 이 음식점의 ACTIVE 관리자인지
