@@ -1,19 +1,32 @@
 (function () {
-  var form = document.getElementById("find-email-form");
-  var errorEl = document.getElementById("fe-error");
-  var submitBtn = document.getElementById("fe-submit-btn");
+  var form = document.getElementById("findEmailForm");
+  if (!form) return;
 
-  function showError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = msg ? "" : "none";
+  var nicknameInput = document.getElementById("findName");
+  var phoneInput = document.getElementById("findPhone");
+  var nicknameError = document.getElementById("findNameError");
+  var phoneError = document.getElementById("findPhoneError");
+  var alertBox = document.getElementById("findEmailAlert");
+  var submitBtn = document.getElementById("findEmailNextBtn");
+
+  function formatPhone(v) {
+    var d = (v || "").replace(/\D/g, "");
+    if (d.length !== 11) return v;
+    return d.slice(0, 3) + "-" + d.slice(3, 7) + "-" + d.slice(7);
   }
 
   form.addEventListener("submit", function (e) {
     e.preventDefault();
-    showError("");
-    var nickname = document.getElementById("fe-nickname").value.trim();
-    var phone = document.getElementById("fe-phone").value.trim();
-    if (!nickname || !phone) { showError("닉네임과 전화번호를 입력해주세요."); return; }
+    alertBox.hidden = true;
+    nicknameError.classList.remove("is-visible");
+    phoneError.classList.remove("is-visible");
+
+    var nickname = nicknameInput.value.trim();
+    var phone = formatPhone(phoneInput.value.trim());
+    var hasError = false;
+    if (!nickname) { nicknameError.classList.add("is-visible"); hasError = true; }
+    if (!phone) { phoneError.classList.add("is-visible"); hasError = true; }
+    if (hasError) return;
 
     submitBtn.disabled = true;
     Api.request("/api/members/find-email", { method: "POST", auth: false, body: { nickname: nickname, phone: phone } })
@@ -27,7 +40,13 @@
         });
       })
       .then(function () { window.location.href = "find-email-verify"; })
-      .catch(function (err) { showError(err.message || "요청에 실패했습니다."); })
+      .catch(function (err) {
+        if (err.code === "MEMBER_NOT_FOUND") {
+          alertBox.hidden = false;
+        } else {
+          Eatty.toast(err.message || "요청에 실패했습니다.", "error");
+        }
+      })
       .finally(function () { submitBtn.disabled = false; });
   });
 })();
