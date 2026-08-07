@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>고객센터 — 잇티웨이</title>
+<meta name="description" content="잇티웨이 AI 챗봇 실시간 상담. 궁금한 점을 바로 물어보세요.">
+
+<!--
+================================================================================
+ support — 잇티웨이 AI 챗봇 상담 (2026-08-06 전면 재설계)
+--------------------------------------------------------------------------------
+ 이전 버전은 검색창 + 카테고리 카드 + "상담 시작 전/중/후" 3단계 게이트 + FAQ 아코디언이 뒤섞인
+ 페이지였다("고객센터 디자인이 마음에 안 든다" 피드백). 탭에 들어오면 화면 전체가 곧바로 실시간 채팅인
+ chat.html(잇티챗)과 같은 톤의 풀스크린 레이아웃으로 바꾸고, FAQ/검색/카테고리 카드는 전부 제거했다.
+ 세션은 페이지 로드 시 자동으로 시작되며(별도 "시작하기" 버튼 없음), 개인정보 처리 안내는 시스템
+ 메시지로 대화 맨 위에 자연스럽게 보여준다. 백엔드 연동(SupportChatController)과 세션/타이머/스트리밍
+ 애니메이션 로직은 기존 구현을 그대로 유지했다 — 화면 구조만 바뀌었다.
+
+ ★ 서버 연동 (SupportChatController — 이미 구현되어 있음)
+   1) 질문 전송  POST /api/support-chat/ask   { message, sessionId } -> { success, answer } | { success:false, message }
+   2) 상담 종료  POST /api/support-chat/end    { sessionId, reason: "button"|"page_closed"|"idle_timeout" }
+      - 페이지 이탈 시 navigator.sendBeacon() 으로 전송
+   - 세션 생성 API는 없음 — sessionId는 crypto.randomUUID()로 프런트에서 생성해 매 요청에 함께 보냄
+   - 로그인 없이도 문의 가능
+
+ ★ 보안 · 개인정보 정책 (프런트에서 반드시 지킬 것)
+   - 대화 내용을 localStorage / sessionStorage / cookie에 저장하지 않는다.
+     메시지는 JS 메모리 배열(state.messages)에만 보관 → 새로고침 시 자연히 소멸.
+   - 상담 종료 시 state.messages를 비우고 DOM을 삭제해 재열람을 차단한다.
+
+ [구조]
+   (2026-08-06 후속 - 상단 바의 상태 배지/상담번호/경과 시간 표시와 "상담원 연결" 버튼을 화면에서
+   없앴다. 세션 id/경과 시간 자체는 내부적으로 계속 추적하며, 상담 종료 화면의 상담번호/상담 시간
+   요약에는 그대로 쓰인다 — 상단 바에 실시간으로 노출만 안 할 뿐이다.)
+   #endChatBtn(→endChatModal)   상단 바 유일한 버튼
+   #supportMessageArea   메시지 영역 (JS 렌더, e-msg/e-msg--me/e-thinking 등 잇티챗과 공용 클래스)
+   #supportMessageForm #supportMessageInput #supportSendBtn
+   #chatEnded   종료 후 화면(재열람 차단 안내 + 만족도 평가) — #chatActive와 자리를 바꿔 채운다
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+
+<link rel="stylesheet" href="assets/css/support.css">
+</head>
+
+<body class="bg-[var(--bg-soft)]">
+
+<!-- ============================== 헤더 ============================== -->
+<header class="e-header e-header--solid" id="siteHeader">
+  <div class="e-container e-container-wide e-header-inner">
+    <a href="index" class="e-logo" id="logoHome">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
+    </a>
+
+    <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+      <a class="e-nav-link is-active" href="support" data-nav-page="support">고객센터</a>
+      <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
+      <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
+    </nav>
+
+    <div class="e-header-actions">
+      <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest">
+        <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
+        <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
+      </div>
+
+      <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth" hidden>
+        <button type="button" class="e-icon-btn" id="headerNotiBtn" aria-label="알림">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+        </button>
+        <div class="e-dropdown">
+          <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
+                  id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
+            <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="e-dropdown-menu" id="headerProfileMenu">
+            <div class="e-dropdown-head">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
+              <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
+            </div>
+            <a class="e-dropdown-item" href="mypage">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
+            <a class="e-dropdown-item" href="support">고객센터</a>
+            <div class="e-dropdown-sep"></div>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn">로그아웃</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="e-header-burger" id="drawerOpenBtn" data-drawer-open="mainDrawer" aria-label="메뉴 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- =========================== 모바일 드로어 =========================== -->
+<div class="e-drawer-backdrop" data-drawer-backdrop="mainDrawer"></div>
+<aside class="e-drawer" id="mainDrawer" aria-hidden="true" aria-label="모바일 메뉴">
+  <div class="e-drawer-head">
+    <span class="e-logo-text">잇티<em>웨이</em></span>
+    <button type="button" class="e-modal-close" data-drawer-close="mainDrawer" aria-label="메뉴 닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="e-drawer-body">
+    <a class="e-drawer-link" href="explore">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend">AI 추천</a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+    <a class="e-drawer-link" href="chat">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz">음식 취향 찾기</a>
+    <div class="e-drawer-sep"></div>
+    <a class="e-drawer-link" href="support" data-nav-page="support">고객센터</a>
+    <div data-auth-view="auth" hidden>
+      <a class="e-drawer-link" href="mypage">마이페이지</a>
+      <a class="e-drawer-link" href="mypage-reviews">내 리뷰</a>
+    </div>
+  </div>
+</aside>
+
+<!-- ==================================================================
+     풀스크린 AI 챗봇 상담
+     ================================================================== -->
+<main class="e-support-shell" aria-label="AI 챗봇 상담">
+
+  <!-- 상단 바 -->
+  <div class="e-session-bar" id="sessionBar">
+    <span class="e-bot-avatar flex-none" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+    </span>
+    <div class="min-w-0">
+      <p class="text-[14.5px] font-extrabold text-[var(--ink-900)] leading-tight">잇티 AI 상담</p>
+    </div>
+
+    <div class="ml-auto flex items-center gap-2">
+      <button type="button" class="btn btn-outline btn-xs" id="endChatBtn" data-modal-open="endChatModal">
+        상담 종료
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ 상담 중 ============ -->
+  <div id="chatActive">
+    <div class="e-ai-progress" id="aiProgressBar" hidden aria-hidden="true"></div>
+
+    <div class="e-chat-body e-scroll" id="supportMessageArea" data-chat-scroll
+         role="log" aria-live="polite" aria-label="AI 상담 대화 내용"></div>
+
+    <div class="px-4 pb-3" id="quickReplyWrap" hidden>
+      <p class="t-xs font-bold mb-2">이런 걸 물어볼 수 있어요</p>
+      <div class="e-quick-wrap" id="quickReplyArea"></div>
+    </div>
+
+    <div class="e-chat-input flex-none">
+      <form id="supportMessageForm">
+        <div class="e-chat-input-box">
+          <textarea id="supportMessageInput" data-autogrow rows="1" maxlength="1000"
+                    placeholder="궁금한 점을 입력해주세요 (Shift + Enter 로 줄바꿈)"
+                    aria-label="상담 메시지 입력"></textarea>
+          <button type="submit" class="e-chat-send flex-none" id="supportSendBtn" aria-label="메시지 전송">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l19-8-8 19-2-9-9-2Z"/></svg>
+          </button>
+        </div>
+      </form>
+
+      <div class="flex items-center gap-3 mt-2.5">
+        <p class="t-xs">주민등록번호 · 카드번호 등 민감정보는 입력하지 마세요.</p>
+        <span class="t-xs ml-auto t-num" id="inputCounter">0 / 1000</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 상담 종료 후 ============ -->
+  <div id="chatEnded" hidden>
+
+    <div class="e-lock">
+      <span class="e-lock-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3"/>
+        </svg>
+      </span>
+      <h2 class="t-h3">상담이 종료되었습니다</h2>
+      <p class="t-sm mt-3 max-w-md mx-auto leading-relaxed">
+        보안을 위해 종료된 상담의 대화 내용은 다시 열람할 수 없습니다.<br>
+        추가 문의가 있으면 새 상담을 시작해주세요.
+      </p>
+
+      <span class="e-badge e-badge--gray e-badge-lg mt-5" id="endReasonBadge">사용자 종료</span>
+
+      <div class="max-w-sm mx-auto mt-7 e-card e-card-flat bg-white p-5 text-left space-y-2.5">
+        <div class="flex items-center justify-between gap-3">
+          <span class="t-sm font-semibold">상담번호</span>
+          <span class="e-session-id" id="endedSessionId">SUP-000000</span>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="t-sm font-semibold">상담 시간</span>
+          <span class="text-sm font-bold text-[var(--ink-900)] t-num" id="endedDuration">00:00</span>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="t-sm font-semibold">주고받은 메시지</span>
+          <span class="text-sm font-bold text-[var(--ink-900)] t-num" id="endedMsgCount">0건</span>
+        </div>
+        <div class="flex items-start justify-between gap-3 pt-3 border-t border-[var(--line)]">
+          <span class="t-sm font-semibold flex-none">로그 보관</span>
+          <span class="text-right">
+            <span class="e-badge e-badge--success">암호화 저장 완료</span>
+            <span class="block t-xs mt-1">문의 시 상담번호를 알려주세요</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6 md:p-8 border-t border-[var(--line)]" id="ratingBox">
+      <div class="max-w-md mx-auto text-center">
+        <h3 class="t-h4">이번 상담은 어떠셨나요?</h3>
+        <p class="t-sm mt-2">평가는 AI 답변 품질 개선에 사용됩니다.</p>
+
+        <div class="e-rating-input justify-center mt-5" id="supportRatingInput" data-rating-input
+             data-rating-target="supportRatingValue" role="radiogroup" aria-label="상담 만족도">
+          <button type="button" data-rating-value="1" role="radio" aria-checked="false" aria-label="1점">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </button>
+          <button type="button" data-rating-value="2" role="radio" aria-checked="false" aria-label="2점">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </button>
+          <button type="button" data-rating-value="3" role="radio" aria-checked="false" aria-label="3점">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </button>
+          <button type="button" data-rating-value="4" role="radio" aria-checked="false" aria-label="4점">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </button>
+          <button type="button" data-rating-value="5" role="radio" aria-checked="false" aria-label="5점">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+          </button>
+        </div>
+        <input type="hidden" id="supportRatingValue" name="score" value="0">
+
+        <div class="e-field mt-5 text-left">
+          <label class="e-label" for="ratingComment">개선 의견 <span class="e-label-side">선택</span></label>
+          <textarea class="e-textarea !min-h-[90px]" id="ratingComment" name="comment" maxlength="300"
+                    placeholder="답변이 아쉬웠던 점을 알려주세요."></textarea>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-2.5">
+          <button type="button" class="btn btn-primary w-full sm:flex-1" id="submitRatingBtn">평가 보내기</button>
+          <button type="button" class="btn btn-outline w-full sm:flex-1" id="restartChatBtn">새 상담 시작</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-8 text-center max-w-md mx-auto" id="ratingDoneBox" hidden>
+      <span class="w-20 h-20 rounded-full grid place-items-center mx-auto mb-5 text-white" style="background:var(--brand-grad)">
+        <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </span>
+      <p class="t-h4" style="font-size: 26px;">평가를 보내주셔서 감사합니다</p>
+      <p class="t-sm mt-3" style="font-size: 16px;">더 나은 답변으로 보답하겠습니다.</p>
+      <button type="button" class="btn btn-outline mt-7" id="restartChatBtn2">새 상담 시작</button>
+    </div>
+  </div>
+</main>
+
+<!-- ==================== 상담 종료 확인 모달 ==================== -->
+<div class="e-modal" id="endChatModal" role="dialog" aria-modal="true" aria-labelledby="endChatTitle" aria-hidden="true">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel e-modal-panel--sm">
+    <div class="e-modal-head">
+      <div>
+        <span class="e-modal-icon e-modal-icon--warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+          </svg>
+        </span>
+        <h2 class="e-modal-title" id="endChatTitle">상담을 종료할까요?</h2>
+        <p class="e-modal-desc">
+          종료하면 대화 내용을 <b class="t-strong">다시 볼 수 없습니다.</b>
+          필요한 내용은 미리 기록해두세요.
+        </p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-outline" data-modal-close>계속 상담</button>
+      <button type="button" class="btn btn-danger" id="endChatConfirmBtn">종료하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 무응답 자동 종료 경고 모달 ==================== -->
+<div class="e-modal" id="idleWarnModal" role="dialog" aria-modal="true" aria-labelledby="idleWarnTitle" aria-hidden="true">
+  <div class="e-modal-backdrop"></div>
+  <div class="e-modal-panel e-modal-panel--sm">
+    <div class="e-modal-head">
+      <div>
+        <span class="e-modal-icon e-modal-icon--warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3.5 2"/>
+          </svg>
+        </span>
+        <h2 class="e-modal-title" id="idleWarnTitle">상담이 곧 종료됩니다</h2>
+        <p class="e-modal-desc">
+          입력이 없어 <b class="t-strong"><span id="idleCountdown">60</span>초</b> 후 자동으로 종료됩니다.
+          계속하시려면 아래 버튼을 눌러주세요.
+        </p>
+      </div>
+    </div>
+    <div class="e-modal-foot">
+      <button type="button" class="btn btn-primary" id="idleContinueBtn">계속 상담하기</button>
+      <button type="button" class="btn btn-outline" id="idleEndNowBtn">지금 종료</button>
+    </div>
+  </div>
+</div>
+
+<script defer src="assets/js/support.js"></script>
+</body>
+</html>
