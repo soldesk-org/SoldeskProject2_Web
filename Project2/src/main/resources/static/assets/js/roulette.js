@@ -1,0 +1,292 @@
+/* 메뉴 룰렛 (roulette.html)
+ * ---------------------------------------------------------------------------
+ * 백엔드 신규 API 없음 — 카테고리 목록만 07의 기존 공개 API(GET /api/restaurants/categories)를 쓴다.
+ * 룰렛 결과는 "그 순간 정하고 끝나는" 값이라 서버에 저장하지 않는다(로그인도 필요 없음).
+ *
+ * [회전 각도 계산]
+ * 각도는 전부 "12시 방향 = 0도, 시계방향 증가" 기준이다(포인터가 12시에 고정돼 있으므로).
+ *   1) 당첨 칸을 Math.random()으로 **먼저** 정한다.
+ *   2) 그 칸이 포인터(0도) 아래에 오려면 휠을 얼마나 돌려야 하는지 역산한다.
+ *      휠을 R도 돌리면 각도 A에 있던 칸은 (A + R)로 이동하므로, A + R ≡ 0 (mod 360) → R ≡ -A.
+ *   3) 마지막으로 여러 바퀴를 더해 "돌아가는 느낌"을 만든다.
+ * 이렇게 하면 애니메이션이 끝난 시점에 포인터가 가리키는 칸과 실제 당첨 결과가 항상 일치한다
+ * (랜덤 각도로 돌린 뒤 사후에 칸을 계산하는 방식보다 어긋날 여지가 없음).
+ */
+(function () {
+  var CX = 160, CY = 160, R = 150;          // wheelSvg viewBox(0 0 320 320) 기준
+  // 칸 이름은 항상 똑바로(가로) 세워 두는 쪽이 훨씬 잘 읽혀서, 방사형으로 눕히지 않는다.
+  // 칸마다 있던 마커 아이콘은 가운데 축(hub)과 겹쳐 보여서 뺐다(2026-08-07) — 이름만 칸 한가운데에 둔다.
+  var LABEL_R = 95;                          // 칸 이름을 놓을 반지름(칸의 시각적 중앙)
+  var MIN_ITEMS = 2;
+
+  // 07(음식점-메뉴-검색)/지도에서 쓰는 카테고리 마커 이미지를 그대로 재사용해 시각적으로 통일한다.
+  var MARKER_BY_CODE = {
+    KOREAN: "marker-korean.png",
+    WESTERN: "marker-western.png",
+    CHINESE: "marker-chinese.png",
+    JAPANESE: "marker-japanese.png",
+    SNACK: "marker-snack.png",
+    FAST_FOOD: "marker-fastfood.png",
+    ASIAN: "marker-asian.png",
+    BAR: "marker-bar.png",
+    BUFFET: "marker-buffet.png",
+    CAFE_DESSERT: "marker-cafe.png",
+  };
+  // 칸 색상(순서대로 반복). 흰 글씨가 읽히도록 충분히 진한 색만 골랐다.
+  var SLICE_COLORS = [
+    "#fd6d4a", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6",
+    "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#ef4444",
+  ];
+
+  var categories = [];      // API로 받은 전체 카테고리(마커 이미지가 있는 것만)
+  var selectedCodes = [];   // 선택한 categoryCode (선택한 순서 유지)
+  var items = [];           // 현재 룰렛에 올라간 항목 [{categoryCode, categoryName, color}]
+  var rotation = 0;         // 지금까지 누적된 회전각(도). CSS transform은 절대값이라 계속 더해 나간다.
+  var spinning = false;
+  var lastWinner = null;
+
+  var categoryGrid = document.getElementById("categoryGrid");
+  var selectedCountEl = document.getElementById("selectedCount");
+  var buildRouletteBtn = document.getElementById("buildRouletteBtn");
+  var setupSection = document.getElementById("rouletteSetupSection");
+  var playSection = document.getElementById("roulettePlaySection");
+  var wheelGroup = document.getElementById("wheelGroup");
+  var spinBtn = document.getElementById("spinBtn");
+  var excludeBtn = document.getElementById("excludeBtn");
+
+  function markerUrl(code) {
+    return "img/markers/" + MARKER_BY_CODE[code];
+  }
+
+  /* ---------------------------- 카테고리 선택 ---------------------------- */
+  function loadCategories() {
+    Api.request("/api/restaurants/categories", { auth: false })
+      .then(function (list) {
+        // "그 외"(ETC)처럼 마커 이미지가 없는 항목은 룰렛에 올려도 의미가 없어 제외한다.
+        categories = (list || []).filter(function (c) { return MARKER_BY_CODE[c.categoryCode]; });
+        renderCategoryGrid();
+      })
+      .catch(function () {
+        document.getElementById("categoryLoadError").hidden = false;
+      });
+  }
+
+  function renderCategoryGrid() {
+    categoryGrid.innerHTML = categories.map(function (c) {
+      return '<button type="button" class="cat-pick" aria-pressed="false"' +
+        ' data-category-code="' + c.categoryCode + '">' +
+        '<span class="cat-pick-check" aria-hidden="true">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' +
+        '</span>' +
+        '<img src="' + markerUrl(c.categoryCode) + '" alt="">' +
+        '<span class="cat-pick-name"></span>' +
+        '</button>';
+    }).join("");
+
+    // 카테고리명은 서버 값이라 textContent로 안전하게 주입한다.
+    Array.prototype.forEach.call(categoryGrid.querySelectorAll(".cat-pick"), function (btn, i) {
+      btn.querySelector(".cat-pick-name").textContent = categories[i].categoryName;
+    });
+  }
+
+  categoryGrid.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-category-code]");
+    if (!btn) return;
+    var code = btn.getAttribute("data-category-code");
+    var idx = selectedCodes.indexOf(code);
+    if (idx > -1) selectedCodes.splice(idx, 1);
+    else selectedCodes.push(code);
+    btn.setAttribute("aria-pressed", idx > -1 ? "false" : "true");
+    syncSelectionUI();
+  });
+
+  function syncSelectionUI() {
+    selectedCountEl.textContent = selectedCodes.length;
+    buildRouletteBtn.disabled = selectedCodes.length < MIN_ITEMS;
+  }
+
+  document.getElementById("selectAllBtn").addEventListener("click", function () {
+    selectedCodes = categories.map(function (c) { return c.categoryCode; });
+    setAllPressed(true);
+    syncSelectionUI();
+  });
+  document.getElementById("clearAllBtn").addEventListener("click", function () {
+    selectedCodes = [];
+    setAllPressed(false);
+    syncSelectionUI();
+  });
+  function setAllPressed(on) {
+    Array.prototype.forEach.call(categoryGrid.querySelectorAll(".cat-pick"), function (btn) {
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  /* ------------------------------ 룰렛 그리기 ----------------------------- */
+  // 12시=0도, 시계방향 기준의 각도를 SVG 좌표로 변환한다.
+  function polar(radius, angleDeg) {
+    var rad = (angleDeg - 90) * Math.PI / 180;
+    return { x: CX + radius * Math.cos(rad), y: CY + radius * Math.sin(rad) };
+  }
+
+  function slicePath(startDeg, endDeg) {
+    var p0 = polar(R, startDeg);
+    var p1 = polar(R, endDeg);
+    var largeArc = (endDeg - startDeg) > 180 ? 1 : 0;
+    return "M " + CX + " " + CY +
+      " L " + p0.x.toFixed(2) + " " + p0.y.toFixed(2) +
+      " A " + R + " " + R + " 0 " + largeArc + " 1 " + p1.x.toFixed(2) + " " + p1.y.toFixed(2) + " Z";
+  }
+
+  function buildItems() {
+    // 선택한 순서대로 룰렛 칸을 만든다.
+    items = selectedCodes.map(function (code, i) {
+      var c = categories.filter(function (x) { return x.categoryCode === code; })[0];
+      return {
+        categoryCode: code,
+        categoryName: c ? c.categoryName : code,
+        color: SLICE_COLORS[i % SLICE_COLORS.length],
+      };
+    });
+  }
+
+  function renderWheel() {
+    var seg = 360 / items.length;
+    var svgNs = "http://www.w3.org/2000/svg";
+    // 칸이 많아질수록 한 칸의 폭이 좁아지므로("카페/디저트"처럼 긴 이름 기준) 글자를 줄인다.
+    var fontSize = items.length >= 9 ? 11 : items.length >= 7 ? 12.5 : 14;
+    wheelGroup.innerHTML = "";
+
+    items.forEach(function (item, i) {
+      var start = i * seg;
+      var end = start + seg;
+      var mid = start + seg / 2;
+
+      var path = document.createElementNS(svgNs, "path");
+      path.setAttribute("data-slice-index", String(i));   // 어느 칸인지 식별용(검증/디버깅에 사용)
+      path.setAttribute("d", slicePath(start, end));
+      path.setAttribute("fill", item.color);
+      path.setAttribute("stroke", "#fff");
+      path.setAttribute("stroke-width", "2");
+      wheelGroup.appendChild(path);
+
+      // 칸 이름 — 눕히지 않고 항상 가로로 세워 두며, 칸의 시각적 중앙(LABEL_R)에 배치한다.
+      var labelPos = polar(LABEL_R, mid);
+      var text = document.createElementNS(svgNs, "text");
+      text.setAttribute("class", "wheel-label");
+      text.setAttribute("x", labelPos.x.toFixed(2));
+      text.setAttribute("y", labelPos.y.toFixed(2));
+      text.setAttribute("font-size", String(fontSize));
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("dominant-baseline", "middle");
+      text.textContent = item.categoryName;
+      wheelGroup.appendChild(text);
+    });
+  }
+
+  // 룰렛을 새로 그릴 때는 회전각도 0으로 되돌린다. 애니메이션 없이 즉시 돌려놔야 해서
+  // transition 클래스를 뗀 뒤 강제 리플로우로 값을 확정시킨다(안 그러면 되감기 애니메이션이 보임).
+  function resetRotation() {
+    wheelGroup.classList.remove("is-spinning");
+    rotation = 0;
+    wheelGroup.style.transform = "rotate(0deg)";
+    wheelGroup.getBoundingClientRect();
+  }
+
+  /* -------------------------------- 스핀 --------------------------------- */
+  function spin() {
+    if (spinning || items.length < MIN_ITEMS) return;
+    spinning = true;
+    spinBtn.disabled = true;
+
+    var seg = 360 / items.length;
+    var winnerIndex = Math.floor(Math.random() * items.length);
+
+    // 칸 정중앙에 딱 멈추면 부자연스러워서, 칸 폭의 ±35% 안에서 살짝 흔들어 준다.
+    var jitter = (Math.random() - 0.5) * seg * 0.7;
+    var targetAngle = winnerIndex * seg + seg / 2 + jitter;
+
+    // 휠을 R도 돌리면 targetAngle은 (targetAngle + R)로 간다 → 포인터(0도)에 오려면 R ≡ -targetAngle.
+    var targetMod = ((-targetAngle) % 360 + 360) % 360;
+    var currentMod = ((rotation % 360) + 360) % 360;
+    var delta = ((targetMod - currentMod) % 360 + 360) % 360;
+    var turns = 5 + Math.floor(Math.random() * 3);   // 5~7바퀴
+
+    rotation += turns * 360 + delta;
+    lastWinner = items[winnerIndex];
+
+    wheelGroup.classList.add("is-spinning");
+    wheelGroup.style.transform = "rotate(" + rotation + "deg)";
+  }
+
+  wheelGroup.addEventListener("transitionend", function (e) {
+    if (e.propertyName !== "transform" || !spinning) return;
+    spinning = false;
+    spinBtn.disabled = false;
+    showResult();
+  });
+
+  // 애니메이션은 CSS class로 걸어두는데, 모달을 다시 열 때(respin) 같은 class가 이미 붙어있으면
+  // 브라우저가 재생을 건너뛴다 — class를 뗐다가 강제 리플로우 후 다시 붙여서 매번 재생시킨다.
+  function replayAnimation(el) {
+    el.classList.remove("is-showing");
+    void el.offsetWidth;
+    el.classList.add("is-showing");
+  }
+
+  function showResult() {
+    if (!lastWinner) return;
+    document.getElementById("resultName").textContent = lastWinner.categoryName;
+    document.getElementById("resultIcon").innerHTML =
+      '<img src="' + markerUrl(lastWinner.categoryCode) + '" alt="">';
+
+    replayAnimation(document.getElementById("resultModalPanel"));
+    replayAnimation(document.getElementById("resultIcon"));
+
+    // 칸이 2개일 때 하나를 더 빼면 룰렛이 성립하지 않으므로 그때는 "빼고 다시"를 감춘다.
+    excludeBtn.hidden = items.length <= MIN_ITEMS;
+    Eatty.openModal("resultModal");
+  }
+
+  /* ------------------------------ 화면 전환 ------------------------------ */
+  buildRouletteBtn.addEventListener("click", function () {
+    buildItems();
+    renderWheel();
+    resetRotation();
+    setupSection.hidden = true;
+    playSection.hidden = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function () {
+    playSection.hidden = true;
+    setupSection.hidden = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  spinBtn.addEventListener("click", spin);
+
+  document.getElementById("respinBtn").addEventListener("click", function () {
+    Eatty.closeModal("resultModal");
+    spin();
+  });
+
+  excludeBtn.addEventListener("click", function () {
+    if (!lastWinner || items.length <= MIN_ITEMS) return;
+    // 당첨된 칸을 후보에서 빼고 룰렛을 다시 그린다(선택 목록에서도 함께 제거해 다음 화면과 어긋나지 않게).
+    var code = lastWinner.categoryCode;
+    items = items.filter(function (it) { return it.categoryCode !== code; });
+    var si = selectedCodes.indexOf(code);
+    if (si > -1) selectedCodes.splice(si, 1);
+    var btn = categoryGrid.querySelector('[data-category-code="' + code + '"]');
+    if (btn) btn.setAttribute("aria-pressed", "false");
+    syncSelectionUI();
+
+    renderWheel();
+    resetRotation();
+    Eatty.closeModal("resultModal");
+    Eatty.toast(lastWinner.categoryName + "을(를) 뺐어요.", "default");
+  });
+
+  loadCategories();
+  syncSelectionUI();
+})();

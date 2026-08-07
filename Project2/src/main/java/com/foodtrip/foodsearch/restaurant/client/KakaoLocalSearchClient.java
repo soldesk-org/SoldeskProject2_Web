@@ -115,6 +115,24 @@ public class KakaoLocalSearchClient {
         return new ArrayList<>(merged.values());
     }
 
+    // 관리자 API 서버 모니터링(2026-08-06 추가) — "설정값 존재 여부만 확인"이 아니라 실제로 카카오에
+    // 연결되는지 확인하고 싶다는 요청으로 추가. 카카오 로컬 API는 요청 1건당 과금/쿼터가 동일하게
+    // 소모되므로(size를 줄여도 더 저렴해지지 않음) 가장 작은 결과 하나만 요청하는 키워드 검색을 그대로
+    // 재사용한다 — 호출 자체를 아예 안 하면 "설정만 확인"으로 되돌아가므로, 대신 호출 빈도를
+    // SystemStatusServiceImpl 쪽에서 캐싱해 과도한 쿼터 소모를 막는다.
+    public void ping() {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(KEYWORD_SEARCH_URL)
+                .queryParam("query", "잇티웨이")
+                .queryParam("page", 1)
+                .queryParam("size", 1);
+        URI uri = builder.encode().build().toUri();
+        restClient.get()
+                .uri(uri)
+                .header("Authorization", "KakaoAK " + restApiKey)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     @SuppressWarnings("unchecked")
     private KakaoPageResult fetchKeywordPage(String categoryGroupCode, String query, int page,
                                               Double x, Double y, Integer radius) {

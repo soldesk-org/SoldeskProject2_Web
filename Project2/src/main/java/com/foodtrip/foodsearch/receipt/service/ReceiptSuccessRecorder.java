@@ -44,7 +44,7 @@ public class ReceiptSuccessRecorder {
         }
 
         for (ReceiptOcrResult.MenuItemResult item : result.menuItems()) {
-            if (item.name() == null) {
+            if (!item.isPlausible()) {
                 continue;
             }
             receiptItemRepository.save(ReceiptItem.create(receiptId, item.name(), item.price()));

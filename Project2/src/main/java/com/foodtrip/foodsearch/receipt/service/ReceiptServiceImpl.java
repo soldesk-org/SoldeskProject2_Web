@@ -100,7 +100,11 @@ public class ReceiptServiceImpl implements ReceiptService {
         receiptSuccessRecorder.record(receipt.getReceiptId(), result, rawJsonOf(result), parsedPaymentDate,
                 verified, restaurantId, processingTimeMs);
 
+        // 2026-08-06 추가 - 저장 시점(ReceiptSuccessRecorder)에서만 걸러내고 이 업로드 응답은 원본
+        // OCR 결과를 그대로 보여주고 있어서, "lo 8원" 같은 무의미한 항목이 화면(step2)에는 계속 남아있던
+        // 문제가 있었다. 같은 판정(MenuItemResult.isPlausible())을 여기도 적용해 화면과 DB를 일치시킨다.
         List<ReceiptItemResponseDto> menuItems = result.menuItems().stream()
+                .filter(ReceiptOcrResult.MenuItemResult::isPlausible)
                 .map(item -> new ReceiptItemResponseDto(item.name(), item.price()))
                 .collect(Collectors.toList());
 

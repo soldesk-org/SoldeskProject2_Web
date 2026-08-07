@@ -20,7 +20,9 @@ import org.springframework.web.multipart.MultipartFile;
 import com.foodtrip.foodsearch.restaurant.dto.CategoryResponseDto;
 import com.foodtrip.foodsearch.restaurant.dto.CreateMenuRequestDto;
 import com.foodtrip.foodsearch.restaurant.dto.MenuListResponseDto;
+import com.foodtrip.foodsearch.restaurant.dto.OwnerMenuResponseDto;
 import com.foodtrip.foodsearch.restaurant.dto.RestaurantDetailResponseDto;
+import com.foodtrip.foodsearch.restaurant.dto.RestaurantImageResponseDto;
 import com.foodtrip.foodsearch.restaurant.dto.RestaurantListResponseDto;
 import com.foodtrip.foodsearch.restaurant.dto.UpdateBusinessHoursRequestDto;
 import com.foodtrip.foodsearch.restaurant.dto.UpdateMenuRequestDto;
@@ -67,16 +69,19 @@ public class RestaurantController {
 
     // 음식점명·메뉴명 검색(1-1장, 2026-07-20 필터와 분리 확정) — keyword 전용, 카카오 키워드 검색 라이브 호출.
     // minLat/maxLat/minLng/maxLng는 지도 뷰포트를 넘기면 그 범위로 좁혀서 검색하는 선택 파라미터.
+    // type(2026-08-03 추가): all(기본, 가게명+메뉴명 모두)|shop(가게명만)|menu(메뉴명만).
     @GetMapping("/search")
     public RestaurantListResponseDto search(@RequestParam(required = false) String keyword,
                                              @RequestParam(required = false) BigDecimal minLat,
                                              @RequestParam(required = false) BigDecimal maxLat,
                                              @RequestParam(required = false) BigDecimal minLng,
                                              @RequestParam(required = false) BigDecimal maxLng,
+                                             @RequestParam(required = false) Boolean openNow,
+                                             @RequestParam(defaultValue = "all") String type,
                                              @RequestParam(defaultValue = "0") int page,
                                              @RequestParam(defaultValue = "20") int size,
                                              @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        return restaurantService.search(keyword, minLat, maxLat, minLng, maxLng, page, size, authorizationHeader);
+        return restaurantService.search(keyword, minLat, maxLat, minLng, maxLng, openNow, type, page, size, authorizationHeader);
     }
 
     // 카테고리·가격대 필터(1-1장, 2026-07-20 신규). 카카오 카테고리(bbox) 검색을 라이브로 호출하므로
@@ -89,11 +94,12 @@ public class RestaurantController {
                                              @RequestParam(required = false) BigDecimal maxLat,
                                              @RequestParam(required = false) BigDecimal minLng,
                                              @RequestParam(required = false) BigDecimal maxLng,
+                                             @RequestParam(required = false) Boolean openNow,
                                              @RequestParam(defaultValue = "0") int page,
                                              @RequestParam(defaultValue = "20") int size,
                                              @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         return restaurantService.filter(categoryId, minPrice, maxPrice, minLat, maxLat, minLng, maxLng,
-                page, size, authorizationHeader);
+                openNow, page, size, authorizationHeader);
     }
 
     @GetMapping("/nearby")
@@ -171,5 +177,38 @@ public class RestaurantController {
     public RestaurantDetailResponseDto deleteImage(@PathVariable String restaurantId,
                                                      @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         return restaurantOwnerService.deleteImage(restaurantId, authorizationHeader);
+    }
+
+    // 사업자 마이페이지 "메뉴 관리"(2026-08-06 추가) — 판매중지 메뉴 포함 전체 목록.
+    @GetMapping("/{restaurantId}/menus/mine")
+    public List<OwnerMenuResponseDto> listMyMenus(@PathVariable String restaurantId,
+                                                    @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return restaurantOwnerService.listMyMenus(restaurantId, authorizationHeader);
+    }
+
+    // 사업자 마이페이지 "사진 관리"(2026-08-06 추가) — 최대 4장 갤러리.
+    @GetMapping("/{restaurantId}/images")
+    public List<RestaurantImageResponseDto> listGalleryImages(@PathVariable String restaurantId,
+                                                                 @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return restaurantOwnerService.listGalleryImages(restaurantId, authorizationHeader);
+    }
+
+    @PostMapping(value = "/{restaurantId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public List<RestaurantImageResponseDto> addGalleryImage(@PathVariable String restaurantId,
+                                                               @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+                                                               @RequestParam("image") MultipartFile image) {
+        return restaurantOwnerService.addGalleryImage(restaurantId, authorizationHeader, image);
+    }
+
+    @DeleteMapping("/{restaurantId}/images/{imageId}")
+    public List<RestaurantImageResponseDto> deleteGalleryImage(@PathVariable String restaurantId, @PathVariable Long imageId,
+                                                                  @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return restaurantOwnerService.deleteGalleryImage(restaurantId, imageId, authorizationHeader);
+    }
+
+    @PatchMapping("/{restaurantId}/images/{imageId}/main")
+    public List<RestaurantImageResponseDto> setMainGalleryImage(@PathVariable String restaurantId, @PathVariable Long imageId,
+                                                                    @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return restaurantOwnerService.setMainGalleryImage(restaurantId, imageId, authorizationHeader);
     }
 }

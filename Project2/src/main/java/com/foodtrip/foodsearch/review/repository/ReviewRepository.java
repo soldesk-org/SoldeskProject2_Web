@@ -1,6 +1,7 @@
 package com.foodtrip.foodsearch.review.repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,4 +39,16 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // 리뷰 수정/삭제(2026-07-22 추가) — 본인 소유 확인까지 한 쿼리로.
     Optional<Review> findByReviewIdAndDeletedAtIsNull(Long reviewId);
+
+    // 사업자 마이페이지 "내 매장 관리"(2026-08-06 추가) — "리뷰 더 보기" 페이지네이션용.
+    Page<Review> findByRestaurantIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
+            String restaurantId, String status, Pageable pageable);
+
+    // 별점 분포(5~1점) 집계용 — 리뷰 건수가 크지 않은 매장 단위라 자바에서 그룹핑한다.
+    @Query("SELECT r.rating FROM Review r WHERE r.restaurantId = :restaurantId "
+            + "AND r.status = 'NORMAL' AND r.deletedAt IS NULL")
+    List<Integer> findAllRatingsByRestaurantId(@Param("restaurantId") String restaurantId);
+
+    long countByRestaurantIdAndReceiptVerifiedTrueAndStatusAndDeletedAtIsNullAndCreatedAtBetween(
+            String restaurantId, String status, LocalDateTime start, LocalDateTime end);
 }
