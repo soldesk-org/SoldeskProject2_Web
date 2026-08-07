@@ -1,122 +1,433 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>추천 | 잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 추천 — 잇티웨이</title>
+<meta name="description" content="문장으로 말하면 AI가 조건에 맞는 맛집을 골라드립니다.">
+
+<!--
+================================================================================
+ recommend — 자연어 AI 맛집 추천
+--------------------------------------------------------------------------------
+ [질문 입력]
+   #recommendForm            질문 폼
+   #recommendQuery           자연어 질문 textarea (name="query", maxlength=200)
+   #recommendQueryCounter    글자수 (data-counter="recommendQuery")
+   #recommendSubmitBtn       추천 받기  ★ POST /api/recommend
+   #exampleChipList          예시 질문 칩 (button[data-example])
+   #useMyBtiSwitch           음식 취향 찾기 반영 (name="useBti")
+   #useMyLocationSwitch      현재 위치 기준 (name="useLocation")
+   #quickPeople              인원 select (name="people")
+   #quickBudget              예산 select (name="budget")
+   #quickArea                지역 입력 (name="area")
+
+ [상태 영역]
+   #recommendLoading         AI 응답 대기 상태 (기본 hidden)
+   #recommendEmpty           최초 진입 안내 (기본 표시)
+   #recommendResult          결과 영역 (기본 hidden)
+
+ [결과]
+   #recommendCardList        추천 카드 목록 ★ 여기에 카드 반복 렌더
+   .rc-card[data-shop-id]    추천 카드
+     [data-feedback="like"]  / [data-feedback="dislike"]  피드백 버튼
+                             ★ POST /api/recommend/{id}/feedback
+     [data-match-score]      일치도
+   #retryBtn                 다시 추천받기
+   #openInMapBtn             지도에서 모두 보기 → explore
+   #saveAllBtn               전체 즐겨찾기 저장
+
+ [후속 제안]
+   #followupSection          "식사 후엔?" 후속 제안 영역
+   .fu-card[data-followup]   산책 / 카페 / 디저트 / 술집 제안 카드
+   #followupMoreBtn          다른 제안 보기
+
+ [지도]  ★ 네이버 지도 삽입 지점
+   #naverMapRecommend        지도 컨테이너
+   #recommendMarkerLayer     시안용 마커 레이어 (지도 연동 시 삭제)
+
+ [최근 질문]
+   #recentQueryList          최근 질문 목록 (button[data-recent-query])
+   #clearRecentBtn           기록 전체 삭제
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/recommend.js"></script>
+
+<link rel="stylesheet" href="assets/css/recommend.css">
 </head>
-<body>
-<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
-  <aside class="relative z-10 flex w-[280px] shrink-0 flex-col bg-white">
-    <a href="explore" class="flex justify-center">
-      <img src="assets/images/logo-full.png" alt="잇티웨이 로고" class="size-[220px] object-contain" />
+
+<body class="has-tabbar">
+
+<!-- ============================== 헤더 ============================== -->
+<header class="e-header" id="siteHeader">
+  <div class="e-container e-container-wide e-header-inner">
+    <a href="index" class="e-logo" id="logoHome">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
     </a>
-    <nav class="mt-2 flex flex-col gap-4 overflow-y-auto px-6 pb-6">
-      <a href="explore" data-nav="explore" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">탐색</span>
-      </a>
-      <a href="recommend" data-nav="recommend" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">추천</span>
-      </a>
-      <a href="mypage?tab=favorites" data-nav="mypage?tab=favorites" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">즐겨찾기</span>
-      </a>
-      <a href="taste-quiz" data-nav="taste-quiz" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">입맛 유형 찾기</span>
-      </a>
-      <a href="mypage" data-nav="mypage" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">마이페이지</span>
-      </a>
-      <a href="chat" data-nav="chat" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">잇티챗</span>
-      </a>
-      <a href="business-mypage" data-nav="business-mypage" data-role="BUSINESS" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">사업자</span>
-      </a>
-      <a href="admin" data-nav="admin" data-role="ADMIN" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M12 2a5 5 0 0 0-5 5v2a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2V7a5 5 0 0 0-5-5Z"/><path d="M9 7a3 3 0 0 1 6 0v2H9Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">관리자 전용</span>
-      </a>
-      <button type="button" data-logout-btn class="flex items-center gap-4 rounded-[10px] px-3 py-3 text-left transition-colors text-[rgba(37,55,75,0.6)] hover:bg-[rgba(254,162,85,0.1)]">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">로그아웃</span>
-      </button>
+
+    <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
+      <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
+      <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
-  </aside>
 
-  <div class="flex min-w-0 flex-1 flex-col">
-    <div class="flex items-center gap-3 border-b border-[#dfe2e6] px-6 py-4">
-      <div class="flex h-[52px] flex-1 items-center rounded-[10px] border border-[#dfe2e6] bg-white px-5">
-        <input id="recommend-input" placeholder="AI가 취향에 맞는 장소를 추천해드려요" class="min-w-0 flex-1 bg-transparent text-[18px] text-[#111] placeholder:text-[#74777d] outline-none" />
-      </div>
-      <button id="recommend-search-btn" class="h-[52px] shrink-0 rounded-[8px] bg-[#ff6b00] px-8 text-[20px] font-bold text-white transition-opacity hover:opacity-90">검색</button>
-    </div>
-
-    <div class="min-h-0 flex-1 overflow-y-auto px-6 py-6">
-      <div class="flex items-baseline justify-between">
-        <h1 class="text-[29px] font-bold text-[#111]">추천 결과</h1>
-        <span id="results-count" class="text-[15px] text-[#555b63]"></span>
+    <div class="e-header-actions">
+      <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest">
+        <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
+        <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
       </div>
 
-      <div id="results-list" class="mt-4 flex flex-col gap-4">
-        <p class="text-[16px] text-[#74777d]">검색창에 원하는 분위기나 음식을 입력하고 검색해보세요.</p>
+      <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth" hidden>
+        <button type="button" class="e-icon-btn" id="headerNotiBtn" aria-label="알림">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+          <span class="e-dot"></span>
+        </button>
+        <div class="e-dropdown">
+          <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
+                  id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
+            <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="e-dropdown-menu" id="headerProfileMenu">
+            <div class="e-dropdown-head">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
+              <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
+            </div>
+            <a class="e-dropdown-item" href="mypage">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
+            <div class="e-dropdown-sep"></div>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn">로그아웃</button>
+          </div>
+        </div>
       </div>
+
+      <button type="button" class="e-header-burger" id="drawerOpenBtn" data-drawer-open="mainDrawer" aria-label="메뉴 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
     </div>
   </div>
+</header>
 
-  <div id="ai-eval-modal" style="display:none" class="fixed inset-0 z-50 items-center justify-center bg-[rgba(17,24,39,0.36)] p-4">
-    <div class="relative w-full max-w-[504px] rounded-[16px] bg-white p-7 shadow-2xl">
-      <button id="modal-x" aria-label="닫기" class="absolute right-5 top-5 text-[#74777d] hover:text-black">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-      </button>
-
-      <div id="feedback-section">
-        <p class="text-[13px] font-bold text-[#ff6b00]">AI 추천 평가</p>
-        <h2 class="mt-1 text-[23px] font-bold text-[#17191c]">이 추천이 도움이 되었나요?</h2>
-
-        <div id="feedback-buttons" class="mt-5 flex flex-col gap-3">
-          <button id="feedback-up" class="flex items-center gap-3 rounded-[10px] border px-4 py-3 text-left transition-colors border-[#dfe2e6] bg-white hover:bg-[#fafbfc]">
-            <span class="text-[21px]">👍</span>
-            <span class="text-[16px] font-bold text-[#30343a]">AI 답변이 마음에 들었어요</span>
-          </button>
-          <button id="feedback-down" class="flex items-center gap-3 rounded-[10px] border px-4 py-3 text-left transition-colors border-[#dfe2e6] bg-white hover:bg-[#fafbfc]">
-            <span class="text-[21px]">👎</span>
-            <span class="text-[16px] font-bold text-[#30343a]">AI 답변이 마음에 들지 않았어요</span>
-          </button>
-        </div>
-        <p id="feedback-login-hint" style="display:none" class="mt-3 text-[14px] text-[#74777d]">로그인하면 이 추천에 피드백을 남길 수 있어요.</p>
-      </div>
-
-      <div class="my-6 h-px w-full bg-[#eceef1]"></div>
-
-      <div id="followup-prompt">
-        <div class="flex items-center gap-2">
-          <span id="modal-icon" class="flex size-[36px] shrink-0 items-center justify-center rounded-full border border-[#ffe0ca] bg-[#fff4ec] text-[18px]">☕</span>
-          <p class="text-[13px] font-bold text-[#ff6b00]">다음 장소도 이어서 추천</p>
-        </div>
-        <p id="modal-title" class="mt-2 overflow-hidden text-ellipsis whitespace-nowrap text-[20px] font-bold text-[#17191c]">식사 후 갈 카페도 AI가 추천해드릴까요?</p>
-        <p class="mt-2 text-[15px] text-[#74777d]">지금 추천 결과와 가까운 장소를 이어서 찾아드릴게요.</p>
-
-        <div class="mt-5 flex gap-3">
-          <button id="modal-continue" class="flex-1 rounded-[10px] bg-[#ff6b00] py-3 text-[17px] font-bold text-white transition-opacity hover:opacity-90">괜찮아요, 추천해주세요</button>
-          <button id="modal-close" class="flex-1 rounded-[10px] border border-[#dfe2e6] bg-white py-3 text-[17px] font-bold text-[#30343a] transition-colors hover:bg-[#fafbfc]">다음에 볼게요</button>
+<!-- 모바일 드로어 -->
+<div class="e-drawer-backdrop" data-drawer-backdrop="mainDrawer"></div>
+<aside class="e-drawer" id="mainDrawer" aria-hidden="true" aria-label="모바일 메뉴">
+  <div class="e-drawer-head">
+    <span class="e-logo-text">잇티<em>웨이</em></span>
+    <button type="button" class="e-modal-close" data-drawer-close="mainDrawer" aria-label="메뉴 닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="e-drawer-body">
+    <div data-auth-view="guest">
+      <div class="e-card e-card-soft p-4 mb-4">
+        <p class="text-sm font-extrabold text-[var(--ink-900)]">로그인하면 취향까지 반영돼요</p>
+        <div class="flex gap-2 mt-3">
+          <a href="login" class="btn btn-outline btn-sm flex-1">로그인</a>
+          <a href="signup" class="btn btn-primary btn-sm flex-1">회원가입</a>
         </div>
       </div>
-
-      <div id="followup-results" style="display:none" class="mt-2 flex flex-col gap-2"></div>
     </div>
+    <div data-auth-view="auth" hidden>
+      <a href="mypage" class="e-card p-4 mb-4 flex items-center gap-3">
+        <span class="e-avatar e-avatar-lg" id="drawerAvatar" aria-hidden="true">잇</span>
+        <span class="min-w-0">
+          <span class="block text-sm font-extrabold text-[var(--ink-900)]" id="drawerNickname">잇티러버</span>
+          <span class="block text-xs text-[var(--ink-500)] truncate" id="drawerEmail">eatty@example.com</span>
+        </span>
+      </a>
+    </div>
+    <a class="e-drawer-link" href="explore" data-nav-page="explore">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+    <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+  </div>
+</aside>
+
+<main>
+  <!-- ==================== 질문 입력 ==================== -->
+  <section class="bg-white border-b border-[var(--line)] e-hero-glow flex items-center" style="min-height:calc(100vh - var(--header-h))">
+    <div class="e-container relative z-10 py-10">
+      <div class="max-w-3xl">
+        <h1 class="t-h2 mt-5">먹고 싶은 조건을<br>그냥 문장으로 말해보세요</h1>
+        <p class="t-lead mt-4">지역, 분위기, 예산, 인원 같은 조건을 한 문장에 담아도 괜찮아요.</p>
+      </div>
+
+      <!-- 입력 폼 -->
+      <form class="mt-8 max-w-3xl" id="recommendForm">
+        <div class="e-card e-card-pad shadow-[var(--sh)]">
+          <label class="e-label" for="recommendQuery">
+            무엇을 찾고 있나요?
+            <span class="e-label-side"><span id="recommendQueryCounter" data-counter="recommendQuery">0 / 200</span></span>
+          </label>
+          <textarea class="e-textarea !min-h-[92px] !text-[16px]" id="recommendQuery" name="query" maxlength="200"
+                    placeholder="예) 강남역 근처 조용한 파스타집 추천해줘. 2명이서 갈 거고 예산은 1인 3만원 정도야."></textarea>
+
+          <!-- 빠른 조건 -->
+          <div class="grid sm:grid-cols-3 gap-3 mt-4">
+            <div>
+              <label class="e-label !text-[12.5px]" for="quickArea">지역</label>
+              <input type="text" class="e-input e-input-sm" id="quickArea" name="area" placeholder="예) 강남역">
+            </div>
+            <div>
+              <label class="e-label !text-[12.5px]" for="quickPeople">인원</label>
+              <select class="e-select e-input-sm" id="quickPeople" name="people">
+                <option value="">상관없음</option>
+                <option value="1">혼자</option>
+                <option value="2">2명</option>
+                <option value="3-4">3~4명</option>
+                <option value="5+">5명 이상</option>
+              </select>
+            </div>
+            <div>
+              <label class="e-label !text-[12.5px]" for="quickBudget">1인 예산</label>
+              <select class="e-select e-input-sm" id="quickBudget" name="budget">
+                <option value="">상관없음</option>
+                <option value="under10000">1만원 이하</option>
+                <option value="10000-20000">1~2만원</option>
+                <option value="20000-40000">2~4만원</option>
+                <option value="over40000">4만원 이상</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 옵션 스위치 -->
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-3 mt-5 pt-5 border-t border-[var(--line)]">
+            <label class="e-switch" for="useMyBtiSwitch">
+              <input type="checkbox" id="useMyBtiSwitch" name="useBti" checked>
+              <span class="e-switch-track"></span>
+              <span class="text-[13.5px] font-bold text-[var(--ink-700)]">내 음식 취향 찾기 반영</span>
+            </label>
+            <label class="e-switch" for="useMyLocationSwitch">
+              <input type="checkbox" id="useMyLocationSwitch" name="useLocation" checked>
+              <span class="e-switch-track"></span>
+              <span class="text-[13.5px] font-bold text-[var(--ink-700)]">현재 위치 기준</span>
+            </label>
+
+            <button type="submit" class="btn btn-primary btn-lg sm:ml-auto w-full sm:w-auto" id="recommendSubmitBtn">
+              AI 추천 받기
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- 예시 질문 -->
+      <div class="mt-5 max-w-3xl">
+        <div class="e-scroll-x">
+          <div class="flex items-center gap-2" id="exampleChipList">
+            <span class="t-xs font-bold text-[var(--ink-400)] flex-none mr-1">예시</span>
+            <button type="button" class="e-chip e-chip-sm flex-none" data-example="강남역 근처 조용한 파스타집 추천해줘">조용한 파스타집</button>
+            <button type="button" class="e-chip e-chip-sm flex-none" data-example="혼밥하기 편한 국밥집 알려줘">혼밥 국밥집</button>
+            <button type="button" class="e-chip e-chip-sm flex-none" data-example="비 오는 날 어울리는 따뜻한 음식">비 오는 날 메뉴</button>
+            <button type="button" class="e-chip e-chip-sm flex-none" data-example="4명이서 갈 만한 가성비 회식 장소">가성비 회식 장소</button>
+            <button type="button" class="e-chip e-chip-sm flex-none" data-example="데이트하기 좋은 분위기 좋은 레스토랑">데이트 레스토랑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 결과 영역 ==================== -->
+  <div class="e-container e-container-wide py-10 md:py-14 flex flex-col justify-center" style="min-height:calc(100vh - var(--header-h))">
+    <div class="flex flex-col lg:flex-row gap-8">
+
+      <!-- ---------- 좌: 결과 ---------- -->
+      <div class="flex-1 flex flex-col min-h-0">
+       <div class="overflow-y-auto e-scroll-hidden" style="height:calc(100vh - var(--header-h) - 80px)">
+
+        <!-- 최초 진입 안내 -->
+        <div id="recommendEmpty" class="min-h-full flex flex-col">
+          <div class="e-card e-card-pad flex-1 flex flex-col items-center justify-center text-center">
+            <div class="rc-state-icon rc-state-icon--float">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+            </div>
+            <p class="rc-state-title">아직 추천 결과가 없어요</p>
+            <p class="rc-state-desc">위에 조건을 입력하고<br class="sm:hidden"> "AI 추천 받기"를 눌러보세요</p>
+          </div>
+        </div>
+
+        <!-- 로딩 -->
+        <div id="recommendLoading" class="min-h-full flex flex-col" hidden>
+          <div class="e-card e-card-pad flex-1 flex flex-col items-center justify-center text-center">
+            <div class="rc-spinner" aria-hidden="true"><span></span></div>
+            <p class="rc-state-title mt-6" id="recommendLoadingText">잇티 AI가 후보를 고르고 있어요</p>
+            <p class="rc-state-desc">리뷰 태그와 방문 인증 데이터를 함께 살펴보는 중이에요</p>
+          </div>
+        </div>
+
+        <!-- ==================== 결과 ==================== -->
+        <div id="recommendResult" hidden>
+          <!-- 결과 헤더 -->
+          <div class="flex flex-wrap items-center gap-3 mb-4">
+            <h2 class="t-h3" id="recommendResultTitle">추천 결과</h2>
+            <div class="ml-auto flex gap-2">
+              <button type="button" class="btn btn-outline btn-sm" id="saveAllBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 0 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1Z"/></svg>
+                전체 저장
+              </button>
+              <a href="explore" class="btn btn-outline btn-sm" id="openInMapBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                지도에서 보기
+              </a>
+            </div>
+          </div>
+
+          <!-- 추천 카드 목록 -->
+          <div class="space-y-4" id="recommendCardList">
+          </div>
+
+          <!-- 다시 추천 -->
+          <div class="mt-6 flex flex-col sm:flex-row gap-3">
+            <button type="button" class="btn btn-outline btn-lg w-full sm:flex-1" id="retryBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+              다른 후보 다시 추천받기
+            </button>
+          </div>
+
+          <!-- ==================== 후속 제안 ==================== -->
+          <section class="mt-10" id="followupSection">
+            <div class="flex items-center gap-3 mb-1">
+              <h2 class="t-h3">식사 후엔 이런 것도?</h2>
+            </div>
+            <p class="t-sm mb-5">추천한 매장 주변에서 이어서 갈 만한 곳을 골라봤어요.</p>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+
+              <article class="e-card e-card-pad e-card-hover fu-card" data-followup="PARK">
+                <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-4" style="background:var(--success-soft);color:var(--success)">
+                  <svg class="w-3.5 h-5" viewBox="0 0 320 512" fill="currentColor"><path d="M160 48a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zM126.5 199.3c-1 .4-1.9 .8-2.9 1.2l-8 3.5c-16.4 7.3-29 21.2-34.7 38.2l-2.6 7.8c-5.6 16.8-23.7 25.8-40.5 20.2s-25.8-23.7-20.2-40.5l2.6-7.8c11.4-34.1 36.6-61.9 69.4-76.5l8-3.5c20.8-9.2 43.3-14 66.1-14c44.6 0 84.8 26.8 101.9 67.9L281 232.7l21.4 10.7c15.8 7.9 22.2 27.1 14.3 42.9s-27.1 22.2-42.9 14.3L247 287.3c-10.3-5.2-18.4-13.8-22.8-24.5l-9.6-23-19.3 65.5 49.5 54c5.4 5.9 9.2 13 11.2 20.8l23 92.1c4.3 17.1-6.1 34.5-23.3 38.8s-34.5-6.1-38.8-23.3l-22-88.1-70.7-77.1c-14.8-16.1-20.3-38.6-14.7-59.7l16.9-63.5zM68.7 398l25-62.4c2.1 3 4.5 5.8 7 8.6l40.7 44.4-14.5 36.2c-2.4 6-6 11.5-10.6 16.1L54.6 502.6c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L68.7 398z"/></svg>
+                </span>
+                <span class="e-badge e-badge--success">산책 · 공원</span>
+                <h3 class="t-h4 mt-3">근처 공원 찾기</h3>
+                <p class="t-sm mt-2 leading-relaxed">추천 1순위 매장 주변에서 걸을 만한 공원을 찾아드려요.</p>
+                <button type="button" class="btn btn-ghost btn-xs mt-3" data-followup-load="PARK">주변 공원 찾기</button>
+              </article>
+
+              <article class="e-card e-card-pad e-card-hover fu-card" data-followup="CAFE">
+                <span class="w-11 h-11 rounded-[13px] grid place-items-center mb-4" style="background:var(--warning-soft);color:var(--warning)">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M4 22h13"/>
+                  </svg>
+                </span>
+                <span class="e-badge e-badge--warning">카페</span>
+                <h3 class="t-h4 mt-3">근처 카페 찾기</h3>
+                <p class="t-sm mt-2 leading-relaxed">추천 1순위 매장 주변에서 갈 만한 카페를 찾아드려요.</p>
+                <button type="button" class="btn btn-ghost btn-xs mt-3" data-followup-load="CAFE">주변 카페 찾기</button>
+              </article>
+            </div>
+          </section>
+        </div>
+       </div>
+      </div>
+
+      <!-- ---------- 우: 지도 + 최근 질문 ---------- -->
+      <aside class="space-y-5 lg:w-[400px] flex-none">
+
+        <!-- 지도 -->
+        <div class="e-card overflow-hidden lg:sticky lg:top-[calc(var(--header-h)+16px)]">
+          <div class="e-card-head !py-3.5">
+            <p class="e-card-title !text-[14.5px]">추천 위치</p>
+            <a href="explore" class="e-link-brand text-[12.5px] ml-auto">크게 보기</a>
+          </div>
+
+          <!-- 네이버 지도 삽입 영역 -->
+          <div class="h-[300px]" id="naverMapRecommend" style="background:#eceff3"></div>
+        </div>
+
+        <!-- 최근 질문 -->
+        <div class="e-card">
+          <div class="e-card-head !py-3.5">
+            <p class="e-card-title !text-[14.5px]">최근 질문</p>
+            <button type="button" class="e-link text-[12.5px] ml-auto" id="clearRecentBtn">전체 삭제</button>
+          </div>
+          <div class="p-2 overflow-y-auto e-scroll-hidden" id="recentQueryList" style="height:220px"></div>
+        </div>
+
+        <!-- 음식 취향 찾기 유도 (비로그인) -->
+        <div class="e-card e-card-soft e-card-pad" data-auth-view="guest">
+          <p class="t-h4">로그인하면 더 정확해져요</p>
+          <p class="t-sm mt-2 leading-relaxed">음식 취향 찾기 결과와 즐겨찾기 이력을 반영해 후보를 추립니다.</p>
+          <div class="flex gap-2 mt-4">
+            <a href="login" class="btn btn-outline btn-sm flex-1">로그인</a>
+            <a href="taste-quiz" class="btn btn-primary btn-sm flex-1">음식 취향 찾기 하기</a>
+          </div>
+        </div>
+
+        <!-- 내 음식 취향 찾기 (로그인) -->
+        <div class="e-card e-card-pad" data-auth-view="auth" hidden>
+          <div class="flex items-center gap-3">
+            <span class="w-11 h-11 rounded-[13px] grid place-items-center flex-none text-white" style="background:var(--brand-grad)">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/></svg>
+            </span>
+            <div class="min-w-0">
+              <p class="t-xs">내 음식 취향 찾기</p>
+              <p class="text-[15px] font-extrabold text-[var(--ink-900)]" id="myFoodBtiText">-</p>
+            </div>
+            <a href="taste-quiz" class="btn btn-ghost btn-xs ml-auto flex-none">다시 하기</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<!-- 근처 공원/카페 결과 모달 -->
+<div id="followupModal" class="e-modal" role="dialog" aria-modal="true" aria-labelledby="followupModalTitle">
+  <div class="e-modal-backdrop" data-modal-close></div>
+  <div class="e-modal-panel">
+    <div class="e-modal-head">
+      <div class="min-w-0">
+        <p class="e-modal-title" id="followupModalTitle">근처 공원</p>
+        <p class="e-modal-desc" id="followupModalDesc">추천 1순위 매장 주변 결과예요.</p>
+      </div>
+      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="e-modal-body space-y-2" id="followupModalBody"></div>
   </div>
 </div>
-<script src="assets/js/api.js"></script>
-<script src="assets/js/sidebar.js"></script>
-<script src="assets/js/recommend.js"></script>
+
+<!-- 모바일 하단 탭바 -->
+<nav class="e-tabbar" aria-label="모바일 주요 메뉴">
+  <a class="e-tabbar-item" href="index">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
+    홈
+  </a>
+  <a class="e-tabbar-item" href="explore">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    탐색
+  </a>
+  <a class="e-tabbar-item" href="recommend" data-nav-page="recommend">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+    AI추천
+  </a>
+  <a class="e-tabbar-item" href="chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+    잇티챗
+  </a>
+  <a class="e-tabbar-item" href="mypage">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    내정보
+  </a>
+</nav>
+
+
 </body>
 </html>
