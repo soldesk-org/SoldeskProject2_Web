@@ -1,99 +1,510 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="user">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>영수증 올리기 | 잇티웨이</title>
-<link rel="stylesheet" href="assets/css/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>영수증 인증 리뷰 — 잇티웨이</title>
+<meta name="description" content="영수증을 업로드하면 OCR로 방문을 인증하고 리뷰를 작성할 수 있습니다.">
+
+<!--
+================================================================================
+ receipt-upload — 영수증 업로드 → OCR 확인 → 리뷰 작성
+--------------------------------------------------------------------------------
+ [3단계 진행]  #receiptSteps
+   step1 업로드 → step2 OCR 확인 → step3 리뷰 작성 → (완료 화면)
+
+ 이 페이지는 explore.html 매장 상세의 "리뷰 작성" 버튼으로만 진입합니다(쿼리 파라미터로
+ restaurantId/name/address/roadAddress/latitude/longitude 전달). 영수증 업로드(POST /api/receipts)가
+ 이미 선택된 매장을 대상으로 인증하는 구조라(리뷰=반드시 receiptId 필요, 08/10 정책) 매장을 나중에
+ 검색·변경하는 UI는 없습니다. 로그인 필수(Api.requireLogin).
+
+ [STEP 1 · 업로드]
+   #step1Section          섹션 루트
+   #targetRestaurantName  대상 매장명(쿼리 파라미터)
+   #noRestaurantAlert     매장 정보 없이 들어온 경우 경고
+   #receiptDrop           드롭존 (data-dropzone)
+   #receiptFileInput      파일 입력 (name="receiptImage")
+   #receiptFileName       선택 파일명 출력 (data-dropzone-filename)
+   #receiptPreview        미리보기 래퍼 (data-dropzone-preview)
+   #receiptRemoveBtn      파일 제거
+   ※ 모바일에서도 카메라 촬영 대신 항상 파일 업로드(드롭존)만 사용합니다(2026-08-07 카메라 버튼 제거
+     — change 핸들러가 없어 실제로는 선택한 사진이 OCR로 안 넘어가던 죽은 기능이었음).
+   #runOcrBtn             영수증 업로드+OCR 실행 ★ POST /api/receipts (multipart)
+
+ [STEP 2 · OCR 결과 확인] — 전부 읽기 전용(서버 값 그대로 표시, 수정 API 없음)
+   #step2Section          섹션 루트 (기본 hidden)
+   #ocrVerifiedBadge      인증 성공/실패 배지
+   #ocrShopName / #ocrTotalAmount / #ocrVisitDatetime
+   #ocrMenuList           인식된 메뉴 목록
+   #ocrRetryBtn           다시 업로드 (step1 로 복귀)
+   #ocrConfirmBtn         정보 확인 완료 → step3 (인증 실패 시 비활성화)
+   #ocrDuplicateAlert     미인증 경고 배너
+
+ [STEP 3 · 리뷰 작성]
+   #step3Section          섹션 루트 (기본 hidden)
+   #reviewForm            폼 루트
+   #reviewRatingInput     별점 입력 래퍼 (data-rating-input, data-rating-target="reviewScore")
+   #reviewScore           별점 hidden (name="rating")
+   #reviewScoreText       별점 숫자 출력
+   #ratingError           별점 미선택 에러
+   #positiveTagList       긍정 태그 10종 (ReviewKeywordCatalog.POSITIVE 값 그대로)
+   #negativeTagList       부정 태그 10종 (ReviewKeywordCatalog.NEGATIVE 값 그대로)
+   #tagSelectedCount      선택한 태그 수
+   #reviewContent         자유 텍스트 (name="content", maxlength=1000, 선택)
+   #reviewContentCounter  글자수 (data-counter="reviewContent")
+   #agreeReviewPolicy     리뷰 정책 동의 (name="agreePolicy")
+   #reviewBackBtn         이전 (step2 복귀)
+   #reviewSubmitBtn       리뷰 등록 ★ POST /api/reviews (receiptId 필수)
+
+ [완료]
+   #doneSection           완료 화면 (기본 hidden)
+   #goMyReviewsBtn        내 리뷰 보기 → mypage-reviews
+   #writeAnotherBtn       또 작성하기 (step1 복귀)
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/receipt-upload.js"></script>
+
+<link rel="stylesheet" href="assets/css/receipt-upload.css">
 </head>
-<body>
-<div class="flex h-screen w-full overflow-hidden bg-white font-['Inter','Noto_Sans_KR',sans-serif]">
-  <aside class="relative z-10 flex w-[280px] shrink-0 flex-col bg-white">
-    <a href="explore" class="flex justify-center">
-      <img src="assets/images/logo-full.png" alt="잇티웨이 로고" class="size-[220px] object-contain" />
+
+<body class="has-tabbar bg-[var(--bg-soft)]">
+
+<!-- ============================== 헤더 ============================== -->
+<header class="e-header" id="siteHeader">
+  <div class="e-container e-container-wide e-header-inner">
+    <a href="index" class="e-logo" id="logoHome">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
     </a>
-    <nav class="mt-2 flex flex-col gap-4 overflow-y-auto px-6 pb-6">
-      <a href="explore" data-nav="explore" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">탐색</span>
-      </a>
-      <a href="recommend" data-nav="recommend" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">추천</span>
-      </a>
-      <a href="mypage?tab=favorites" data-nav="mypage?tab=favorites" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">즐겨찾기</span>
-      </a>
-      <a href="taste-quiz" data-nav="taste-quiz" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">입맛 유형 찾기</span>
-      </a>
-      <a href="mypage" data-nav="mypage" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">마이페이지</span>
-      </a>
-      <a href="chat" data-nav="chat" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">잇티챗</span>
-      </a>
-      <a href="business-mypage" data-nav="business-mypage" data-role="BUSINESS" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">사업자</span>
-      </a>
-      <a href="admin" data-nav="admin" data-role="ADMIN" class="flex items-center gap-4 rounded-[10px] px-3 py-3 transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M12 2a5 5 0 0 0-5 5v2a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2V7a5 5 0 0 0-5-5Z"/><path d="M9 7a3 3 0 0 1 6 0v2H9Z"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">관리자 전용</span>
-      </a>
-      <button type="button" data-logout-btn class="flex items-center gap-4 rounded-[10px] px-3 py-3 text-left transition-colors text-[rgba(37,55,75,0.6)] hover:bg-[rgba(254,162,85,0.1)]">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span class="whitespace-nowrap text-[22px] font-semibold tracking-[-1.1px]">로그아웃</span>
-      </button>
+
+    <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
+      <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
+      <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
-  </aside>
 
-  <div class="flex-1 overflow-y-auto p-10">
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
-      <div class="flex flex-col items-center justify-center rounded-[12px] border border-[#dfe2e6] p-10">
-        <button id="upload-btn" class="relative flex size-[130px] items-center justify-center rounded-[16px] border-2 border-[#dfe2e6] transition-colors hover:bg-[#fafbfc]" aria-label="영수증 이미지 업로드">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-[#90959c]"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg>
-          <span class="absolute -bottom-2 -right-2 flex size-[46px] items-center justify-center rounded-full bg-[#ff6b00] text-white">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-          </span>
-        </button>
-
-        <h1 class="mt-6 text-[28px] font-bold text-[#17191c]">영수증 올리기</h1>
-        <p class="mt-3 text-center text-[17px] text-[#74777d]">사진을 찍은 PNG/JPG 파일을<br />업로드해주세요.</p>
-
-        <input id="upload-input" type="file" accept="image/png,image/jpeg" class="hidden" />
-        <button id="upload-label-btn" class="mt-8 w-full rounded-[10px] border border-[#dfe2e6] py-4 text-[18px] font-bold text-[#17191c] transition-colors hover:bg-[#fafbfc]">파일 선택</button>
-
-        <div class="mt-6 w-full">
-          <label class="text-[15px] font-bold text-[#17191c]">방문한 음식점 검색</label>
-          <div class="mt-2 flex gap-2">
-            <input id="receipt-restaurant-input" placeholder="음식점 이름을 입력해주세요." class="h-[44px] flex-1 rounded-[8px] border border-[#dfe2e6] px-3 text-[15px] outline-none" />
-            <button id="receipt-restaurant-search-btn" class="h-[44px] shrink-0 rounded-[8px] bg-[#ff6b00] px-4 text-[15px] font-bold text-white">검색</button>
-          </div>
-          <div id="receipt-restaurant-results" class="mt-2 flex max-h-[160px] flex-col gap-1 overflow-y-auto"></div>
-          <p id="receipt-selected-restaurant" class="mt-2 text-[15px] font-bold text-[#ff6b00]"></p>
-        </div>
-
-        <button id="receipt-submit-btn" disabled class="mt-4 w-full rounded-[10px] bg-[#ff6b00] py-4 text-[18px] font-bold text-white opacity-40 transition-opacity hover:opacity-90">영수증 인증하기</button>
-        <p id="receipt-error" class="mt-2 text-[15px] font-medium text-red-500" style="display:none"></p>
+    <div class="e-header-actions">
+      <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest" hidden>
+        <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
+        <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
       </div>
 
-      <div class="rounded-[12px] border border-[#dfe2e6] p-6">
-        <div id="receipt-result" style="display:none" class="mb-4 rounded-[12px] border border-[#dfe2e6] p-6"></div>
-        <h2 class="text-[20px] font-bold text-[#111]">최근 방문한 곳</h2>
-        <div id="recent-visits" class="mt-4 flex flex-col gap-4">
-          <p class="text-[15px] text-[#74777d]">불러오는 중...</p>
+      <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth">
+        <button type="button" class="e-icon-btn" id="headerNotiBtn" aria-label="알림">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+          <span class="e-dot"></span>
+        </button>
+        <div class="e-dropdown">
+          <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
+                  id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
+            <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="e-dropdown-menu" id="headerProfileMenu">
+            <div class="e-dropdown-head">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
+              <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
+            </div>
+            <a class="e-dropdown-item" href="mypage">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
+            <div class="e-dropdown-sep"></div>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn">로그아웃</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="e-header-burger" id="drawerOpenBtn" data-drawer-open="mainDrawer" aria-label="메뉴 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- 모바일 드로어 -->
+<div class="e-drawer-backdrop" data-drawer-backdrop="mainDrawer"></div>
+<aside class="e-drawer" id="mainDrawer" aria-hidden="true" aria-label="모바일 메뉴">
+  <div class="e-drawer-head">
+    <span class="e-logo-text">잇티<em>웨이</em></span>
+    <button type="button" class="e-modal-close" data-drawer-close="mainDrawer" aria-label="메뉴 닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="e-drawer-body">
+    <a class="e-drawer-link" href="explore" data-nav-page="explore">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+    <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+    <div data-auth-view="auth">
+      <div class="e-drawer-sep"></div>
+      <a class="e-drawer-link" href="mypage">마이페이지</a>
+      <a class="e-drawer-link" href="mypage-reviews">내 리뷰</a>
+    </div>
+  </div>
+</aside>
+
+<main id="mainContent" class="py-8 md:py-12">
+  <div class="e-container e-container-narrow">
+    <!-- 스테퍼 -->
+    <div class="e-card e-card-flat p-5 mb-6">
+      <div class="e-steps" id="receiptSteps">
+        <div class="e-step is-current" data-step="1">
+          <span class="e-step-dot">1</span>
+          <span class="e-step-label">영수증 업로드</span>
+        </div>
+        <span class="e-step-line" data-line="1"></span>
+        <div class="e-step" data-step="2">
+          <span class="e-step-dot">2</span>
+          <span class="e-step-label">인식 결과 확인</span>
+        </div>
+        <span class="e-step-line" data-line="2"></span>
+        <div class="e-step" data-step="3">
+          <span class="e-step-dot">3</span>
+          <span class="e-step-label">리뷰 작성</span>
         </div>
       </div>
     </div>
+
+    <!-- ==================================================================
+         STEP 1 · 영수증 업로드
+         ================================================================== -->
+    <section id="step1Section">
+
+      <div class="e-card e-card-pad mb-5" id="targetRestaurantCard">
+        <p class="e-form-section-desc !mb-1">이 매장의 영수증을 인증합니다</p>
+        <p class="text-[17px] font-extrabold text-[var(--ink-900)]" id="targetRestaurantName">-</p>
+      </div>
+      <div class="e-alert e-alert--warning mb-5" id="noRestaurantAlert" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.6 2.7h15.8A1.8 1.8 0 0 0 21.5 18L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <div>
+          <p class="e-alert-title">매장 정보가 없어요</p>
+          <p>지도 탐색에서 매장 상세 페이지의 "리뷰 작성" 버튼으로 들어와야 영수증 인증을 진행할 수 있어요.</p>
+        </div>
+      </div>
+
+      <div class="e-card e-card-pad">
+        <h2 class="e-form-section-title">영수증 사진 업로드</h2>
+        <p class="e-form-section-desc">가게명, 방문일시, 결제금액이 잘 보이도록 촬영해주세요.</p>
+
+        <!-- 드롭존 -->
+        <div class="e-dropzone" id="receiptDrop" data-dropzone
+             data-dropzone-preview="receiptPreview" data-dropzone-filename="receiptFileName">
+          <input type="file" id="receiptFileInput" name="receiptImage" accept="image/png,image/jpeg,image/webp" aria-label="영수증 사진 업로드">
+          <div class="e-dropzone-icon">
+            <svg viewBox="0 0 384 512" fill="currentColor"><path d="M14 2.2C22.5-1.7 32.5-.3 39.6 5.8L80 40.4 120.4 5.8c9-7.7 22.3-7.7 31.2 0L192 40.4 232.4 5.8c9-7.7 22.3-7.7 31.2 0L304 40.4 344.4 5.8c7.1-6.1 17.1-7.5 25.6-3.6s14 12.4 14 21.8l0 464c0 9.4-5.5 17.9-14 21.8s-18.5 2.5-25.6-3.6L304 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L192 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L80 471.6 39.6 506.2c-7.1 6.1-17.1 7.5-25.6 3.6S0 497.4 0 488L0 24C0 14.6 5.5 6.1 14 2.2zM96 144c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 144zM80 352c0 8.8 7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 336c-8.8 0-16 7.2-16 16zM96 240c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 240z"/></svg>
+          </div>
+          <p class="text-[16px] font-extrabold text-[var(--ink-900)]">영수증을 끌어다 놓거나 클릭해서 선택</p>
+          <p class="t-sm mt-2">JPG · PNG · WEBP / 10MB 이하</p>
+          <p class="t-xs mt-3" id="receiptFileName">선택된 파일이 없습니다</p>
+        </div>
+
+        <!-- 미리보기 -->
+        <div class="mt-4" id="receiptPreview" hidden>
+          <div class="e-file-item !items-start">
+            <span class="w-20 h-24 rounded-[10px] overflow-hidden flex-none e-img-ph e-img-ph--gray">
+              <img alt="영수증 미리보기" data-dropzone-img class="w-full h-full object-cover" style="display:none">
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-bold text-[var(--ink-900)]">업로드된 영수증</p>
+              <p class="t-xs mt-1 leading-relaxed">사진이 선명한지 확인한 뒤 OCR 인식을 실행해주세요.</p>
+              <button type="button" class="btn btn-primary btn-sm mt-3" id="runOcrBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M8 12h8"/></svg>
+                OCR 인식
+              </button>
+            </div>
+            <button type="button" class="e-icon-btn !w-9 !h-9 flex-none" id="receiptRemoveBtn" aria-label="파일 제거">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 촬영 가이드 -->
+        <div class="mt-7 pt-6 border-t border-[var(--line)]">
+          <p class="t-h4 mb-4">이렇게 찍어주세요</p>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="text-center">
+              <div class="e-ratio-3-4 rounded-[var(--r)] overflow-hidden mb-2.5 relative">
+                <img src="img/receipt-examples/example-good.png" alt="영수증 전체가 잘 보이는 좋은 예시" class="w-full h-full object-cover">
+                <span class="absolute right-1.5 top-1.5 w-5 h-5 rounded-full grid place-items-center" style="background:var(--success);color:#fff">
+                  <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                </span>
+              </div>
+              <p class="t-xs font-bold text-[var(--success-ink)]">전체가 보이게</p>
+            </div>
+            <div class="text-center">
+              <div class="e-ratio-3-4 rounded-[var(--r)] overflow-hidden mb-2.5 relative">
+                <img src="img/receipt-examples/example-cropped.png" alt="영수증 일부가 잘려서 안 보이는 나쁜 예시" class="w-full h-full object-cover">
+                <span class="absolute right-1.5 top-1.5 w-5 h-5 rounded-full grid place-items-center" style="background:var(--danger);color:#fff">
+                  <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </span>
+              </div>
+              <p class="t-xs font-bold text-[var(--ink-500)]">잘리거나 접힘</p>
+            </div>
+            <div class="text-center">
+              <div class="e-ratio-3-4 rounded-[var(--r)] overflow-hidden mb-2.5 relative">
+                <img src="img/receipt-examples/example-dark.png" alt="너무 어두워서 글자가 안 보이는 나쁜 예시" class="w-full h-full object-cover">
+                <span class="absolute right-1.5 top-1.5 w-5 h-5 rounded-full grid place-items-center" style="background:var(--danger);color:#fff">
+                  <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </span>
+              </div>
+              <p class="t-xs font-bold text-[var(--ink-500)]">너무 어두움</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         STEP 2 · OCR 인식 결과 확인
+         ================================================================== -->
+    <section id="step2Section" hidden>
+      <div class="e-card e-card-pad">
+        <div class="flex items-start gap-3 mb-6">
+          <div class="flex-1">
+            <h2 class="e-form-section-title !mb-1">인식 결과를 확인해주세요</h2>
+            <p class="e-form-section-desc !mb-0">영수증에서 읽은 정보입니다.</p>
+          </div>
+          <span class="e-badge e-badge-lg flex-none" id="ocrVerifiedBadge">확인 중</span>
+        </div>
+
+        <!-- 미인증(다른 매장 영수증 등) 경고 -->
+        <div class="e-alert e-alert--warning mb-5" id="ocrDuplicateAlert" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.6 2.7h15.8A1.8 1.8 0 0 0 21.5 18L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <div>
+            <p class="e-alert-title">이 매장의 영수증으로 인증되지 않았어요</p>
+            <p>영수증 상의 가게명이 선택한 매장과 다르면 리뷰를 작성할 수 없습니다. 다시 업로드해주세요.</p>
+          </div>
+        </div>
+
+        <!-- OCR 필드 (읽기 전용) -->
+        <div class="e-form-grid e-form-grid-2">
+          <div class="e-field">
+            <span class="e-label">영수증 상 가게명</span>
+            <p class="text-sm font-semibold text-[var(--ink-800)]" id="ocrShopName">-</p>
+          </div>
+          <div class="e-field">
+            <span class="e-label">결제 금액</span>
+            <p class="text-sm font-semibold text-[var(--ink-800)] t-num" id="ocrTotalAmount">-</p>
+          </div>
+          <div class="e-field !mb-0">
+            <span class="e-label">방문 일시</span>
+            <p class="text-sm font-semibold text-[var(--ink-800)] t-num" id="ocrVisitDatetime">-</p>
+          </div>
+        </div>
+
+        <!-- 인식된 메뉴 -->
+        <div class="e-field mt-6">
+          <span class="e-label">인식된 메뉴 <span class="e-label-side">리뷰에 참고 정보로 표시됩니다</span></span>
+          <div class="border border-[var(--line)] rounded-[var(--r-md)] divide-y divide-[var(--line-soft)]" id="ocrMenuList"></div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 mt-7">
+          <button type="button" class="btn btn-outline btn-lg sm:w-44" id="ocrRetryBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
+            다시 업로드
+          </button>
+          <button type="button" class="btn btn-primary btn-lg w-full sm:flex-1" id="ocrConfirmBtn">
+            정보가 정확해요, 리뷰 쓰기
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         STEP 3 · 리뷰 작성
+         ================================================================== -->
+    <section id="step3Section" hidden>
+      <form id="reviewForm" novalidate>
+
+        <!-- 대상 매장 요약 -->
+        <div class="e-card e-card-pad mb-5">
+          <div class="flex items-center gap-3.5">
+            <span class="w-14 h-14 rounded-[var(--r)] e-img-ph e-shop-thumb flex-none">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[16px] font-extrabold text-[var(--ink-900)]" id="step3RestaurantName">-</p>
+              <p class="t-xs mt-1 t-num" id="step3VisitSummary">-</p>
+            </div>
+            <span class="e-badge e-badge--success e-badge-lg flex-none">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              방문 인증 완료
+            </span>
+          </div>
+        </div>
+
+        <!-- 별점 -->
+        <div class="e-card e-card-pad mb-5">
+          <h2 class="e-form-section-title">전체 만족도</h2>
+          <p class="e-form-section-desc">이번 방문은 어땠나요?</p>
+
+          <div class="flex flex-col items-center py-4">
+            <div class="e-rating-input" id="reviewRatingInput" data-rating-input
+                 data-rating-target="reviewScore" data-rating-output="reviewScoreText"
+                 role="radiogroup" aria-label="별점 선택">
+              <button type="button" data-rating-value="1" role="radio" aria-checked="false" aria-label="1점">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+              </button>
+              <button type="button" data-rating-value="2" role="radio" aria-checked="false" aria-label="2점">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+              </button>
+              <button type="button" data-rating-value="3" role="radio" aria-checked="false" aria-label="3점">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+              </button>
+              <button type="button" data-rating-value="4" role="radio" aria-checked="false" aria-label="4점">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+              </button>
+              <button type="button" data-rating-value="5" role="radio" aria-checked="false" aria-label="5점">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+              </button>
+            </div>
+            <input type="hidden" id="reviewScore" name="rating" value="0">
+            <p class="mt-3 text-[15px] font-extrabold text-[var(--ink-900)]">
+              <span id="reviewScoreText">-</span>
+              <span class="t-sm font-semibold ml-1" id="reviewScoreLabel">별점을 선택해주세요</span>
+            </p>
+          </div>
+
+          <p class="e-error justify-center" id="ratingError">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+            별점을 선택해주세요.
+          </p>
+        </div>
+
+        <!-- 태그 선택 -->
+        <div class="e-card e-card-pad mb-5">
+          <div class="flex items-center gap-2 mb-1">
+            <h2 class="e-form-section-title !mb-0">어떤 점이 좋았나요?</h2>
+            <span class="e-badge e-badge--gray ml-auto"><span id="tagSelectedCount">0</span>개 선택</span>
+          </div>
+          <p class="e-form-section-desc">해당하는 항목을 모두 골라주세요. 다른 이용자에게 큰 도움이 됩니다.</p>
+
+          <!-- 긍정 태그 10종 -->
+          <div class="e-field">
+            <span class="e-label">
+              <svg class="w-4 h-4" style="color:var(--brand-500)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V10l4-8h1.5a2 2 0 0 1 2 2.3L14 8h5a2 2 0 0 1 2 2.4l-1.6 8A2 2 0 0 1 17.4 20H7Z"/><path d="M7 10H4v12h3"/></svg>
+              좋았던 점
+            </span>
+            <div class="flex flex-wrap gap-2" id="positiveTagList">
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="맛있어요"><span class="e-tag-pick e-tag-pick--pos">맛있어요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="재료가 신선해요"><span class="e-tag-pick e-tag-pick--pos">재료가 신선해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="양이 많아요"><span class="e-tag-pick e-tag-pick--pos">양이 많아요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="가성비가 좋아요"><span class="e-tag-pick e-tag-pick--pos">가성비가 좋아요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="깨끗해요"><span class="e-tag-pick e-tag-pick--pos">깨끗해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="친절해요"><span class="e-tag-pick e-tag-pick--pos">친절해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="차분해요"><span class="e-tag-pick e-tag-pick--pos">차분해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="대기시간짧아요"><span class="e-tag-pick e-tag-pick--pos">대기시간짧아요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="음식이빨리나와요"><span class="e-tag-pick e-tag-pick--pos">음식이빨리나와요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="가게가예뻐요"><span class="e-tag-pick e-tag-pick--pos">가게가예뻐요</span></label>
+            </div>
+          </div>
+
+          <!-- 부정 태그 10종 -->
+          <div class="e-field !mb-0">
+            <span class="e-label">
+              <svg class="w-4 h-4" style="color:var(--ink-500)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2v12l-4 8h-1.5a2 2 0 0 1-2-2.3L10 16H5a2 2 0 0 1-2-2.4l1.6-8A2 2 0 0 1 6.6 4H17Z"/><path d="M17 14h3V2h-3"/></svg>
+              아쉬운 점
+            </span>
+            <div class="flex flex-wrap gap-2" id="negativeTagList">
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="맛이 아쉬워요"><span class="e-tag-pick e-tag-pick--neg">맛이 아쉬워요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="재료가 신선하지 않아요"><span class="e-tag-pick e-tag-pick--neg">재료가 신선하지 않아요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="양이 적어요"><span class="e-tag-pick e-tag-pick--neg">양이 적어요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="가격이 비싸요"><span class="e-tag-pick e-tag-pick--neg">가격이 비싸요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="지저분해요"><span class="e-tag-pick e-tag-pick--neg">지저분해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="불친절해요"><span class="e-tag-pick e-tag-pick--neg">불친절해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="소란스러워요"><span class="e-tag-pick e-tag-pick--neg">소란스러워요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="대기시간길어요"><span class="e-tag-pick e-tag-pick--neg">대기시간길어요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="음식이늦게나와요"><span class="e-tag-pick e-tag-pick--neg">음식이늦게나와요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="가게가부산스러워요"><span class="e-tag-pick e-tag-pick--neg">가게가부산스러워요</span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 자유 텍스트 -->
+        <div class="e-card e-card-pad mb-5">
+          <h2 class="e-form-section-title">리뷰 내용</h2>
+          <p class="e-form-section-desc">방문 경험을 자유롭게 적어주세요. (선택)</p>
+
+          <div class="e-field !mb-0">
+            <label class="e-label" for="reviewContent">
+              내용
+              <span class="e-label-side"><span id="reviewContentCounter" data-counter="reviewContent">0 / 1000</span></span>
+            </label>
+            <textarea class="e-textarea !min-h-[150px]" id="reviewContent" name="content" maxlength="1000"
+                      placeholder="어떤 메뉴를 먹었고 어땠는지, 분위기나 서비스는 어땠는지 적어주세요."></textarea>
+            <p class="e-hint">타인을 비방하거나 개인정보가 포함된 내용은 삭제될 수 있습니다.</p>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button type="button" class="btn btn-outline btn-lg sm:w-40" id="reviewBackBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
+            이전
+          </button>
+          <button type="submit" class="btn btn-primary btn-lg w-full sm:flex-1" id="reviewSubmitBtn">리뷰 등록하기</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ==================================================================
+         완료
+         ================================================================== -->
+    <section id="doneSection" hidden>
+      <div class="e-card e-card-pad text-center py-12 e-anim-up">
+        <span class="w-20 h-20 rounded-full grid place-items-center mx-auto mb-7 text-white" style="background:var(--brand-grad);box-shadow:var(--sh-brand)">
+          <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </span>
+
+        <h2 class="t-h2">리뷰가 등록됐어요</h2>
+        <p class="t-lead mt-4">
+          영수증 인증 리뷰로 등록되어 다른 이용자에게 바로 노출됩니다.<br>
+          솔직한 후기 감사합니다.
+        </p>
+
+        <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+          <a href="mypage-reviews" class="btn btn-primary btn-lg w-full sm:flex-1" id="goMyReviewsBtn">내 리뷰 보기</a>
+          <button type="button" class="btn btn-outline btn-lg sm:w-40" id="writeAnotherBtn">또 작성하기</button>
+        </div>
+      </div>
+    </section>
   </div>
-</div>
-<script src="assets/js/api.js"></script>
-<script src="assets/js/sidebar.js"></script>
-<script src="assets/js/receipt-upload.js"></script>
+</main>
+
+<!-- 모바일 하단 탭바 -->
+<nav class="e-tabbar" aria-label="모바일 주요 메뉴">
+  <a class="e-tabbar-item" href="index">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
+    홈
+  </a>
+  <a class="e-tabbar-item" href="explore">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    탐색
+  </a>
+  <a class="e-tabbar-item" href="chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+    잇티챗
+  </a>
+  <a class="e-tabbar-item" href="mypage">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    내정보
+  </a>
+</nav>
+
+
 </body>
 </html>

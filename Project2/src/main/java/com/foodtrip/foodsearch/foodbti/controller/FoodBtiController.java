@@ -37,4 +37,12 @@ public class FoodBtiController {
             @Valid @RequestBody FoodBtiAnswerRequestDto request) {
         return foodBtiService.calculateResult(authorizationHeader, request);
     }
+
+    // 마이페이지(프로필 수정)에서 이전에 저장된 결과를 축별 점수와 함께 다시 보여줄 때 쓴다(2026-08-04
+    // 추가). 로그인 필수(비로그인이면 401), 결과를 아직 한 번도 저장한 적 없으면 404.
+    @GetMapping("/api/food-bti/my-result")
+    public FoodBtiResultResponseDto getMyResult(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return foodBtiService.getMyResult(authorizationHeader);
+    }
 }

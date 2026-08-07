@@ -1,54 +1,35 @@
 (function () {
-  var POSITIVE_KEYWORDS = ["맛있어요", "재료가 신선해요", "양이 많아요", "가성비가 좋아요", "깨끗해요", "친절해요", "차분해요", "대기시간짧아요", "음식이빨리나와요", "가게가예뻐요"];
-  var NEGATIVE_KEYWORDS = ["맛이 아쉬워요", "재료가 신선하지 않아요", "양이 적어요", "가격이 비싸요", "지저분해요", "불친절해요", "소란스러워요", "대기시간길어요", "음식이늦게나와요", "가게가부산스러워요"];
-
   if (!Api.requireLogin()) return;
 
-  var input = document.getElementById("upload-input");
-  var labelBtn = document.getElementById("upload-label-btn");
-  var restaurantInput = document.getElementById("receipt-restaurant-input");
-  var restaurantSearchBtn = document.getElementById("receipt-restaurant-search-btn");
-  var restaurantResults = document.getElementById("receipt-restaurant-results");
-  var selectedRestaurantEl = document.getElementById("receipt-selected-restaurant");
-  var submitBtn = document.getElementById("receipt-submit-btn");
-  var errorEl = document.getElementById("receipt-error");
-  var resultEl = document.getElementById("receipt-result");
+  // ---- 접근 제어(2026-08-05 추가) ----
+  // 이 페이지는 반드시 explore.html에서 가게를 클릭(→ restaurantId)하거나, 마이페이지 내 리뷰의
+  // 임시저장 "이어서 쓰기"(→ draft)를 통해서만 들어올 수 있다. 주소창에 이 URL을 직접 치거나
+  // restaurantId를 조작해서 들어오는 건 막는다 — sessionStorage에 그 클릭 시점에만 심어지는 값을
+  // 확인해서 판단한다(explore.js/mypage-reviews.js가 이동 직전에 심어둠).
+  //
+  // restaurantId만 맞으면 통과시키는 걸로는 부족했다(2026-08-05 강화) — restaurantId는 그대로 두고
+  // name/address 같은 URL의 다른 파라미터만 주소창에서 바꿔서 엉뚱한 가게 이름으로 들어올 수 있었다.
+  // 그래서 URL의 name/address/roadAddress/latitude/longitude는 아예 신뢰하지 않고, 클릭 시점에
+  // sessionStorage에 통째로 저장해둔 스냅샷(entrySnapshot)에서만 읽는다.
+  var entryParams = new URLSearchParams(location.search);
+  var entryRestaurantId = entryParams.get("restaurantId");
+  var entryDraftId = entryParams.get("draft");
+  var entryAt = Number(sessionStorage.getItem("ru_entry_at"));
+  var entryWithinWindow = entryAt && (Date.now() - entryAt) < 30 * 60 * 1000; // 30분
 
-  var selectedRestaurant = null;
+  var entrySnapshot = null;
+  try { entrySnapshot = JSON.parse(sessionStorage.getItem("ru_entry_restaurant") || "null"); } catch (e) { entrySnapshot = null; }
 
-  (function preselectFromQuery() {
-    var params = new URLSearchParams(window.location.search);
-    var restaurantId = params.get("restaurantId");
-    if (!restaurantId) return;
-    selectedRestaurant = {
-      restaurantId: restaurantId,
-      name: params.get("name") || "",
-      address: params.get("address") || "",
-      roadAddress: params.get("roadAddress") || "",
-      latitude: params.get("latitude") ? Number(params.get("latitude")) : null,
-      longitude: params.get("longitude") ? Number(params.get("longitude")) : null,
-    };
-    restaurantInput.value = selectedRestaurant.name;
-    selectedRestaurantEl.textContent = "선택됨: " + selectedRestaurant.name;
-  })();
+  var entryAllowed = entryDraftId
+    ? (entryWithinWindow && sessionStorage.getItem("ru_entry_draft_id") === entryDraftId)
+    : entryRestaurantId
+      ? (entryWithinWindow && entrySnapshot && String(entrySnapshot.restaurantId) === entryRestaurantId)
+      : false;
 
-  function showError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = msg ? "" : "none";
+  if (!entryAllowed) {
+    window.location.replace("explore");
+    return;
   }
-
-  function updateSubmitState() {
-    var ready = !!(selectedRestaurant && input.files && input.files[0]);
-    submitBtn.disabled = !ready;
-    submitBtn.style.opacity = ready ? "1" : "0.4";
-  }
-
-  document.getElementById("upload-btn").addEventListener("click", function () { input.click(); });
-  labelBtn.addEventListener("click", function () { input.click(); });
-  input.addEventListener("change", function () {
-    labelBtn.textContent = (input.files && input.files[0] && input.files[0].name) || "파일 선택";
-    updateSubmitState();
-  });
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -56,134 +37,217 @@
     });
   }
 
-  restaurantSearchBtn.addEventListener("click", function () {
-    var kw = restaurantInput.value.trim();
-    if (!kw) return;
-    restaurantResults.innerHTML = '<p class="text-[14px] text-[#74777d]">검색 중...</p>';
-    Api.request("/api/restaurants/search?keyword=" + encodeURIComponent(kw) + "&page=0&size=10", { auth: false })
-      .then(function (data) {
-        var list = data.restaurants || [];
-        if (list.length === 0) { restaurantResults.innerHTML = '<p class="text-[14px] text-[#74777d]">검색 결과가 없습니다.</p>'; return; }
-        restaurantResults.innerHTML = "";
-        list.forEach(function (r) {
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "rounded-[6px] border border-[#eaeaea] px-3 py-2 text-left text-[14px] hover:bg-[#fafbfc]";
-          btn.innerHTML = "<b>" + escapeHtml(r.name) + "</b> <span class='text-[#90959c]'>" + escapeHtml(r.roadAddress || r.address || "") + "</span>";
-          btn.addEventListener("click", function () {
-            selectedRestaurant = r;
-            selectedRestaurantEl.textContent = "선택됨: " + r.name;
-            restaurantResults.innerHTML = "";
-            updateSubmitState();
-          });
-          restaurantResults.appendChild(btn);
-        });
-      })
-      .catch(function () { restaurantResults.innerHTML = '<p class="text-[14px] text-red-500">검색에 실패했습니다.</p>'; });
-  });
+  var sections = {
+    1: document.getElementById("step1Section"),
+    2: document.getElementById("step2Section"),
+    3: document.getElementById("step3Section"),
+  };
+  var doneSection = document.getElementById("doneSection");
+  var stepsRoot = document.getElementById("receiptSteps");
 
-  function renderReviewForm(receiptId, restaurantId, restaurantName) {
-    var wrap = document.createElement("div");
-    wrap.className = "mt-4 border-t border-[#eaeaea] pt-4";
-    wrap.innerHTML =
-      '<h3 class="text-[18px] font-bold text-[#111]">리뷰 작성하기</h3>' +
-      '<div id="review-rating" class="mt-2 flex gap-1 text-[26px]"></div>' +
-      '<div id="review-keywords" class="mt-3 flex flex-wrap gap-2"></div>' +
-      '<textarea id="review-content" placeholder="리뷰 내용을 입력해주세요. (선택)" class="mt-3 h-[80px] w-full rounded-[8px] border border-[#dfe2e6] p-3 text-[15px] outline-none"></textarea>' +
-      '<p id="review-error" class="mt-2 text-[14px] text-red-500" style="display:none"></p>' +
-      '<button id="review-submit-btn" class="mt-3 w-full rounded-[10px] bg-[#ff6b00] py-3 text-[16px] font-bold text-white">리뷰 등록</button>';
-    resultEl.appendChild(wrap);
-
-    var rating = 0;
-    var keywords = [];
-    var ratingEl = document.getElementById("review-rating");
-    for (var i = 1; i <= 5; i++) {
-      (function (n) {
-        var star = document.createElement("span");
-        star.textContent = "☆";
-        star.style.cursor = "pointer";
-        star.addEventListener("click", function () {
-          rating = n;
-          Array.prototype.forEach.call(ratingEl.children, function (el, idx) { el.textContent = idx < rating ? "★" : "☆"; });
-        });
-        ratingEl.appendChild(star);
-      })(i);
-    }
-
-    var keywordsEl = document.getElementById("review-keywords");
-    POSITIVE_KEYWORDS.concat(NEGATIVE_KEYWORDS).forEach(function (kw) {
-      var chip = document.createElement("button");
-      chip.type = "button";
-      chip.textContent = kw;
-      chip.className = "rounded-full border border-[#dfe2e6] px-3 py-1 text-[13px]";
-      chip.addEventListener("click", function () {
-        var idx = keywords.indexOf(kw);
-        if (idx >= 0) { keywords.splice(idx, 1); chip.className = "rounded-full border border-[#dfe2e6] px-3 py-1 text-[13px]"; }
-        else { keywords.push(kw); chip.className = "rounded-full border border-[#ff6b00] bg-[#fff4ec] px-3 py-1 text-[13px] text-[#ff6b00]"; }
-      });
-      keywordsEl.appendChild(chip);
+  function goStep(n) {
+    Object.keys(sections).forEach(function (k) { sections[k].hidden = Number(k) !== n; });
+    doneSection.hidden = true;
+    stepsRoot.parentElement.hidden = false;
+    stepsRoot.querySelectorAll(".e-step").forEach(function (s) {
+      var v = Number(s.getAttribute("data-step"));
+      s.classList.toggle("is-current", v === n);
+      s.classList.toggle("is-done", v < n);
+      var dot = s.querySelector(".e-step-dot");
+      dot.innerHTML = v < n
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+        : String(v);
     });
-
-    document.getElementById("review-submit-btn").addEventListener("click", function () {
-      var reviewErrorEl = document.getElementById("review-error");
-      reviewErrorEl.style.display = "none";
-      if (!rating) { reviewErrorEl.textContent = "별점을 선택해주세요."; reviewErrorEl.style.display = ""; return; }
-      Api.request("/api/reviews", {
-        method: "POST",
-        body: {
-          restaurantId: restaurantId,
-          restaurantName: restaurantName,
-          rating: rating,
-          keywords: keywords,
-          content: document.getElementById("review-content").value.trim() || null,
-          receiptId: receiptId,
-        },
-      })
-        .then(function () {
-          wrap.innerHTML = '<p class="text-[16px] font-bold text-[#22a55e]">리뷰가 등록되었습니다. 감사합니다!</p>';
-        })
-        .catch(function (err) {
-          reviewErrorEl.textContent = err.message || "리뷰 등록에 실패했습니다.";
-          reviewErrorEl.style.display = "";
-        });
+    stepsRoot.querySelectorAll(".e-step-line").forEach(function (l) {
+      l.style.background = Number(l.getAttribute("data-line")) < n ? "var(--brand-300)" : "";
     });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  submitBtn.addEventListener("click", function () {
-    showError("");
-    if (!selectedRestaurant || !input.files[0]) return;
+  // ---- 대상 매장 (explore.html에서 가게를 클릭한 시점에 저장해둔 신뢰 스냅샷 — URL 파라미터는
+  // 안 쓴다. entrySnapshot은 위 접근 제어 통과 시점에 이미 restaurantId까지 검증된 값이다.) ----
+  var restaurant = entrySnapshot ? {
+    restaurantId: entrySnapshot.restaurantId,
+    name: entrySnapshot.name || "",
+    address: entrySnapshot.address || "",
+    roadAddress: entrySnapshot.roadAddress || "",
+    latitude: entrySnapshot.latitude != null ? Number(entrySnapshot.latitude) : null,
+    longitude: entrySnapshot.longitude != null ? Number(entrySnapshot.longitude) : null,
+  } : null;
 
-    var formData = new FormData();
-    formData.append("image", input.files[0]);
-    formData.append("restaurantId", selectedRestaurant.restaurantId);
-    formData.append("restaurantName", selectedRestaurant.name);
+  if (restaurant) {
+    document.getElementById("targetRestaurantName").textContent = restaurant.name;
+  } else {
+    document.getElementById("noRestaurantAlert").hidden = false;
+    document.getElementById("runOcrBtn") && (document.getElementById("runOcrBtn").disabled = true);
+  }
 
-    submitBtn.disabled = true;
-    Api.request("/api/receipts", { method: "POST", isForm: true, body: formData })
-      .then(function (data) {
-        resultEl.style.display = "";
-        resultEl.innerHTML =
-          '<h2 class="text-[20px] font-bold ' + (data.verified ? "text-[#22a55e]" : "text-[#e0983f]") + '">' + (data.verified ? "인증 성공" : "인증 미확인") + "</h2>" +
-          '<p class="mt-2 text-[15px] text-[#30343a]">매장명: ' + escapeHtml(data.storeName || "-") + "</p>" +
-          '<p class="mt-1 text-[15px] text-[#30343a]">방문일시: ' + escapeHtml(data.orderDatetime || "-") + "</p>" +
-          '<p class="mt-1 text-[15px] text-[#30343a]">결제금액: ' + (data.totalPrice != null ? Number(data.totalPrice).toLocaleString() + "원" : "-") + "</p>";
-        if (data.verified) renderReviewForm(data.receiptId, selectedRestaurant.restaurantId, selectedRestaurant.name);
-      })
-      .catch(function (err) { showError(err.message || "영수증 인식에 실패했습니다."); })
-      .finally(function () { submitBtn.disabled = false; });
+  var ocrResult = null;
+
+  // ---- 드롭존/미리보기는 eatty-ui.js가 처리, 여기서는 실행 버튼만 담당 ----
+  var receiptDrop = document.getElementById("receiptDrop");
+  // 파일을 고르면 미리보기가 바로 아래에 나오니, 클릭해서 선택하는 드롭존 박스는 중복이라 숨긴다
+  // (2026-08-05 추가). 파일을 지우면 다시 보여준다.
+  receiptDrop.addEventListener("eatty:filepicked", function () {
+    receiptDrop.hidden = true;
+  });
+  document.getElementById("receiptRemoveBtn").addEventListener("click", function () {
+    document.getElementById("receiptFileInput").value = "";
+    document.getElementById("receiptPreview").hidden = true;
+    document.getElementById("receiptFileName").textContent = "선택된 파일이 없습니다";
+    receiptDrop.hidden = false;
   });
 
-  Api.request("/api/mypage/visits", {})
-    .then(function (visits) {
-      var el = document.getElementById("recent-visits");
-      if (!visits || visits.length === 0) { el.innerHTML = '<p class="text-[15px] text-[#74777d]">아직 방문 기록이 없어요.</p>'; return; }
-      el.innerHTML = "";
-      visits.slice(0, 5).forEach(function (v) {
-        var row = document.createElement("div");
-        row.className = "flex items-center justify-between rounded-[12px] border border-[#dfe2e6] p-4";
-        row.innerHTML = "<div><h2 class='text-[18px] font-bold text-[#111]'>" + escapeHtml(v.name) + "</h2><p class='mt-1 text-[14px] text-[#74777d]'>" + escapeHtml(v.roadAddress || v.address || "") + "</p></div>";
-        el.appendChild(row);
-      });
-    })
-    .catch(function () {});
+  document.getElementById("runOcrBtn").addEventListener("click", function () {
+    if (!restaurant) return;
+    var fileInput = document.getElementById("receiptFileInput");
+    var file = fileInput.files && fileInput.files[0];
+    if (!file) { Eatty.toast("영수증 사진을 선택해주세요.", "error"); return; }
+
+    // 사업자등록증 OCR(signup-business.js runBusinessVerify)과 동일하게 버튼 문구만 "확인 중..."으로
+    // 바꾸는 방식으로 통일한다(2026-08-06 - 서로 다른 로딩 애니메이션을 쓰던 걸 맞춤).
+    var btn = this;
+    var originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = "확인 중...";
+
+    var formData = new FormData();
+    formData.append("image", file);
+    formData.append("restaurantId", restaurant.restaurantId);
+    formData.append("restaurantName", restaurant.name);
+
+    Api.request("/api/receipts", { method: "POST", isForm: true, body: formData })
+      .then(function (data) {
+        ocrResult = data;
+        renderStep2(data);
+        goStep(2);
+      })
+      .catch(function (err) {
+        Eatty.toast(err.message || "영수증 인식에 실패했습니다.", "error");
+      })
+      .finally(function () { btn.disabled = false; btn.innerHTML = originalHtml; });
+  });
+
+  function renderStep2(data) {
+    var badge = document.getElementById("ocrVerifiedBadge");
+    badge.textContent = data.verified ? "인증 성공" : "인증 실패";
+    badge.className = "e-badge e-badge-lg flex-none " + (data.verified ? "e-badge--success" : "e-badge--danger");
+
+    document.getElementById("ocrShopName").textContent = data.storeName || "-";
+    document.getElementById("ocrTotalAmount").textContent = data.totalPrice != null ? Number(data.totalPrice).toLocaleString() + "원" : "-";
+    document.getElementById("ocrVisitDatetime").textContent = data.orderDatetime || "-";
+
+    var menuList = document.getElementById("ocrMenuList");
+    if (data.menuItems && data.menuItems.length) {
+      menuList.innerHTML = data.menuItems.map(function (m) {
+        return '<div class="flex items-center justify-between p-3.5"><span class="text-sm text-[var(--ink-800)]">' + escapeHtml(m.name) + '</span>' +
+          '<span class="text-sm t-num text-[var(--ink-800)]">' + (m.price != null ? Number(m.price).toLocaleString() + "원" : "") + '</span></div>';
+      }).join("");
+    } else {
+      menuList.innerHTML = '<p class="p-3.5 t-sm">인식된 메뉴가 없습니다.</p>';
+    }
+
+    document.getElementById("ocrDuplicateAlert").hidden = !!data.verified;
+    document.getElementById("ocrConfirmBtn").disabled = !data.verified;
+  }
+
+  document.getElementById("ocrRetryBtn").addEventListener("click", function () { goStep(1); });
+  document.getElementById("ocrConfirmBtn").addEventListener("click", function () {
+    if (!ocrResult || !ocrResult.verified) return;
+    document.getElementById("step3RestaurantName").textContent = restaurant.name;
+    document.getElementById("step3VisitSummary").textContent =
+      (ocrResult.orderDatetime || "-") + " 방문 · " + (ocrResult.totalPrice != null ? Number(ocrResult.totalPrice).toLocaleString() + "원" : "-");
+    goStep(3);
+  });
+  document.getElementById("reviewBackBtn").addEventListener("click", function () { goStep(2); });
+
+  // ---- 별점 라벨 ----
+  var LABELS = { 1: "많이 아쉬웠어요", 2: "조금 아쉬웠어요", 3: "보통이에요", 4: "만족했어요", 5: "아주 좋았어요!" };
+  document.getElementById("reviewRatingInput").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-rating-value]");
+    if (!b) return;
+    var v = Number(b.getAttribute("data-rating-value"));
+    document.getElementById("reviewScoreLabel").textContent = LABELS[v];
+    document.getElementById("ratingError").classList.remove("is-visible");
+  });
+
+  // ---- 태그 선택 개수 ----
+  var tagInputs = document.querySelectorAll("#positiveTagList input, #negativeTagList input");
+  tagInputs.forEach(function (i) {
+    i.addEventListener("change", function () {
+      var n = Array.prototype.filter.call(tagInputs, function (x) { return x.checked; }).length;
+      document.getElementById("tagSelectedCount").textContent = n;
+    });
+  });
+
+  // ---- 리뷰 등록 ----
+  document.getElementById("reviewForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var score = Number(document.getElementById("reviewScore").value);
+    if (!score) {
+      document.getElementById("ratingError").classList.add("is-visible");
+      Eatty.toast("별점을 선택해주세요.", "error");
+      return;
+    }
+    if (!document.getElementById("agreeReviewPolicy").checked) {
+      Eatty.toast("리뷰 정책에 동의해주세요.", "error");
+      return;
+    }
+    if (!ocrResult || !ocrResult.receiptId) {
+      Eatty.toast("영수증 인증 정보가 없습니다. 처음부터 다시 진행해주세요.", "error");
+      return;
+    }
+
+    var keywords = Array.prototype.filter.call(tagInputs, function (i) { return i.checked; }).map(function (i) { return i.value; });
+    var content = document.getElementById("reviewContent").value.trim();
+
+    var submitBtn = document.getElementById("reviewSubmitBtn");
+    submitBtn.disabled = true;
+    Api.request("/api/reviews", {
+      method: "POST",
+      body: {
+        restaurantId: restaurant.restaurantId,
+        restaurantName: restaurant.name,
+        address: restaurant.address,
+        roadAddress: restaurant.roadAddress,
+        latitude: restaurant.latitude,
+        longitude: restaurant.longitude,
+        rating: score,
+        content: content || null,
+        keywords: keywords,
+        receiptId: ocrResult.receiptId,
+      },
+    }).then(function () {
+      document.getElementById("step3Section").hidden = true;
+      stepsRoot.parentElement.hidden = true;
+      doneSection.hidden = false;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }).catch(function (err) {
+      Eatty.toast(err.message || "리뷰 등록에 실패했습니다.", "error");
+    }).finally(function () { submitBtn.disabled = false; });
+  });
+
+  document.getElementById("writeAnotherBtn").addEventListener("click", function () {
+    document.getElementById("reviewForm").reset();
+    document.getElementById("reviewScore").value = "0";
+    document.querySelectorAll("#reviewRatingInput [data-rating-value]").forEach(function (b) { b.classList.remove("is-on"); });
+    document.getElementById("reviewScoreText").textContent = "-";
+    document.getElementById("reviewScoreLabel").textContent = "별점을 선택해주세요";
+    document.getElementById("tagSelectedCount").textContent = "0";
+    ocrResult = null;
+
+    // 2026-08-06 추가 - "또 작성하기"를 눌러도 처음 올렸던 영수증 사진/OCR 결과가 그대로 남아있던
+    // 문제. step1의 파일 입력·미리보기·드롭존, step2의 OCR 표시 필드까지 처음 접속한 상태로 되돌린다.
+    document.getElementById("receiptFileInput").value = "";
+    document.getElementById("receiptPreview").hidden = true;
+    document.getElementById("receiptFileName").textContent = "선택된 파일이 없습니다";
+    receiptDrop.hidden = false;
+    document.getElementById("ocrShopName").textContent = "-";
+    document.getElementById("ocrTotalAmount").textContent = "-";
+    document.getElementById("ocrVisitDatetime").textContent = "-";
+    document.getElementById("ocrMenuList").innerHTML = "";
+    document.getElementById("ocrDuplicateAlert").hidden = true;
+
+    goStep(1);
+  });
 })();

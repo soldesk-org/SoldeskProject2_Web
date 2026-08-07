@@ -1,0 +1,18 @@
+  /* 2026-08-06 추가(같은 날 후속 수정) - 처음엔 스테퍼는 위에 고정하고 카드만 남은 공간 안에서
+     가운데 정렬했는데, 실제로는 스테퍼+카드를 하나의 덩어리로 보고 "이 전체가 화면 중앙에 와야 한다"는
+     의미였다. 스테퍼와 활성 섹션을 함께 담은 컨테이너 자체를 세로로 가운데 정렬하는 방식으로 변경.
+     리뷰 작성 폼(step3)은 카드가 여러 개라 길어서 대상에서 뺀다. */
+  @media (min-width: 768px) {
+    #mainContent:has(#step1Section:not([hidden])) > .e-container,
+    #mainContent:has(#step2Section:not([hidden])) > .e-container,
+    #mainContent:has(#doneSection:not([hidden])) > .e-container {
+      min-height: calc(100vh - var(--header-h) - 96px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+  }
+
+  /* 별점 입력 - 이 페이지에서만 더 크게(다른 페이지의 공용 .e-rating-input에는 영향 없음) */
+  #reviewRatingInput { gap: 8px; }
+  #reviewRatingInput svg { width: 48px; height: 48px; }

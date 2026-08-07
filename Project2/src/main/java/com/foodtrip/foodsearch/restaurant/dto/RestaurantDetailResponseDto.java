@@ -18,6 +18,9 @@ public class RestaurantDetailResponseDto {
     private final String phone;
     private final String naverPlaceUrl;
     private final String imageUrl;
+    // 매장 사진 갤러리(2026-08-06 추가) — 대표 이미지가 항상 0번(imageUrl과 동일). 사업자가 갤러리를
+    // 안 썼거나(레거시 단일 이미지만 있는 경우) 사진이 아예 없으면 빈 배열.
+    private final List<String> images;
     private final String businessStatus;
     private final BigDecimal averageRating;
     private final Integer reviewCount;
@@ -29,7 +32,8 @@ public class RestaurantDetailResponseDto {
 
     public RestaurantDetailResponseDto(String restaurantId, String name, String category, String description,
                                         String roadAddress, String address, BigDecimal latitude, BigDecimal longitude,
-                                        String phone, String naverPlaceUrl, String imageUrl, String businessStatus,
+                                        String phone, String naverPlaceUrl, String imageUrl, List<String> images,
+                                        String businessStatus,
                                         BigDecimal averageRating, Integer reviewCount, boolean favorite,
                                         List<String> categories, List<String> tags,
                                         List<BusinessHourResponseDto> businessHours, List<MenuResponseDto> menus) {
@@ -44,6 +48,7 @@ public class RestaurantDetailResponseDto {
         this.phone = phone;
         this.naverPlaceUrl = naverPlaceUrl;
         this.imageUrl = imageUrl;
+        this.images = images;
         this.businessStatus = businessStatus;
         this.averageRating = averageRating;
         this.reviewCount = reviewCount;
@@ -100,6 +105,10 @@ public class RestaurantDetailResponseDto {
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    public List<String> getImages() {
+        return images;
     }
 
     public String getBusinessStatus() {

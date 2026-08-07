@@ -15,6 +15,10 @@ public interface MenuRepository extends JpaRepository<Menu, Long> {
     // 대표메뉴 먼저 → 가격 낮은 순(001-02 6장 잠정 정렬 기준).
     List<Menu> findByRestaurantIdAndIsAvailableTrueAndDeletedAtIsNullOrderByIsSignatureDescPriceAsc(String restaurantId);
 
+    // 사업자 마이페이지 "메뉴 관리"(2026-08-06 추가) — 판매중지 메뉴도 본인에게는 계속 보여야 하므로
+    // isAvailable 필터 없이 전부 조회.
+    List<Menu> findByRestaurantIdAndDeletedAtIsNullOrderByIsSignatureDescPriceAsc(String restaurantId);
+
     // 사업자 등록(2026-07-20 추가) 수정/삭제 시 "이 메뉴가 정말 이 음식점 소속인지"까지 함께 확인하는
     // 조회 — restaurantId를 조건에 포함시켜, 다른 음식점 메뉴의 menuId를 넣어도 못 건드리게 막는다.
     Optional<Menu> findByMenuIdAndRestaurantIdAndDeletedAtIsNull(Long menuId, String restaurantId);
