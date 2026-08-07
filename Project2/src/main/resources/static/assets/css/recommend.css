@@ -1,0 +1,101 @@
+  /* 추천 카드 */
+  .rc-card {
+    display: flex; gap: 16px; padding: 18px;
+    border: 1px solid var(--line); border-radius: var(--r-lg);
+    background: var(--bg); transition: all .2s var(--ease);
+  }
+  .rc-card:hover { border-color: var(--brand-200); box-shadow: var(--sh-sm); }
+  .rc-card.is-liked { border-color: var(--brand-400); background: var(--brand-50); }
+  .rc-card.is-disliked { opacity: .55; }
+  .rc-rank {
+    width: 28px; height: 28px; border-radius: 50%; flex: none;
+    display: grid; place-items: center;
+    font-size: 12.5px; font-weight: 800;
+    background: var(--brand-grad); color: #fff;
+  }
+  .rc-reason {
+    margin-top: 12px; padding: 12px 14px;
+    border-radius: var(--r); font-size: 13.5px; line-height: 1.65;
+    background: var(--brand-grad-soft); border: 1px solid var(--brand-100);
+    color: var(--ink-700);
+  }
+  .fb-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 32px; padding: 0 12px; border-radius: var(--r-full);
+    border: 1px solid var(--line-bold); background: #fff;
+    font-size: 12.5px; font-weight: 700; color: var(--ink-500);
+    cursor: pointer; transition: all .16s var(--ease);
+  }
+  .fb-btn svg { width: 14px; height: 14px; }
+  .fb-btn:hover { border-color: var(--ink-400); color: var(--ink-800); }
+  .fb-btn[aria-pressed="true"][data-feedback="like"] {
+    background: var(--brand-grad); border-color: transparent; color: #fff;
+  }
+  .fb-btn[aria-pressed="true"][data-feedback="dislike"] {
+    background: var(--ink-800); border-color: transparent; color: #fff;
+  }
+
+
+  /* 스크롤은 되지만 스크롤바는 숨김 */
+  .e-scroll-hidden { scrollbar-width: none; -ms-overflow-style: none; }
+  .e-scroll-hidden::-webkit-scrollbar { display: none; }
+
+  /* 결과 없음 / 로딩 상태 — 절제된 톤의 대기 화면 */
+  .rc-state-icon {
+    width: 60px; height: 60px; border-radius: 20px;
+    display: grid; place-items: center;
+    background: linear-gradient(160deg, var(--brand-50), #fff);
+    border: 1px solid var(--brand-100);
+    color: var(--brand-500);
+    box-shadow: 0 8px 24px -12px rgba(253, 109, 74, .28);
+  }
+  .rc-state-icon svg { width: 25px; height: 25px; }
+  .rc-state-icon--float { animation: rc-float 3.2s ease-in-out infinite; }
+  @keyframes rc-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  .rc-state-title {
+    margin-top: 20px;
+    font-size: 17px; font-weight: 700; letter-spacing: -.02em;
+    color: var(--ink-900);
+  }
+  .rc-state-desc {
+    margin-top: 7px; max-width: 340px;
+    font-size: 13.5px; line-height: 1.65; color: var(--ink-500);
+  }
+
+  /* 로딩 스피너 */
+  .rc-spinner {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 3px solid var(--brand-100);
+    position: relative;
+  }
+  .rc-spinner span {
+    position: absolute; inset: -3px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: var(--brand-500);
+    animation: rc-spin .85s cubic-bezier(.5, 0, .5, 1) infinite;
+  }
+  @keyframes rc-spin { to { transform: rotate(360deg); } }
+
+  /* 근처 공원/카페 모달 — 결과 행 */
+  .rc-follow-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 10px; border-radius: 14px;
+    transition: background .14s var(--ease);
+  }
+  a.rc-follow-row:hover { background: var(--bg-soft); }
+  .rc-follow-row + .rc-follow-row { margin-top: 2px; }
+  .rc-follow-icon {
+    width: 38px; height: 38px; border-radius: 12px; flex: none;
+    display: grid; place-items: center;
+  }
+  .rc-follow-icon svg { width: 18px; height: 18px; }
+
+  /* Tailwind의 display 유틸(flex 등)이 [hidden]보다 나중에 적용되며 이겨버려서
+     로딩/결과 상태 전환 시 여러 박스가 동시에 보이는 문제 방지 */
+  #recommendEmpty[hidden], #recommendLoading[hidden], #recommendResult[hidden] {
+    display: none !important;
+  }
