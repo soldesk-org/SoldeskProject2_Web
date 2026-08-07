@@ -1,0 +1,21 @@
+  /* 참여 중인 방이 없을 때 #roomList 안의 .e-empty가 위쪽에 붙어 아래로 큰 빈 여백만 남는 문제
+     (2026-08-07) — 목록이 비어있을 때만(:has로 판별) 세로 중앙에 오도록 한다. 방이 실제로 있을 때는
+     기존처럼 위에서부터 쌓이는 목록 그대로 유지(전체를 항상 중앙 정렬하면 방이 한두 개뿐일 때
+     리스트가 부자연스럽게 화면 가운데로 떠버림). */
+  #roomList:has(> #roomListEmpty:not([hidden])) { display: flex; flex-direction: column; justify-content: center; }
+
+  /* 모바일: 목록 ↔ 방 화면 전환 */
+  @media (max-width: 1023px) {
+    .e-chat-shell { grid-template-columns: 1fr; height: calc(100vh - var(--header-h)); }
+    body.chat-room-open .e-chat-list { display: none; }
+    body:not(.chat-room-open) .e-chat-room { display: none; }
+  }
+  /* 하단 탭바(2026-08-07 추가)가 보이는 768px 미만에서는 그 높이(61px)만큼 채팅 화면 높이에서
+     빼줘야 탭바가 방 목록/메시지 입력창 등 하단 내용을 덮지 않는다. */
+  @media (max-width: 767px) {
+    .e-chat-shell { height: calc(100vh - var(--header-h) - 61px); }
+  }
+  /* 방장 전용 요소 */
+  [data-owner-only] { display: none; }
+  body[data-room-role="owner"] [data-owner-only] { display: flex; }
+  body[data-room-role="owner"] button[data-owner-only].e-dropdown-item { display: flex; }
