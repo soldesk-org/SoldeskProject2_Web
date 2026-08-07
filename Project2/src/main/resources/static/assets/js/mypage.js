@@ -180,12 +180,17 @@
 
   var tabSearchCount = document.getElementById("tabSearchCount");
 
+  // 검색기록은 최근 5개만 보여준다(2026-08-07) — 서버는 전체를 주지만 화면에서 잘라 쓴다.
+  // "더 있음"을 따로 안내하지 않고 개수 배지도 보이는 만큼만 표시한다.
+  var SEARCH_HISTORY_LIMIT = 5;
+
   function renderSearchHistories(items) {
+    var shown = (items || []).slice(0, SEARCH_HISTORY_LIMIT);
     searchHistoryList.innerHTML = "";
-    if (tabSearchCount) tabSearchCount.textContent = items.length;
-    if (!items.length) { searchHistoryEmpty.hidden = false; return; }
+    if (tabSearchCount) tabSearchCount.textContent = shown.length;
+    if (!shown.length) { searchHistoryEmpty.hidden = false; return; }
     searchHistoryEmpty.hidden = true;
-    items.forEach(function (it) {
+    shown.forEach(function (it) {
       var li = document.createElement("li");
       li.className = "sh-item flex items-center gap-3 py-3.5";
       li.setAttribute("data-history-id", it.searchHistoryId);

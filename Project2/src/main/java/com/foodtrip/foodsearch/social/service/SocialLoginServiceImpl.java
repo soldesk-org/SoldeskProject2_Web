@@ -38,6 +38,7 @@ public class SocialLoginServiceImpl implements SocialLoginService {
     private static final Logger log = LoggerFactory.getLogger(SocialLoginServiceImpl.class);
     private static final String STATUS_SUSPENDED = "SUSPENDED";
     private static final String STATUS_WITHDRAWN = "WITHDRAWN";
+    private static final String ROLE_BUSINESS = "BUSINESS";
     private static final int MAX_NICKNAME_LENGTH = 10;
 
     private final Map<String, SocialOAuthClient> clientsByPath;
@@ -210,6 +211,12 @@ public class SocialLoginServiceImpl implements SocialLoginService {
         }
         if (STATUS_WITHDRAWN.equals(member.getStatus())) {
             throw new CustomException(ErrorCode.ACCOUNT_WITHDRAWN);
+        }
+        // 사업자 계정은 소셜 로그인을 못 쓰게 막는다(2026-08-07). 이 메서드는 "이미 소셜에 연동된
+        // 계정으로 재로그인"과 "같은 이메일이라 자동 연동되기 직전" 두 경로에서 모두 호출되므로,
+        // 여기 한 곳만 막으면 사업자 이메일로 들어오는 모든 소셜 로그인이 차단된다.
+        if (ROLE_BUSINESS.equals(member.getRole())) {
+            throw new CustomException(ErrorCode.SOCIAL_LOGIN_NOT_ALLOWED_FOR_BUSINESS);
         }
     }
 

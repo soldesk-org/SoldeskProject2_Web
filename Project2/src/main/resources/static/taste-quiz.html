@@ -39,7 +39,7 @@
    #resultFoodList        추천 음식 목록(food)
    #saveResultStatus      저장 여부 안내(saved) — 별도 저장 버튼 없이 제출 시 자동 저장됨
    #goHomeBtn             홈으로 → index
-   #retakeQuizBtn         다시 테스트하기
+   (#retakeQuizBtn "다시 테스트하기"는 2026-08-07 화면에서 제거됨)
    #goRecommendBtn        이 유형으로 AI 추천받기 → recommend
 ================================================================================
 -->
@@ -322,11 +322,6 @@
 
       <!-- 결과 액션 -->
       <div class="mt-6 space-y-2.5">
-        <div class="flex gap-2.5">
-          <a href="index" class="btn btn-outline flex-1" id="goHomeBtn">홈으로</a>
-          <button type="button" class="btn btn-outline flex-1" id="retakeQuizBtn">다시 테스트하기</button>
-        </div>
-
         <!-- 비로그인: 로그인 유도 -->
         <div data-auth-view="guest">
           <div class="e-card e-card-soft e-card-pad mb-2.5">

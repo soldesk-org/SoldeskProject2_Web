@@ -26,8 +26,10 @@
   .cat-pick[aria-pressed="true"] .cat-pick-check { display: grid; }
 
   /* ---------- 룰렛 ---------- */
+  /* 2026-08-07 확대 — 룰렛이 화면에 비해 작아 보여서 360px → 460px로 키움. width:100% + margin:auto라
+     좁은 화면에서는 알아서 줄어들고, 중앙 정렬도 그대로 유지된다. */
   .wheel-stage {
-    position: relative; width: 100%; max-width: 360px; margin: 0 auto;
+    position: relative; width: 100%; max-width: 460px; margin: 0 auto;
     aspect-ratio: 1 / 1;
   }
   #wheelSvg { width: 100%; height: 100%; display: block; overflow: visible; }
@@ -46,18 +48,18 @@
 
   /* 12시 방향 포인터 */
   .wheel-pointer {
-    position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
-    width: 30px; height: 38px; z-index: 2;
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    width: 38px; height: 48px; z-index: 2;
     filter: drop-shadow(0 3px 6px rgba(24, 21, 25, .28));
   }
   /* 가운데 축 */
   .wheel-hub {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 64px; height: 64px; border-radius: 50%; z-index: 2;
+    width: 80px; height: 80px; border-radius: 50%; z-index: 2;
     display: grid; place-items: center;
-    background: #fff; border: 4px solid var(--brand-500);
+    background: #fff; border: 5px solid var(--brand-500);
     box-shadow: 0 6px 18px rgba(24, 21, 25, .16);
-    font-size: 12.5px; font-weight: 800; color: var(--brand-600);
+    font-size: 15px; font-weight: 800; color: var(--brand-600);
   }
 
   /* ---------- 결과 모달(토스 스타일, 2026-08-07 개편) ----------
@@ -96,6 +98,27 @@
     font-size: 30px; font-weight: 800; letter-spacing: -.02em;
     color: var(--ink-900); margin-bottom: 32px;
   }
+  /* 내 주변 추천(2026-08-07) — 당첨 카테고리의 주변 음식점 1곳. */
+  .result-nearby { margin: -12px 0 24px; text-align: left; }
+  .result-nearby-label {
+    font-size: 12.5px; font-weight: 700; color: var(--ink-400);
+    letter-spacing: .02em; margin-bottom: 8px; text-align: center;
+  }
+  .result-nearby-card {
+    display: block; padding: 14px 16px; border-radius: 14px;
+    background: var(--bg-muted); border: 1px solid var(--line);
+    transition: background .12s var(--ease);
+  }
+  .result-nearby-card:hover { background: var(--ink-50); }
+  .result-nearby-name {
+    display: block; font-size: 15px; font-weight: 800; color: var(--ink-900);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .result-nearby-addr {
+    display: block; margin-top: 3px; font-size: 12.5px; color: var(--ink-500);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
   .result-modal-actions { display: flex; flex-direction: column; gap: 10px; }
   .btn-toss-primary {
     width: 100%; padding: 16px; border: none; border-radius: 16px;

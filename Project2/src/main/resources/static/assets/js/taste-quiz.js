@@ -95,14 +95,18 @@
     axisList.innerHTML = AXIS_PAIRS.map(function (pair) {
       var left = score[pair[0]], right = score[pair[1]];
       var total = left + right || 1;
-      var pct = Math.round((left / total) * 100);
-      // 2026-08-06 추가 - 한쪽으로 전부(예: 0:3) 선택하면 pct가 0/100이 되어 막대가 아예 안 채워진
-      // 것처럼 보였다("바가 안 채워진다" 리포트). 어느 쪽이 우세한지는 항상 보이도록 최소/최대치를 둔다.
-      pct = Math.max(6, Math.min(94, pct));
+      // 2026-08-07 수정 - 예전엔 항상 "왼쪽 값 비율"을 왼쪽부터 채워서, 오른쪽 성향이 우세하면
+      // (예: 0:3) 강조되는 라벨은 오른쪽인데 막대는 왼쪽에 살짝만 차는 모순이 있었다.
+      // 이제 우세한 쪽의 비율을 그 쪽에서부터 채운다.
+      var leftWins = left >= right;
+      var pct = Math.round(((leftWins ? left : right) / total) * 100);
+      // 완전히 한쪽(3:0)이어도 100%까지 꽉 채우지는 않고 살짝 남겨 반대쪽이 있다는 걸 보이게 한다.
+      pct = Math.max(55, Math.min(94, pct));
       return '<div class="axis-row">' +
-        '<span class="axis-label ' + (left >= right ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
-        '<span class="axis-bar"><span class="axis-fill" style="width:' + pct + '%"></span></span>' +
-        '<span class="axis-label ' + (right > left ? "axis-label--on" : "axis-label--off") + '">' + AXIS_LABEL[pair[1]] + '</span>' +
+        '<span class="axis-label ' + (leftWins ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
+        '<span class="axis-bar"><span class="axis-fill' + (leftWins ? "" : " axis-fill--right") +
+          '" style="width:' + pct + '%"></span></span>' +
+        '<span class="axis-label ' + (leftWins ? "axis-label--off" : "axis-label--on") + '">' + AXIS_LABEL[pair[1]] + '</span>' +
         '</div>';
     }).join("");
 
@@ -145,11 +149,16 @@
     if (idx > 0) { idx--; render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
   });
 
-  document.getElementById("retakeQuizBtn").addEventListener("click", function () {
-    result.hidden = true;
-    intro.hidden = false;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+  // "다시 테스트하기" 버튼은 2026-08-07에 화면에서 제거됨 — 나중에 다시 넣을 수 있게 핸들러는 남겨두되,
+  // 버튼이 없을 때 null 참조로 스크립트 전체가 죽지 않도록 존재 여부를 확인한다.
+  var retakeQuizBtn = document.getElementById("retakeQuizBtn");
+  if (retakeQuizBtn) {
+    retakeQuizBtn.addEventListener("click", function () {
+      result.hidden = true;
+      intro.hidden = false;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
 
 })();
 

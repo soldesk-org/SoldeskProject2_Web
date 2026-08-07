@@ -283,7 +283,9 @@
       <div class="e-chat-input flex-none">
         <form id="messageForm">
           <div class="e-chat-input-box">
-            <textarea id="messageInput" data-autogrow rows="1"
+            <!-- maxlength는 백엔드(ChatMessageServiceImpl.MAX_CONTENT_LENGTH)와 같은 1000자.
+                 서버는 넘치면 조용히 잘라서 저장하므로, 프론트에서 아예 더 입력되지 않게 막는다. -->
+            <textarea id="messageInput" data-autogrow rows="1" maxlength="1000"
                       placeholder="메시지를 입력하세요 (Shift + Enter 로 줄바꿈)" aria-label="메시지 입력"></textarea>
             <button type="submit" class="e-chat-send flex-none" id="sendMessageBtn" aria-label="메시지 전송">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l19-8-8 19-2-9-9-2Z"/></svg>
@@ -293,6 +295,7 @@
 
         <div class="flex items-center gap-3 mt-2.5">
           <p class="t-xs">개인정보 · 연락처 공유는 금지됩니다. 부적절한 메시지는 자동으로 차단됩니다.</p>
+          <span class="t-xs ml-auto flex-none tabular-nums" id="messageCounter" data-counter="messageInput">0 / 1000</span>
         </div>
       </div>
     </div>

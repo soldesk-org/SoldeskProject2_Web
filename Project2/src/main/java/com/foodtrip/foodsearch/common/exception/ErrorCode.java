@@ -37,6 +37,11 @@ public enum ErrorCode {
     SOCIAL_ACCOUNT_PASSWORD_CHANGE_NOT_ALLOWED(HttpStatus.FORBIDDEN, "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다."),
     SOCIAL_UNLINK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "소셜 계정 연동 해제에 실패했습니다."),
     SOCIAL_ACCOUNT_NOT_LINKED(HttpStatus.NOT_FOUND, "연동된 소셜 계정이 없습니다."),
+    // 사업자 계정은 소셜 로그인으로 들어올 수 없다(2026-08-07) — 같은 이메일이면 자동으로 계정을
+    // 연동해주는 정책이 있는데, 사업자 계정까지 그렇게 연결해버리면 사업자 전용 로그인 화면을
+    // 우회해 소셜 계정으로 사업자 권한을 얻게 되므로 아예 막는다.
+    SOCIAL_LOGIN_NOT_ALLOWED_FOR_BUSINESS(HttpStatus.FORBIDDEN,
+            "사업자 계정은 소셜 로그인을 사용할 수 없습니다. 사업자 로그인으로 이용해주세요."),
     INVALID_PROFILE_IMAGE(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식이거나 용량이 너무 큽니다."),
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "알림을 찾을 수 없습니다."),
     RESTAURANT_NOT_FOUND(HttpStatus.NOT_FOUND, "음식점을 찾을 수 없습니다."),

@@ -150,12 +150,18 @@
               <span><b class="text-[var(--brand-600)] font-bold">[필수]</b> 사업자 정보 진위확인 및 증명원 열람 동의</span>
             </label>
           </div>
+          <!-- 광고·프로모션 수신 동의(2026-08-07 보류) — 일반 회원가입(signup.html)과 같은 이유로,
+               실제 마케팅 알림 발송 기능이 아직 없어 동의만 받아두는 게 의미가 없어 화면에서 감춰둔다.
+               기능이 생기면 이 주석만 풀면 된다. -->
+          <!--
           <div class="e-agree-item">
             <label class="e-check" for="bizAgreeMarketing">
               <input type="checkbox" id="bizAgreeMarketing" name="agreeMarketing" data-agree-item="bizTerms">
               <span><b class="text-[var(--ink-500)] font-bold">[선택]</b> 광고 · 프로모션 정보 수신 동의</span>
             </label>
           </div>
+          -->
+
         </div>
 
       </section>
@@ -252,20 +258,9 @@
         </div>
       </section>
 
-      <!-- ==================== 매장 정보 ==================== -->
-      <section class="e-card e-card-pad mb-5">
-        <h2 class="e-form-section-title">매장 정보</h2>
-        <p class="e-form-section-desc">카카오맵에 등록된 실제 매장명을 검색해서 선택해주세요. 같은 주소에 여러 매장이 있어도(예: 1층/2층) 정확하게 구분할 수 있습니다.</p>
-
-        <div class="e-field !mb-0">
-          <label class="e-label" for="bizStoreNameDisplay">가게명 <span class="req">*</span></label>
-          <div class="e-input-row">
-            <input type="text" class="e-input" id="bizStoreNameDisplay" placeholder="매장 검색 버튼을 눌러 선택해주세요" readonly required>
-            <button type="button" class="btn btn-outline flex-none" id="bizStoreSearchOpenBtn">매장 검색</button>
-          </div>
-          <input type="hidden" id="bizStoreName" name="storeName">
-        </div>
-      </section>
+      <!-- 매장 정보(가게명)는 2026-08-07부터 STEP2(signup-business-info)에서 받는다 — STEP1/STEP2에서
+           같은 값을 두 번 입력받던 중복을 없앰. 매장 자동귀속도 STEP2 제출 시점에
+           POST /api/business/claim-restaurant로 처리한다. -->
 
       <!-- ==================== 계정 정보 ==================== -->
       <section class="e-card e-card-pad mb-5">
@@ -390,8 +385,6 @@
     </nav>
   </div>
 </footer>
-
-<script defer src="assets/js/signup-business-store-search.js"></script>
 
 </body>
 </html>

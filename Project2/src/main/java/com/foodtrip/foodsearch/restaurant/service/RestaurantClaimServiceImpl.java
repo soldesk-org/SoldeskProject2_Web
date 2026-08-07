@@ -55,6 +55,13 @@ public class RestaurantClaimServiceImpl implements RestaurantClaimService {
             log.info("사업장 주소가 없어(OCR 미추출) 음식점 자동귀속을 건너뜁니다 (memberId={})", memberId);
             return RestaurantClaimResult.skipped();
         }
+        // 가게명은 2026-08-07부터 회원가입 STEP1이 아니라 STEP2(매장 정보)에서 받는다 — STEP1 제출
+        // 시점에는 값이 없으므로 여기서는 자동귀속만 건너뛰고, 실제 귀속은 STEP2가 끝난 뒤
+        // POST /api/business/claim-restaurant로 처리한다.
+        if (storeName == null || storeName.isBlank()) {
+            log.info("가게명이 없어(STEP2에서 입력 예정) 음식점 자동귀속을 건너뜁니다 (memberId={})", memberId);
+            return RestaurantClaimResult.skipped();
+        }
         String normalizedBusinessAddress = normalize(businessAddress);
 
         List<KakaoLocalSearchItem> candidates;

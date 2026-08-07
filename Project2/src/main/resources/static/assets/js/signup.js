@@ -136,7 +136,9 @@
     sessionStorage.setItem("signup_email", emailInput.value.trim());
     sessionStorage.setItem("signup_password", passwordInput.value);
     sessionStorage.setItem("signup_phone", formatPhone(phoneInput.value.trim()));
-    sessionStorage.setItem("signup_marketing", document.getElementById("agreeMarketing").checked ? "1" : "0");
+    // 마케팅 동의 항목은 2026-08-07부터 화면에서 보류(주석 처리)됨 — 엘리먼트가 없으면 미동의로 처리.
+    var agreeMarketingEl = document.getElementById("agreeMarketing");
+    sessionStorage.setItem("signup_marketing", agreeMarketingEl && agreeMarketingEl.checked ? "1" : "0");
     // STEP2(signup-info)가 "방금 STEP1을 마쳤는지"를 판단할 때 값의 존재만으로는 예전에 테스트하다
     // 남은 오래된 값과 구분이 안 된다 — 이 시각을 함께 남겨서 일정 시간 이내인지도 같이 확인한다.
     sessionStorage.setItem("signup_verified_at", String(Date.now()));

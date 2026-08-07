@@ -19,6 +19,8 @@
     position: absolute; inset: 0 auto 0 0; height: 100%;
     border-radius: var(--r-full); background: var(--brand-grad);
   }
+  /* taste-quiz.css와 동일 — 오른쪽 성향이 우세하면 막대도 오른쪽에서부터 채운다(2026-08-07). */
+  .axis-fill--right { inset: 0 0 0 auto; }
   .axis-label { font-size: 12.5px; font-weight: 700; }
   .axis-label--on { color: var(--brand-600); }
   .axis-label--off { color: var(--ink-400); }

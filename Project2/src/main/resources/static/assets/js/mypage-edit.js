@@ -143,13 +143,17 @@
         var axisList = document.getElementById("btiAxisList");
         var score = data.score;
         axisList.innerHTML = AXIS_PAIRS.map(function (pair) {
+          // taste-quiz.js와 동일한 규칙(2026-08-07) — 우세한 쪽의 비율을 그 쪽에서부터 채운다.
           var left = score[pair[0]], right = score[pair[1]];
           var total = left + right || 1;
-          var pct = Math.round((left / total) * 100);
+          var leftWins = left >= right;
+          var pct = Math.round(((leftWins ? left : right) / total) * 100);
+          pct = Math.max(55, Math.min(94, pct));
           return '<div class="axis-row">' +
-            '<span class="axis-label ' + (left >= right ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
-            '<span class="axis-bar"><span class="axis-fill" style="width:' + pct + '%"></span></span>' +
-            '<span class="axis-label ' + (right > left ? "axis-label--on" : "axis-label--off") + '">' + AXIS_LABEL[pair[1]] + '</span>' +
+            '<span class="axis-label ' + (leftWins ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
+            '<span class="axis-bar"><span class="axis-fill' + (leftWins ? "" : " axis-fill--right") +
+              '" style="width:' + pct + '%"></span></span>' +
+            '<span class="axis-label ' + (leftWins ? "axis-label--off" : "axis-label--on") + '">' + AXIS_LABEL[pair[1]] + '</span>' +
             '</div>';
         }).join("");
 

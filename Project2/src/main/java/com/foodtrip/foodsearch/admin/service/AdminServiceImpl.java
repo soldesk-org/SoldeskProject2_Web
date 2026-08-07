@@ -145,7 +145,7 @@ public class AdminServiceImpl implements AdminService {
         for (Long memberId : activeMemberIds) {
             notificationService.create(memberId, Notification.TYPE_NOTICE, title, body, null);
         }
-        return new AdminActionResponseDto(true, activeMemberIds.size() + "명에게 공지를 발송했습니다.");
+        return new AdminActionResponseDto(true, "공지를 발송했습니다.");
     }
 
     // 리뷰 삭제(10.리뷰) 때와 동일한 평점 캐시 재계산 — 관리자가 리뷰를 지워도 그 음식점의 avgRating/

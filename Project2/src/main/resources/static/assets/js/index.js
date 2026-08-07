@@ -18,7 +18,9 @@ if (window.Api && Api.isLoggedIn()) {
     if (me.foodBti) {
       ['headerFoodBtiBadge', 'drawerFoodBtiBadge'].forEach(function (id) {
         var el = document.getElementById(id);
-        if (el) { el.textContent = '음식 취향 찾기 · ' + me.foodBti; el.hidden = false; }
+        // 배지에는 유형 코드만 보여준다(2026-08-07) — 앞에 "음식 취향 찾기 ·" 같은 라벨을 붙이면
+        // 좁은 드롭다운에서 배지가 길어져 닉네임/이메일 줄을 밀어낸다.
+        if (el) { el.textContent = me.foodBti; el.hidden = false; }
       });
     }
   }).catch(function () {});
@@ -83,4 +85,35 @@ if (window.Api && Api.isLoggedIn()) {
       map.fitBounds(bounds);
     })
     .catch(function () {});
+})();
+
+/* ---- 맨 위로 버튼(2026-08-07 추가) ----
+   일정 이상(400px) 내려갔을 때만 보여준다. scroll 이벤트는 자주 발생하므로 requestAnimationFrame으로
+   묶어서 프레임당 한 번만 계산한다. */
+(function () {
+  var btn = document.getElementById('backToTopBtn');
+  if (!btn) return;
+
+  var SHOW_AFTER = 400;
+  var ticking = false;
+
+  function update() {
+    ticking = false;
+    btn.classList.toggle('is-visible', window.scrollY > SHOW_AFTER);
+  }
+
+  window.addEventListener('scroll', function () {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(update);
+  }, { passive: true });
+
+  btn.addEventListener('click', function () {
+    // html의 scroll-behavior: smooth가 이미 걸려 있지만, 사용자가 "동작 줄이기"를 켠 환경까지
+    // 고려해 여기서도 behavior를 명시한다.
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  });
+
+  update();
 })();

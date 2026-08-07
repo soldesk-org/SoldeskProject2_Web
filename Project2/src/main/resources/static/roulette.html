@@ -129,7 +129,7 @@
 </aside>
 
 <main id="mainContent" class="py-8 md:py-12 flex items-center">
-  <div class="e-container w-full" style="max-width:720px">
+  <div class="e-container w-full" style="max-width:880px">
 
     <!-- ==================================================================
          1단계 · 카테고리 고르기
@@ -210,6 +210,16 @@
     <p class="result-eyebrow">오늘의 메뉴 카테고리는</p>
     <div class="result-icon-wrap" id="resultIcon"></div>
     <h2 class="result-name" id="resultTitle"><span id="resultName">-</span></h2>
+
+    <!-- 내 주변 추천(2026-08-07 추가) — 당첨된 카테고리의 음식점 중 한 곳을 무작위로 보여준다.
+         위치 권한이 없거나 주변에 결과가 없으면 이 블록 자체를 감춘다. -->
+    <div class="result-nearby" id="resultNearby" hidden>
+      <p class="result-nearby-label" id="resultNearbyLabel">내 주변 추천</p>
+      <a class="result-nearby-card" id="resultNearbyCard" href="explore">
+        <span class="result-nearby-name" id="resultNearbyName"></span>
+        <span class="result-nearby-addr" id="resultNearbyAddr"></span>
+      </a>
+    </div>
 
     <div class="result-modal-actions">
       <button type="button" class="btn-toss-primary" id="respinBtn">다시 뽑기</button>

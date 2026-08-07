@@ -192,12 +192,16 @@
   // (GET /api/restaurants/search?type=shop) 결과 중에서만 고르게 한다 — 이 파일의 도로명주소 검색
   // (Juso) 팝업과 동일한 "새 창 + opener 콜백" 패턴. readonly 입력은 HTML5 constraint validation에서
   // 자동으로 제외되므로(required가 먹지 않음) 제출 시 별도로 값을 확인한다.
+  // 고른 매장의 카카오 place 정보 — 제출할 때 매장 귀속(claim)에 그대로 넘긴다(2026-08-07).
+  var selectedStore = null;
+
   (function () {
     var shopNameInput = document.getElementById("shopName");
     if (!shopNameInput) return;
 
     window.eattyStoreSearchCallback = function (item) {
       shopNameInput.value = item.name;
+      selectedStore = item;
     };
 
     shopNameInput.addEventListener("click", function () {
@@ -224,8 +228,28 @@
         form.reportValidity();
         return;
       }
-      Eatty.toast("매장 정보가 저장되었습니다. (저장 API는 아직 준비 중이라 화면에만 반영됩니다)", "default");
-      goToDone();
+
+      // 매장 귀속(2026-08-07) — 가게명을 STEP1에서 STEP2로 옮기면서, 회원가입 시점에 하던 자동귀속을
+      // 여기서 대신 처리한다. 서버가 사업장 주소와 실제로 일치하는지 다시 검증하므로, 주소가 안 맞거나
+      // 이미 다른 사업자가 가져간 매장이면 실패할 수 있다 — 그래도 STEP2 자체는 통과시킨다(귀속은
+      // 부가 기능이고, 나중에 내 매장 화면에서 다시 시도할 수 있음).
+      if (!selectedStore || !selectedStore.restaurantId) {
+        goToDone();
+        return;
+      }
+      Api.request("/api/business/claim-restaurant", {
+        method: "POST",
+        body: {
+          restaurantId: selectedStore.restaurantId,
+          address: selectedStore.address || "",
+          roadAddress: selectedStore.roadAddress || "",
+        },
+      })
+        .then(function () { goToDone(); })
+        .catch(function (err) {
+          Eatty.toast(err.message || "매장 연결에 실패했습니다. 내 매장 화면에서 다시 시도할 수 있어요.", "error");
+          goToDone();
+        });
     });
   }
 })();

@@ -144,6 +144,8 @@
       return {
         categoryCode: code,
         categoryName: c ? c.categoryName : code,
+        // 당첨 후 "내 주변 추천"에서 /api/restaurants/filter?categoryId=... 로 쓴다.
+        categoryId: c ? c.categoryId : null,
         color: SLICE_COLORS[i % SLICE_COLORS.length],
       };
     });
@@ -245,6 +247,64 @@
     // 칸이 2개일 때 하나를 더 빼면 룰렛이 성립하지 않으므로 그때는 "빼고 다시"를 감춘다.
     excludeBtn.hidden = items.length <= MIN_ITEMS;
     Eatty.openModal("resultModal");
+    loadNearbyPick(lastWinner);
+  }
+
+  /* --------------------- 내 주변 추천(2026-08-07 추가) ---------------------
+     당첨된 카테고리의 음식점 중 한 곳을 무작위로 하나만 보여준다. 07(음식점-메뉴-검색)의 기존
+     GET /api/restaurants/filter를 그대로 재사용하고, 새 백엔드 API는 만들지 않는다.
+     위치 권한 거부/미지원, 주변에 결과 없음, 호출 실패는 전부 "그냥 안 보여줌"으로 처리한다 —
+     룰렛 자체(핵심 기능)를 막지 않기 위해서다. */
+  var nearbyBox = document.getElementById("resultNearby");
+  var nearbyCard = document.getElementById("resultNearbyCard");
+  var nearbyNameEl = document.getElementById("resultNearbyName");
+  var nearbyAddrEl = document.getElementById("resultNearbyAddr");
+  var nearbyLabelEl = document.getElementById("resultNearbyLabel");
+  var nearbyReqId = 0; // 다시 뽑기를 연타했을 때 예전 응답이 나중에 도착해 덮어쓰는 것 방지
+
+  function loadNearbyPick(winner) {
+    if (!nearbyBox) return;
+    nearbyBox.hidden = true;
+    if (!winner || winner.categoryId == null || !navigator.geolocation) return;
+
+    var reqId = ++nearbyReqId;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      var d = 0.018; // 약 2km 반경의 바운딩 박스
+      var qs = "categoryId=" + encodeURIComponent(winner.categoryId) +
+        "&minLat=" + (lat - d) + "&maxLat=" + (lat + d) +
+        "&minLng=" + (lng - d) + "&maxLng=" + (lng + d) +
+        "&page=0&size=30";
+
+      Api.request("/api/restaurants/filter?" + qs, { method: "GET", auth: false })
+        .then(function (data) {
+          if (reqId !== nearbyReqId) return; // 더 최신 요청이 있으면 이 응답은 버린다
+          var list = (data && data.restaurants) || [];
+          if (!list.length) return;
+          renderNearbyPick(list[Math.floor(Math.random() * list.length)], winner);
+        })
+        .catch(function () {});
+    }, function () { /* 위치 권한 거부 — 그냥 안 보여준다 */ }, { timeout: 8000, maximumAge: 300000 });
+  }
+
+  function renderNearbyPick(shop, winner) {
+    nearbyLabelEl.textContent = "내 주변 " + winner.categoryName + " 추천";
+    nearbyNameEl.textContent = shop.name || "";
+    nearbyAddrEl.textContent = shop.roadAddress || shop.address || "";
+    // 카카오는 place id 단건 재조회가 안 되므로, explore가 상세를 열 때 쓰는 값들을 쿼리로 함께 넘긴다
+    // (explore.js의 openSharedRestaurant와 같은 규약).
+    // category를 꼭 같이 넘겨야 한다 — 상세조회(GET /api/restaurants/{id})는 카카오 원본을 다시
+    // 조회할 수 없어 category를 못 채워주기 때문에, 이 값을 빼먹으면 지도 마커가 카테고리별 아이콘이
+    // 아니라 기본 마커로 떨어진다(explore.js openSharedRestaurant의 categoryQ).
+    nearbyCard.href = "explore?shopId=" + encodeURIComponent(shop.restaurantId) +
+      "&name=" + encodeURIComponent(shop.name || "") +
+      "&category=" + encodeURIComponent(shop.category || winner.categoryName || "") +
+      "&address=" + encodeURIComponent(shop.address || "") +
+      "&roadAddress=" + encodeURIComponent(shop.roadAddress || "") +
+      (shop.latitude != null ? "&latitude=" + shop.latitude : "") +
+      (shop.longitude != null ? "&longitude=" + shop.longitude : "");
+    nearbyBox.hidden = false;
   }
 
   /* ------------------------------ 화면 전환 ------------------------------ */

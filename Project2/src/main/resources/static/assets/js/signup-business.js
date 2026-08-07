@@ -234,8 +234,8 @@
     var licenseFile = licenseInput.files && licenseInput.files[0];
     if (!licenseFile) { Eatty.toast("사업자등록증명원 파일을 업로드해주세요.", "error"); return; }
 
-    var storeName = (document.getElementById("bizStoreName").value || "").trim();
-    if (!storeName) { Eatty.toast("매장 검색에서 가게명을 선택해주세요.", "error"); return; }
+    // 가게명(storeName)은 2026-08-07부터 이 화면에서 받지 않는다 — STEP2(매장 정보)에서 입력받고
+    // 거기서 POST /api/business/claim-restaurant로 매장 귀속까지 처리한다.
 
     // 백엔드에 담당자 성명을 담을 필드가 없어 닉네임 전용 입력칸도 이 화면엔 없다 — 이메일 아이디
     // 부분에서 닉네임 규칙(한글/영문/숫자 2~10자)에 맞게 자동으로 만들어 사용한다.
@@ -249,7 +249,6 @@
     formData.append("passwordConfirm", passwordConfirm);
     formData.append("nickname", nickname);
     formData.append("phone", phone);
-    formData.append("storeName", storeName);
     formData.append("businessLicenseFile", licenseFile);
 
     submitBtn.disabled = true;

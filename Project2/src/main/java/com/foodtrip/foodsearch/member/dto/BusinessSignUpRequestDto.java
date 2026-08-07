@@ -38,10 +38,13 @@ public class BusinessSignUpRequestDto {
     @Pattern(regexp = "^010-\\d{4}-\\d{4}$", message = "전화번호는 010-XXXX-XXXX 형식이어야 합니다.")
     private String phone;
 
-    // 매장 자동귀속용 가게명(2026-08-07 필수 입력 추가) — 프론트의 "매장 검색" 팝업(카카오 실시간
-    // 키워드 검색)에서 고른 정확한 상호명이 들어온다. 사업장 주소만으로는 같은 주소에 여러 상호가 있는
-    // 경우(예: 1층 A카페/2층 B카페) 구분이 안 되는 문제를 해결하기 위함(RestaurantClaimServiceImpl 참고).
-    @NotBlank(message = "가게명은 필수입니다.")
+    // 매장 자동귀속용 가게명 — 프론트의 "매장 검색" 팝업(카카오 실시간 키워드 검색)에서 고른 정확한
+    // 상호명이 들어온다. 사업장 주소만으로는 같은 주소에 여러 상호가 있는 경우(예: 1층 A카페/2층 B카페)
+    // 구분이 안 되는 문제를 해결하기 위함(RestaurantClaimServiceImpl 참고).
+    //
+    // (2026-08-07 필수 → 선택으로 완화) 가게명 입력을 회원가입 STEP1에서 받지 않고 STEP2(매장 정보)로
+    // 옮기면서, STEP1 제출 시점에는 값이 없을 수 있게 되었다. 값이 없으면 자동귀속만 건너뛰고 계정 생성
+    // 자체는 그대로 성공시킨다 — 귀속은 나중에 POST /api/business/claim-restaurant로 처리한다.
     @Size(max = 100, message = "가게명은 최대 100자입니다.")
     private String storeName;
 
