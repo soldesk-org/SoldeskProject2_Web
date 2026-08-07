@@ -16,6 +16,10 @@ pipeline {
 
     environment {
         PROJECT_DIR = 'Project2'
+        // VM 메모리가 846MB로 작아 JVM 기본 힙(전체 메모리의 1/4)으로는 WAR 패키징 중
+        // "Java heap space" OOM이 발생함(2026-08-03 빌드 #60~#62 실패로 확인) — 명시적으로 늘려줌.
+        // 2GB 스왑이 있어 물리 메모리를 다소 넘겨도 버틸 수 있음(docs/00.공통/CI-CD-Jenkins-구축-가이드.md 3장).
+        MAVEN_OPTS = '-Xmx640m -XX:+UseSerialGC'
     }
 
     stages {
@@ -76,6 +80,10 @@ pipeline {
                         string(credentialsId: 'soldesk-ncp-maps-client-secret', variable: 'NCP_MAPS_CLIENT_SECRET'),
                         string(credentialsId: 'soldesk-ssl-key-store-password', variable: 'SSL_KEY_STORE_PASSWORD'),
                         string(credentialsId: 'soldesk-https-connector-enabled', variable: 'HTTPS_CONNECTOR_ENABLED'),
+                        string(credentialsId: 'soldesk-hyperclova-base-url', variable: 'HYPERCLOVA_BASE_URL'),
+                        string(credentialsId: 'soldesk-hyperclova-model', variable: 'HYPERCLOVA_MODEL'),
+                        string(credentialsId: 'soldesk-hyperclova-api-key', variable: 'HYPERCLOVA_API_KEY'),
+                        string(credentialsId: 'soldesk-chat-log-aes-key', variable: 'CHAT_LOG_AES_KEY'),
                     ]) {
                         sh './mvnw test'
                     }
@@ -144,6 +152,10 @@ pipeline {
                         string(credentialsId: 'soldesk-seoul-parking-service-key', variable: 'SEOUL_PARKING_SERVICE_KEY'),
                         string(credentialsId: 'soldesk-ncp-maps-client-id', variable: 'NCP_MAPS_CLIENT_ID'),
                         string(credentialsId: 'soldesk-ncp-maps-client-secret', variable: 'NCP_MAPS_CLIENT_SECRET'),
+                        string(credentialsId: 'soldesk-hyperclova-base-url', variable: 'HYPERCLOVA_BASE_URL'),
+                        string(credentialsId: 'soldesk-hyperclova-model', variable: 'HYPERCLOVA_MODEL'),
+                        string(credentialsId: 'soldesk-hyperclova-api-key', variable: 'HYPERCLOVA_API_KEY'),
+                        string(credentialsId: 'soldesk-chat-log-aes-key', variable: 'CHAT_LOG_AES_KEY'),
                     ]) {
                         sh '''
                             cp target/*.war /opt/soldesk-app/soldesk-app.war
@@ -182,6 +194,10 @@ SEOUL_PARKING_SERVICE_KEY=$SEOUL_PARKING_SERVICE_KEY
 NCP_MAPS_CLIENT_ID=$NCP_MAPS_CLIENT_ID
 NCP_MAPS_CLIENT_SECRET=$NCP_MAPS_CLIENT_SECRET
 HTTPS_CONNECTOR_ENABLED=false
+HYPERCLOVA_BASE_URL=$HYPERCLOVA_BASE_URL
+HYPERCLOVA_MODEL=$HYPERCLOVA_MODEL
+HYPERCLOVA_API_KEY=$HYPERCLOVA_API_KEY
+CHAT_LOG_AES_KEY=$CHAT_LOG_AES_KEY
 ENVEOF
                             chmod 600 /opt/soldesk-app/.env
                             sudo systemctl restart soldesk-app.service

@@ -1,36 +1,6 @@
 (function () {
   if (!Api.requireLogin()) return;
 
-  // ---- 접근 제어(2026-08-05 추가) ----
-  // 이 페이지는 반드시 explore.html에서 가게를 클릭(→ restaurantId)하거나, 마이페이지 내 리뷰의
-  // 임시저장 "이어서 쓰기"(→ draft)를 통해서만 들어올 수 있다. 주소창에 이 URL을 직접 치거나
-  // restaurantId를 조작해서 들어오는 건 막는다 — sessionStorage에 그 클릭 시점에만 심어지는 값을
-  // 확인해서 판단한다(explore.js/mypage-reviews.js가 이동 직전에 심어둠).
-  //
-  // restaurantId만 맞으면 통과시키는 걸로는 부족했다(2026-08-05 강화) — restaurantId는 그대로 두고
-  // name/address 같은 URL의 다른 파라미터만 주소창에서 바꿔서 엉뚱한 가게 이름으로 들어올 수 있었다.
-  // 그래서 URL의 name/address/roadAddress/latitude/longitude는 아예 신뢰하지 않고, 클릭 시점에
-  // sessionStorage에 통째로 저장해둔 스냅샷(entrySnapshot)에서만 읽는다.
-  var entryParams = new URLSearchParams(location.search);
-  var entryRestaurantId = entryParams.get("restaurantId");
-  var entryDraftId = entryParams.get("draft");
-  var entryAt = Number(sessionStorage.getItem("ru_entry_at"));
-  var entryWithinWindow = entryAt && (Date.now() - entryAt) < 30 * 60 * 1000; // 30분
-
-  var entrySnapshot = null;
-  try { entrySnapshot = JSON.parse(sessionStorage.getItem("ru_entry_restaurant") || "null"); } catch (e) { entrySnapshot = null; }
-
-  var entryAllowed = entryDraftId
-    ? (entryWithinWindow && sessionStorage.getItem("ru_entry_draft_id") === entryDraftId)
-    : entryRestaurantId
-      ? (entryWithinWindow && entrySnapshot && String(entrySnapshot.restaurantId) === entryRestaurantId)
-      : false;
-
-  if (!entryAllowed) {
-    window.location.replace("explore");
-    return;
-  }
-
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -64,15 +34,15 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // ---- 대상 매장 (explore.html에서 가게를 클릭한 시점에 저장해둔 신뢰 스냅샷 — URL 파라미터는
-  // 안 쓴다. entrySnapshot은 위 접근 제어 통과 시점에 이미 restaurantId까지 검증된 값이다.) ----
-  var restaurant = entrySnapshot ? {
-    restaurantId: entrySnapshot.restaurantId,
-    name: entrySnapshot.name || "",
-    address: entrySnapshot.address || "",
-    roadAddress: entrySnapshot.roadAddress || "",
-    latitude: entrySnapshot.latitude != null ? Number(entrySnapshot.latitude) : null,
-    longitude: entrySnapshot.longitude != null ? Number(entrySnapshot.longitude) : null,
+  // ---- 대상 매장 (explore.html의 "리뷰 작성" 링크로 넘어온 쿼리 파라미터) ----
+  var params = new URLSearchParams(location.search);
+  var restaurant = params.get("restaurantId") ? {
+    restaurantId: params.get("restaurantId"),
+    name: params.get("name") || "",
+    address: params.get("address") || "",
+    roadAddress: params.get("roadAddress") || "",
+    latitude: params.get("latitude") ? Number(params.get("latitude")) : null,
+    longitude: params.get("longitude") ? Number(params.get("longitude")) : null,
   } : null;
 
   if (restaurant) {
@@ -85,17 +55,13 @@
   var ocrResult = null;
 
   // ---- 드롭존/미리보기는 eatty-ui.js가 처리, 여기서는 실행 버튼만 담당 ----
-  var receiptDrop = document.getElementById("receiptDrop");
-  // 파일을 고르면 미리보기가 바로 아래에 나오니, 클릭해서 선택하는 드롭존 박스는 중복이라 숨긴다
-  // (2026-08-05 추가). 파일을 지우면 다시 보여준다.
-  receiptDrop.addEventListener("eatty:filepicked", function () {
-    receiptDrop.hidden = true;
+  document.getElementById("cameraCaptureBtn").addEventListener("click", function () {
+    document.getElementById("cameraInput").click();
   });
   document.getElementById("receiptRemoveBtn").addEventListener("click", function () {
     document.getElementById("receiptFileInput").value = "";
     document.getElementById("receiptPreview").hidden = true;
     document.getElementById("receiptFileName").textContent = "선택된 파일이 없습니다";
-    receiptDrop.hidden = false;
   });
 
   document.getElementById("runOcrBtn").addEventListener("click", function () {
@@ -104,12 +70,9 @@
     var file = fileInput.files && fileInput.files[0];
     if (!file) { Eatty.toast("영수증 사진을 선택해주세요.", "error"); return; }
 
-    // 사업자등록증 OCR(signup-business.js runBusinessVerify)과 동일하게 버튼 문구만 "확인 중..."으로
-    // 바꾸는 방식으로 통일한다(2026-08-06 - 서로 다른 로딩 애니메이션을 쓰던 걸 맞춤).
     var btn = this;
-    var originalHtml = btn.innerHTML;
-    btn.disabled = true;
-    btn.textContent = "확인 중...";
+    btn.classList.add("is-loading");
+    document.getElementById("ocrFailAlert").hidden = true;
 
     var formData = new FormData();
     formData.append("image", file);
@@ -123,9 +86,10 @@
         goStep(2);
       })
       .catch(function (err) {
+        document.getElementById("ocrFailAlert").hidden = false;
         Eatty.toast(err.message || "영수증 인식에 실패했습니다.", "error");
       })
-      .finally(function () { btn.disabled = false; btn.innerHTML = originalHtml; });
+      .finally(function () { btn.classList.remove("is-loading"); });
   });
 
   function renderStep2(data) {
@@ -220,6 +184,10 @@
     }).then(function () {
       document.getElementById("step3Section").hidden = true;
       stepsRoot.parentElement.hidden = true;
+      document.getElementById("doneRestaurantName").textContent = restaurant.name;
+      document.getElementById("doneRatingStars").innerHTML = new Array(5).fill(0).map(function (_, i) {
+        return '<svg viewBox="0 0 24 24" fill="currentColor"' + (i < score ? ' class="is-on"' : "") + '><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>';
+      }).join("");
       doneSection.hidden = false;
       window.scrollTo({ top: 0, behavior: "smooth" });
     }).catch(function (err) {
@@ -235,19 +203,6 @@
     document.getElementById("reviewScoreLabel").textContent = "별점을 선택해주세요";
     document.getElementById("tagSelectedCount").textContent = "0";
     ocrResult = null;
-
-    // 2026-08-06 추가 - "또 작성하기"를 눌러도 처음 올렸던 영수증 사진/OCR 결과가 그대로 남아있던
-    // 문제. step1의 파일 입력·미리보기·드롭존, step2의 OCR 표시 필드까지 처음 접속한 상태로 되돌린다.
-    document.getElementById("receiptFileInput").value = "";
-    document.getElementById("receiptPreview").hidden = true;
-    document.getElementById("receiptFileName").textContent = "선택된 파일이 없습니다";
-    receiptDrop.hidden = false;
-    document.getElementById("ocrShopName").textContent = "-";
-    document.getElementById("ocrTotalAmount").textContent = "-";
-    document.getElementById("ocrVisitDatetime").textContent = "-";
-    document.getElementById("ocrMenuList").innerHTML = "";
-    document.getElementById("ocrDuplicateAlert").hidden = true;
-
     goStep(1);
   });
 })();

@@ -14,12 +14,6 @@
   var questions = [];
   var idx = 0;
   var answers = [];
-  // 2026-08-06 추가 - 선택지를 연속으로 빠르게 클릭하면 각 클릭마다 setTimeout(next, 260)이 쌓여서,
-  // 아직 화면이 넘어가기 전(260ms 이내)의 클릭이 다음 문항으로 잘못 넘어가 버리는 문제가 있었다(문항이
-  // null 답변인 채로 건너뛰어짐 → 마지막에 제출하면 항상 INVALID_INPUT, 마지막 문항에서 반복 클릭하면
-  // finish()가 매번 다시 실행돼 토스트가 여러 번 쌓였다). 전환 중에는 선택을 잠가서 막는다.
-  var transitioning = false;
-  var submitting = false;
 
   function loadQuestions() {
     return Api.request("/api/food-bti/questions", { auth: false }).then(function (data) {
@@ -65,14 +59,11 @@
   }
 
   function finish() {
-    if (submitting) return;
-    submitting = true;
     Api.request("/api/food-bti/result", { method: "POST", auth: Api.isLoggedIn(), body: { answers: answers } })
       .then(renderResult)
       .catch(function (err) {
         Eatty.toast(err.message || "결과 계산에 실패했습니다.", "error");
-      })
-      .finally(function () { submitting = false; });
+      });
   }
 
   function renderResult(data) {
@@ -96,9 +87,6 @@
       var left = score[pair[0]], right = score[pair[1]];
       var total = left + right || 1;
       var pct = Math.round((left / total) * 100);
-      // 2026-08-06 추가 - 한쪽으로 전부(예: 0:3) 선택하면 pct가 0/100이 되어 막대가 아예 안 채워진
-      // 것처럼 보였다("바가 안 채워진다" 리포트). 어느 쪽이 우세한지는 항상 보이도록 최소/최대치를 둔다.
-      pct = Math.max(6, Math.min(94, pct));
       return '<div class="axis-row">' +
         '<span class="axis-label ' + (left >= right ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
         '<span class="axis-bar"><span class="axis-fill" style="width:' + pct + '%"></span></span>' +
@@ -117,7 +105,6 @@
       intro.hidden = true;
       play.hidden = false;
       idx = 0;
-      transitioning = false;
       render();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }).catch(function (err) {
@@ -126,19 +113,14 @@
   });
 
   document.getElementById("quizOptionList").addEventListener("click", function (e) {
-    if (transitioning) return;
     var btn = e.target.closest("[data-choice-score]");
     if (!btn) return;
-    transitioning = true;
     answers[idx] = btn.getAttribute("data-choice-score");
     this.querySelectorAll(".q-option").forEach(function (b) {
       b.classList.toggle("is-selected", b === btn);
       b.setAttribute("aria-checked", b === btn ? "true" : "false");
     });
-    setTimeout(function () {
-      transitioning = false;
-      next();
-    }, 260);
+    setTimeout(next, 260);
   });
 
   document.getElementById("quizPrevBtn").addEventListener("click", function () {
@@ -159,19 +141,3 @@
     }
   });
 })();
-
-// 팝업(iframe)으로 열렸을 때(?embed=1) 자체 헤더/탭바를 숨긴다 — signup-info.html "테스트 보기" 모달.
-  if (new URLSearchParams(location.search).get("embed") === "1") {
-    document.body.classList.add("is-embed");
-    document.addEventListener("DOMContentLoaded", function () {
-      // embed 모드에서는 "나가기"가 iframe 내부를 index로 이동시키는 대신, 부모 창(signup-info.html)에
-      // 닫아달라고 알린다 — 그대로 두면 팝업 안에 메인 페이지가 통째로 떠버리는 문제가 있었다.
-      var exitLink = document.getElementById("quizExitConfirmLink");
-      if (exitLink) {
-        exitLink.addEventListener("click", function (e) {
-          e.preventDefault();
-          window.parent.postMessage({ type: "taste-quiz:close" }, window.location.origin);
-        });
-      }
-    });
-  }
