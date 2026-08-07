@@ -177,21 +177,109 @@
       });
     });
 
-    // 공용 헤더의 닉네임/이메일(#headerNickname, #headerEmail)은 거의 모든 페이지에 똑같이
-    // 반복되는 요소라 각 페이지 JS마다 중복으로 GET /api/members/me를 부르지 않도록 여기서 한 번만 채운다.
+    // 공용 헤더/드로어의 닉네임/이메일/아바타(#headerNickname, #headerEmail, #headerAvatar,
+    // #drawerNickname, #drawerEmail, #drawerAvatar)는 거의 모든 페이지에 똑같이 반복되는 요소라
+    // 각 페이지 JS마다 중복으로 GET /api/members/me를 부르지 않도록 여기서 한 번만 채운다.
+    // 아바타는 프로필 사진이 있으면 그 이미지를, 없으면 닉네임 첫 글자를 보여준다(마이페이지 본문
+    // 카드와 동일한 규칙 — 2026-08-04 전까지는 "잇" 하드코딩이라 마이페이지 본문 아바타와 서로 달라 보였다).
     if (loggedIn) {
       var headerNickname = document.getElementById("headerNickname");
       var headerEmail = document.getElementById("headerEmail");
-      if (headerNickname || headerEmail) {
+      var headerAvatar = document.getElementById("headerAvatar");
+      var drawerNickname = document.getElementById("drawerNickname");
+      var drawerEmail = document.getElementById("drawerEmail");
+      var drawerAvatar = document.getElementById("drawerAvatar");
+      if (headerNickname || headerEmail || headerAvatar || drawerNickname || drawerEmail || drawerAvatar) {
         request("/api/members/me").then(function (data) {
           if (headerNickname && data.nickname) headerNickname.textContent = data.nickname;
           if (headerEmail && data.email) headerEmail.textContent = data.email;
+          if (drawerNickname && data.nickname) drawerNickname.textContent = data.nickname;
+          if (drawerEmail && data.email) drawerEmail.textContent = data.email;
+          [headerAvatar, drawerAvatar].forEach(function (avatarEl) {
+            if (!avatarEl) return;
+            if (data.profileImageUrl) {
+              avatarEl.innerHTML = '<img src="' + data.profileImageUrl + '" class="size-full object-cover rounded-full" alt="프로필 사진">';
+            } else if (data.nickname) {
+              avatarEl.textContent = data.nickname.charAt(0);
+            }
+          });
         }).catch(function () {});
       }
     }
   }
 
   document.addEventListener("DOMContentLoaded", initNavAuthUI);
+
+  /* 알림 벨(2026-08-06 추가) — eatty-ui.js는 fetch를 하지 않는 순수 프레젠테이션 모듈이라(파일 상단
+     주석 참고), 실제 서버 연동은 여기서 담당하고 Eatty.notify.setItems()/setHooks()로 넘겨준다.
+     실시간 전달(2026-08-06 2차 추가)은 19(오픈채팅)이 이미 깔아둔 /ws-chat STOMP 브로커를 그대로
+     재사용한다(NotificationServiceImpl.create()가 저장과 동시에 /user/queue/notifications로 push).
+     chat.html이 CDN에서 @stomp/stompjs를 불러오는 것과 동일한 방식을 여기서도 쓰되, 페이지에 그
+     스크립트 태그가 없어도 되도록 동적으로 로드한다. 소켓이 끊기거나 페이지가 로드될 때 놓친 알림까지
+     보완하기 위해 20초 폴링도 폐지하지 않고 그대로 유지한다(소켓=즉시, 폴링=안전망). */
+  function initNotifications() {
+    if (!global.Eatty || !global.Eatty.notify || !isLoggedIn()) return;
+
+    function loadNotifications() {
+      request("/api/notifications?filter=all").then(function (list) {
+        global.Eatty.notify.setItems(list);
+      }).catch(function () {});
+    }
+
+    global.Eatty.notify.setHooks({
+      markRead: function (id) {
+        request("/api/notifications/" + id + "/read", { method: "PATCH" }).catch(function () {});
+      },
+      markAllRead: function () {
+        request("/api/notifications/read-all", { method: "PATCH" }).catch(function () {});
+      },
+      delete: function (id) {
+        request("/api/notifications/" + id, { method: "DELETE" }).catch(function () {});
+      }
+    });
+
+    loadNotifications();
+    setInterval(loadNotifications, 20000);
+    connectNotificationSocket();
+  }
+
+  var STOMP_CDN_URL = "https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js";
+  var stompScriptLoading = null;
+
+  function loadStompScript() {
+    if (global.StompJs) return Promise.resolve();
+    if (stompScriptLoading) return stompScriptLoading;
+    stompScriptLoading = new Promise(function (resolve, reject) {
+      var script = document.createElement("script");
+      script.src = STOMP_CDN_URL;
+      script.onload = function () { resolve(); };
+      script.onerror = function () { reject(new Error("stompjs load failed")); };
+      document.head.appendChild(script);
+    });
+    return stompScriptLoading;
+  }
+
+  function connectNotificationSocket() {
+    loadStompScript().then(function () {
+      var protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      var client = new global.StompJs.Client({
+        brokerURL: protocol + "//" + location.host + "/ws-chat",
+        connectHeaders: { Authorization: "Bearer " + getAccessToken() },
+        reconnectDelay: 5000,
+      });
+      client.onConnect = function () {
+        client.subscribe("/user/queue/notifications", function (message) {
+          try {
+            var item = JSON.parse(message.body);
+            global.Eatty.notify.add(item);
+          } catch (e) { /* 무시 */ }
+        });
+      };
+      client.activate();
+    }).catch(function () { /* CDN 로드 실패해도 폴링이 안전망으로 남아있다 */ });
+  }
+
+  document.addEventListener("DOMContentLoaded", initNotifications);
 
   global.Api = {
     request: request,

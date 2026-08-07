@@ -1,0 +1,114 @@
+  /* ===== explore 전용 레이아웃 ===== */
+  .ex-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    height: calc(100vh - var(--header-h));
+    min-height: 560px;
+  }
+  /* grid-template-columns: minmax(0, 1fr)(2026-08-07 추가) — 명시적으로 안 주면 grid의 암묵적
+     컬럼 트랙이 기본값 auto라 내부 콘텐츠(리스트 카드/지도) 폭만큼 부모가 늘어나 버려서, 모바일
+     처럼 뷰포트가 좁을 때 페이지 전체가 옆으로 밀리는 문제가 있었다(실측). minmax(0, 1fr)은 화면이
+     넓어서 어차피 다 들어갈 때는 auto와 똑같이 동작해 데스크탑 화면에는 영향이 없다. */
+  .ex-body { position: relative !important; display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .ex-list {
+    background: var(--bg);
+    border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  }
+  .ex-map-wrap { position: relative; min-height: 0; min-width: 0; }
+
+  /* 데스크탑: 리스트 | 지도 */
+  @media (min-width: 1024px) {
+    .ex-body { grid-template-columns: 400px minmax(0, 1fr); }
+    /* #shopDetailPanel(.ex-detail)이 실제로는 .ex-map-wrap(지도 영역, 리스트 폭 지점부터 시작) 안에
+       중첩되어 있어서, position:absolute의 기준(containing block)이 .ex-body가 아니라 .ex-map-wrap이 됨.
+       리스트(.ex-list)를 덮는 오버레이로 보이게 하려면 그 폭만큼 왼쪽으로 당겨줘야 한다.
+       리스트와 상세 패널(.ex-detail, width:400px)의 폭을 동일하게 맞춰서 전환 시 크기 차이가 없게 한다. */
+    .ex-detail { left: -400px !important; }
+  }
+  /* 모바일: 지도 위 / 리스트 아래 */
+  @media (max-width: 1023px) {
+    .ex-shell { height: auto; min-height: 0; }
+    .ex-body { grid-template-rows: 300px auto; }
+    .ex-map-wrap { order: 1; }
+    .ex-list { order: 2; border-right: 0; border-top: 1px solid var(--line); }
+  }
+
+  /* 상세 패널 */
+  .ex-detail {
+    position: absolute !important; inset: 0 auto 0 0; z-index: 20;
+    width: 400px; max-width: 100%;
+    background: var(--bg);
+    border-right: 1px solid var(--line);
+    box-shadow: var(--sh-lg);
+    transform: translateX(-102%) !important;
+    transition: transform .3s var(--ease);
+    display: flex; flex-direction: column;
+  }
+  .ex-detail[hidden] { display: none !important; }
+  .ex-detail.is-open { transform: translateX(0) !important; }
+  @media (max-width: 1023px) {
+    /* top:var(--header-h)(2026-08-07 수정) — 예전엔 inset:0이라 상세 패널이 화면 전체(헤더/하단
+       탭바까지)를 덮어버려서, 상세를 열면 사이트 헤더와 하단 탭바가 통째로 안 보이는 문제가 있었다.
+       헤더 높이만큼 위를 비워서 그 밑으로만 채우게 한다.
+       z-index 95→40(2026-08-07 재수정) — 헤더/탭바 자리를 비워도 z-index가 헤더(60)·탭바(55)·
+       프로필 드롭다운(70)보다 높으면 여전히 그 위를 덮어버려서(예: 프로필 메뉴를 열어도 상세 패널에
+       가려 안 보임) 실질적으로 같은 문제였다. 상세 패널은 지도/목록(z-index 없음, 기본값)보다만
+       위에 있으면 되므로, 헤더·탭바·드롭다운·드로어·알림 전부보다 낮은 값으로 내려서 이 페이지의
+       모든 오버레이 관련 문제를 한 번에 해결한다. */
+    .ex-detail {
+      position: fixed !important; top: var(--header-h); right: 0; bottom: 0; left: 0;
+      width: 100%; z-index: 40;
+      border-right: 0; transform: translateY(100%) !important;
+    }
+    .ex-detail.is-open { transform: translateY(0) !important; }
+  }
+  /* 하단 탭바(.e-tabbar)는 768px 미만에서만 보이므로(eatty.css), 그 폭에서만 상세 패널 하단에도
+     탭바 높이만큼 여백을 더 줘서 가려지지 않게 한다(2026-08-07). */
+  @media (max-width: 767px) {
+    .ex-detail { bottom: 61px; }
+  }
+
+  /* 네이버 지도 SDK의 저작권/로고/축척 표시는 자체적으로 z-index:10000 안팎의 매우 높은 값을 써서
+     (실측 확인) 우리 쪽 z-index를 아무리 올려도 항상 다른 요소 위에 뜬다 — 상세 패널이 열려 있는
+     동안은 그 지도 자체를 안 보이게 감춰서 워터마크가 상세 패널 내용과 겹쳐 보이는 문제를 막는다
+     (2026-08-07). 상세 패널이 지도 영역을 완전히 덮고 있어 이 시점엔 지도가 안 보여도 상관없다. */
+  @media (max-width: 1023px) {
+    /* .e-drawer.is-open 추가(2026-08-07) — 상세 패널을 안 열고 햄버거 메뉴만 열어도, 그 뒤에 깔린
+       지도가 같은 이유(z-index:10000)로 드로어 위에 비쳐 보이는 게 실측으로 확인됐다. 사이트 전체가
+       쓰는 .e-drawer(모바일 내비게이션)가 열려 있을 때도 지도를 함께 감춘다. */
+    body:has(.ex-detail.is-open) .ex-map-wrap,
+    body:has(.e-drawer.is-open) .ex-map-wrap { visibility: hidden; }
+    /* visibility는 상속되는데 #shopDetailPanel(.ex-detail)의 DOM 부모가 바로 이 .ex-map-wrap이라
+       (지도 영역 안에 중첩된 구조), 위 규칙이 지도뿐 아니라 상세 패널 자신까지 숨겨버렸다(2026-08-07
+       발견) — 패널 자신에는 다시 visible을 명시해 되돌린다. */
+    body:has(.ex-detail.is-open) .ex-detail { visibility: visible; }
+  }
+
+  /* 필터 바 */
+  .ex-filterbar {
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* 브라우저 기본 검색창 X 버튼(파란 X) 숨김 — 커스텀 지우기 버튼만 사용 */
+  #exploreSearchInput::-webkit-search-cancel-button { display: none; -webkit-appearance: none; }
+  #exploreSearchInput::-webkit-search-decoration { display: none; }
+  #exploreSearchInput { appearance: none; }
+
+  /* 결과 리스트 / 상세 패널 — 스크롤은 되지만 스크롤바는 숨김 */
+  #resultList, .ex-detail .e-scroll {
+    scrollbar-width: none; -ms-overflow-style: none;
+  }
+  #resultList::-webkit-scrollbar, .ex-detail .e-scroll::-webkit-scrollbar { display: none; }
+
+  /* #resultList(2026-08-07 실측) — overflow-y:auto가 있어도 .ex-body가 grid-template-rows:300px auto라
+     "auto" 행이 내용 높이만큼 그냥 늘어나 버려서 실제로는 내부 스크롤이 안 걸리고(scrollHeight ==
+     clientHeight) 페이지 전체(body)가 스크롤된다. 그래서 목록 안에 padding-bottom을 줘봐야 소용없고,
+     하단 탭바(.e-tabbar, position:fixed)가 화면 진짜 맨 아래에 항상 떠 있어서 페이지를 끝까지
+     내려도 마지막 가게 카드가 가려 보였다 — body 쪽에 탭바 높이만큼 여백을 준다(탭바가 보이는
+     768px 미만에서만). */
+  @media (max-width: 767px) {
+    body { padding-bottom: 61px; }
+  }
