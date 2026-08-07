@@ -500,33 +500,16 @@
     event: '이벤트', ad: '광고', business: '내 매장', admin: '운영 알림'
   };
 
-  /* 시안용 기본 데이터 — 실제 연동 시 setItems() 로 교체 */
+  /* 실제 연동은 assets/js/api.js의 initNavAuthUI()가 로드 시 setItems()로 채우고
+     setHooks()로 읽음/삭제 API 콜백을 등록한다(이 파일은 fetch를 하지 않는다는 원칙 유지). */
   var notiState = {
-    items: [
-      { id: 'n1', type: 'review', title: '리뷰에 도움됐어요가 달렸어요',
-        body: '"라 스텔라 파스타" 리뷰가 3명에게 도움이 되었습니다.',
-        link: 'mypage-reviews', at: Date.now() - 1000 * 60 * 8, read: false },
-      { id: 'n2', type: 'chat', title: '잇티챗 새 메시지 3건',
-        body: '강남 맛집 같이 갈 사람 · 민초파: 그럼 7시에 3번 출구에서 만나요!',
-        link: 'chat', at: Date.now() - 1000 * 60 * 26, read: false },
-      { id: 'n3', type: 'recommend', title: '취향에 맞는 새 맛집이 등록됐어요',
-        body: '매콤탐험가 유형이 좋아할 "홍대 마라공방"이 추가되었습니다.',
-        link: 'recommend', at: Date.now() - 1000 * 60 * 90, read: false },
-      { id: 'n4', type: 'notice', title: '[공지] 7월 30일 서버 점검 안내',
-        body: '02:00~04:00 사이 일부 기능 이용이 제한될 수 있습니다.',
-        link: 'support', at: Date.now() - 1000 * 60 * 60 * 20, read: true },
-      { id: 'n5', type: 'event', title: '영수증 리뷰 이벤트가 시작됐어요',
-        body: '이번 주 리뷰 3건 작성 시 추첨을 통해 커피 쿠폰을 드립니다.',
-        link: 'receipt-upload', at: Date.now() - 1000 * 60 * 60 * 30, read: true, marketing: true },
-      { id: 'n6', type: 'admin', title: '리뷰 신고 처리 결과 안내',
-        body: '신고하신 리뷰(#8842)가 비공개 처리되었습니다.',
-        link: 'support', at: Date.now() - 1000 * 60 * 60 * 52, read: true }
-    ],
+    items: [],
     filter: 'all',
     marketingOptIn: true,
     panel: null,
     backdrop: null,
-    btn: null
+    btn: null,
+    hooks: {}
   };
 
   function notiTimeAgo(ts) {
@@ -606,7 +589,7 @@
 
     /* 제목/본문은 textContent 로 안전하게 주입 */
     $$('.e-noti-item', listEl).forEach(function (el) {
-      var n = notiState.items.filter(function (x) { return x.id === el.getAttribute('data-noti-id'); })[0];
+      var n = notiState.items.filter(function (x) { return String(x.id) === el.getAttribute('data-noti-id'); })[0];
       if (!n) return;
       el.querySelector('.js-noti-title').textContent = n.title;
       el.querySelector('.js-noti-text').textContent = n.body || '';
@@ -640,10 +623,7 @@
     panel.innerHTML = '' +
       '<div class="e-noti-head">' +
         '<p class="e-noti-title">알림</p>' +
-        '<button type="button" class="e-msg-foot-btn ml-auto" data-noti-read-all>' +
-          notiSvg('<path d="M20 6 9 17l-5-5"/>') + '모두 읽음' +
-        '</button>' +
-        '<button type="button" class="e-modal-close !w-8 !h-8" data-noti-close aria-label="알림 닫기">' +
+        '<button type="button" class="e-modal-close !w-8 !h-8 ml-auto" data-noti-close aria-label="알림 닫기">' +
           notiSvg('<path d="M18 6 6 18M6 6l12 12"/>') +
         '</button>' +
       '</div>' +
@@ -651,6 +631,9 @@
         '<button type="button" class="e-noti-tab" data-noti-filter="all" role="tab" aria-selected="true">전체</button>' +
         '<button type="button" class="e-noti-tab" data-noti-filter="unread" role="tab" aria-selected="false">' +
           '안 읽음 <span class="js-unread-count">0</span></button>' +
+        '<button type="button" class="e-msg-foot-btn ml-auto" data-noti-read-all>' +
+          notiSvg('<path d="M20 6 9 17l-5-5"/>') + '모두 읽음' +
+        '</button>' +
       '</div>' +
       '<div class="e-noti-list e-scroll"></div>' +
       '<div class="e-noti-foot">' +
@@ -665,22 +648,35 @@
     notiState.panel = panel;
     notiState.backdrop = backdrop;
     document.body.appendChild(backdrop);
+    // body에 바로 붙인다(2026-08-07 수정) — 예전엔 벨 버튼을 감싼 .e-dropdown 안에 넣고 거기 기준
+    // position:absolute로 앵커링했는데, .e-header가 backdrop-filter를 쓰고 있어서(블러 효과)
+    // 그 자식인 이 패널의 position:fixed 기준(containing block)이 진짜 뷰포트가 아니라 header
+    // 박스로 바뀌어 버렸다 — 모바일에서 패널이 화면 위쪽 훨씬 밖으로(-303px 등) 밀려나고, 그 뒤에
+    // 깔린 어두운 backdrop만 화면 전체를 덮어서 "까맣게 가려지고 아무것도 안 되는" 것처럼 보였다
+    // (실측 확인). body 바로 아래 두면 이 문제가 사라지고, 데스크탑 위치는 positionNotiPanel()이
+    // 버튼 좌표를 기준으로 JS에서 직접 계산한다.
+    document.body.appendChild(panel);
+  }
 
-    /* 벨 버튼을 .e-dropdown 으로 감싸 패널을 앵커링 */
-    var wrap = notiState.btn.closest('.e-dropdown');
-    if (!wrap) {
-      wrap = document.createElement('div');
-      wrap.className = 'e-dropdown';
-      notiState.btn.parentNode.insertBefore(wrap, notiState.btn);
-      wrap.appendChild(notiState.btn);
+  // 데스크탑(>640px)에서만 벨 버튼 아래에 오도록 좌표를 계산한다 — 모바일은 CSS 미디어쿼리가
+  // position:fixed; inset:auto 0 0 0(하단 시트)으로 처리하므로 인라인 값을 비워 그대로 둔다.
+  function notiPositionPanel() {
+    var panel = notiState.panel;
+    if (window.innerWidth <= 640) {
+      panel.style.top = '';
+      panel.style.right = '';
+      return;
     }
-    wrap.appendChild(panel);
+    var r = notiState.btn.getBoundingClientRect();
+    panel.style.top = (r.bottom + 10) + 'px';
+    panel.style.right = (window.innerWidth - r.right) + 'px';
   }
 
   function notiOpen() {
     if (!notiState.panel) return;
     /* 다른 드롭다운은 닫기 */
     $$('.e-dropdown-menu.is-open').forEach(function (m) { m.classList.remove('is-open'); });
+    notiPositionPanel();
     notiState.panel.classList.add('is-open');
     notiState.backdrop.classList.add('is-open');
     notiState.btn.setAttribute('aria-expanded', 'true');
@@ -730,7 +726,7 @@
       }
 
       if (e.target.closest('[data-noti-read-all]')) {
-        /* ★ PATCH /api/notifications/read-all */
+        if (notiState.hooks.markAllRead) notiState.hooks.markAllRead();
         notiState.items.forEach(function (n) { n.read = true; });
         notiRenderBadge(); notiRenderTabs(); notiRenderList();
         Eatty.toast('모든 알림을 읽음으로 표시했습니다.');
@@ -739,9 +735,9 @@
 
       var del = e.target.closest('[data-noti-del]');
       if (del) {
-        /* ★ DELETE /api/notifications/{id} */
         var delId = del.getAttribute('data-noti-del');
-        notiState.items = notiState.items.filter(function (n) { return n.id !== delId; });
+        if (notiState.hooks.delete) notiState.hooks.delete(delId);
+        notiState.items = notiState.items.filter(function (n) { return String(n.id) !== delId; });
         notiRenderBadge(); notiRenderTabs(); notiRenderList();
         return;
       }
@@ -749,9 +745,9 @@
       var item = e.target.closest('[data-noti-id]');
       if (item) {
         var id = item.getAttribute('data-noti-id');
-        var target = notiState.items.filter(function (n) { return n.id === id; })[0];
+        var target = notiState.items.filter(function (n) { return String(n.id) === id; })[0];
         if (!target) return;
-        /* ★ PATCH /api/notifications/{id}/read */
+        if (!target.read && notiState.hooks.markRead) notiState.hooks.markRead(id);
         target.read = true;
         notiRenderBadge();
         if (target.link) location.href = target.link;
@@ -798,6 +794,9 @@
       notiRenderBadge(); notiRenderTabs(); notiRenderList();
     },
     unreadCount: notiUnread,
+    setHooks: function (hooks) {
+      notiState.hooks = hooks || {};
+    },
     setMarketingOptIn: function (on) {
       notiState.marketingOptIn = !!on;
       if (!on) {

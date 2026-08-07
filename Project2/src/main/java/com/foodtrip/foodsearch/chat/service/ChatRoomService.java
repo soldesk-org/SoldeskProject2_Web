@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.foodtrip.foodsearch.chat.dto.ChatActionResponseDto;
 import com.foodtrip.foodsearch.chat.dto.ChatMessageResponseDto;
+import com.foodtrip.foodsearch.chat.dto.ChatRoomMemberResponseDto;
 import com.foodtrip.foodsearch.chat.dto.ChatRoomResponseDto;
 
 public interface ChatRoomService {
@@ -15,6 +16,8 @@ public interface ChatRoomService {
     List<ChatRoomResponseDto> listMyRooms(String authorizationHeader);
 
     List<ChatMessageResponseDto> getMessages(String authorizationHeader, Long chatRoomId);
+
+    List<ChatRoomMemberResponseDto> listMembers(String authorizationHeader, Long chatRoomId);
 
     ChatActionResponseDto leaveRoom(String authorizationHeader, Long chatRoomId);
 

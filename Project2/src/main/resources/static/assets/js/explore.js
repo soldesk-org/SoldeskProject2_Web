@@ -13,85 +13,131 @@
   };
   var DEFAULT_CENTER = { lat: 37.4979, lng: 127.0276 }; // 강남역
 
-  var map = null;
-  var markers = [];
-  var selectedCategoryId = null;
-  var priceMin = 0;
-  var priceMax = 50000;
-  var lastKeyword = "";
-  var currentRestaurant = null;
-
-  var detailPanel = document.getElementById("detail-panel");
-  var searchAreaBtn = document.getElementById("search-area-btn");
-  var categoryButtonsEl = document.getElementById("category-buttons");
-
-  function categoryBtnClass(active) {
-    return "h-[31px] rounded-[10px] px-4 text-[15px] font-medium transition-colors " +
-      (active ? "bg-[rgba(255,109,34,0.8)] text-white" : "bg-[#eaeaea] text-black hover:bg-[#e0e0e0]");
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function starsHtml(rating) {
+    var r = Number(rating) || 0, html = "";
+    for (var i = 1; i <= 5; i++) {
+      html += '<svg viewBox="0 0 24 24" fill="currentColor" class="' + (i <= Math.round(r) ? "is-on" : "") + '">' +
+        '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>';
+    }
+    return html;
   }
 
-  function renderCategoryButtons(categories) {
-    categoryButtonsEl.innerHTML = "";
-    var all = document.createElement("button");
-    all.textContent = "전체";
-    all.className = categoryBtnClass(selectedCategoryId === null);
-    all.addEventListener("click", function () { selectedCategoryId = null; renderCategoryButtons(categories); searchArea(); });
-    categoryButtonsEl.appendChild(all);
+  var map = null;
+  var markers = [];
+  var resultsCache = [];
+  var selectedCategoryId = null;
+  var priceMin = 0, priceMax = 50000;
+  var openNowOnly = false;
+  var currentSearchType = "all";
+  var lastKeyword = "";
+  var currentDetail = null;
+  var directionsLine = null;
+  var detailImages = [];
+  var detailImageIndex = 0;
+  var detailImageBox = document.getElementById("detailImageBox");
+  var DETAIL_IMG_PLACEHOLDER =
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>';
 
-    categories.filter(function (c) { return c.categoryName !== "그 외"; }).forEach(function (c) {
-      var btn = document.createElement("button");
-      btn.textContent = c.categoryName;
-      btn.className = categoryBtnClass(selectedCategoryId === c.categoryId);
-      btn.addEventListener("click", function () { selectedCategoryId = c.categoryId; renderCategoryButtons(categories); searchArea(); });
-      categoryButtonsEl.appendChild(btn);
+  // 매장 사진 갤러리(2026-08-06 추가) — 대표 이미지가 항상 0번(백엔드가 그렇게 정렬해서 준다). 상세를
+  // 새로 열거나 새로고침할 때마다 detailImageIndex를 0으로 되돌려 항상 대표 이미지부터 보여준다.
+  function renderDetailImage() {
+    if (!detailImageBox) return;
+    if (!detailImages.length) {
+      detailImageBox.innerHTML = DETAIL_IMG_PLACEHOLDER;
+      return;
+    }
+    var showArrows = detailImages.length > 1;
+    detailImageBox.innerHTML =
+      '<img src="' + escapeHtml(detailImages[detailImageIndex]) + '" class="size-full object-cover" alt="">' +
+      (showArrows ?
+        '<button type="button" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 grid place-items-center shadow-[var(--sh-sm)] hover:bg-white" data-detail-img-prev aria-label="이전 사진">' +
+          '<svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>' +
+        '</button>' +
+        '<button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 grid place-items-center shadow-[var(--sh-sm)] hover:bg-white" data-detail-img-next aria-label="다음 사진">' +
+          '<svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>' +
+        '</button>' +
+        '<div class="absolute left-1/2 -translate-x-1/2 bottom-3 flex items-center gap-1.5">' +
+          detailImages.map(function (_, i) {
+            return '<span class="w-1.5 h-1.5 rounded-full ' + (i === detailImageIndex ? "bg-white" : "bg-white/50") + '"></span>';
+          }).join("") +
+        '</div>'
+        : "");
+  }
+
+  if (detailImageBox) {
+    detailImageBox.addEventListener("click", function (e) {
+      if (e.target.closest("[data-detail-img-prev]")) {
+        detailImageIndex = (detailImageIndex - 1 + detailImages.length) % detailImages.length;
+        renderDetailImage();
+      } else if (e.target.closest("[data-detail-img-next]")) {
+        detailImageIndex = (detailImageIndex + 1) % detailImages.length;
+        renderDetailImage();
+      }
     });
   }
 
+  var searchForm = document.getElementById("exploreSearchForm");
+  var searchInput = document.getElementById("exploreSearchInput");
+  var resultList = document.getElementById("resultList");
+  var resultCount = document.getElementById("resultCount");
+  var resultEmpty = document.getElementById("resultEmpty");
+  var resultLoading = document.getElementById("resultLoading");
+  var researchAreaBtn = document.getElementById("researchAreaBtn");
+  var detailPanel = document.getElementById("shopDetailPanel");
+
   function getBounds() {
     var b = map.getBounds();
-    var sw = b.getSW();
-    var ne = b.getNE();
-    return {
-      minLat: sw.lat(), maxLat: ne.lat(),
-      minLng: sw.lng(), maxLng: ne.lng(),
-    };
+    var sw = b.getSW(), ne = b.getNE();
+    return { minLat: sw.lat(), maxLat: ne.lat(), minLng: sw.lng(), maxLng: ne.lng() };
   }
 
-  var DEFAULT_MARKER_ICON = {
-    content:
-      '<div style="width:27px;height:35px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.35));">' +
-      '<svg width="27" height="35" viewBox="0 0 27 35" xmlns="http://www.w3.org/2000/svg">' +
-      '<path d="M13.5 0C6.04 0 0 6.04 0 13.5 0 22.5 13.5 35 13.5 35S27 22.5 27 13.5C27 6.04 20.96 0 13.5 0Z" fill="#fd6d4a"/>' +
-      '<circle cx="13.5" cy="13.5" r="5.5" fill="#ffffff"/>' +
-      "</svg></div>",
-    size: new naver.maps.Size(27, 35),
-    anchor: new naver.maps.Point(13.5, 35),
-  };
+  // 지도 중심에서 화면 가장자리까지의 대략적인 거리(하버사인 공식)를 "반경"으로 표시
+  var searchRadiusBadge = document.getElementById("searchRadiusBadge");
+  function haversineMeters(lat1, lng1, lat2, lng2) {
+    var R = 6371000;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLng = (lng2 - lng1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+  function updateRadiusBadge() {
+    if (!map || !searchRadiusBadge) return;
+    var bounds = getBounds();
+    var center = map.getCenter();
+    var meters = haversineMeters(center.y, center.x, bounds.maxLat, bounds.maxLng);
+    var label = meters < 1000 ? Math.round(meters / 50) * 50 + "m" : (meters / 1000).toFixed(1) + "km";
+    searchRadiusBadge.textContent = "현재 지도 반경 " + label;
+  }
 
   function markerIcon(categoryName) {
     var url = CATEGORY_MARKER[categoryName];
-    if (!url) return DEFAULT_MARKER_ICON;
-    return { url: url, size: new naver.maps.Size(27, 35), scaledSize: new naver.maps.Size(27, 35) };
+    return { url: url, size: new naver.maps.Size(27, 35), scaledSize: new naver.maps.Size(27, 35), anchor: new naver.maps.Point(13.5, 35) };
   }
-
   function clearMarkers() {
     markers.forEach(function (m) { m.setMap(null); });
     markers = [];
   }
-
-  function renderMarkers(list) {
+  function renderMarkers(list, alwaysShow) {
     clearMarkers();
     list.forEach(function (item) {
       if (item.latitude == null || item.longitude == null) return;
-      var icon = markerIcon(item.category);
-      var markerOptions = {
+      var classified = !!CATEGORY_MARKER[item.category];
+      // 카테고리 분류가 안 된 매장은 지도 전체 브라우징 중엔 기본 마커 대신 생략하지만(마커 바다 방지),
+      // alwaysShow(공유 링크로 들어와 그 가게 하나만 보여줄 때)는 미분류라도 네이버 기본 마커로 보여준다.
+      if (!classified && !alwaysShow) return;
+      var marker = new naver.maps.Marker({
         position: new naver.maps.LatLng(item.latitude, item.longitude),
-        map: map,
-        title: item.name,
-      };
-      if (icon) markerOptions.icon = icon;
-      var marker = new naver.maps.Marker(markerOptions);
-      naver.maps.Event.addListener(marker, "click", function () { selectRestaurant(item); });
+        map: map, title: item.name,
+      });
+      if (classified) marker.setIcon(markerIcon(item.category));
+      naver.maps.Event.addListener(marker, "click", function () { openDetail(item); });
       markers.push(marker);
     });
   }
@@ -101,301 +147,650 @@
       .filter(function (k) { return params[k] !== null && params[k] !== undefined && params[k] !== ""; })
       .map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]); })
       .join("&");
-    return Api.request(path + "?" + qs, { auth: true, method: "GET" });
+    return Api.request(path + (qs ? "?" + qs : ""), { method: "GET" });
+  }
+
+  function distanceKmText(item) {
+    return item.distanceKm != null ? (item.distanceKm < 1 ? Math.round(item.distanceKm * 1000) + "m" : item.distanceKm.toFixed(1) + "km") : "";
+  }
+
+  function renderResultCard(item) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "e-shop-card";
+    btn.setAttribute("data-shop-id", item.restaurantId);
+    var dist = distanceKmText(item);
+    btn.innerHTML =
+      '<span class="e-shop-thumb e-img-ph">' +
+        (item.imageUrl ? '<img src="' + escapeHtml(item.imageUrl) + '" class="size-full object-cover" alt="">' :
+          '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>') +
+      '</span>' +
+      '<span class="min-w-0 flex-1">' +
+        '<span class="flex items-center gap-2">' +
+          '<b class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">' + escapeHtml(item.name) + '</b>' +
+          (item.category ? '<span class="e-badge e-badge--gray flex-none">' + escapeHtml(item.category) + '</span>' : "") +
+        '</span>' +
+        '<span class="e-rating mt-1">' + starsHtml(item.averageRating) +
+          '<span class="e-rating-score">' + (item.averageRating != null ? Number(item.averageRating).toFixed(1) : "-") + '</span>' +
+          '<span class="t-xs ml-1">(' + (item.reviewCount || 0) + ')</span>' +
+        '</span>' +
+        '<span class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">' +
+          '<span class="t-xs">' + escapeHtml(dist ? dist + " · " : "") + escapeHtml(item.roadAddress || item.address || "") + '</span>' +
+        '</span>' +
+      '</span>';
+    btn.addEventListener("click", function () { openDetail(item); });
+    return btn;
+  }
+
+  function showLoading() {
+    resultList.querySelectorAll(".e-shop-card").forEach(function (el) { el.remove(); });
+    resultEmpty.hidden = true;
+    var lm = document.getElementById("loadMoreBtn");
+    if (lm) lm.hidden = true;
+    resultLoading.hidden = false;
+  }
+
+  function renderResults(list, alwaysShowMarkers) {
+    resultsCache = list;
+    resultLoading.hidden = true;
+    resultList.querySelectorAll(".e-shop-card").forEach(function (el) { el.remove(); });
+    if (resultCount) resultCount.textContent = list.length;
+    if (!list.length) {
+      resultEmpty.hidden = false;
+    } else {
+      resultEmpty.hidden = true;
+      var loadMoreBtn = document.getElementById("loadMoreBtn");
+      list.forEach(function (item) {
+        var card = renderResultCard(item);
+        if (loadMoreBtn) resultList.insertBefore(card, loadMoreBtn);
+        else resultList.appendChild(card);
+      });
+      var lm = document.getElementById("loadMoreBtn");
+      if (lm) lm.hidden = true; // 서버가 페이지네이션 커서를 안 쓰는 방식이라 "더 보기"는 단순화해서 숨김
+    }
+    renderMarkers(list, alwaysShowMarkers);
   }
 
   function searchArea() {
     if (!map) return;
+    closeDetail();
     var bounds = getBounds();
-    searchAreaBtn.style.display = "none";
+    updateRadiusBadge();
+    if (researchAreaBtn) researchAreaBtn.parentElement.style.display = "none";
+    showLoading();
     fetchList("/api/restaurants/filter", {
       minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng,
-      categoryId: selectedCategoryId, minPrice: priceMin > 0 ? priceMin : null, maxPrice: priceMax >= 50000 ? null : priceMax,
+      categoryId: selectedCategoryId,
+      minPrice: priceMin > 0 ? priceMin : null,
+      maxPrice: priceMax >= 50000 ? null : priceMax,
+      openNow: openNowOnly ? true : null,
       page: 0, size: 50,
-    })
-      .then(function (data) { renderMarkers(data.restaurants || []); })
-      .catch(function () {});
+    }).then(function (data) { renderResults(data.restaurants || []); }).catch(function () { renderResults([]); });
   }
 
   function searchKeyword(keyword) {
     lastKeyword = keyword;
+    closeDetail();
     var bounds = map ? getBounds() : {};
+    showLoading();
     fetchList("/api/restaurants/search", {
       keyword: keyword,
       minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng,
+      openNow: openNowOnly ? true : null,
+      type: currentSearchType,
       page: 0, size: 50,
-    })
-      .then(function (data) {
-        renderMarkers(data.restaurants || []);
-        if (data.restaurants && data.restaurants[0] && data.restaurants[0].latitude != null) {
-          map.setCenter(new naver.maps.LatLng(data.restaurants[0].latitude, data.restaurants[0].longitude));
-        }
-      })
-      .catch(function () {});
+    }).then(function (data) {
+      renderResults(data.restaurants || []);
+      var first = (data.restaurants || [])[0];
+      if (first && first.latitude != null) map.setCenter(new naver.maps.LatLng(first.latitude, first.longitude));
+      updateRadiusBadge();
+    }).catch(function () { renderResults([]); });
   }
 
-  function starText(rating) {
-    return "★ " + (rating != null ? Number(rating).toFixed(1) : "-");
+  // ---- 검색/필터 UI ----
+  if (searchForm) {
+    searchForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var kw = searchInput.value.trim();
+      if (kw) searchKeyword(kw); else searchArea();
+    });
   }
-
-  function renderReviews(reviews) {
-    if (!reviews || reviews.length === 0) return '<p class="text-[14px] font-medium text-[rgba(0,0,0,0.4)]">아직 등록된 리뷰가 없습니다.</p>';
-    return reviews.slice(0, 5).map(function (r) {
-      var keywords = (r.keywords || []).map(function (k) { return k.keyword; }).join(", ");
-      return '<div class="rounded-[8px] bg-[#f7f7f7] p-3">' +
-        '<div class="flex items-center justify-between">' +
-        '<span class="text-[14px] font-semibold text-[#25374b]">' + escapeHtml(r.nickname) + '</span>' +
-        '<span class="text-[13px] font-semibold text-[#fd6d4a]">' + starText(r.rating) + '</span>' +
-        '</div>' +
-        (keywords ? '<p class="mt-1 text-[13px] text-[rgba(0,0,0,0.5)]">' + escapeHtml(keywords) + '</p>' : "") +
-        (r.content ? '<p class="mt-1 text-[14px] text-[rgba(0,0,0,0.7)]">' + escapeHtml(r.content) + '</p>' : "") +
-        '</div>';
-    }).join("");
-  }
-
-  function renderMenus(menus) {
-    if (!menus || menus.length === 0) return '<p class="text-[14px] font-medium text-[rgba(0,0,0,0.4)]">등록된 메뉴 정보가 없습니다.</p>';
-    return menus.map(function (m) {
-      return '<div class="flex items-center justify-between">' +
-        '<span class="text-[15px] font-medium text-[rgba(0,0,0,0.6)]">' + escapeHtml(m.name || m.menuName || "") + '</span>' +
-        '<span class="text-[15px] font-semibold text-[rgba(0,0,0,0.6)]">' + (m.price != null ? Number(m.price).toLocaleString() + "원" : "") + '</span>' +
-        '</div>';
-    }).join("");
-  }
-
-  function escapeHtml(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  // 검색 대상 세그먼트(전체/가게명/메뉴명) — 탭 자체의 선택 표시(is-active/aria-selected)는
+  // eatty-ui.js의 공용 [data-tabs] 핸들러가 처리하고, 여기서는 실제 검색 조건만 갱신한다.
+  var searchTypeGroup = document.getElementById("searchTypeGroup");
+  if (searchTypeGroup) {
+    searchTypeGroup.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-search-type]");
+      if (!btn) return;
+      currentSearchType = btn.getAttribute("data-search-type");
+      if (searchInput && searchInput.value.trim()) searchKeyword(searchInput.value.trim());
     });
   }
 
-  function selectRestaurant(item) {
-    currentRestaurant = item;
-    detailPanel.classList.remove("-translate-x-full");
-    detailPanel.innerHTML =
-      '<div class="relative mb-4 h-[180px] w-full overflow-hidden rounded-[10px]">' +
-      (item.imageUrl ? '<img src="' + item.imageUrl + '" alt="' + escapeHtml(item.name) + '" class="size-full object-cover" />' : Api.photoPlaceholder) +
-      '<button id="detail-close-btn" aria-label="닫기" class="absolute right-2 top-2 flex size-[28px] items-center justify-center rounded-full bg-white/90 text-[15px] text-[#25374b] shadow hover:bg-white">✕</button>' +
-      "</div>" +
-      '<div class="flex items-start justify-between gap-2">' +
-      '<h2 class="text-[22px] font-semibold tracking-[-1px] text-[#25374b]">' + escapeHtml(item.name) + "</h2>" +
-      '<button id="fav-btn" type="button" aria-label="즐겨찾기" class="shrink-0 text-[22px] leading-none text-[#fd6d4a]">' + (item.favorite ? "♥" : "♡") + "</button>" +
-      "</div>" +
-      '<p class="mt-1 text-[15px] font-medium text-[rgba(0,0,0,0.5)]">' + escapeHtml(item.category || "") + " · " + escapeHtml(item.roadAddress || item.address || "") + "</p>" +
-      '<p class="mt-1 text-[14px] font-medium text-[rgba(0,0,0,0.5)]">' + starText(item.averageRating) + " (" + (item.reviewCount || 0) + "개 리뷰)</p>" +
-      '<button id="directions-btn" class="mt-3 h-[40px] w-full rounded-[10px] bg-gradient-to-r from-[#fd6d4a] to-[#fea255] text-[15px] font-semibold text-white transition-opacity hover:opacity-90">길찾기</button>' +
-      '<div id="directions-result" style="display:none" class="mt-2 flex items-stretch overflow-hidden rounded-[10px] border border-[rgba(253,109,74,0.25)] bg-[rgba(254,162,85,0.08)]"></div>' +
-      '<div class="my-5 h-px w-full bg-[rgba(217,217,217,0.5)]"></div>' +
-      '<h3 class="text-[16px] font-semibold text-black">메뉴</h3>' +
-      '<div id="detail-menus" class="mt-3 flex flex-col gap-3"><p class="text-[14px] text-[rgba(0,0,0,0.4)]">불러오는 중...</p></div>' +
-      '<div class="my-5 h-px w-full bg-[rgba(217,217,217,0.5)]"></div>' +
-      '<div class="flex items-center justify-between">' +
-      '<h3 class="text-[16px] font-semibold text-black">리뷰</h3>' +
-      '<button id="write-review-btn" type="button" class="rounded-full bg-[rgba(253,109,74,0.1)] px-3 py-1.5 text-[13px] font-semibold text-[#fd6d4a] transition-colors hover:bg-[rgba(253,109,74,0.18)]">리뷰 작성</button>' +
-      "</div>" +
-      '<div id="detail-reviews" class="mt-3 flex flex-col gap-2"><p class="text-[14px] text-[rgba(0,0,0,0.4)]">불러오는 중...</p></div>' +
-      '<div class="my-5 h-px w-full bg-[rgba(217,217,217,0.5)]"></div>' +
-      '<h3 class="text-[16px] font-semibold text-black">주변 주차장</h3>' +
-      '<div id="detail-parking" class="mt-3 flex flex-col gap-3"><p class="text-[14px] text-[rgba(0,0,0,0.4)]">불러오는 중...</p></div>';
+  var searchClearBtn = document.getElementById("searchClearBtn");
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener("click", function () { searchInput.value = ""; searchArea(); });
+  }
 
-    document.getElementById("fav-btn").addEventListener("click", function () { toggleFavorite(item); });
-    document.getElementById("directions-btn").addEventListener("click", function () { showDirections(item); });
-    document.getElementById("detail-close-btn").addEventListener("click", closeDetailPanel);
-    document.getElementById("write-review-btn").addEventListener("click", function () { goToWriteReview(item); });
+  // 카테고리 칩 — 시안의 하드코딩된 영문 코드가 실제 categoryId/categoryCode와 맞지 않아서,
+  // /api/restaurants/categories 응답으로 칩 자체를 새로 그린다.
+  var categoryFilterList = document.getElementById("categoryFilterList");
+  if (categoryFilterList) {
+    var allBtn = categoryFilterList.querySelector('[data-category="all"]');
+    Api.request("/api/restaurants/categories").then(function (categories) {
+      (categories || []).filter(function (c) { return c.categoryName !== "그 외"; }).forEach(function (c) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "e-chip";
+        btn.setAttribute("data-category-id", c.categoryId);
+        btn.setAttribute("data-toggle-press", "");
+        btn.setAttribute("data-toggle-group", "category");
+        btn.setAttribute("aria-pressed", "false");
+        btn.textContent = c.categoryName;
+        categoryFilterList.appendChild(btn);
+      });
+    }).catch(function () {});
 
-    var params = { name: item.name, address: item.address, roadAddress: item.roadAddress, latitude: item.latitude, longitude: item.longitude };
-    fetchList("/api/restaurants/" + encodeURIComponent(item.restaurantId), params)
+    categoryFilterList.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-category-id], [data-category='all']");
+      if (!btn) return;
+      selectedCategoryId = btn.hasAttribute("data-category-id") ? btn.getAttribute("data-category-id") : null;
+      searchArea();
+    });
+  }
+  var emptyFilterResetBtn = document.getElementById("emptyFilterResetBtn");
+  if (emptyFilterResetBtn) emptyFilterResetBtn.addEventListener("click", function () { filterResetBtnEl().click(); });
+  function filterResetBtnEl() { return document.getElementById("filterResetBtn"); }
+
+  var priceFilterList = document.getElementById("priceFilterList");
+  var filterMinPrice = document.getElementById("filterMinPrice");
+  var filterMaxPrice = document.getElementById("filterMaxPrice");
+  if (priceFilterList) {
+    priceFilterList.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-price]");
+      if (!btn) return;
+      priceMin = Number(btn.getAttribute("data-price-min") || 0);
+      priceMax = Number(btn.getAttribute("data-price-max") || 50000);
+      if (filterMinPrice) filterMinPrice.value = priceMin;
+      if (filterMaxPrice) filterMaxPrice.value = priceMax;
+      searchArea();
+    });
+  }
+
+  var filterResetBtn = document.getElementById("filterResetBtn");
+  if (filterResetBtn) {
+    filterResetBtn.addEventListener("click", function () {
+      selectedCategoryId = null; priceMin = 0; priceMax = 50000; openNowOnly = false;
+      searchInput.value = "";
+      if (categoryFilterList) {
+        categoryFilterList.querySelectorAll("[data-category-id], [data-category='all']").forEach(function (b) {
+          b.setAttribute("aria-pressed", b.getAttribute("data-category") === "all" ? "true" : "false");
+        });
+      }
+      document.querySelectorAll('[data-price]').forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-price") === "all" ? "true" : "false"); });
+      if (openNowSwitch) openNowSwitch.checked = false;
+      searchArea();
+    });
+  }
+
+  // "영업중만" 토글(2026-08-03) — 사업자가 영업시간을 등록한 가게만 대상으로 서버(openNow 파라미터)가
+  // 실제로 필터링한다. 영업시간 미등록 가게는 열려있는지 알 방법이 없어 결과에서 함께 빠진다.
+  var openNowSwitch = document.getElementById("openNowSwitch");
+  if (openNowSwitch) {
+    openNowSwitch.addEventListener("change", function () {
+      openNowOnly = openNowSwitch.checked;
+      searchArea();
+    });
+  }
+  // 정렬도 서버가 지원하는 정렬 기준이 다르므로, 받아온 결과를 클라이언트에서 재정렬한다.
+  var sortSelect = document.getElementById("sortSelect");
+  if (sortSelect) {
+    sortSelect.addEventListener("change", function () {
+      var v = sortSelect.value;
+      var sorted = resultsCache.slice();
+      if (v === "rating") sorted.sort(function (a, b) { return (b.averageRating || 0) - (a.averageRating || 0); });
+      else if (v === "reviewCount") sorted.sort(function (a, b) { return (b.reviewCount || 0) - (a.reviewCount || 0); });
+      else if (v === "distance") sorted.sort(function (a, b) { return (a.distanceKm || 999) - (b.distanceKm || 999); });
+      renderResults(sorted);
+    });
+  }
+
+  if (researchAreaBtn) researchAreaBtn.addEventListener("click", searchArea);
+  var mapZoomInBtn = document.getElementById("mapZoomInBtn");
+  var mapZoomOutBtn = document.getElementById("mapZoomOutBtn");
+  if (mapZoomInBtn) mapZoomInBtn.addEventListener("click", function () { map.setZoom(map.getZoom() + 1); });
+  if (mapZoomOutBtn) mapZoomOutBtn.addEventListener("click", function () { map.setZoom(map.getZoom() - 1); });
+  var myLocationBtn = document.getElementById("myLocationBtn");
+  if (myLocationBtn) {
+    myLocationBtn.addEventListener("click", function () {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        map.setCenter(new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude));
+      });
+    });
+  }
+
+  // ---- 상세 패널 ----
+  function renderMenus(menus) {
+    var el = document.getElementById("detailTabMenu");
+    if (!el) return;
+    if (!menus || !menus.length) { el.innerHTML = '<p class="t-sm py-4 text-center">등록된 메뉴 정보가 없습니다.</p>'; return; }
+    el.innerHTML = '<div class="space-y-2.5">' + menus.map(function (m) {
+      return '<div class="flex items-center justify-between"><span class="text-sm font-semibold text-[var(--ink-800)]">' + escapeHtml(m.name) + '</span>' +
+        '<span class="text-sm font-bold text-[var(--ink-800)]">' + (m.price != null ? Number(m.price).toLocaleString() + "원" : "") + '</span></div>';
+    }).join("") + '</div>';
+  }
+
+  function renderReviewsTab(reviews) {
+    var el = document.getElementById("detailReviewList");
+    if (!el) return;
+    if (!reviews || !reviews.length) {
+      el.innerHTML = '<li class="t-sm py-4 text-center">아직 등록된 리뷰가 없습니다.</li>';
+    } else {
+      el.innerHTML = reviews.slice(0, 20).map(function (r) {
+        var keywords = (r.keywords || []).map(function (k) {
+          return '<span class="e-tag ' + (k.sentiment === "NEGATIVE" ? "e-tag--neg" : "e-tag--pos") + '">' + escapeHtml(k.keyword) + '</span>';
+        }).join("");
+        return '<li class="pb-4 border-b border-[var(--line-soft)]">' +
+          '<div class="flex items-center justify-between gap-2">' +
+          '<span class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(r.nickname) + '</span>' +
+          '<span class="e-rating">' + starsHtml(r.rating) + '<span class="e-rating-score">' + Number(r.rating).toFixed(1) + '</span></span>' +
+          '</div>' +
+          (keywords ? '<div class="flex flex-wrap gap-1 mt-2">' + keywords + '</div>' : "") +
+          '<p class="t-sm mt-2.5 leading-relaxed">' + escapeHtml(r.content) + '</p>' +
+          '<button type="button" class="btn btn-ghost btn-xs mt-2 inline-flex items-center gap-1" data-report-review="' + r.reviewId + '">' +
+            '<svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>' +
+            '신고' +
+          '</button>' +
+          '</li>';
+      }).join("");
+    }
+
+    el.querySelectorAll("[data-report-review]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
+        reportTargetReviewId = btn.getAttribute("data-report-review");
+        Eatty.openModal("reportModal");
+      });
+    });
+
+    renderTagDistribution(reviews);
+  }
+
+  function renderTagDistribution(reviews) {
+    var wrap = document.getElementById("detailTagDistWrap");
+    var el = document.getElementById("detailTagDist");
+    if (!wrap || !el) return;
+    var counts = {};
+    var total = 0;
+    (reviews || []).forEach(function (r) {
+      (r.keywords || []).forEach(function (k) {
+        counts[k.keyword] = (counts[k.keyword] || 0) + 1;
+        total++;
+      });
+    });
+    var entries = Object.keys(counts).map(function (k) { return { keyword: k, count: counts[k] }; })
+      .sort(function (a, b) { return b.count - a.count; }).slice(0, 5);
+    if (!entries.length) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    var max = entries[0].count;
+    el.innerHTML = entries.map(function (e) {
+      var pct = Math.round((e.count / max) * 100);
+      return '<div><div class="flex items-center justify-between mb-1">' +
+        '<span class="t-xs font-bold text-[var(--ink-700)]">' + escapeHtml(e.keyword) + '</span>' +
+        '<span class="t-xs t-num">' + e.count + '</span></div>' +
+        '<div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:' + pct + '%"></div></div></div>';
+    }).join("");
+  }
+
+  var reportTargetReviewId = null;
+  var reportSubmitBtn = document.getElementById("reportSubmitBtn");
+  if (reportSubmitBtn) {
+    reportSubmitBtn.addEventListener("click", function () {
+      var reason = document.getElementById("reportReasonSelect").value;
+      var detail = document.getElementById("reportDetail").value.trim();
+      if (!reason) { Eatty.toast("신고 사유를 선택해주세요.", "error"); return; }
+      Api.request("/api/reviews/" + reportTargetReviewId + "/report", { method: "POST", body: { reasonCode: reason, detail: detail } })
+        .then(function () { Eatty.closeModal("reportModal"); Eatty.toast("신고가 접수되었습니다.", "success"); })
+        .catch(function (err) { Eatty.toast(err.message || "신고에 실패했습니다.", "error"); });
+    });
+  }
+
+  function weekdayLabel(n) {
+    return ["일", "월", "화", "수", "목", "금", "토"][n] || "";
+  }
+  function renderHours(businessHours) {
+    if (!businessHours || !businessHours.length) return "영업시간 정보가 없습니다.";
+    return businessHours.filter(function (h) { return !h.isClosed; }).map(function (h) {
+      return weekdayLabel(h.dayOfWeek) + " " + (h.openTime || "") + "~" + (h.closeTime || "");
+    }).join(" · ");
+  }
+
+  function openDetail(item) {
+    currentDetail = item;
+    detailPanel.hidden = false;
+    detailPanel.classList.add("is-open");
+    detailPanel.setAttribute("aria-hidden", "false");
+    document.getElementById("directionsResult").hidden = true;
+    if (directionsLine) { directionsLine.setMap(null); directionsLine = null; }
+    var tagDistWrap = document.getElementById("detailTagDistWrap");
+    if (tagDistWrap) tagDistWrap.hidden = true;
+
+    document.getElementById("detailShopName").textContent = item.name;
+    var categoryEl = document.getElementById("detailCategory");
+    categoryEl.textContent = item.category || "";
+    categoryEl.hidden = !item.category;
+    document.getElementById("detailRating").innerHTML = starsHtml(item.averageRating) +
+      '<span class="e-rating-score">' + (item.averageRating != null ? Number(item.averageRating).toFixed(1) : "-") + '</span>';
+    document.getElementById("detailReviewCount").textContent = item.reviewCount || 0;
+    // 리뷰 작성이 영수증 인증 필수라서(2026-07-23 정책) 전체 리뷰 수 = 영수증 인증 리뷰 수다.
+    var receiptBadgeEl = document.getElementById("detailReceiptReviewCount");
+    if (receiptBadgeEl) receiptBadgeEl.textContent = item.reviewCount || 0;
+    var reviewTabCountEl = document.getElementById("detailReviewTabCount");
+    if (reviewTabCountEl) reviewTabCountEl.textContent = item.reviewCount || 0;
+    document.getElementById("detailAddress").textContent = item.roadAddress || item.address || "";
+
+    // 상세 갤러리 — 목록에서 이미 알고 있는 대표 이미지로 우선 보여주고(즉시 표시), 아래 상세 조회가
+    // 끝나면 전체 갤러리(여러 장)로 다시 채운다. 매번 0번(대표)부터 시작한다.
+    detailImages = item.imageUrl ? [item.imageUrl] : [];
+    detailImageIndex = 0;
+    renderDetailImage();
+
+    var favBtn = document.getElementById("favoriteBtn");
+    favBtn.setAttribute("aria-pressed", item.favorite ? "true" : "false");
+    favBtn.classList.toggle("is-active", !!item.favorite);
+    document.getElementById("favoriteLabel").textContent = item.favorite ? "저장됨" : "저장";
+
+    var callBtn = document.getElementById("callBtn");
+    var writeReviewBtn = document.getElementById("writeReviewBtn");
+    if (writeReviewBtn) {
+      // restaurantId만 URL에 남기고(딥링크/새로고침용 식별자일 뿐), 가게 이름/주소/좌표 같은 실제
+      // 표시 정보는 URL이 아니라 이 시점에 sessionStorage에 통째로 심어두는 스냅샷에서만 읽는다
+      // (2026-08-05 강화) — restaurantId는 그대로 두고 name 등 다른 파라미터만 주소창에서 바꿔서
+      // 엉뚱한 가게 이름으로 리뷰를 남기려는 시도를 막기 위함. receipt-upload.js는 URL의 name/address
+      // 등은 아예 신뢰하지 않는다.
+      writeReviewBtn.setAttribute("href", "receipt-upload?restaurantId=" + encodeURIComponent(item.restaurantId));
+      writeReviewBtn.onclick = function () {
+        sessionStorage.setItem("ru_entry_restaurant", JSON.stringify({
+          restaurantId: item.restaurantId,
+          name: item.name || "",
+          address: item.address || "",
+          roadAddress: item.roadAddress || "",
+          latitude: item.latitude != null ? item.latitude : null,
+          longitude: item.longitude != null ? item.longitude : null,
+        }));
+        sessionStorage.setItem("ru_entry_at", String(Date.now()));
+      };
+    }
+
+    var shareBtn = document.getElementById("shareBtn");
+    if (shareBtn) {
+      shareBtn.onclick = function () {
+        var shareParams = new URLSearchParams();
+        shareParams.set("shopId", item.restaurantId);
+        if (item.name) shareParams.set("name", item.name);
+        if (item.category) shareParams.set("category", item.category);
+        if (item.address) shareParams.set("address", item.address);
+        if (item.roadAddress) shareParams.set("roadAddress", item.roadAddress);
+        if (item.latitude != null) shareParams.set("latitude", item.latitude);
+        if (item.longitude != null) shareParams.set("longitude", item.longitude);
+        var shareUrl = window.location.origin + "/explore?" + shareParams.toString();
+        function fallbackCopy(text) {
+          var textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          var ok = false;
+          try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+          document.body.removeChild(textarea);
+          return ok;
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(shareUrl).then(function () {
+            Eatty.toast("링크를 복사했습니다.", "success");
+          }).catch(function () {
+            var copied = fallbackCopy(shareUrl);
+            Eatty.toast(copied ? "링크를 복사했습니다." : "링크 복사에 실패했습니다.", copied ? "success" : "error");
+          });
+        } else if (fallbackCopy(shareUrl)) {
+          Eatty.toast("링크를 복사했습니다.", "success");
+        } else {
+          Eatty.toast("링크 복사에 실패했습니다.", "error");
+        }
+      };
+    }
+
+    Api.request("/api/restaurants/" + encodeURIComponent(item.restaurantId) +
+      "?name=" + encodeURIComponent(item.name || "") +
+      "&address=" + encodeURIComponent(item.address || "") +
+      "&roadAddress=" + encodeURIComponent(item.roadAddress || "") +
+      (item.latitude != null ? "&latitude=" + item.latitude : "") +
+      (item.longitude != null ? "&longitude=" + item.longitude : ""))
       .then(function (detail) {
-        document.getElementById("detail-menus").innerHTML = renderMenus(detail.menus);
+        document.getElementById("detailPhone").textContent = detail.phone || "정보 없음";
+        document.getElementById("detailHours").textContent = renderHours(detail.businessHours);
+        if (callBtn) callBtn.setAttribute("href", detail.phone ? "tel:" + detail.phone : "tel:");
+        renderMenus(detail.menus);
+
+        detailImages = (detail.images && detail.images.length) ? detail.images : (detail.imageUrl ? [detail.imageUrl] : []);
+        detailImageIndex = 0;
+        renderDetailImage();
+
+        var tagsWrap = document.getElementById("detailTagsWrap");
+        var tagsEl = document.getElementById("detailTags");
+        if (tagsWrap && tagsEl) {
+          var tags = detail.tags || [];
+          if (tags.length) {
+            tagsEl.innerHTML = tags.map(function (t) { return '<span class="e-tag">' + escapeHtml(t) + '</span>'; }).join("");
+            tagsWrap.hidden = false;
+          } else {
+            tagsEl.innerHTML = "";
+            tagsWrap.hidden = true;
+          }
+        }
       })
       .catch(function () {});
 
     Api.request("/api/restaurants/" + encodeURIComponent(item.restaurantId) + "/reviews", { auth: false })
-      .then(function (reviews) { document.getElementById("detail-reviews").innerHTML = renderReviews(reviews); })
-      .catch(function () {});
+      .then(renderReviewsTab)
+      .catch(function () { renderReviewsTab([]); });
 
     if (item.latitude != null && item.longitude != null) {
-      Api.request("/api/parking-lots/nearby?latitude=" + item.latitude + "&longitude=" + item.longitude + "&radiusM=2000", { auth: false })
-        .then(function (lots) { document.getElementById("detail-parking").innerHTML = renderParkingLots(lots); })
-        .catch(function () {
-          document.getElementById("detail-parking").innerHTML = '<p class="text-[14px] text-[rgba(0,0,0,0.4)]">주차장 정보를 불러오지 못했습니다.</p>';
-        });
-    } else {
-      document.getElementById("detail-parking").innerHTML = '<p class="text-[14px] text-[rgba(0,0,0,0.4)]">주변 주차장 정보가 없습니다.</p>';
+      loadParking(item.latitude, item.longitude, 2000);
     }
   }
 
-  function cleanParkingName(name) {
-    return String(name == null ? "" : name).replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+  function closeDetail() {
+    detailPanel.classList.remove("is-open");
+    detailPanel.setAttribute("aria-hidden", "true");
+    detailPanel.hidden = true;
+    currentDetail = null;
+    if (directionsLine) { directionsLine.setMap(null); directionsLine = null; }
   }
 
-  function renderParkingLots(lots) {
-    if (!lots || lots.length === 0) return '<p class="text-[14px] font-medium text-[rgba(0,0,0,0.4)]">주변에 등록된 주차장이 없습니다.</p>';
-    return lots.slice(0, 5).map(function (p) {
-      var distText = p.distanceM < 1000 ? Math.round(p.distanceM) + "m" : (p.distanceM / 1000).toFixed(1) + "km";
-      return '<div class="flex items-center justify-between gap-3 rounded-[8px] bg-[#f7f7f7] p-3">' +
-        '<div class="min-w-0">' +
-        '<p class="truncate text-[14px] font-semibold text-[#25374b]">' + escapeHtml(cleanParkingName(p.name)) + '</p>' +
-        '<p class="mt-0.5 text-[12px] text-[rgba(0,0,0,0.5)]">' + escapeHtml(p.feeSummary || p.feeType || "") + (p.totalSpaces != null ? " · 총 " + p.totalSpaces + "면" : "") + '</p>' +
-        '</div>' +
-        '<span class="shrink-0 text-[13px] font-semibold text-[#fd6d4a]">' + distText + '</span>' +
-        '</div>';
-    }).join("");
-  }
+  document.getElementById("detailCloseBtn").addEventListener("click", closeDetail);
 
-  function goToWriteReview(item) {
+  document.getElementById("favoriteBtn").addEventListener("click", function () {
+    if (!currentDetail) return;
     if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
-    var params = new URLSearchParams();
-    params.set("restaurantId", item.restaurantId);
-    params.set("name", item.name || "");
-    if (item.address) params.set("address", item.address);
-    if (item.roadAddress) params.set("roadAddress", item.roadAddress);
-    if (item.latitude != null) params.set("latitude", item.latitude);
-    if (item.longitude != null) params.set("longitude", item.longitude);
-    window.location.href = "receipt-upload?" + params.toString();
-  }
-
-  function toggleFavorite(item) {
-    if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
-    var btn = document.getElementById("fav-btn");
+    var btn = this;
+    var item = currentDetail;
     var method = item.favorite ? "DELETE" : "POST";
     btn.disabled = true;
     Api.request("/api/restaurants/" + encodeURIComponent(item.restaurantId) + "/favorite", {
       method: method,
       body: { name: item.name, address: item.address, roadAddress: item.roadAddress, latitude: item.latitude, longitude: item.longitude },
-    })
-      .then(function (res) {
-        item.favorite = res.favorite;
-        btn.textContent = item.favorite ? "♥" : "♡";
-      })
-      .catch(function (err) { window.alert(err.message || "즐겨찾기 처리에 실패했습니다."); })
+    }).then(function (res) {
+      item.favorite = res.favorite;
+      btn.setAttribute("aria-pressed", item.favorite ? "true" : "false");
+      btn.classList.toggle("is-active", !!item.favorite);
+      document.getElementById("favoriteLabel").textContent = item.favorite ? "저장됨" : "저장";
+    }).catch(function (err) { Eatty.toast(err.message || "즐겨찾기 처리에 실패했습니다.", "error"); })
       .finally(function () { btn.disabled = false; });
-  }
+  });
 
-  var directionsLine = null;
-  function closeDetailPanel() {
-    detailPanel.classList.add("-translate-x-full");
-    currentRestaurant = null;
-    if (directionsLine) { directionsLine.setMap(null); directionsLine = null; }
-  }
+  // ---- 길찾기(자동차 경로만 실제 지원 — NCP Direction 5 한계) ----
+  document.getElementById("directionBtn").addEventListener("click", function () {
+    if (!currentDetail) return;
+    var resultEl = document.getElementById("directionsResult");
+    resultEl.hidden = false;
+    document.getElementById("directionsLoading").hidden = false;
+    document.getElementById("directionsBody").hidden = true;
+    document.getElementById("directionsError").hidden = true;
 
-  function directionsStat(label, value) {
-    return '<div class="flex flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2.5">' +
-      '<span class="text-[13px] font-semibold text-[#25374b]">' + escapeHtml(value) + '</span>' +
-      '<span class="text-[11px] font-medium text-[rgba(37,55,75,0.5)]">' + escapeHtml(label) + '</span>' +
-      '</div>';
-  }
-  function showDirectionsMessage(resultEl, msg) {
-    resultEl.style.display = "";
-    resultEl.innerHTML = '<p class="w-full px-3 py-2.5 text-[13px] font-medium text-[rgba(0,0,0,0.6)]">' + escapeHtml(msg) + '</p>';
-  }
-
-  function showDirections(item) {
-    var resultEl = document.getElementById("directions-result");
-    showDirectionsMessage(resultEl, "현재 위치 확인 중...");
-    if (!navigator.geolocation) { showDirectionsMessage(resultEl, "이 브라우저는 위치 정보를 지원하지 않습니다."); return; }
+    if (!navigator.geolocation) {
+      document.getElementById("directionsLoading").hidden = true;
+      document.getElementById("directionsError").hidden = false;
+      return;
+    }
     navigator.geolocation.getCurrentPosition(function (pos) {
-      var startLat = pos.coords.latitude, startLng = pos.coords.longitude;
-      Api.request("/api/directions?startLat=" + startLat + "&startLng=" + startLng + "&goalLat=" + item.latitude + "&goalLng=" + item.longitude, { auth: false })
+      Api.request("/api/directions?startLat=" + pos.coords.latitude + "&startLng=" + pos.coords.longitude +
+        "&goalLat=" + currentDetail.latitude + "&goalLng=" + currentDetail.longitude, { method: "GET" })
         .then(function (data) {
+          document.getElementById("directionsLoading").hidden = true;
+          document.getElementById("directionsBody").hidden = false;
           var km = (data.distanceM / 1000).toFixed(1);
           var min = Math.round(data.durationMs / 60000);
-          var stats = [directionsStat("거리", km + "km"), directionsStat("소요시간", min + "분")];
-          if (data.taxiFare) stats.push(directionsStat("택시요금", Number(data.taxiFare).toLocaleString() + "원"));
-          resultEl.style.display = "";
-          resultEl.innerHTML = stats.join('<div class="w-px shrink-0 bg-[rgba(253,109,74,0.2)]"></div>');
+          document.getElementById("routeDuration").textContent = min + "분";
+          document.getElementById("routeDistance").textContent = km + "km";
+          document.getElementById("routeFare").textContent = data.taxiFare ? Number(data.taxiFare).toLocaleString() + "원(택시)" : "-";
+          document.getElementById("routeSummary").textContent = "자동차 기준 경로입니다.";
+          var extraWrap = document.getElementById("routeExtraWrap");
+          if (extraWrap) extraWrap.hidden = true;
+
           if (directionsLine) directionsLine.setMap(null);
           var path = (data.path || []).map(function (p) { return new naver.maps.LatLng(p[1], p[0]); });
-          directionsLine = new naver.maps.Polyline({ map: map, path: path, strokeColor: "#fd6d4a", strokeWeight: 4 });
-          var bounds = new naver.maps.LatLngBounds();
-          path.forEach(function (p) { bounds.extend(p); });
-          map.fitBounds(bounds);
+          if (path.length) {
+            directionsLine = new naver.maps.Polyline({ map: map, path: path, strokeColor: "#fd6d4a", strokeWeight: 4 });
+            var bounds = new naver.maps.LatLngBounds();
+            path.forEach(function (p) { bounds.extend(p); });
+            map.fitBounds(bounds);
+          }
         })
-        .catch(function (err) { showDirectionsMessage(resultEl, err.message || "길찾기 정보를 가져오지 못했습니다."); });
-    }, function () { showDirectionsMessage(resultEl, "위치 정보를 가져올 수 없습니다."); });
-  }
-
-  function initPriceSlider() {
-    var PRICE_MIN = 0, PRICE_MAX = 50000, PRICE_STEP = 1000;
-    var min = PRICE_MIN, max = PRICE_MAX;
-    var track = document.getElementById("price-track");
-    var fill = document.getElementById("price-fill");
-    var minHandle = document.getElementById("price-min-handle");
-    var maxHandle = document.getElementById("price-max-handle");
-    var label = document.getElementById("price-label");
-
-    function pct(v) { return ((v - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100; }
-    function valueFromClientX(clientX) {
-      var rect = track.getBoundingClientRect();
-      var ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-      var raw = PRICE_MIN + ratio * (PRICE_MAX - PRICE_MIN);
-      return Math.round(raw / PRICE_STEP) * PRICE_STEP;
-    }
-    function render() {
-      fill.style.left = pct(min) + "%";
-      fill.style.right = 100 - pct(max) + "%";
-      minHandle.style.left = pct(min) + "%";
-      maxHandle.style.left = pct(max) + "%";
-      label.textContent = min.toLocaleString() + "원 ~ " + max.toLocaleString() + "원" + (max >= PRICE_MAX ? " 이상" : "");
-    }
-    function startDrag(handle) {
-      return function (e) {
-        var target = e.currentTarget;
-        target.setPointerCapture(e.pointerId);
-        function onMove(ev) {
-          var v = valueFromClientX(ev.clientX);
-          if (handle === "min") min = Math.min(v, max - PRICE_STEP);
-          else max = Math.max(v, min + PRICE_STEP);
-          render();
-        }
-        function onUp() {
-          target.releasePointerCapture(e.pointerId);
-          target.removeEventListener("pointermove", onMove);
-          target.removeEventListener("pointerup", onUp);
-          priceMin = min; priceMax = max;
-          searchArea();
-        }
-        target.addEventListener("pointermove", onMove);
-        target.addEventListener("pointerup", onUp);
-      };
-    }
-    minHandle.addEventListener("pointerdown", startDrag("min"));
-    maxHandle.addEventListener("pointerdown", startDrag("max"));
-    render();
-  }
-
-  function initMap(center) {
-    map = new naver.maps.Map("naver-map", { center: new naver.maps.LatLng(center.lat, center.lng), zoom: 15 });
-    naver.maps.Event.addListener(map, "dragend", function () { searchAreaBtn.style.display = ""; });
-    naver.maps.Event.addListener(map, "zoom_changed", function () { searchAreaBtn.style.display = ""; });
-    searchAreaBtn.addEventListener("click", searchArea);
-    searchArea();
-  }
-
-  document.addEventListener("DOMContentLoaded", function () {
-    initPriceSlider();
-
-    Api.request("/api/restaurants/categories", { auth: false })
-      .then(function (categories) { renderCategoryButtons(categories || []); })
-      .catch(function () { renderCategoryButtons([]); });
-
-    var searchInput = document.getElementById("search-input");
-    var searchBtn = document.getElementById("search-btn");
-    searchBtn.addEventListener("click", function () {
-      var kw = searchInput.value.trim();
-      if (kw) searchKeyword(kw);
+        .catch(function () {
+          document.getElementById("directionsLoading").hidden = true;
+          document.getElementById("directionsError").hidden = false;
+        });
+    }, function () {
+      document.getElementById("directionsLoading").hidden = true;
+      document.getElementById("directionsError").hidden = false;
     });
-    searchInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") searchBtn.click();
-    });
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        function (pos) { initMap({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
-        function () { initMap(DEFAULT_CENTER); }
-      );
-    } else {
-      initMap(DEFAULT_CENTER);
-    }
   });
+
+  // 대중교통/도보 경로는 실제로 지원하는 API가 없다(NCP Direction 5는 자동차 경로만 지원) — 자동차 결과만 보여준다.
+  var directionsCloseBtn = document.getElementById("directionsCloseBtn");
+  if (directionsCloseBtn) {
+    directionsCloseBtn.addEventListener("click", function () {
+      document.getElementById("directionsResult").hidden = true;
+      if (directionsLine) { directionsLine.setMap(null); directionsLine = null; }
+    });
+  }
+
+  // ---- 주변 주차장 ----
+  function cleanParkingName(name) {
+    return String(name == null ? "" : name).replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+  }
+  function loadParking(lat, lng, radiusM) {
+    var listEl = document.getElementById("detailParking");
+    if (!listEl) return;
+    Api.request("/api/parking-lots/nearby?latitude=" + lat + "&longitude=" + lng + "&radiusM=" + radiusM, { auth: false })
+      .then(function (lots) {
+        var countBadge = document.getElementById("parkingCountBadge");
+        if (countBadge) countBadge.textContent = (lots || []).length + "곳";
+        if (!lots || !lots.length) {
+          listEl.innerHTML = '<p class="t-sm py-4 text-center">주변에 등록된 주차장이 없습니다.</p>';
+          return;
+        }
+        listEl.innerHTML = lots.slice(0, 5).map(function (p) {
+          var distText = p.distanceM < 1000 ? Math.round(p.distanceM) + "m" : (p.distanceM / 1000).toFixed(1) + "km";
+          return '<div class="e-parking-item flex items-center justify-between gap-3 p-3 rounded-[var(--r)] bg-[var(--bg-soft)]">' +
+            '<div class="min-w-0"><p class="text-sm font-bold text-[var(--ink-900)] truncate">' + escapeHtml(cleanParkingName(p.name)) + '</p>' +
+            '<p class="t-xs mt-0.5">' + escapeHtml(p.feeSummary || p.feeType || "") + (p.totalSpaces != null ? " · 총 " + p.totalSpaces + "면" : "") + '</p></div>' +
+            '<span class="t-xs font-bold text-[var(--brand-600)] flex-none">' + distText + '</span></div>';
+        }).join("");
+      })
+      .catch(function () { listEl.innerHTML = '<p class="t-sm">주차장 정보를 불러오지 못했습니다.</p>'; });
+  }
+  var parkingRadiusSelect = document.getElementById("parkingRadiusSelect");
+  if (parkingRadiusSelect) {
+    parkingRadiusSelect.addEventListener("change", function () {
+      if (currentDetail && currentDetail.latitude != null) loadParking(currentDetail.latitude, currentDetail.longitude, Number(parkingRadiusSelect.value));
+    });
+  }
+
+  // ---- 지도 초기화 ----
+  function initMap(center) {
+    map = new naver.maps.Map("naverMap", { center: new naver.maps.LatLng(center.lat, center.lng), zoom: 15 });
+    naver.maps.Event.addListener(map, "dragend", function () { if (researchAreaBtn) researchAreaBtn.parentElement.style.display = ""; updateRadiusBadge(); });
+    naver.maps.Event.addListener(map, "zoom_changed", function () { if (researchAreaBtn) researchAreaBtn.parentElement.style.display = ""; updateRadiusBadge(); });
+
+    var qp = new URLSearchParams(window.location.search);
+    var sharedShopId = qp.get("shopId");
+    var initialKeyword = qp.get("q");
+    if (sharedShopId) {
+      openSharedRestaurant(sharedShopId, qp);
+    } else if (initialKeyword && initialKeyword.trim()) {
+      if (searchInput) searchInput.value = initialKeyword.trim();
+      searchKeyword(initialKeyword.trim());
+    } else {
+      searchArea();
+    }
+  }
+
+  // 공유 링크(?shopId=...)로 들어온 경우 — 카카오는 place id 단건 재조회가 안 되므로 링크에
+  // 함께 실어보낸 name/address/roadAddress/latitude/longitude 를 그대로 상세조회 API에 넘긴다.
+  // 이 경우 지도/리스트는 주변 전체가 아니라 공유받은 그 가게 하나만 보여준다(searchArea() 미호출).
+  function openSharedRestaurant(shopId, qp) {
+    var name = qp.get("name") || "";
+    var categoryQ = qp.get("category") || "";
+    var address = qp.get("address") || "";
+    var roadAddress = qp.get("roadAddress") || "";
+    var latQ = qp.get("latitude");
+    var lngQ = qp.get("longitude");
+    if (latQ && lngQ) map.setCenter(new naver.maps.LatLng(Number(latQ), Number(lngQ)));
+    if (researchAreaBtn) researchAreaBtn.parentElement.style.display = "none";
+    showLoading();
+    Api.request("/api/restaurants/" + encodeURIComponent(shopId) +
+      "?name=" + encodeURIComponent(name) +
+      "&address=" + encodeURIComponent(address) +
+      "&roadAddress=" + encodeURIComponent(roadAddress) +
+      (latQ ? "&latitude=" + latQ : "") +
+      (lngQ ? "&longitude=" + lngQ : ""))
+      .then(function (detail) {
+        var item = {
+          restaurantId: detail.restaurantId || shopId,
+          name: detail.name || name,
+          category: detail.category || categoryQ || null,
+          averageRating: detail.averageRating,
+          reviewCount: detail.reviewCount,
+          address: detail.address || address,
+          roadAddress: detail.roadAddress || roadAddress,
+          latitude: detail.latitude != null ? Number(detail.latitude) : (latQ ? Number(latQ) : null),
+          longitude: detail.longitude != null ? Number(detail.longitude) : (lngQ ? Number(lngQ) : null),
+          favorite: detail.favorite,
+          imageUrl: detail.imageUrl,
+        };
+        renderResults([item], true);
+        if (item.latitude != null && item.longitude != null) {
+          map.setCenter(new naver.maps.LatLng(item.latitude, item.longitude));
+        }
+        openDetail(item);
+      })
+      .catch(function () {
+        renderResults([]);
+        Eatty.toast("공유된 가게 정보를 불러오지 못했습니다.", "error");
+      });
+  }
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function (pos) { initMap({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
+      function () { initMap(DEFAULT_CENTER); }
+    );
+  } else {
+    initMap(DEFAULT_CENTER);
+  }
 })();

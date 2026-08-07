@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.foodtrip.foodsearch.chat.dto.ChatActionResponseDto;
 import com.foodtrip.foodsearch.chat.dto.ChatMessageResponseDto;
+import com.foodtrip.foodsearch.chat.dto.ChatRoomMemberResponseDto;
 import com.foodtrip.foodsearch.chat.dto.ChatRoomResponseDto;
 import com.foodtrip.foodsearch.chat.dto.CreateChatRoomRequestDto;
 import com.foodtrip.foodsearch.chat.dto.JoinChatRoomRequestDto;
@@ -53,6 +54,12 @@ public class ChatRoomController {
     public List<ChatMessageResponseDto> getMessages(@RequestHeader("Authorization") String authorizationHeader,
                                                       @PathVariable Long chatRoomId) {
         return chatRoomService.getMessages(authorizationHeader, chatRoomId);
+    }
+
+    @GetMapping("/{chatRoomId}/members")
+    public List<ChatRoomMemberResponseDto> listMembers(@RequestHeader("Authorization") String authorizationHeader,
+                                                         @PathVariable Long chatRoomId) {
+        return chatRoomService.listMembers(authorizationHeader, chatRoomId);
     }
 
     @PostMapping("/{chatRoomId}/leave")

@@ -3,11 +3,15 @@ package com.foodtrip.foodsearch.phone.service;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.foodtrip.foodsearch.common.exception.CustomException;
 import com.foodtrip.foodsearch.common.exception.ErrorCode;
+import com.foodtrip.foodsearch.common.security.PhoneCryptoService;
 import com.foodtrip.foodsearch.common.sms.PpurioSmsService;
 import com.foodtrip.foodsearch.mail.entity.EmailVerification;
 import com.foodtrip.foodsearch.mail.repository.EmailVerificationRepository;
@@ -23,31 +27,45 @@ import com.foodtrip.foodsearch.phone.repository.PhoneVerificationRepository;
 @Service
 public class PhoneAuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(PhoneAuthService.class);
+
     private static final int CODE_LENGTH = 6;
     private static final long EXPIRE_MINUTES = 5;
+
+    // 로컬 테스트 모드(2026-08-04 추가) — 켜져 있으면 실제 SMS 발송(비용 발생) 없이 코드가 항상
+    // 000000으로 고정된다. 기본값 false, opt-in(HTTPS_CONNECTOR_ENABLED와 같은 패턴) — 각자 로컬
+    // .env에서만 켜서 쓰고, 팀 공용 값에는 켜두지 않는다.
+    @Value("${sms.test-mode.enabled:false}")
+    private boolean testModeEnabled;
+
+    private static final String TEST_MODE_CODE = "000000";
 
     private final PhoneVerificationRepository phoneVerificationRepository;
     private final PpurioSmsService ppurioSmsService;
     private final MemberRepository memberRepository;
     private final EmailVerificationRepository emailVerificationRepository;
     private final PhoneSmsRateLimitService phoneSmsRateLimitService;
+    private final PhoneCryptoService phoneCryptoService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public PhoneAuthService(PhoneVerificationRepository phoneVerificationRepository,
                              PpurioSmsService ppurioSmsService,
                              MemberRepository memberRepository,
                              EmailVerificationRepository emailVerificationRepository,
-                             PhoneSmsRateLimitService phoneSmsRateLimitService) {
+                             PhoneSmsRateLimitService phoneSmsRateLimitService,
+                             PhoneCryptoService phoneCryptoService) {
         this.phoneVerificationRepository = phoneVerificationRepository;
         this.ppurioSmsService = ppurioSmsService;
         this.memberRepository = memberRepository;
         this.emailVerificationRepository = emailVerificationRepository;
         this.phoneSmsRateLimitService = phoneSmsRateLimitService;
+        this.phoneCryptoService = phoneCryptoService;
     }
 
     /**
      * 회원가입 흐름 전용 진입점(001-02 5-2-1장): email로 member를 찾고, 이메일 인증이
-     * 완료된 상태인지 확인한 뒤에만 SMS 인증번호를 발송한다.
+     * 완료된 상태인지 확인한 뒤에만 SMS 인증번호를 발송한다. 전화번호 중복 여부도 이메일과 같은 시점
+     * (발송 전)에 확인한다(2026-08-04 추가) — 최종 가입 제출 때까지 기다리지 않고 바로 알려준다.
      */
     @Transactional
     public void sendSignupVerificationCode(String email, String phone, String clientIp) {
@@ -60,6 +78,10 @@ public class PhoneAuthService {
                 .orElse(false);
         if (!emailVerified) {
             throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
+        }
+
+        if (memberRepository.existsByPhoneHash(phoneCryptoService.hash(phone))) {
+            throw new CustomException(ErrorCode.DUPLICATE_PHONE);
         }
 
         sendVerificationCode(member.getMemberId(), phone, PhoneVerification.PURPOSE_SIGNUP, clientIp);
@@ -78,6 +100,15 @@ public class PhoneAuthService {
 
     @Transactional
     public void sendVerificationCode(Long memberId, String phone, String purpose, String clientIp) {
+        if (testModeEnabled) {
+            LocalDateTime expiredAt = LocalDateTime.now().plusMinutes(EXPIRE_MINUTES);
+            phoneVerificationRepository.save(
+                    PhoneVerification.create(memberId, phone, TEST_MODE_CODE, purpose, expiredAt)
+            );
+            log.info("[SMS 테스트 모드] {} 로 실제 발송을 건너뛰고 인증번호를 {}(으)로 고정합니다.", phone, TEST_MODE_CODE);
+            return;
+        }
+
         // SMS 발송 비용이 실제로 청구되므로, DB에 저장하거나 실제로 발송하기 전에 먼저
         // IP 기준 일일 한도를 확인한다(21.전화번호-인증-속도제한, 2026-07-30 신규).
         phoneSmsRateLimitService.checkAndRecord(clientIp);
