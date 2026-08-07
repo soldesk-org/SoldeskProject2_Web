@@ -3,21 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>음식 취향 찾기 음식 취향 테스트 — 잇티웨이</title>
+<title>음BTI 음식 취향 테스트 — 잇티웨이</title>
 <meta name="description" content="12문항으로 내 음식 취향 유형을 진단하고 맞춤 메뉴를 추천받으세요.">
 
 <!--
 ================================================================================
- taste-quiz — 음식 취향 찾기 음식 취향 테스트 (12문항) + 결과
+ taste-quiz — 음BTI 음식 취향 테스트 (12문항) + 결과
 --------------------------------------------------------------------------------
  화면은 3개 상태로 전환됩니다. (섹션 hidden 토글)
    #quizIntroSection  → #quizPlaySection → #quizResultSection
 
  [인트로]
    #quizIntroSection      섹션 루트
-   #quizStartBtn          테스트 시작 → GET /api/food-bti/questions 로 문항 로드 후 문항 화면
+   #quizStartBtn          테스트 시작 → 문항 화면
+   #quizPrevResultBtn     이전 결과 보기 (로그인 상태에서만 노출)
 
- [문항 진행] — 실제 문항은 12개, 선택지는 A/B 양자택일(4지선다 아님)
+ [문항 진행]
    #quizPlaySection       섹션 루트 (기본 hidden)
    #quizProgressBar       진행률 바 (style.width 조절)
    #quizCurrentNo         현재 문항 번호
@@ -25,19 +26,28 @@
    #quizProgressPercent   진행률 %
    #quizQuestionText      문항 텍스트 삽입 위치
    #quizQuestionEmoji     문항 아이콘 영역
-   #quizOptionList        선택지 2개 컨테이너 (button[data-choice-score])
+   #quizOptionList        선택지 4개 컨테이너
+     button[data-option-index][data-option-axis]  선택지 버튼
    #quizPrevBtn           이전 문항
+   #quizSkipBtn           건너뛰기
    #quizExitBtn           나가기 (모달 확인)
    #quizExitModal         나가기 확인 모달
 
- [결과] — POST /api/food-bti/result 응답 그대로 렌더 (로그인 상태면 members.food_bti에 자동 저장)
+   ★ 문항 데이터는 이 파일 하단 스크립트의 QUESTIONS 배열에 있습니다.
+      서버에서 문항을 받아오려면 QUESTIONS 를 API 응답으로 교체하세요.
+      (GET /api/quiz/questions)
+
+ [결과]
    #quizResultSection     섹션 루트 (기본 hidden)
-   #resultTypeCode        유형 코드(resultType, 예: SNTP)
-   #resultTypeName        유형 이름(resultName)
-   #resultTypeDesc        상세 설명(resultText)
-   #resultAxisList        4개 축 그래프(score의 l/s, f/n, a/t, p/i 선택 횟수 비율)
-   #resultFoodList        추천 음식 목록(food)
-   #saveResultStatus      저장 여부 안내(saved) — 별도 저장 버튼 없이 제출 시 자동 저장됨
+   #resultTypeCode        유형 코드 (예: SPXV)
+   #resultTypeName        유형 이름 (예: 매콤탐험가)
+   #resultTypeTagline     한 줄 요약
+   #resultTypeDesc        상세 설명
+   #resultAxisList        4개 축 그래프 (성향 비율)
+   #resultFoodList        추천 음식 목록
+   #resultShopList        유형 맞춤 추천 매장
+   #resultMatchType       잘 맞는 유형 / 안 맞는 유형
+   #saveResultBtn         결과 저장 ★ POST /api/members/me/bti  (비로그인 시 로그인 유도)
    #shareResultBtn        결과 공유 (링크 복사)
    #retakeQuizBtn         다시 테스트하기
    #goRecommendBtn        이 유형으로 AI 추천받기 → recommend
@@ -48,30 +58,92 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
-<script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
-<script defer src="assets/js/taste-quiz.js"></script>
 
-<link rel="stylesheet" href="assets/css/taste-quiz.css">
+<style>
+  /* 선택지 카드 */
+  .q-option {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; text-align: left;
+    padding: 18px 20px;
+    border: 1.5px solid var(--line); border-radius: var(--r-md);
+    background: var(--bg); cursor: pointer;
+    transition: all .18s var(--ease);
+  }
+  .q-option:hover {
+    border-color: var(--brand-400); background: var(--brand-50);
+    transform: translateY(-2px); box-shadow: var(--sh-sm);
+  }
+  .q-option.is-selected {
+    border-color: var(--brand-500); background: var(--brand-50);
+    box-shadow: var(--sh-brand-sm);
+  }
+  .q-option-key {
+    width: 32px; height: 32px; border-radius: 10px; flex: none;
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: 800;
+    background: var(--bg-muted); color: var(--ink-500);
+    transition: all .18s var(--ease);
+  }
+  .q-option:hover .q-option-key,
+  .q-option.is-selected .q-option-key {
+    background: var(--brand-grad); color: #fff;
+  }
+  .q-option-text { font-size: 15.5px; font-weight: 600; color: var(--ink-800); line-height: 1.5; }
+
+  /* 성향 축 그래프 */
+  .axis-row { display: grid; grid-template-columns: 88px 1fr 88px; align-items: center; gap: 12px; }
+  .axis-bar {
+    position: relative; height: 10px; border-radius: var(--r-full);
+    background: var(--bg-muted); overflow: hidden;
+  }
+  .axis-fill {
+    position: absolute; inset: 0 auto 0 0; height: 100%;
+    border-radius: var(--r-full); background: var(--brand-grad);
+  }
+  .axis-label { font-size: 12.5px; font-weight: 700; }
+  .axis-label--on { color: var(--brand-600); }
+  .axis-label--off { color: var(--ink-400); }
+
+  /* 결과 히어로 */
+  .result-hero {
+    position: relative; overflow: hidden;
+    background: var(--brand-grad); color: #fff;
+    border-radius: var(--r-xl);
+    padding: 44px 28px;
+    text-align: center;
+  }
+  .result-hero::before,
+  .result-hero::after {
+    content: ""; position: absolute; border-radius: 50%;
+    background: rgba(255, 255, 255, .13);
+  }
+  .result-hero::before { width: 300px; height: 300px; right: -110px; top: -130px; }
+  .result-hero::after { width: 220px; height: 220px; left: -90px; bottom: -110px; }
+</style>
 </head>
 
 <body class="has-tabbar bg-[var(--bg-soft)]">
+<a href="#mainContent" class="skip-link">본문으로 건너뛰기</a>
 
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header" id="siteHeader">
   <div class="e-container e-container-wide e-header-inner">
     <a href="index" class="e-logo" id="logoHome">
-      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>
+        </svg>
+      </span>
       <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
     </a>
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
       <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+      <a class="e-nav-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
-      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
-      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
       <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
       <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
     </nav>
@@ -92,7 +164,7 @@
         <div class="e-dropdown">
           <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
                   id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
-            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
+            <span class="e-avatar e-avatar-sm" aria-hidden="true">잇</span>
             <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="e-dropdown-menu" id="headerProfileMenu">
@@ -127,9 +199,9 @@
   <div class="e-drawer-body">
     <a class="e-drawer-link" href="explore" data-nav-page="explore">지도 탐색</a>
     <a class="e-drawer-link" href="recommend" data-nav-page="recommend">AI 추천</a>
-    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+    <a class="e-drawer-link" href="receipt-upload" data-nav-page="receipt-upload">영수증 리뷰</a>
     <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
-    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음BTI</a>
   </div>
 </aside>
 
@@ -137,100 +209,99 @@
   <div class="e-container" style="max-width:760px">
 
     <!-- ==================================================================
-         인트로 (2026-08-06 재설계 - MBTI류 성향 테스트 관례에 맞춰 "4개 축" 중심 구조로 변경)
+         인트로
          ================================================================== -->
     <section id="quizIntroSection">
-
-      <!-- 히어로 -->
-      <div class="text-center mb-9">
-        <h1 class="t-h2 mt-4">나는 어떤 미식가일까?</h1>
+      <div class="text-center mb-8">
+        <span class="e-eyebrow">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+          음BTI · 음식 취향 테스트
+        </span>
+        <h1 class="t-h2 mt-5">내 음식 취향은<br>어떤 유형일까?</h1>
         <p class="t-lead mt-4 max-w-lg mx-auto">
-          4가지 성향 축, 12개의 질문으로 완성되는 <b class="t-brand">16가지 음식 취향 유형</b>.<br>
-          결과는 AI 추천에도 자동으로 반영돼요.
+          12개 질문에 답하면 나의 음식 성향 유형을 알려드려요.
+          결과는 AI 추천에 자동으로 반영됩니다.
         </p>
       </div>
 
-      <!-- 4가지 성향 축 -->
+      <!-- 유형 미리보기 -->
       <div class="e-card e-card-pad mb-5">
-        <p class="text-center text-[15px] font-extrabold text-[var(--ink-900)] mb-1">4가지 성향 축으로 결정돼요</p>
-        <p class="text-center t-xs mb-6">각 축에서 더 가까운 쪽 알파벳이 모여 나만의 4글자 유형이 만들어져요.</p>
-
-        <div class="space-y-3">
-          <div class="axis-pair-row">
-            <div class="axis-pair-side">
-              <span class="axis-pair-letter">L</span>
-              <span class="axis-pair-name">담백함</span>
-            </div>
-            <span class="axis-pair-vs">vs</span>
-            <div class="axis-pair-side axis-pair-side--right">
-              <span class="axis-pair-name">자극적</span>
-              <span class="axis-pair-letter">S</span>
-            </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="text-center p-4 rounded-[var(--r-md)]" style="background:var(--brand-grad-soft);border:1px solid var(--brand-100)">
+            <span class="w-11 h-11 rounded-full grid place-items-center mx-auto mb-2.5 text-white" style="background:var(--brand-grad)">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4.5-3 7-6.5 7-10a7 7 0 0 0-14 0c0 3.5 2.5 7 7 10Z"/><path d="M12 13a2.5 2.5 0 0 0 0-5"/></svg>
+            </span>
+            <p class="text-[13px] font-extrabold text-[var(--ink-900)]">매콤탐험가</p>
           </div>
-          <div class="axis-pair-row">
-            <div class="axis-pair-side">
-              <span class="axis-pair-letter">F</span>
-              <span class="axis-pair-name">익숙함</span>
-            </div>
-            <span class="axis-pair-vs">vs</span>
-            <div class="axis-pair-side axis-pair-side--right">
-              <span class="axis-pair-name">새로운 도전</span>
-              <span class="axis-pair-letter">N</span>
-            </div>
+          <div class="text-center p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
+            <span class="w-11 h-11 rounded-full grid place-items-center mx-auto mb-2.5" style="background:var(--info-soft);color:var(--info)">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/></svg>
+            </span>
+            <p class="text-[13px] font-extrabold text-[var(--ink-900)]">순한맛평화주의</p>
           </div>
-          <div class="axis-pair-row">
-            <div class="axis-pair-side">
-              <span class="axis-pair-letter">A</span>
-              <span class="axis-pair-name">혼밥</span>
-            </div>
-            <span class="axis-pair-vs">vs</span>
-            <div class="axis-pair-side axis-pair-side--right">
-              <span class="axis-pair-name">함께</span>
-              <span class="axis-pair-letter">T</span>
-            </div>
+          <div class="text-center p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
+            <span class="w-11 h-11 rounded-full grid place-items-center mx-auto mb-2.5" style="background:var(--success-soft);color:var(--success)">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+            </span>
+            <p class="text-[13px] font-extrabold text-[var(--ink-900)]">혼밥마스터</p>
           </div>
-          <div class="axis-pair-row">
-            <div class="axis-pair-side">
-              <span class="axis-pair-letter">P</span>
-              <span class="axis-pair-name">계획적</span>
-            </div>
-            <span class="axis-pair-vs">vs</span>
-            <div class="axis-pair-side axis-pair-side--right">
-              <span class="axis-pair-name">즉흥적</span>
-              <span class="axis-pair-letter">I</span>
-            </div>
+          <div class="text-center p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
+            <span class="w-11 h-11 rounded-full grid place-items-center mx-auto mb-2.5" style="background:var(--warning-soft);color:var(--warning)">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+            <p class="text-[13px] font-extrabold text-[var(--ink-900)]">가성비장인</p>
           </div>
         </div>
+        <p class="t-xs text-center mt-4">이 외에도 총 16가지 유형이 있어요.</p>
       </div>
 
-      <!-- 유형 예시 -->
-      <div class="e-card e-card-pad mb-5">
-        <p class="text-center text-[15px] font-extrabold text-[var(--ink-900)] mb-5">이런 유형들이 있어요</p>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="type-preview-card">
-            <span class="type-preview-code">SNTP</span>
-            <p class="type-preview-name">매운맛 탐험가</p>
+      <!-- 안내 -->
+      <div class="e-card e-card-pad mb-6">
+        <div class="grid sm:grid-cols-3 gap-5">
+          <div class="flex sm:flex-col items-center sm:items-start gap-3">
+            <span class="w-10 h-10 rounded-[12px] grid place-items-center flex-none" style="background:var(--brand-50);color:var(--brand-500)">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3.5 2"/></svg>
+            </span>
+            <div>
+              <p class="text-sm font-extrabold text-[var(--ink-900)]">약 2분 소요</p>
+              <p class="t-xs mt-0.5">12문항 4지선다</p>
+            </div>
           </div>
-          <div class="type-preview-card">
-            <span class="type-preview-code">LFAI</span>
-            <p class="type-preview-name">담백한 혼밥러</p>
+          <div class="flex sm:flex-col items-center sm:items-start gap-3">
+            <span class="w-10 h-10 rounded-[12px] grid place-items-center flex-none" style="background:var(--brand-50);color:var(--brand-500)">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+            </span>
+            <div>
+              <p class="text-sm font-extrabold text-[var(--ink-900)]">추천에 반영</p>
+              <p class="t-xs mt-0.5">AI 추천 정확도 상승</p>
+            </div>
           </div>
-          <div class="type-preview-card">
-            <span class="type-preview-code">SFTP</span>
-            <p class="type-preview-name">강렬한 단골 미식가</p>
-          </div>
-          <div class="type-preview-card">
-            <span class="type-preview-code">LNAI</span>
-            <p class="type-preview-name">편안한 음식 탐험가</p>
+          <div class="flex sm:flex-col items-center sm:items-start gap-3">
+            <span class="w-10 h-10 rounded-[12px] grid place-items-center flex-none" style="background:var(--brand-50);color:var(--brand-500)">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            </span>
+            <div>
+              <p class="text-sm font-extrabold text-[var(--ink-900)]">언제든 재검사</p>
+              <p class="t-xs mt-0.5">취향이 바뀌면 다시</p>
+            </div>
           </div>
         </div>
-        <p class="t-xs text-center mt-5">4가지 축의 조합으로 총 16가지 유형이 만들어져요.</p>
       </div>
 
       <button type="button" class="btn btn-primary btn-lg btn-block" id="quizStartBtn">
         테스트 시작하기
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
       </button>
+
+      <div class="mt-3" data-auth-view="auth" hidden>
+        <button type="button" class="btn btn-outline btn-block" id="quizPrevResultBtn">
+          이전 결과 보기 (매콤탐험가)
+        </button>
+      </div>
+
+      <p class="text-center t-xs mt-5" data-auth-view="guest">
+        비로그인 상태에서도 테스트할 수 있어요. 결과 저장은 로그인이 필요합니다.
+      </p>
     </section>
 
     <!-- ==================================================================
@@ -267,8 +338,25 @@
           </h2>
         </div>
 
-        <!-- 선택지 2개 (실제 음식 취향 찾기 문항은 A/B 양자택일) -->
-        <div class="space-y-2.5" id="quizOptionList" role="radiogroup" aria-labelledby="quizQuestionText"></div>
+        <!-- 선택지 4개 -->
+        <div class="space-y-2.5" id="quizOptionList" role="radiogroup" aria-labelledby="quizQuestionText">
+          <button type="button" class="q-option" data-option-index="0" role="radio" aria-checked="false">
+            <span class="q-option-key">A</span>
+            <span class="q-option-text">가장 매운 메뉴부터 찾아본다</span>
+          </button>
+          <button type="button" class="q-option" data-option-index="1" role="radio" aria-checked="false">
+            <span class="q-option-key">B</span>
+            <span class="q-option-text">이름이 낯선 메뉴를 골라본다</span>
+          </button>
+          <button type="button" class="q-option" data-option-index="2" role="radio" aria-checked="false">
+            <span class="q-option-key">C</span>
+            <span class="q-option-text">사장님 추천 메뉴를 물어본다</span>
+          </button>
+          <button type="button" class="q-option" data-option-index="3" role="radio" aria-checked="false">
+            <span class="q-option-key">D</span>
+            <span class="q-option-text">늘 먹던 익숙한 메뉴로 간다</span>
+          </button>
+        </div>
       </div>
 
       <!-- 하단 컨트롤 -->
@@ -277,8 +365,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
           이전
         </button>
+        <button type="button" class="btn btn-ghost" id="quizSkipBtn">건너뛰기</button>
         <button type="button" class="btn btn-ghost ml-auto" id="quizExitBtn" data-modal-open="quizExitModal">나가기</button>
       </div>
+
+      <p class="t-xs text-center mt-5">선택하면 자동으로 다음 문항으로 넘어갑니다.</p>
     </section>
 
     <!-- ==================================================================
@@ -289,26 +380,57 @@
       <!-- 결과 히어로 -->
       <div class="result-hero e-anim-up">
         <div class="relative z-10">
-          <p class="text-white/80 text-[13px] font-bold tracking-wider">나의 음식 취향 찾기 유형</p>
+          <p class="text-white/80 text-[13px] font-bold tracking-wider">나의 음BTI 유형</p>
           <p class="text-white/60 text-[13px] font-extrabold tracking-[.25em] mt-4" id="resultTypeCode">SPXV</p>
           <h1 class="text-white font-extrabold text-[34px] md:text-[42px] tracking-[-.04em] leading-tight mt-1.5" id="resultTypeName">
             매콤탐험가
           </h1>
+          <p class="text-white/90 text-[15px] md:text-[17px] mt-4 font-semibold" id="resultTypeTagline">
+            "안 먹어본 매운 건 일단 먹어봐야 직성이 풀리는 타입"
+          </p>
+
           <span class="inline-grid w-24 h-24 place-items-center rounded-full bg-white/15 backdrop-blur mt-8">
             <svg class="w-12 h-12 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 21c4.5-3 7-6.5 7-10a7 7 0 0 0-14 0c0 3.5 2.5 7 7 10Z"/><path d="M12 13a2.5 2.5 0 0 0 0-5"/>
             </svg>
           </span>
+
+          <p class="text-white/75 text-[13px] mt-6">전체 이용자 중 <b class="text-white">8.4%</b>가 이 유형이에요</p>
         </div>
       </div>
 
       <!-- 유형 설명 -->
       <div class="e-card e-card-pad mt-5">
         <h2 class="t-h4 mb-3">이런 성향이에요</h2>
-        <p class="t-body leading-relaxed" id="resultTypeDesc"></p>
+        <p class="t-body leading-relaxed" id="resultTypeDesc">
+          새로운 자극을 즐기는 편이에요. 처음 보는 메뉴나 매운 음식을 마주하면 호기심이 먼저 발동합니다.
+          혼자 먹는 것도 어색하지 않고, 분위기보다는 <b class="t-strong">맛과 새로움</b>을 우선합니다.
+          다만 익숙한 메뉴만 반복하면 금방 지루해하니, 주기적으로 새 매장을 탐색하는 걸 추천해요.
+        </p>
 
-        <!-- 성향 축 (4쌍 선택 횟수 기반) -->
-        <div class="mt-7 space-y-4" id="resultAxisList"></div>
+        <!-- 성향 축 -->
+        <div class="mt-7 space-y-4" id="resultAxisList">
+          <div class="axis-row">
+            <span class="axis-label axis-label--on text-right">매운맛</span>
+            <span class="axis-bar"><span class="axis-fill" style="width:78%"></span></span>
+            <span class="axis-label axis-label--off">순한맛</span>
+          </div>
+          <div class="axis-row">
+            <span class="axis-label axis-label--on text-right">새로운 시도</span>
+            <span class="axis-bar"><span class="axis-fill" style="width:85%"></span></span>
+            <span class="axis-label axis-label--off">익숙한 맛</span>
+          </div>
+          <div class="axis-row">
+            <span class="axis-label axis-label--on text-right">혼밥 선호</span>
+            <span class="axis-bar"><span class="axis-fill" style="width:62%"></span></span>
+            <span class="axis-label axis-label--off">함께 식사</span>
+          </div>
+          <div class="axis-row">
+            <span class="axis-label axis-label--off text-right">분위기</span>
+            <span class="axis-bar"><span class="axis-fill" style="width:34%"></span></span>
+            <span class="axis-label axis-label--on">가성비</span>
+          </div>
+        </div>
       </div>
 
       <!-- 추천 음식 -->
@@ -317,16 +439,141 @@
         <p class="t-sm mb-5">유형별 선호 데이터를 기반으로 골랐습니다.</p>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="resultFoodList">
+          <div class="e-card e-card-flat overflow-hidden">
+            <div class="e-ratio-4-3 e-img-ph">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </div>
+            <div class="p-3">
+              <p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">마라탕 · 마라샹궈</p>
+              <p class="t-xs mt-1">매운맛 단계 조절 가능</p>
+            </div>
+          </div>
+          <div class="e-card e-card-flat overflow-hidden">
+            <div class="e-ratio-4-3 e-img-ph">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </div>
+            <div class="p-3">
+              <p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">태국 · 베트남 음식</p>
+              <p class="t-xs mt-1">향신료 강한 아시안</p>
+            </div>
+          </div>
+          <div class="e-card e-card-flat overflow-hidden">
+            <div class="e-ratio-4-3 e-img-ph">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </div>
+            <div class="p-3">
+              <p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">아라비아타 파스타</p>
+              <p class="t-xs mt-1">매콤한 토마토 베이스</p>
+            </div>
+          </div>
+          <div class="e-card e-card-flat overflow-hidden">
+            <div class="e-ratio-4-3 e-img-ph">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </div>
+            <div class="p-3">
+              <p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">불닭 · 매운 갈비</p>
+              <p class="t-xs mt-1">한식 매운 요리</p>
+            </div>
+          </div>
+          <div class="e-card e-card-flat overflow-hidden">
+            <div class="e-ratio-4-3 e-img-ph">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </div>
+            <div class="p-3">
+              <p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">인도 카레</p>
+              <p class="t-xs mt-1">향과 매운맛의 조화</p>
+            </div>
+          </div>
+          <div class="e-card e-card-flat overflow-hidden">
+            <div class="e-ratio-4-3 e-img-ph">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </div>
+            <div class="p-3">
+              <p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">멕시칸 타코</p>
+              <p class="t-xs mt-1">할라피뇨 · 살사 소스</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 궁합 유형 -->
+      <div class="e-card e-card-pad mt-5" id="resultMatchType">
+        <h2 class="t-h4 mb-5">같이 먹으면 좋은 유형</h2>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="p-4 rounded-[var(--r-md)]" style="background:var(--brand-grad-soft);border:1px solid var(--brand-100)">
+            <span class="e-badge e-badge--brand-solid">잘 맞아요</span>
+            <p class="text-[15px] font-extrabold text-[var(--ink-900)] mt-3">신메뉴헌터</p>
+            <p class="t-xs mt-1.5 leading-relaxed">새로운 매장을 함께 탐험하기 좋아요. 서로 다른 메뉴를 시켜 나눠 먹는 조합.</p>
+          </div>
+          <div class="p-4 rounded-[var(--r-md)] bg-[var(--bg-soft)] border border-[var(--line)]">
+            <span class="e-badge e-badge--gray">조율이 필요해요</span>
+            <p class="text-[15px] font-extrabold text-[var(--ink-900)] mt-3">순한맛평화주의</p>
+            <p class="t-xs mt-1.5 leading-relaxed">매운맛 기준이 정반대예요. 맵기 단계를 나눠 주문할 수 있는 곳을 고르세요.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 유형 맞춤 추천 매장 -->
+      <div class="e-card e-card-pad mt-5">
+        <div class="flex items-center gap-2 mb-1">
+          <h2 class="t-h4 !mb-0">매콤탐험가에게 인기 있는 곳</h2>
+          <a href="explore" class="e-link-brand text-[12.5px] ml-auto">더 보기</a>
+        </div>
+        <p class="t-sm mb-5">같은 유형 이용자들이 높은 별점을 준 매장이에요.</p>
+
+        <div class="space-y-2.5" id="resultShopList">
+          <a href="explore" class="e-shop-card">
+            <span class="e-shop-thumb e-img-ph">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center gap-2">
+                <b class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">홍대 마라공방</b>
+                <span class="e-badge e-badge--brand flex-none">유형 적합</span>
+              </span>
+              <span class="e-rating mt-1">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                <span class="e-rating-score">4.7</span>
+                <span class="t-xs ml-1">· 매운맛 5단계 선택 가능</span>
+              </span>
+              <span class="flex flex-wrap gap-1 mt-2">
+                <span class="e-tag e-tag--pos">맛이 좋아요</span>
+                <span class="e-tag e-tag--pos">혼밥 좋아요</span>
+              </span>
+            </span>
+          </a>
+
+          <a href="explore" class="e-shop-card">
+            <span class="e-shop-thumb e-img-ph">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center gap-2">
+                <b class="font-extrabold text-[15px] text-[var(--ink-900)] truncate">쏨땀 방콕</b>
+                <span class="e-badge e-badge--brand flex-none">유형 적합</span>
+              </span>
+              <span class="e-rating mt-1">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="is-on"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>
+                <span class="e-rating-score">4.5</span>
+                <span class="t-xs ml-1">· 태국 현지식</span>
+              </span>
+              <span class="flex flex-wrap gap-1 mt-2">
+                <span class="e-tag e-tag--pos">가성비 좋아요</span>
+              </span>
+            </span>
+          </a>
         </div>
       </div>
 
       <!-- 결과 액션 -->
       <div class="mt-6 space-y-2.5">
-        <div class="flex gap-2.5">
-          <button type="button" class="btn btn-outline flex-1" id="shareResultBtn">결과 공유</button>
-          <button type="button" class="btn btn-outline flex-1" id="retakeQuizBtn">다시 테스트하기</button>
+        <!-- 로그인: 결과 저장 -->
+        <div data-auth-view="auth" hidden>
+          <button type="button" class="btn btn-primary btn-lg btn-block" id="saveResultBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M8 21v-8h8v8M8 3v5h6"/></svg>
+            내 프로필에 저장하기
+          </button>
         </div>
-
         <!-- 비로그인: 로그인 유도 -->
         <div data-auth-view="guest">
           <div class="e-card e-card-soft e-card-pad mb-2.5">
@@ -337,6 +584,22 @@
               <a href="signup" class="btn btn-primary btn-sm flex-1">회원가입</a>
             </div>
           </div>
+        </div>
+
+        <a href="recommend" class="btn btn-outline-brand btn-lg btn-block" id="goRecommendBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+          이 유형으로 AI 추천받기
+        </a>
+
+        <div class="flex gap-2.5">
+          <button type="button" class="btn btn-outline flex-1" id="shareResultBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+            결과 공유
+          </button>
+          <button type="button" class="btn btn-ghost flex-1" id="retakeQuizBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            다시 테스트
+          </button>
         </div>
       </div>
     </section>
@@ -361,7 +624,7 @@
     </div>
     <div class="e-modal-foot">
       <button type="button" class="btn btn-outline" data-modal-close>계속하기</button>
-      <a href="index" class="btn btn-danger" id="quizExitConfirmLink">나가기</a>
+      <a href="index" class="btn btn-danger">나가기</a>
     </div>
   </div>
 </div>
@@ -382,7 +645,7 @@
   </a>
   <a class="e-tabbar-item" href="taste-quiz" data-nav-page="taste-quiz">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><path d="M12 18h.01"/></svg>
-    음식 취향 찾기
+    음BTI
   </a>
   <a class="e-tabbar-item" href="mypage">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
@@ -391,5 +654,209 @@
 </nav>
 
 
+<script>
+/* ---------------------------------------------------------------------------
+   taste-quiz 시안 데모 스크립트 — 실제 연동 시 taste-quiz.js 로 대체
+
+   QUESTIONS: 12문항 데이터. axis 는 결과 유형 계산에 쓰이는 축입니다.
+     spicy   : 매운맛(S) ↔ 순한맛(M)
+     novelty : 새로운 시도(X) ↔ 익숙한 맛(F)
+     social  : 혼밥(P) ↔ 함께(G)
+     value   : 가성비(V) ↔ 분위기(A)
+   서버에서 문항을 받는 구조로 바꿀 경우 이 배열만 교체하면 됩니다.
+   --------------------------------------------------------------------------- */
+(function () {
+  var QUESTIONS = [
+    { q: '처음 가본 식당에서 메뉴판을 봤을 때 나는?',
+      options: [
+        { text: '가장 매운 메뉴부터 찾아본다', axis: 'spicy', value: 1 },
+        { text: '이름이 낯선 메뉴를 골라본다', axis: 'novelty', value: 1 },
+        { text: '사장님 추천 메뉴를 물어본다', axis: 'novelty', value: 1 },
+        { text: '늘 먹던 익숙한 메뉴로 간다', axis: 'novelty', value: 0 }
+      ] },
+    { q: '떡볶이를 시킬 때 맵기 단계는?',
+      options: [
+        { text: '가장 매운 단계, 도전한다', axis: 'spicy', value: 1 },
+        { text: '중간 매움 정도면 충분', axis: 'spicy', value: 1 },
+        { text: '순한맛에 조금만 매콤하게', axis: 'spicy', value: 0 },
+        { text: '아예 안 매운 걸로', axis: 'spicy', value: 0 }
+      ] },
+    { q: '점심시간, 혼자 밥을 먹어야 한다면?',
+      options: [
+        { text: '오히려 편하다, 바로 식당 직행', axis: 'social', value: 1 },
+        { text: '카운터 좌석 있는 곳을 찾는다', axis: 'social', value: 1 },
+        { text: '테이크아웃해서 자리에서 먹는다', axis: 'social', value: 1 },
+        { text: '누구든 붙잡고 같이 간다', axis: 'social', value: 0 }
+      ] },
+    { q: '식당을 고를 때 가장 먼저 보는 것은?',
+      options: [
+        { text: '가격대와 양', axis: 'value', value: 1 },
+        { text: '리뷰 별점', axis: 'value', value: 1 },
+        { text: '인테리어와 사진', axis: 'value', value: 0 },
+        { text: '조용한지 시끄러운지', axis: 'value', value: 0 }
+      ] },
+    { q: '여행지에서 식사할 곳을 정한다면?',
+      options: [
+        { text: '현지인만 아는 로컬 맛집', axis: 'novelty', value: 1 },
+        { text: '그 지역 특산물 요리 전문점', axis: 'novelty', value: 1 },
+        { text: '검증된 유명 체인점', axis: 'novelty', value: 0 },
+        { text: '숙소 근처 아무 데나', axis: 'novelty', value: 0 }
+      ] },
+    { q: '음식이 예상보다 매웠다. 나는?',
+      options: [
+        { text: '땀 흘리면서도 끝까지 먹는다', axis: 'spicy', value: 1 },
+        { text: '물 마시면서 천천히 먹는다', axis: 'spicy', value: 1 },
+        { text: '밥이나 계란을 추가한다', axis: 'spicy', value: 0 },
+        { text: '남기고 다른 메뉴를 시킨다', axis: 'spicy', value: 0 }
+      ] },
+    { q: '회식 장소를 정하는 담당이 됐다.',
+      options: [
+        { text: '가성비 좋고 양 많은 곳', axis: 'value', value: 1 },
+        { text: '메뉴 선택폭이 넓은 곳', axis: 'value', value: 1 },
+        { text: '분위기 좋고 대화되는 곳', axis: 'value', value: 0 },
+        { text: '개별 룸이 있는 조용한 곳', axis: 'value', value: 0 }
+      ] },
+    { q: '주말 저녁, 이상적인 식사는?',
+      options: [
+        { text: '혼자 좋아하는 메뉴 실컷 먹기', axis: 'social', value: 1 },
+        { text: '넷플릭스 보면서 배달 음식', axis: 'social', value: 1 },
+        { text: '친구들과 시끌벅적하게', axis: 'social', value: 0 },
+        { text: '가족과 함께 외식', axis: 'social', value: 0 }
+      ] },
+    { q: '새로 생긴 식당이 보이면?',
+      options: [
+        { text: '당장 들어가 본다', axis: 'novelty', value: 1 },
+        { text: '리뷰 몇 개 쌓이면 가본다', axis: 'novelty', value: 1 },
+        { text: '지나가면서 구경만 한다', axis: 'novelty', value: 0 },
+        { text: '어차피 단골집이 최고', axis: 'novelty', value: 0 }
+      ] },
+    { q: '1인 3만원짜리 코스요리, 어떤 생각이 드나?',
+      options: [
+        { text: '그 돈이면 고기 두 번 먹는다', axis: 'value', value: 1 },
+        { text: '양이 충분한지 먼저 확인한다', axis: 'value', value: 1 },
+        { text: '경험이니까 아깝지 않다', axis: 'value', value: 0 },
+        { text: '기념일이라면 충분히 괜찮다', axis: 'value', value: 0 }
+      ] },
+    { q: '마라탕 소스를 고를 때 나는?',
+      options: [
+        { text: '기본 마라 + 매운 고추 추가', axis: 'spicy', value: 1 },
+        { text: '마라와 땅콩소스 반반', axis: 'spicy', value: 1 },
+        { text: '토마토 육수로 순하게', axis: 'spicy', value: 0 },
+        { text: '마라탕 자체를 잘 안 먹는다', axis: 'spicy', value: 0 }
+      ] },
+    { q: '맛집을 발견했을 때 나의 반응은?',
+      options: [
+        { text: '혼자 조용히 다시 온다', axis: 'social', value: 1 },
+        { text: '기록만 남기고 아껴둔다', axis: 'social', value: 1 },
+        { text: '단톡방에 바로 공유한다', axis: 'social', value: 0 },
+        { text: '다음에 같이 갈 사람을 찾는다', axis: 'social', value: 0 }
+      ] }
+  ];
+
+  var intro = document.getElementById('quizIntroSection');
+  var play = document.getElementById('quizPlaySection');
+  var result = document.getElementById('quizResultSection');
+
+  var idx = 0;
+  var answers = new Array(QUESTIONS.length).fill(null);
+  var KEYS = ['A', 'B', 'C', 'D'];
+
+  function render() {
+    var q = QUESTIONS[idx];
+    document.getElementById('quizQuestionText').textContent = q.q;
+    document.getElementById('quizCurrentNo').textContent = idx + 1;
+    document.getElementById('quizTotalNo').textContent = QUESTIONS.length;
+
+    var pct = Math.round(((idx + 1) / QUESTIONS.length) * 100);
+    var bar = document.getElementById('quizProgressBar');
+    bar.style.width = pct + '%';
+    bar.setAttribute('aria-valuenow', pct);
+    document.getElementById('quizProgressPercent').textContent = pct;
+
+    var list = document.getElementById('quizOptionList');
+    list.innerHTML = q.options.map(function (o, i) {
+      var sel = answers[idx] === i ? ' is-selected' : '';
+      return '<button type="button" class="q-option' + sel + '" data-option-index="' + i + '"' +
+        ' data-option-axis="' + o.axis + '" role="radio" aria-checked="' + (answers[idx] === i) + '">' +
+        '<span class="q-option-key">' + KEYS[i] + '</span>' +
+        '<span class="q-option-text"></span></button>';
+    }).join('');
+    /* 텍스트는 textContent 로 안전하게 주입 */
+    list.querySelectorAll('.q-option-text').forEach(function (el, i) {
+      el.textContent = q.options[i].text;
+    });
+
+    document.getElementById('quizPrevBtn').disabled = idx === 0;
+  }
+
+  function next() {
+    if (idx < QUESTIONS.length - 1) {
+      idx++;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      finish();
+    }
+  }
+
+  function finish() {
+    /* ★ 실제로는 POST /api/quiz/submit 후 응답으로 결과 렌더 */
+    play.hidden = true;
+    result.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.getElementById('quizStartBtn').addEventListener('click', function () {
+    intro.hidden = true;
+    play.hidden = false;
+    idx = 0;
+    answers = new Array(QUESTIONS.length).fill(null);
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  document.getElementById('quizOptionList').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-option-index]');
+    if (!btn) return;
+    answers[idx] = Number(btn.getAttribute('data-option-index'));
+    this.querySelectorAll('.q-option').forEach(function (b) {
+      b.classList.toggle('is-selected', b === btn);
+      b.setAttribute('aria-checked', b === btn ? 'true' : 'false');
+    });
+    setTimeout(next, 260);
+  });
+
+  document.getElementById('quizPrevBtn').addEventListener('click', function () {
+    if (idx > 0) { idx--; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  });
+  document.getElementById('quizSkipBtn').addEventListener('click', next);
+
+  document.getElementById('retakeQuizBtn').addEventListener('click', function () {
+    result.hidden = true;
+    intro.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  var prevResultBtn = document.getElementById('quizPrevResultBtn');
+  if (prevResultBtn) prevResultBtn.addEventListener('click', function () {
+    intro.hidden = true;
+    result.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  var saveBtn = document.getElementById('saveResultBtn');
+  if (saveBtn) saveBtn.addEventListener('click', function () {
+    Eatty.toast('음BTI 결과를 프로필에 저장했습니다.', 'brand');
+  });
+
+  document.getElementById('shareResultBtn').addEventListener('click', function () {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(location.href).then(function () {
+        Eatty.toast('결과 링크를 복사했습니다.', 'success');
+      });
+    }
+  });
+})();
+</script>
 </body>
 </html>

@@ -38,6 +38,9 @@ build/
 ### 프로필 사진 업로드(로컬 디스크 저장, docs/05.회원정보수정 참고) ###
 uploads/
 
+### AI 고객센터 챗봇 대화 로그(암호화되어도 실제 문의 내용을 담고 있어 커밋 대상 아님, docs/25.AI고객센터챗봇 참고) ###
+logs/
+
 ### E2E (Playwright) ###
 e2e/node_modules/
 e2e/test-results/
