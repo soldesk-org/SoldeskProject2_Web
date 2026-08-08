@@ -81,7 +81,9 @@ public class RestaurantCategoryMatchingService {
         KAKAO_CATEGORY_FALLBACK.put("SNACK", new String[]{"분식"});
         KAKAO_CATEGORY_FALLBACK.put("KOREAN", new String[]{"한식"});
         KAKAO_CATEGORY_FALLBACK.put("WESTERN", new String[]{"양식", "이탈리안", "스테이크"});
-        KAKAO_CATEGORY_FALLBACK.put("CHINESE", new String[]{"중식", "중국음식"});
+        // "중국요리"/"중국집" 추가(2026-08-08) — AI 추천 공유 링크 실사용 중 카카오 category_name이
+        // "중국요리"만 있고 "중식"/"중국음식"은 없는 가게(예: "무궁화반점")가 미분류로 떨어지는 걸 확인.
+        KAKAO_CATEGORY_FALLBACK.put("CHINESE", new String[]{"중식", "중국음식", "중국요리", "중국집"});
         KAKAO_CATEGORY_FALLBACK.put("JAPANESE", new String[]{"일식", "일본음식", "돈까스", "스시", "초밥"});
         KAKAO_CATEGORY_FALLBACK.put("ASIAN", new String[]{"아시아", "베트남", "태국", "인도음식", "세계음식"});
     }
