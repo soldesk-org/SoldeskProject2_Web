@@ -7,6 +7,45 @@
   };
   var AXIS_PAIRS = [["l", "s"], ["f", "n"], ["a", "t"], ["p", "i"]];
 
+  // 음BTI 추천 메뉴 32종 실제 사진(2026-08-08 추가) — FoodBtiServiceImpl.FOOD_CANDIDATES와 이름이
+  // 정확히 같아야 매칭된다. 없는 이름이면 기존처럼 플레이스홀더 아이콘으로 대체(fallback).
+  var FOOD_IMAGE = {
+    "칼국수": "assets/images/food-bti/kalguksu.jpg",
+    "백반": "assets/images/food-bti/baekban.jpg",
+    "국밥": "assets/images/food-bti/gukbap.jpg",
+    "김밥": "assets/images/food-bti/gimbap.jpg",
+    "샤브샤브": "assets/images/food-bti/shabushabu.jpg",
+    "한정식": "assets/images/food-bti/hanjeongsik.jpg",
+    "보쌈": "assets/images/food-bti/bossam.jpg",
+    "만두전골": "assets/images/food-bti/mandujeongol.jpg",
+    "포케": "assets/images/food-bti/poke.jpg",
+    "오차즈케": "assets/images/food-bti/ochazuke.jpg",
+    "쌀국수": "assets/images/food-bti/pho.jpg",
+    "후무스볼": "assets/images/food-bti/hummus-bowl.jpg",
+    "딤섬": "assets/images/food-bti/dimsum.jpg",
+    "스페인 타파스": "assets/images/food-bti/spanish-tapas.jpg",
+    "반쎄오": "assets/images/food-bti/banhxeo.jpg",
+    "월남쌈": "assets/images/food-bti/springrolls.jpg",
+    "제육덮밥": "assets/images/food-bti/jeyuk-deopbap.jpg",
+    "매운 돈가스": "assets/images/food-bti/spicy-donkatsu.jpg",
+    "떡볶이": "assets/images/food-bti/tteokbokki.jpg",
+    "매운 라면": "assets/images/food-bti/spicy-ramen.jpg",
+    "닭갈비": "assets/images/food-bti/dakgalbi.jpg",
+    "부대찌개": "assets/images/food-bti/budae-jjigae.jpg",
+    "삼겹살": "assets/images/food-bti/samgyeopsal.jpg",
+    "곱창": "assets/images/food-bti/gopchang.jpg",
+    "탄탄면": "assets/images/food-bti/dandan-noodles.jpg",
+    "인도 커리": "assets/images/food-bti/indian-curry.jpg",
+    "마라샹궈": "assets/images/food-bti/malaxiangguo.jpg",
+    "매운 쌀국수": "assets/images/food-bti/spicy-pho.jpg",
+    "마라탕": "assets/images/food-bti/malatang.jpg",
+    "쭈꾸미": "assets/images/food-bti/jjukkumi.jpg",
+    "닭발": "assets/images/food-bti/dakbal.jpg",
+    "멕시칸 타코": "assets/images/food-bti/tacos.jpg",
+  };
+  var FOOD_PLACEHOLDER_SVG =
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>';
+
   var intro = document.getElementById("quizIntroSection");
   var play = document.getElementById("quizPlaySection");
   var result = document.getElementById("quizResultSection");
@@ -87,8 +126,12 @@
     // 2026-08-08 추가 — 메뉴 이름을 누르면 지도 탐색에서 그 메뉴로 바로 검색되게(explore.js가 읽는
     // ?q= 규약 재사용).
     foodList.innerHTML = (data.food || []).map(function (f) {
+      var img = FOOD_IMAGE[f];
+      var media = img
+        ? '<div class="e-ratio-4-3"><img src="' + img + '" alt="' + f + '" class="size-full object-cover"></div>'
+        : '<div class="e-ratio-4-3 e-img-ph">' + FOOD_PLACEHOLDER_SVG + '</div>';
       return '<a href="explore?q=' + encodeURIComponent(f) + '" class="e-card e-card-flat overflow-hidden block">' +
-        '<div class="e-ratio-4-3 e-img-ph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg></div>' +
+        media +
         '<div class="p-3"><p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">' + f + '</p></div></a>';
     }).join("");
 
