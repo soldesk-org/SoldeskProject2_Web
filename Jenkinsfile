@@ -78,6 +78,7 @@ pipeline {
                         string(credentialsId: 'soldesk-google-client-id', variable: 'GOOGLE_CLIENT_ID'),
                         string(credentialsId: 'soldesk-google-client-secret', variable: 'GOOGLE_CLIENT_SECRET'),
                         string(credentialsId: 'soldesk-google-redirect-uri', variable: 'GOOGLE_REDIRECT_URI'),
+                        string(credentialsId: 'soldesk-oauth-frontend-redirect-url', variable: 'OAUTH_FRONTEND_REDIRECT_URL'),
                         string(credentialsId: 'soldesk-smbiz-store-service-key', variable: 'SMBIZ_STORE_SERVICE_KEY'),
                         string(credentialsId: 'soldesk-parking-data-service-key', variable: 'PARKING_DATA_SERVICE_KEY'),
                         string(credentialsId: 'soldesk-seoul-parking-service-key', variable: 'SEOUL_PARKING_SERVICE_KEY'),
@@ -157,6 +158,7 @@ pipeline {
                         string(credentialsId: 'soldesk-google-client-id', variable: 'GOOGLE_CLIENT_ID'),
                         string(credentialsId: 'soldesk-google-client-secret', variable: 'GOOGLE_CLIENT_SECRET'),
                         string(credentialsId: 'soldesk-google-redirect-uri', variable: 'GOOGLE_REDIRECT_URI'),
+                        string(credentialsId: 'soldesk-oauth-frontend-redirect-url', variable: 'OAUTH_FRONTEND_REDIRECT_URL'),
                         string(credentialsId: 'soldesk-smbiz-store-service-key', variable: 'SMBIZ_STORE_SERVICE_KEY'),
                         string(credentialsId: 'soldesk-parking-data-service-key', variable: 'PARKING_DATA_SERVICE_KEY'),
                         string(credentialsId: 'soldesk-seoul-parking-service-key', variable: 'SEOUL_PARKING_SERVICE_KEY'),
@@ -200,6 +202,7 @@ NAVER_REDIRECT_URI=$NAVER_REDIRECT_URI
 GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
 GOOGLE_REDIRECT_URI=$GOOGLE_REDIRECT_URI
+OAUTH_FRONTEND_REDIRECT_URL=$OAUTH_FRONTEND_REDIRECT_URL
 SMBIZ_STORE_SERVICE_KEY=$SMBIZ_STORE_SERVICE_KEY
 PARKING_DATA_SERVICE_KEY=$PARKING_DATA_SERVICE_KEY
 SEOUL_PARKING_SERVICE_KEY=$SEOUL_PARKING_SERVICE_KEY
