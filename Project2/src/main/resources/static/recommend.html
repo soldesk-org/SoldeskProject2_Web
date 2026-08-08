@@ -343,10 +343,14 @@
       </div>
 
       <!-- ---------- 우: 지도 + 최근 질문 ---------- -->
-      <aside class="space-y-5 lg:w-[400px] flex-none">
+      <!-- 2026-08-08 — sticky를 지도 카드 하나에만 걸어두면, 페이지를 끝까지 내렸을 때 지도만 붙어있고
+           바로 아래(최근 질문/음식 취향 카드)는 일반 흐름대로 움직이다가 aside 컨테이너 바닥에 닿는
+           순간 지도가 갑자기 딸려 내려가는 것처럼 보였다("스크롤 내리면 따라 내려온다" 버그 리포트).
+           sticky를 지도 카드가 아니라 aside 전체에 걸어서 세 카드가 항상 한 덩어리로 붙어 다니게 한다. -->
+      <aside class="space-y-5 lg:w-[400px] flex-none lg:sticky lg:top-[calc(var(--header-h)+16px)] lg:self-start">
 
         <!-- 지도 -->
-        <div class="e-card overflow-hidden lg:sticky lg:top-[calc(var(--header-h)+16px)]">
+        <div class="e-card overflow-hidden">
           <div class="e-card-head !py-3.5">
             <p class="e-card-title !text-[14.5px]">추천 위치</p>
             <a href="explore" class="e-link-brand text-[12.5px] ml-auto">크게 보기</a>
