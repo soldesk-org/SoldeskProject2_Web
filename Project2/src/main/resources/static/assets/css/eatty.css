@@ -115,10 +115,19 @@ html body {
 /* html 자체에도 배경색을 줘야 한다(2026-08-07) — "html body{...}"는 body에만 적용되고 html은 계속
    투명이라, 모바일 Safari의 elastic overscroll(화면 끝에서 더 당기면 튕기는 바운스 효과) 때 body
    바깥의 흰 여백이 그대로 드러나 "배경이 옆에 덜 채워진 것처럼" 보이는 문제가 있었다(실기기 확인). */
-/* scrollbar-gutter: stable(2026-08-07 추가) — 세로 스크롤바 자리를 항상 미리 잡아둔다. 이게 없으면
-   내용 높이가 바뀌어 스크롤바가 생겼다 없어질 때마다(예: 내가 쓴 리뷰의 "작성한 리뷰" ↔ "임시저장"
-   탭 전환) 콘텐츠 영역 폭이 스크롤바 너비만큼 달라져서 가운데 정렬된 내용이 좌우로 흔들려 보인다. */
-html { background-color: var(--bg-soft); scroll-behavior: smooth; scrollbar-gutter: stable both-edges; }
+html { background-color: var(--bg-soft); scroll-behavior: smooth; }
+
+/* scrollbar-gutter: stable both-edges(2026-08-07 추가) — 세로 스크롤바 자리를 양쪽에 미리 잡아둔다.
+   이게 없으면 내용 높이가 바뀌어 스크롤바가 생겼다 없어질 때마다(예: 내가 쓴 리뷰의 "작성한 리뷰" ↔
+   "임시저장" 탭 전환) 콘텐츠 폭이 스크롤바 너비만큼 달라져서 가운데 정렬이 좌우로 흔들려 보인다.
+
+   데스크탑(768px~)에만 적용한다(2026-08-07 수정) — 모바일은 오버레이 스크롤바라 자리를 차지하지
+   않아서 애초에 이 문제가 없고, 실기기(iOS)에서는 both-edges가 제대로 처리되지 않아 한쪽에만 여백이
+   생기면서 히어로 검색창이 살짝 치우쳐 보이는 문제가 있었다(PC 개발자도구 모바일 모드에서는 재현
+   안 되고 실기기에서만 발생). */
+@media (min-width: 768px) {
+  html { scrollbar-gutter: stable both-edges; }
+}
 
 /* [hidden] 전역 보정(2026-08-07) — Tailwind의 .flex/.grid/.block 같은 display 유틸리티는 브라우저 기본
    [hidden]{display:none} 규칙과 명시도가 같으면서(0,1,0) 스타일시트에서 더 뒤에 오기 때문에, hidden
