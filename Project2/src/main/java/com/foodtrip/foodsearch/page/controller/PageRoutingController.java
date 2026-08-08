@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class PageRoutingController {
 
     private static final Set<String> PAGES = Set.of(
-            "index", "login", "login-business",
+            "login", "login-business",
             "signup", "signup-info", "signup-done",
             "signup-business", "signup-business-info", "signup-business-done",
             "find-email", "find-email-verify", "find-email-result",
@@ -32,6 +32,13 @@ public class PageRoutingController {
     @GetMapping("/")
     public String root() {
         return "forward:/index.html";
+    }
+
+    // "/"와 "/index"가 완전히 같은 화면을 중복으로 노출하고 있어(2026-08-08 지적) "/index"는 캐노니컬
+    // 주소인 "/"로 리다이렉트한다. 기존에 "/index"로 공유/북마크된 링크가 있어도 깨지지 않는다.
+    @GetMapping("/index")
+    public String indexRedirect() {
+        return "redirect:/";
     }
 
     // GlobalExceptionHandler의 Exception catch-all이 ResponseStatusException까지 500으로 바꿔버리므로,
