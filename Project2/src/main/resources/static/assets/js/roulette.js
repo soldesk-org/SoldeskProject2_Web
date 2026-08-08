@@ -347,6 +347,41 @@
     Eatty.toast(lastWinner.categoryName + "을(를) 뺐어요.", "default");
   });
 
+  // ---- 이스터에그: 가운데 축(잇티) 7번 연속 클릭하면 얼굴 사진이 잠깐 나타남(2026-08-08) ----
+  (function initHubEasterEgg() {
+    var hub = document.getElementById("wheelHub");
+    var hubText = document.getElementById("wheelHubText");
+    var hubFace = document.getElementById("wheelHubFace");
+    if (!hub || !hubText || !hubFace) return;
+
+    var CLICKS_NEEDED = 7;
+    var CLICK_WINDOW_MS = 3000;
+    var REVEAL_MS = 2500;
+    var clickTimes = [];
+    var revealTimer = null;
+
+    hub.addEventListener("click", function () {
+      var now = Date.now();
+      clickTimes.push(now);
+      clickTimes = clickTimes.filter(function (t) { return now - t <= CLICK_WINDOW_MS; });
+
+      hub.classList.remove("egg-pop");
+      void hub.offsetWidth; // 리플로우로 애니메이션 재시작
+      hub.classList.add("egg-pop");
+
+      if (clickTimes.length >= CLICKS_NEEDED) {
+        clickTimes = [];
+        hubText.hidden = true;
+        hubFace.hidden = false;
+        clearTimeout(revealTimer);
+        revealTimer = setTimeout(function () {
+          hubFace.hidden = true;
+          hubText.hidden = false;
+        }, REVEAL_MS);
+      }
+    });
+  })();
+
   loadCategories();
   syncSelectionUI();
 })();
