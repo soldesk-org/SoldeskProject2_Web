@@ -114,14 +114,33 @@
     map = new naver.maps.Map("naverMapRecommend", { center: new naver.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng), zoom: 14 });
   }
 
-  // 카카오 원본 category_name(예: "음식점 > 중식 > 중국요리")에서 우리 10개 고정 카테고리 중 하나에
-  // 해당할 만한 가운데 조각만 뽑는다("중식"). 2026-08-08 — 처음엔 이 원본 문자열을 그대로 explore로
-  // 넘겼더니 상세 패널 카테고리 배지에 긴 원문이 그대로 뜨고, explore.js의 마커 색 분류
-  // (CATEGORY_MARKER)가 정확히 "중식"/"일식" 같은 10개 이름만 알아봐서 마커도 기본값으로 떨어졌다.
+  // RestaurantCategoryMatchingService.KAKAO_CATEGORY_FALLBACK(백엔드)와 동일한 키워드 표(2026-08-08).
+  // 백엔드도 같은 방식으로 카카오 원본 category_name을 보조 분류하지만, 그건 공유 링크 재검증(카카오
+  // bounding box 재검색)이 그 가게를 다시 찾아낼 때만 쓰인다 — 재검색에서 못 찾으면(카카오 단건
+  // 재조회가 안 되는 근본 제약) explore.js가 이 쿼리 파라미터 값을 그대로 쓰게 되므로, 프론트도 같은
+  // 수준의 키워드 인식을 갖고 있어야 한다.
+  var KAKAO_CATEGORY_FALLBACK = [
+    ["패스트푸드", ["패스트푸드", "치킨", "피자", "버거", "햄버거"]],
+    ["뷔페", ["뷔페"]],
+    ["술집", ["술집", "호프", "요리주점", "포차", "와인바", "칵테일바", "이자카야"]],
+    ["카페/디저트", ["카페", "디저트", "베이커리", "제과"]],
+    ["분식", ["분식"]],
+    ["한식", ["한식"]],
+    ["양식", ["양식", "이탈리안", "스테이크"]],
+    ["중식", ["중식", "중국음식", "중국요리", "중국집"]],
+    ["일식", ["일식", "일본음식", "돈까스", "스시", "초밥"]],
+    ["아시안", ["아시아", "베트남", "태국", "인도음식", "세계음식"]],
+  ];
+
   function extractCategoryName(categoryNameRaw) {
     if (!categoryNameRaw) return "";
-    var parts = categoryNameRaw.split(">").map(function (s) { return s.trim(); }).filter(Boolean);
-    return parts.length >= 2 ? parts[parts.length - 2] : (parts[0] || "");
+    for (var i = 0; i < KAKAO_CATEGORY_FALLBACK.length; i++) {
+      var label = KAKAO_CATEGORY_FALLBACK[i][0], needles = KAKAO_CATEGORY_FALLBACK[i][1];
+      for (var j = 0; j < needles.length; j++) {
+        if (categoryNameRaw.indexOf(needles[j]) !== -1) return label;
+      }
+    }
+    return "";
   }
 
   // "카카오맵에서 보기"(외부로 나가버림) 대신 우리 지도 탐색으로 이동해 그 가게 하나만 바로 보여주는
