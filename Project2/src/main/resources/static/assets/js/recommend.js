@@ -114,6 +114,16 @@
     map = new naver.maps.Map("naverMapRecommend", { center: new naver.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng), zoom: 14 });
   }
 
+  // 카카오 원본 category_name(예: "음식점 > 중식 > 중국요리")에서 우리 10개 고정 카테고리 중 하나에
+  // 해당할 만한 가운데 조각만 뽑는다("중식"). 2026-08-08 — 처음엔 이 원본 문자열을 그대로 explore로
+  // 넘겼더니 상세 패널 카테고리 배지에 긴 원문이 그대로 뜨고, explore.js의 마커 색 분류
+  // (CATEGORY_MARKER)가 정확히 "중식"/"일식" 같은 10개 이름만 알아봐서 마커도 기본값으로 떨어졌다.
+  function extractCategoryName(categoryNameRaw) {
+    if (!categoryNameRaw) return "";
+    var parts = categoryNameRaw.split(">").map(function (s) { return s.trim(); }).filter(Boolean);
+    return parts.length >= 2 ? parts[parts.length - 2] : (parts[0] || "");
+  }
+
   // "카카오맵에서 보기"(외부로 나가버림) 대신 우리 지도 탐색으로 이동해 그 가게 하나만 바로 보여주는
   // 공유 링크(2026-08-08 변경) — explore.js의 openSharedRestaurant()/shareBtn과 같은 파라미터 규약
   // (roulette.js의 nearbyCard.href와도 동일한 패턴).
@@ -121,7 +131,8 @@
     var params = new URLSearchParams();
     params.set("shopId", place.place_id);
     if (place.place_name) params.set("name", place.place_name);
-    if (place.category_name) params.set("category", place.category_name);
+    var category = extractCategoryName(place.category_name);
+    if (category) params.set("category", category);
     if (place.address_name) params.set("address", place.address_name);
     if (place.road_address_name) params.set("roadAddress", place.road_address_name);
     if (place.y != null) params.set("latitude", place.y);

@@ -97,15 +97,15 @@
     axisList.innerHTML = AXIS_PAIRS.map(function (pair) {
       var left = score[pair[0]], right = score[pair[1]];
       var total = left + right || 1;
+      // 2026-08-08 — 슬라이더(점) 방식으로 바꿔봤다가 "이전 방식이 더 낫다"는 피드백으로 되돌림.
+      // 우세한 쪽의 비율을 그 쪽에서부터 채운다(2026-08-07 방식).
       var leftWins = left >= right;
-      // 2026-08-08 재설계 - 항상 왼쪽→오른쪽 한 방향 슬라이더로 표시한다(방향이 매번 바뀌던 이전 방식
-      // 대신 점의 위치로만 우세를 보여준다). pos는 오른쪽 성향 비율(0~100) — 왼쪽이 우세할수록 왼쪽에,
-      // 오른쪽이 우세할수록 오른쪽에 점이 찍힌다. 완전히 한쪽으로 쏠려도 8~92 사이로 살짝 여유를 둔다.
-      var pos = Math.round((right / total) * 100);
-      pos = Math.max(8, Math.min(92, pos));
+      var pct = Math.round(((leftWins ? left : right) / total) * 100);
+      pct = Math.max(55, Math.min(94, pct));
       return '<div class="axis-row">' +
         '<span class="axis-label ' + (leftWins ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
-        '<span class="axis-bar"><span class="axis-thumb" style="left:' + pos + '%"></span></span>' +
+        '<span class="axis-bar"><span class="axis-fill' + (leftWins ? "" : " axis-fill--right") +
+          '" style="width:' + pct + '%"></span></span>' +
         '<span class="axis-label ' + (leftWins ? "axis-label--off" : "axis-label--on") + '">' + AXIS_LABEL[pair[1]] + '</span>' +
         '</div>';
     }).join("");
