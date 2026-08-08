@@ -657,6 +657,10 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 
 .e-input, .e-textarea, .e-select {
   width: 100%;
+  /* min-width:0(2026-08-07 추가) — <input>은 size 속성(기본 20자) 기준의 "고유 최소 너비"를 갖는다.
+     width:100%만으로는 이게 안 없어져서, 좁은 화면(320px 등)에서 입력칸이 부모보다 넓어지며 폼이
+     화면 밖으로 밀려나갔다(히어로 검색창이 오른쪽으로 치우쳐 보이던 원인). */
+  min-width: 0;
   min-height: 48px;
   padding: 12px 14px;
   border: 1px solid var(--line-bold);
@@ -717,7 +721,9 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 .e-ok svg { width: 14px; height: 14px; flex: none; }
 
 /* 아이콘/버튼이 붙는 입력 그룹 */
-.e-input-wrap { position: relative; }
+/* min-width:0 — flex 아이템의 기본값(min-width:auto)이면 안쪽 input의 고유 최소 너비 아래로 못 줄어들어
+   좁은 화면에서 폼이 부모를 뚫고 나간다(2026-08-07, .e-input의 min-width와 한 쌍). */
+.e-input-wrap { position: relative; min-width: 0; }
 .e-input-wrap .e-input-icon {
   position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
   width: 19px; height: 19px; color: var(--ink-400); pointer-events: none;
