@@ -11,45 +11,136 @@
 
 <!--
 ================================================================================
- error — 공통 에러 페이지 (2026-08-08 신규)
+ error — 공통 에러 페이지 (2026-08-08 신규, 2026-08-08 2차 토스페이먼츠 스타일 리디자인)
 --------------------------------------------------------------------------------
- Spring Boot의 기본 에러 뷰 해석 규칙(ErrorMvcAutoConfiguration)에 의해, static 리소스 위치에 이
- 이름( error.html )의 파일이 있으면 Whitelabel 에러 페이지 대신 이 파일이 자동으로 쓰인다. 별도
- 컨트롤러/설정 없이 404뿐 아니라 다른 HTTP 에러 상태에도 공통으로 사용된다(상태 코드에 따라 문구만
- 살짝 바뀜). PageRoutingController의 화이트리스트에 없는 경로(response.sendError(404))와, 그 화이트
- 리스트 정규식 자체에 안 걸리는 경로(예: 점이 포함되거나 여러 세그먼트인 경로) 양쪽 다 이 페이지로
- 떨어진다.
+ Spring 쪽 ErrorViewResolver(ErrorViewConfig)가 HTML 요청의 /error를 이 파일로 forward한다
+ (/api/** 요청은 기존 JSON 오류 응답 유지). 상태 코드는 쿼리스트링 ?status=로 넘어온다.
+
+ 디자인은 "토스페이먼츠처럼" 요청(2026-08-08)에 맞춰 카드/버튼 위주였던 1차 디자인을 완전히
+ 갈아엎음 — 큰 숫자 하나 + 넉넉한 여백 + 토스 블루(#0064FF) 포인트 + 은은한 그라디언트 블롭
+ 배경 + 필 모양 버튼의 "토스 랜딩페이지" 톤을 따른다.
 ================================================================================
 -->
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="assets/css/eatty.css">
 <style>
-  body { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg-soft); }
-  .e-error-page { text-align: center; max-width: 420px; }
-  .e-error-page .e-error-code { font-size: 15px; font-weight: 800; letter-spacing: .04em; color: var(--brand-600); }
-  .e-error-page h1 { font-size: 22px; font-weight: 800; color: var(--ink-900); margin: 10px 0 8px; }
-  .e-error-page p { font-size: 14px; color: var(--ink-500); line-height: 1.6; margin-bottom: 24px; }
-  .e-error-page .e-error-actions { display: flex; gap: 8px; justify-content: center; }
+  :root {
+    --toss-blue: #0064FF;
+    --toss-blue-dim: #3182F6;
+    --toss-ink: #191F28;
+    --toss-gray: #8B95A1;
+    --toss-line: #E5E8EB;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #ffffff;
+    color: var(--toss-ink);
+  }
+  body {
+    min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 32px 24px;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  /* 은은한 배경 블롭 두 개(토스 랜딩페이지에서 자주 쓰는 흐린 그라디언트 원) */
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: .35;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .blob--a { width: 420px; height: 420px; top: -160px; left: -120px; background: radial-gradient(circle, #60A5FA, transparent 70%); }
+  .blob--b { width: 380px; height: 380px; bottom: -180px; right: -100px; background: radial-gradient(circle, #93C5FD, transparent 70%); }
+
+  .wrap { position: relative; z-index: 1; max-width: 460px; width: 100%; }
+
+  .logo {
+    display: inline-flex; align-items: center; gap: 8px;
+    text-decoration: none; margin-bottom: 48px;
+  }
+  .logo img { width: 30px; height: 30px; border-radius: 8px; }
+  .logo span { font-size: 18px; font-weight: 800; color: var(--toss-ink); letter-spacing: -.02em; }
+
+  .code {
+    font-size: 96px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -.04em;
+    background: linear-gradient(135deg, var(--toss-blue) 0%, #00D4FF 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    margin: 0 0 20px;
+  }
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    margin: 0 0 12px;
+    color: var(--toss-ink);
+  }
+  p.desc {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--toss-gray);
+    margin: 0 0 40px;
+  }
+
+  .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 52px; padding: 0 28px;
+    border-radius: 999px;
+    font-size: 15px; font-weight: 700;
+    text-decoration: none;
+    transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+    border: none; cursor: pointer;
+  }
+  .btn--primary {
+    background: var(--toss-blue);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(0,100,255,.25);
+  }
+  .btn--primary:hover { background: var(--toss-blue-dim); transform: translateY(-1px); }
+  .btn--ghost {
+    background: #F2F4F6;
+    color: var(--toss-ink);
+  }
+  .btn--ghost:hover { background: #E9ECEF; transform: translateY(-1px); }
+
+  @media (max-width: 420px) {
+    .code { font-size: 72px; }
+    h1 { font-size: 20px; }
+    .btn { flex: 1; height: 50px; padding: 0 18px; }
+  }
 </style>
 </head>
 <body>
-  <div class="e-error-page">
-    <a class="e-logo" href="/" style="justify-content:center; margin-bottom:20px;">
-      <span class="e-logo-mark" style="background:var(--brand-grad, linear-gradient(135deg,#ff7a45,#ff4d4d));">
-        <img class="e-logo-img" src="assets/images/logo-icon.png" alt="">
-      </span>
-      <span class="e-logo-text">잇티<em>웨이</em></span>
+  <span class="blob blob--a" aria-hidden="true"></span>
+  <span class="blob blob--b" aria-hidden="true"></span>
+
+  <div class="wrap">
+    <a class="logo" href="/">
+      <img src="assets/images/icon-192.png" alt="">
+      <span>잇티웨이</span>
     </a>
-    <p class="e-error-code" id="errorCode">404</p>
+
+    <p class="code" id="errorCode">404</p>
     <h1 id="errorTitle">페이지를 찾을 수 없어요</h1>
-    <p id="errorDesc">주소가 잘못됐거나 삭제된 페이지예요. 주소를 다시 확인하시거나 홈으로 돌아가주세요.</p>
-    <div class="e-error-actions">
-      <a href="/" class="btn btn-primary btn-sm">홈으로 가기</a>
-      <a href="support" class="btn btn-outline btn-sm">고객센터 문의</a>
+    <p class="desc" id="errorDesc">주소가 잘못됐거나 삭제된 페이지예요.<br>주소를 다시 확인하시거나 홈으로 돌아가주세요.</p>
+
+    <div class="actions">
+      <a href="/" class="btn btn--primary">홈으로 가기</a>
+      <a href="support" class="btn btn--ghost">고객센터 문의</a>
     </div>
   </div>
+
   <script>
     (function () {
       var status = null;
@@ -60,13 +151,13 @@
       if (!status) return;
       var map = {
         '403': ['403', '접근할 수 없어요', '이 페이지에 대한 권한이 없어요.'],
-        '500': ['500', '문제가 발생했어요', '서버에 일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.']
+        '500': ['500', '문제가 발생했어요', '서버에 일시적인 오류가 발생했어요.<br>잠시 후 다시 시도해주세요.']
       };
       var m = map[status];
       if (!m) return;
       document.getElementById('errorCode').textContent = m[0];
       document.getElementById('errorTitle').textContent = m[1];
-      document.getElementById('errorDesc').textContent = m[2];
+      document.getElementById('errorDesc').innerHTML = m[2];
       document.title = m[1] + ' — 잇티웨이';
     })();
   </script>
