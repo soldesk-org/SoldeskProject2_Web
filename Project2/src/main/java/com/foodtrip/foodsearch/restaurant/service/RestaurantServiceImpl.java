@@ -277,11 +277,19 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         // name이 있어야(=프론트가 방금 검색 결과에서 클릭한 경우) 분류가 가능하다 — id만 아는 경우(스냅샷
         // 없음)는 카테고리도 알 수 없다(001-05, 카카오 단건 재조회 불가).
+        // 1차: 상호명/메뉴명 키워드 매칭 → 실패 시 2차: verifySnapshot()이 재검증 과정에서 이미 받아온
+        // 카카오 원본 카테고리 문자열로 보조 분류(classifyItem()과 같은 2단계 방식, 2026-08-08 추가) —
+        // 목록/검색/주변조회에만 적용되고 공유 링크로 들어온 단건 상세조회는 대상이 아니었던 한계를
+        // 메운다(AI 추천 결과의 "지도에서 보기" 공유 링크에서 카테고리 배지/마커가 미분류로 떨어지던
+        // 문제로 발견됨).
         List<String> categories = List.of();
         if (name != null) {
             List<MenuKeyword> keywords = restaurantCategoryMatchingService.loadActiveKeywords();
             List<String> menuNames = menus.stream().map(MenuResponseDto::getMenuName).toList();
             Optional<RestaurantCategory> category = restaurantCategoryMatchingService.classify(name, menuNames, keywords);
+            if (category.isEmpty() && verified.kakaoCategoryName() != null) {
+                category = restaurantCategoryMatchingService.classifyByKakaoCategoryName(verified.kakaoCategoryName());
+            }
             categories = category.map(c -> List.of(c.getCategoryName())).orElse(List.of());
         }
         String category = categories.isEmpty() ? null : categories.get(0);
@@ -409,8 +417,8 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     private record VerifiedSnapshot(String name, String address, String roadAddress,
-                                     BigDecimal latitude, BigDecimal longitude) {
-        static final VerifiedSnapshot EMPTY = new VerifiedSnapshot(null, null, null, null, null);
+                                     BigDecimal latitude, BigDecimal longitude, String kakaoCategoryName) {
+        static final VerifiedSnapshot EMPTY = new VerifiedSnapshot(null, null, null, null, null, null);
     }
 
     // 상세 조회 위·변조 방지(2026-08-06) — 클라이언트가 준 좌표 주변(약 300m)을 카카오로 실시간 재검색해
@@ -430,7 +438,7 @@ public class RestaurantServiceImpl implements RestaurantService {
             for (KakaoLocalSearchItem item : items) {
                 if (item.id().equals(restaurantId)) {
                     return new VerifiedSnapshot(item.placeName(), item.addressName(), item.roadAddressName(),
-                            item.latitude(), item.longitude());
+                            item.latitude(), item.longitude(), item.categoryName());
                 }
             }
         } catch (CustomException e) {
