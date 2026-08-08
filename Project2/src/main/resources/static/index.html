@@ -244,7 +244,10 @@
     <div class="e-container relative z-10 pt-14 pb-16 md:pt-24 md:pb-24">
       <div class="grid lg:grid-cols-[1.05fr_.95fr] gap-12 lg:gap-16 items-center">
 
-        <div class="e-anim-up">
+        <!-- min-w-0: 그리드 아이템은 기본 min-width:auto라 안쪽 <input>의 고유 최소 너비(약 367px)
+             아래로 못 줄어든다. 그래서 좁은 화면(320px)에서 이 컬럼이 컨테이너를 뚫고 나가
+             검색폼이 오른쪽으로 치우쳐 보였다(2026-08-07 수정). -->
+        <div class="e-anim-up min-w-0">
           <h1 class="t-h1 mt-6">
             먹고 싶은 걸 말하면,<br>
             <span class="t-grad">잇티웨이</span>가 찾아줍니다
