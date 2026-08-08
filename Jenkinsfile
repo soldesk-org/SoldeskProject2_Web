@@ -64,6 +64,7 @@ pipeline {
                         string(credentialsId: 'soldesk-ppurio-auth-key', variable: 'PPURIO_AUTH_KEY'),
                         string(credentialsId: 'soldesk-ppurio-sender-number', variable: 'PPURIO_SENDER_NUMBER'),
                         string(credentialsId: 'soldesk-business-verify-base-url', variable: 'BUSINESS_VERIFY_BASE_URL'),
+                        string(credentialsId: 'soldesk-business-verify-internal-token', variable: 'BUSINESS_VERIFY_INTERNAL_TOKEN'),
                         // AI 맛집 추천 Python 서버(2026-08-07 추가) — 이 서버만 VM이 아니라 개발자
                         // 로컬 PC에서 돌리고 ngrok 터널로 노출하므로, 그 URL을 Credentials로 주입한다.
                         // 값이 비어 있으면 application.yml 기본값(http://localhost:8000)이 쓰인다.
@@ -142,6 +143,7 @@ pipeline {
                         string(credentialsId: 'soldesk-ppurio-auth-key', variable: 'PPURIO_AUTH_KEY'),
                         string(credentialsId: 'soldesk-ppurio-sender-number', variable: 'PPURIO_SENDER_NUMBER'),
                         string(credentialsId: 'soldesk-business-verify-base-url', variable: 'BUSINESS_VERIFY_BASE_URL'),
+                        string(credentialsId: 'soldesk-business-verify-internal-token', variable: 'BUSINESS_VERIFY_INTERNAL_TOKEN'),
                         // AI 맛집 추천 Python 서버(2026-08-07 추가) — 이 서버만 VM이 아니라 개발자
                         // 로컬 PC에서 돌리고 ngrok 터널로 노출하므로, 그 URL을 Credentials로 주입한다.
                         // 값이 비어 있으면 application.yml 기본값(http://localhost:8000)이 쓰인다.
@@ -187,6 +189,7 @@ PPURIO_ACCOUNT=$PPURIO_ACCOUNT
 PPURIO_AUTH_KEY=$PPURIO_AUTH_KEY
 PPURIO_SENDER_NUMBER=$PPURIO_SENDER_NUMBER
 BUSINESS_VERIFY_BASE_URL=$BUSINESS_VERIFY_BASE_URL
+BUSINESS_VERIFY_INTERNAL_TOKEN=$BUSINESS_VERIFY_INTERNAL_TOKEN
 RECOMMENDATION_BASE_URL=$RECOMMENDATION_BASE_URL
 KAKAO_CLIENT_ID=$KAKAO_CLIENT_ID
 KAKAO_CLIENT_SECRET=$KAKAO_CLIENT_SECRET

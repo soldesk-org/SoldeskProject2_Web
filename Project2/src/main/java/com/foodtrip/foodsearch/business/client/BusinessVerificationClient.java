@@ -31,14 +31,21 @@ public class BusinessVerificationClient {
 
     private final RestClient restClient;
 
-    public BusinessVerificationClient(@Value("${business-verify.base-url}") String baseUrl) {
+    public BusinessVerificationClient(@Value("${business-verify.base-url}") String baseUrl,
+                                       @Value("${business-verify.internal-token:}") String internalToken) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
-        this.restClient = RestClient.builder()
+        RestClient.Builder builder = RestClient.builder()
                 .baseUrl(baseUrl)
-                .requestFactory(new JdkClientHttpRequestFactory(httpClient))
-                .build();
+                .requestFactory(new JdkClientHttpRequestFactory(httpClient));
+        // api.eattyway.com이 우리 백엔드를 거치지 않은 직접 호출을 거부하도록 공유 비밀 헤더를 붙인다
+        // (2026-08-08, Python main.py의 검증 미들웨어와 짝). 로컬 개발처럼 토큰이 비어있으면 헤더 자체를
+        // 안 보내고, Python 쪽도 토큰 미설정 시 검사를 건너뛴다(fail-open).
+        if (!internalToken.isBlank()) {
+            builder.defaultHeader("X-Internal-Token", internalToken);
+        }
+        this.restClient = builder.build();
     }
 
     public BusinessVerificationResult verify(MultipartFile file) {

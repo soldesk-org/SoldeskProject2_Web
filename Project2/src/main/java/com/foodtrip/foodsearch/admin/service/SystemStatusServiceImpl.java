@@ -46,6 +46,7 @@ public class SystemStatusServiceImpl implements SystemStatusService {
     private final PpurioSmsService ppurioSmsService;
 
     private final String businessVerifyBaseUrl;
+    private final String businessVerifyInternalToken;
     private final String recommendationBaseUrl;
     private final String kakaoClientId;
     private final String mailUsername;
@@ -62,6 +63,7 @@ public class SystemStatusServiceImpl implements SystemStatusService {
                                     JavaMailSenderImpl javaMailSender,
                                     PpurioSmsService ppurioSmsService,
                                     @Value("${business-verify.base-url}") String businessVerifyBaseUrl,
+                                    @Value("${business-verify.internal-token:}") String businessVerifyInternalToken,
                                     @Value("${recommendation.base-url}") String recommendationBaseUrl,
                                     @Value("${oauth.kakao.client-id:}") String kakaoClientId,
                                     @Value("${spring.mail.username:}") String mailUsername,
@@ -72,6 +74,7 @@ public class SystemStatusServiceImpl implements SystemStatusService {
         this.javaMailSender = javaMailSender;
         this.ppurioSmsService = ppurioSmsService;
         this.businessVerifyBaseUrl = businessVerifyBaseUrl;
+        this.businessVerifyInternalToken = businessVerifyInternalToken;
         this.recommendationBaseUrl = recommendationBaseUrl;
         this.kakaoClientId = kakaoClientId;
         this.mailUsername = mailUsername;
@@ -87,8 +90,8 @@ public class SystemStatusServiceImpl implements SystemStatusService {
         List<SystemStatusItemDto> results = new ArrayList<>();
         results.add(checkDatabase());
         results.add(checkRedis());
-        results.add(checkHttpServer("사업자/영수증 OCR 서버", businessVerifyBaseUrl));
-        results.add(checkHttpServer("AI 추천 서버", recommendationBaseUrl));
+        results.add(checkHttpServer("사업자/영수증 OCR 서버", businessVerifyBaseUrl, businessVerifyInternalToken));
+        results.add(checkHttpServer("AI 추천 서버", recommendationBaseUrl, null));
         results.add(checkWithCache("카카오 API", kakaoClientId, this::pingKakao));
         results.add(checkWithCache("메일 발송", mailUsername, this::pingMail));
         results.add(checkWithCache("SMS 발송", ppurioAccount, this::pingSms));
@@ -127,13 +130,18 @@ public class SystemStatusServiceImpl implements SystemStatusService {
     // FastAPI 앱은 루트("/")에 라우트를 안 두면 404를 주는 게 정상이라(2026-08-06, 실제로 그렇게 뜨는 걸
     // 확인) 루트 응답 코드로는 "떠있는지"를 못 가른다 — 대신 FastAPI가 자동으로 만들어주는 Swagger 문서
     // 경로("/docs")를 확인한다. 2xx가 아니면 명확히 DOWN으로 표시한다(예전엔 404여도 "UP"으로 잘못 표시됨).
-    private SystemStatusItemDto checkHttpServer(String name, String baseUrl) {
+    private SystemStatusItemDto checkHttpServer(String name, String baseUrl, String internalToken) {
         long start = System.currentTimeMillis();
         try {
-            HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/docs"))
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(URI.create(baseUrl + "/docs"))
                     .timeout(PING_TIMEOUT)
-                    .GET()
-                    .build();
+                    .GET();
+            // 2026-08-08 — api.eattyway.com이 X-Internal-Token 없는 요청을 전부 401로 거부하게 바뀌어서,
+            // 이 상태 조회도 토큰을 실어 보내야 "UP"으로 정상 확인된다(그렇지 않으면 401을 DOWN으로 오인함).
+            if (internalToken != null && !internalToken.isBlank()) {
+                requestBuilder.header("X-Internal-Token", internalToken);
+            }
+            HttpRequest request = requestBuilder.build();
             HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
             long latency = System.currentTimeMillis() - start;
             boolean up = response.statusCode() >= 200 && response.statusCode() < 300;

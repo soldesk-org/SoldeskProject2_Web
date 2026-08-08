@@ -35,14 +35,20 @@ public class ReceiptOcrClient {
 
     private final RestClient restClient;
 
-    public ReceiptOcrClient(@Value("${business-verify.base-url}") String baseUrl) {
+    public ReceiptOcrClient(@Value("${business-verify.base-url}") String baseUrl,
+                             @Value("${business-verify.internal-token:}") String internalToken) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
-        this.restClient = RestClient.builder()
+        RestClient.Builder builder = RestClient.builder()
                 .baseUrl(baseUrl)
-                .requestFactory(new JdkClientHttpRequestFactory(httpClient))
-                .build();
+                .requestFactory(new JdkClientHttpRequestFactory(httpClient));
+        // BusinessVerificationClient와 같은 이유(2026-08-08) — 같은 Python 서버의 다른 라우터라 같은
+        // 토큰을 그대로 재사용한다.
+        if (!internalToken.isBlank()) {
+            builder.defaultHeader("X-Internal-Token", internalToken);
+        }
+        this.restClient = builder.build();
     }
 
     public ReceiptOcrResult parse(MultipartFile file) {

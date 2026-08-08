@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>페이지를 찾을 수 없어요 — 잇티웨이</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="assets/images/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
+<meta name="robots" content="noindex">
+
+<!--
+================================================================================
+ error — 공통 에러 페이지 (2026-08-08 신규)
+--------------------------------------------------------------------------------
+ Spring Boot의 기본 에러 뷰 해석 규칙(ErrorMvcAutoConfiguration)에 의해, static 리소스 위치에 이
+ 이름( error.html )의 파일이 있으면 Whitelabel 에러 페이지 대신 이 파일이 자동으로 쓰인다. 별도
+ 컨트롤러/설정 없이 404뿐 아니라 다른 HTTP 에러 상태에도 공통으로 사용된다(상태 코드에 따라 문구만
+ 살짝 바뀜). PageRoutingController의 화이트리스트에 없는 경로(response.sendError(404))와, 그 화이트
+ 리스트 정규식 자체에 안 걸리는 경로(예: 점이 포함되거나 여러 세그먼트인 경로) 양쪽 다 이 페이지로
+ 떨어진다.
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="assets/css/eatty.css">
+<style>
+  body { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg-soft); }
+  .e-error-page { text-align: center; max-width: 420px; }
+  .e-error-page .e-error-code { font-size: 15px; font-weight: 800; letter-spacing: .04em; color: var(--brand-600); }
+  .e-error-page h1 { font-size: 22px; font-weight: 800; color: var(--ink-900); margin: 10px 0 8px; }
+  .e-error-page p { font-size: 14px; color: var(--ink-500); line-height: 1.6; margin-bottom: 24px; }
+  .e-error-page .e-error-actions { display: flex; gap: 8px; justify-content: center; }
+</style>
+</head>
+<body>
+  <div class="e-error-page">
+    <a class="e-logo" href="/" style="justify-content:center; margin-bottom:20px;">
+      <span class="e-logo-mark" style="background:var(--brand-grad, linear-gradient(135deg,#ff7a45,#ff4d4d));">
+        <img class="e-logo-img" src="assets/images/logo-icon.png" alt="">
+      </span>
+      <span class="e-logo-text">잇티<em>웨이</em></span>
+    </a>
+    <p class="e-error-code" id="errorCode">404</p>
+    <h1 id="errorTitle">페이지를 찾을 수 없어요</h1>
+    <p id="errorDesc">주소가 잘못됐거나 삭제된 페이지예요. 주소를 다시 확인하시거나 홈으로 돌아가주세요.</p>
+    <div class="e-error-actions">
+      <a href="/" class="btn btn-primary btn-sm">홈으로 가기</a>
+      <a href="support" class="btn btn-outline btn-sm">고객센터 문의</a>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var status = null;
+      try {
+        var params = new URLSearchParams(location.search);
+        status = params.get('status');
+      } catch (e) {}
+      if (!status) return;
+      var map = {
+        '403': ['403', '접근할 수 없어요', '이 페이지에 대한 권한이 없어요.'],
+        '500': ['500', '문제가 발생했어요', '서버에 일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.']
+      };
+      var m = map[status];
+      if (!m) return;
+      document.getElementById('errorCode').textContent = m[0];
+      document.getElementById('errorTitle').textContent = m[1];
+      document.getElementById('errorDesc').textContent = m[2];
+      document.title = m[1] + ' — 잇티웨이';
+    })();
+  </script>
+</body>
+</html>
