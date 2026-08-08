@@ -27,17 +27,23 @@ public class RecommendationClient {
 
     private final RestClient restClient;
 
-    public RecommendationClient(@Value("${recommendation.base-url}") String baseUrl) {
+    public RecommendationClient(@Value("${recommendation.base-url}") String baseUrl,
+                                 @Value("${recommendation.internal-token:}") String internalToken) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(60));
-        this.restClient = RestClient.builder()
+        RestClient.Builder builder = RestClient.builder()
                 .baseUrl(baseUrl)
-                .requestFactory(requestFactory)
-                .build();
+                .requestFactory(requestFactory);
+        // ai.eattyway.com이 우리 백엔드를 거치지 않은 직접 호출을 거부하도록 공유 비밀 헤더를 붙인다
+        // (2026-08-08, recommendation_api.py의 검증 미들웨어와 짝 — business-verify와 같은 패턴).
+        if (!internalToken.isBlank()) {
+            builder.defaultHeader("X-Internal-Token", internalToken);
+        }
+        this.restClient = builder.build();
     }
 
     public RecommendResponseDto recommend(String text, Double x, Double y, Integer radius, Integer size) {

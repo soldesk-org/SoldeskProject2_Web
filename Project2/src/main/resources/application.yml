@@ -207,6 +207,9 @@ recommendation:
   # business-verify와 기본 포트가 같은 8000인데, 이 둘은 서로 다른 Python 프로젝트라 실제로는 한 번에
   # 하나씩만 켜서 테스트하는 걸 전제로 한다 — 둘 다 동시에 필요해지면 이 값을 다른 포트로 바꿔서 기동해야 함.
   base-url: ${RECOMMENDATION_BASE_URL:http://localhost:8000}
+  # ai.eattyway.com도 인터넷에 그대로 노출돼 있어 토큰 없이 직접 호출하면 GPU LLM 추론과 카카오 API
+  # 호출량이 낭비될 수 있다(2026-08-08 확인) — business-verify.internal-token과 같은 방식.
+  internal-token: ${RECOMMENDATION_INTERNAL_TOKEN:}
 
 # HTTPS 로컬/팀 테스트용 추가 커넥터(13.HTTPS-전송암호화, 2026-07-23 추가) — 기존 HTTP 포트(8081, 소셜로그인
 # 콜백 등록 URL과의 호환 유지)는 그대로 두고, 같은 애플리케이션에 TLS 커넥터를 하나 더 연다.

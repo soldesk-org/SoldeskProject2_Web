@@ -48,6 +48,7 @@ public class SystemStatusServiceImpl implements SystemStatusService {
     private final String businessVerifyBaseUrl;
     private final String businessVerifyInternalToken;
     private final String recommendationBaseUrl;
+    private final String recommendationInternalToken;
     private final String kakaoClientId;
     private final String mailUsername;
     private final String ppurioAccount;
@@ -65,6 +66,7 @@ public class SystemStatusServiceImpl implements SystemStatusService {
                                     @Value("${business-verify.base-url}") String businessVerifyBaseUrl,
                                     @Value("${business-verify.internal-token:}") String businessVerifyInternalToken,
                                     @Value("${recommendation.base-url}") String recommendationBaseUrl,
+                                    @Value("${recommendation.internal-token:}") String recommendationInternalToken,
                                     @Value("${oauth.kakao.client-id:}") String kakaoClientId,
                                     @Value("${spring.mail.username:}") String mailUsername,
                                     @Value("${ppurio.account:}") String ppurioAccount) {
@@ -76,6 +78,7 @@ public class SystemStatusServiceImpl implements SystemStatusService {
         this.businessVerifyBaseUrl = businessVerifyBaseUrl;
         this.businessVerifyInternalToken = businessVerifyInternalToken;
         this.recommendationBaseUrl = recommendationBaseUrl;
+        this.recommendationInternalToken = recommendationInternalToken;
         this.kakaoClientId = kakaoClientId;
         this.mailUsername = mailUsername;
         this.ppurioAccount = ppurioAccount;
@@ -91,7 +94,7 @@ public class SystemStatusServiceImpl implements SystemStatusService {
         results.add(checkDatabase());
         results.add(checkRedis());
         results.add(checkHttpServer("사업자/영수증 OCR 서버", businessVerifyBaseUrl, businessVerifyInternalToken));
-        results.add(checkHttpServer("AI 추천 서버", recommendationBaseUrl, null));
+        results.add(checkHttpServer("AI 추천 서버", recommendationBaseUrl, recommendationInternalToken));
         results.add(checkWithCache("카카오 API", kakaoClientId, this::pingKakao));
         results.add(checkWithCache("메일 발송", mailUsername, this::pingMail));
         results.add(checkWithCache("SMS 발송", ppurioAccount, this::pingSms));
