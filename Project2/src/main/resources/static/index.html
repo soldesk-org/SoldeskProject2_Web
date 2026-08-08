@@ -242,7 +242,10 @@
   <!-- ============================= 히어로 ============================= -->
   <section class="e-hero-glow bg-white border-b border-[var(--line)]">
     <div class="e-container relative z-10 pt-14 pb-16 md:pt-24 md:pb-24">
-      <div class="grid lg:grid-cols-[1.05fr_.95fr] gap-12 lg:gap-16 items-center">
+      <!-- grid-cols-1(= minmax(0,1fr))을 명시해야 한다(2026-08-07) — 모바일에는 컬럼 정의가 없어서
+           암묵적 auto 트랙이 되는데, auto 트랙은 max-content까지 부풀 수 있어 컨테이너(280px)보다
+           넓은 366px가 되면서 검색폼이 화면 밖으로 밀려났다(좁은 기기에서만 발생). -->
+      <div class="grid grid-cols-1 lg:grid-cols-[1.05fr_.95fr] gap-12 lg:gap-16 items-center">
 
         <!-- min-w-0: 그리드 아이템은 기본 min-width:auto라 안쪽 <input>의 고유 최소 너비(약 367px)
              아래로 못 줄어든다. 그래서 좁은 화면(320px)에서 이 컬럼이 컨테이너를 뚫고 나가
