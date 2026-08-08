@@ -144,23 +144,23 @@
         var axisList = document.getElementById("btiAxisList");
         var score = data.score;
         axisList.innerHTML = AXIS_PAIRS.map(function (pair) {
-          // taste-quiz.js와 동일한 규칙(2026-08-07) — 우세한 쪽의 비율을 그 쪽에서부터 채운다.
+          // taste-quiz.js와 동일한 규칙(2026-08-08 재설계) — 항상 왼쪽→오른쪽 한 방향 슬라이더.
           var left = score[pair[0]], right = score[pair[1]];
           var total = left + right || 1;
           var leftWins = left >= right;
-          var pct = Math.round(((leftWins ? left : right) / total) * 100);
-          pct = Math.max(55, Math.min(94, pct));
+          var pos = Math.round((right / total) * 100);
+          pos = Math.max(8, Math.min(92, pos));
           return '<div class="axis-row">' +
             '<span class="axis-label ' + (leftWins ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
-            '<span class="axis-bar"><span class="axis-fill' + (leftWins ? "" : " axis-fill--right") +
-              '" style="width:' + pct + '%"></span></span>' +
+            '<span class="axis-bar"><span class="axis-thumb" style="left:' + pos + '%"></span></span>' +
             '<span class="axis-label ' + (leftWins ? "axis-label--off" : "axis-label--on") + '">' + AXIS_LABEL[pair[1]] + '</span>' +
             '</div>';
         }).join("");
 
         var foodList = document.getElementById("btiFoodList");
+        // 2026-08-08 추가 — taste-quiz.js와 동일하게, 메뉴 칩을 누르면 지도 탐색에서 바로 검색되게.
         foodList.innerHTML = (data.food || []).map(function (name) {
-          return '<span class="e-chip">' + name + '</span>';
+          return '<a href="explore?q=' + encodeURIComponent(name) + '" class="e-chip">' + name + '</a>';
         }).join("");
 
         resultBox.hidden = false;

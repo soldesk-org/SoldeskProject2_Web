@@ -114,6 +114,21 @@
     map = new naver.maps.Map("naverMapRecommend", { center: new naver.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng), zoom: 14 });
   }
 
+  // "카카오맵에서 보기"(외부로 나가버림) 대신 우리 지도 탐색으로 이동해 그 가게 하나만 바로 보여주는
+  // 공유 링크(2026-08-08 변경) — explore.js의 openSharedRestaurant()/shareBtn과 같은 파라미터 규약
+  // (roulette.js의 nearbyCard.href와도 동일한 패턴).
+  function exploreShareUrl(place) {
+    var params = new URLSearchParams();
+    params.set("shopId", place.place_id);
+    if (place.place_name) params.set("name", place.place_name);
+    if (place.category_name) params.set("category", place.category_name);
+    if (place.address_name) params.set("address", place.address_name);
+    if (place.road_address_name) params.set("roadAddress", place.road_address_name);
+    if (place.y != null) params.set("latitude", place.y);
+    if (place.x != null) params.set("longitude", place.x);
+    return "explore?" + params.toString();
+  }
+
   // ---- 결과 카드 ----
   function renderCard(place, index) {
     var article = document.createElement("article");
@@ -146,7 +161,7 @@
       (tags.length ? '<div class="flex flex-wrap gap-1.5 mt-2">' + tags.map(function (t) { return '<span class="e-tag">' + escapeHtml(t) + '</span>'; }).join("") + '</div>' : '') +
       (place.reason ? '<p class="rc-reason"><b class="text-[var(--brand-700)]">추천 이유</b> · ' + escapeHtml(place.reason) + '</p>' : '') +
       '<div class="flex flex-wrap items-center gap-2 mt-3.5">' +
-      (place.place_url ? '<a href="' + escapeHtml(place.place_url) + '" target="_blank" rel="noopener" class="btn btn-primary btn-sm">카카오맵에서 보기</a>' : '') +
+      '<a href="' + escapeHtml(exploreShareUrl(place)) + '" class="btn btn-primary btn-sm">지도에서 보기</a>' +
       '<button type="button" class="btn btn-outline btn-sm" data-fav="' + escapeHtml(place.place_id) + '"><span class="e-heart-icon" style="color:var(--ink-300)">♡</span> 즐겨찾기</button>' +
       '<div class="flex items-center gap-1.5 ml-auto" data-feedback-group>' +
       '<button type="button" class="fb-btn" data-feedback="like" aria-pressed="false" aria-label="좋아요">' +

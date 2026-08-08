@@ -84,10 +84,12 @@
     document.getElementById("resultTypeDesc").textContent = data.resultText;
 
     var foodList = document.getElementById("resultFoodList");
+    // 2026-08-08 추가 — 메뉴 이름을 누르면 지도 탐색에서 그 메뉴로 바로 검색되게(explore.js가 읽는
+    // ?q= 규약 재사용).
     foodList.innerHTML = (data.food || []).map(function (f) {
-      return '<div class="e-card e-card-flat overflow-hidden">' +
+      return '<a href="explore?q=' + encodeURIComponent(f) + '" class="e-card e-card-flat overflow-hidden block">' +
         '<div class="e-ratio-4-3 e-img-ph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg></div>' +
-        '<div class="p-3"><p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">' + f + '</p></div></div>';
+        '<div class="p-3"><p class="text-[13.5px] font-extrabold text-[var(--ink-900)]">' + f + '</p></div></a>';
     }).join("");
 
     var axisList = document.getElementById("resultAxisList");
@@ -95,17 +97,15 @@
     axisList.innerHTML = AXIS_PAIRS.map(function (pair) {
       var left = score[pair[0]], right = score[pair[1]];
       var total = left + right || 1;
-      // 2026-08-07 수정 - 예전엔 항상 "왼쪽 값 비율"을 왼쪽부터 채워서, 오른쪽 성향이 우세하면
-      // (예: 0:3) 강조되는 라벨은 오른쪽인데 막대는 왼쪽에 살짝만 차는 모순이 있었다.
-      // 이제 우세한 쪽의 비율을 그 쪽에서부터 채운다.
       var leftWins = left >= right;
-      var pct = Math.round(((leftWins ? left : right) / total) * 100);
-      // 완전히 한쪽(3:0)이어도 100%까지 꽉 채우지는 않고 살짝 남겨 반대쪽이 있다는 걸 보이게 한다.
-      pct = Math.max(55, Math.min(94, pct));
+      // 2026-08-08 재설계 - 항상 왼쪽→오른쪽 한 방향 슬라이더로 표시한다(방향이 매번 바뀌던 이전 방식
+      // 대신 점의 위치로만 우세를 보여준다). pos는 오른쪽 성향 비율(0~100) — 왼쪽이 우세할수록 왼쪽에,
+      // 오른쪽이 우세할수록 오른쪽에 점이 찍힌다. 완전히 한쪽으로 쏠려도 8~92 사이로 살짝 여유를 둔다.
+      var pos = Math.round((right / total) * 100);
+      pos = Math.max(8, Math.min(92, pos));
       return '<div class="axis-row">' +
         '<span class="axis-label ' + (leftWins ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
-        '<span class="axis-bar"><span class="axis-fill' + (leftWins ? "" : " axis-fill--right") +
-          '" style="width:' + pct + '%"></span></span>' +
+        '<span class="axis-bar"><span class="axis-thumb" style="left:' + pos + '%"></span></span>' +
         '<span class="axis-label ' + (leftWins ? "axis-label--off" : "axis-label--on") + '">' + AXIS_LABEL[pair[1]] + '</span>' +
         '</div>';
     }).join("");
