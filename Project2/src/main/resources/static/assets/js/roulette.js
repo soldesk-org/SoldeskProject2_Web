@@ -261,6 +261,9 @@
   var nearbyAddrEl = document.getElementById("resultNearbyAddr");
   var nearbyLabelEl = document.getElementById("resultNearbyLabel");
   var nearbyReqId = 0; // 다시 뽑기를 연타했을 때 예전 응답이 나중에 도착해 덮어쓰는 것 방지
+  // 카테고리별로 이미 보여준 곳을 기억해뒀다가 다음엔 뺀다 — "계속 같은 곳만 추천된다"는 지적(2026-08-08)
+  // 대응. 세션 동안만 유지(새로고침하면 초기화), 후보가 다 소진되면 그 카테고리만 비우고 다시 순환한다.
+  var shownByCategory = {};
 
   function loadNearbyPick(winner) {
     if (!nearbyBox) return;
@@ -282,7 +285,18 @@
           if (reqId !== nearbyReqId) return; // 더 최신 요청이 있으면 이 응답은 버린다
           var list = (data && data.restaurants) || [];
           if (!list.length) return;
-          renderNearbyPick(list[Math.floor(Math.random() * list.length)], winner);
+
+          var shown = shownByCategory[winner.categoryId] || (shownByCategory[winner.categoryId] = []);
+          var fresh = list.filter(function (r) { return shown.indexOf(r.restaurantId) === -1; });
+          if (!fresh.length) {
+            // 후보를 다 보여줬으면 그 카테고리만 초기화하고 전체 목록에서 다시 고른다.
+            shown.length = 0;
+            fresh = list;
+          }
+          var picked = fresh[Math.floor(Math.random() * fresh.length)];
+          shown.push(picked.restaurantId);
+
+          renderNearbyPick(picked, winner);
         })
         .catch(function () {});
     }, function () { /* 위치 권한 거부 — 그냥 안 보여준다 */ }, { timeout: 8000, maximumAge: 300000 });
