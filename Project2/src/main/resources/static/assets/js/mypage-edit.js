@@ -132,6 +132,7 @@
   function loadFoodBtiResult() {
     var resultBox = document.getElementById("foodBtiResult");
     var emptyBox = document.getElementById("foodBtiEmpty");
+    var retakeLink = document.getElementById("foodBtiRetakeLink");
     if (!resultBox || !emptyBox) return;
 
     Api.request("/api/food-bti/my-result")
@@ -164,10 +165,13 @@
 
         resultBox.hidden = false;
         emptyBox.hidden = true;
+        // 결과가 있을 때만 "다시하기"가 말이 됨 — 결과 없을 때는 숨김(2026-08-08).
+        if (retakeLink) retakeLink.hidden = false;
       })
       .catch(function () {
         resultBox.hidden = true;
         emptyBox.hidden = false;
+        if (retakeLink) retakeLink.hidden = true;
       });
   }
 
