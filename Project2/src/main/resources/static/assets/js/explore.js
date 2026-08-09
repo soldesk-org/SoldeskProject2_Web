@@ -360,6 +360,16 @@
   var mapZoomOutBtn = document.getElementById("mapZoomOutBtn");
   if (mapZoomInBtn) mapZoomInBtn.addEventListener("click", function () { map.setZoom(map.getZoom() + 1); });
   if (mapZoomOutBtn) mapZoomOutBtn.addEventListener("click", function () { map.setZoom(map.getZoom() - 1); });
+  // 2026-08-09 추가 — "현재 위치로 이동"만 하고 실제로 그 위치가 어딘지 지도 위에 표시가 안 되던 문제.
+  // 커스텀 아이콘을 새로 그리지 않고 네이버 지도가 기본으로 주는 마커(icon 옵션을 안 주면 뜨는 기본
+  // 빨간 핀)를 그대로 쓰고, 그 주변에 정확도 반경 원(Circle)을 함께 그려서 위치가 눈에 띄게 한다.
+  // 클릭할 때마다 새로 그리므로 이전 마커/원은 지우고 다시 그린다.
+  var myLocationMarker = null;
+  var myLocationCircle = null;
+  function clearMyLocationOverlay() {
+    if (myLocationMarker) { myLocationMarker.setMap(null); myLocationMarker = null; }
+    if (myLocationCircle) { myLocationCircle.setMap(null); myLocationCircle = null; }
+  }
   var myLocationBtn = document.getElementById("myLocationBtn");
   if (myLocationBtn) {
     myLocationBtn.addEventListener("click", function () {
@@ -368,7 +378,18 @@
         return;
       }
       navigator.geolocation.getCurrentPosition(function (pos) {
-        map.setCenter(new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude));
+        var here = new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+        map.setCenter(here);
+        clearMyLocationOverlay();
+        myLocationMarker = new naver.maps.Marker({ position: here, map: map, title: "현재 위치", zIndex: 200 });
+        // GPS 정확도(accuracy, 미터)가 있으면 그 값을, 없으면 마커가 원 안에 잘 보이도록 넉넉한
+        // 기본값(120m)을 반경으로 쓴다 — 값이 너무 작으면 원이 마커 핀 아래에 거의 안 보인다.
+        var radius = pos.coords.accuracy ? Math.max(pos.coords.accuracy, 120) : 120;
+        myLocationCircle = new naver.maps.Circle({
+          map: map, center: here, radius: radius,
+          fillColor: "#4285F4", fillOpacity: 0.15,
+          strokeColor: "#4285F4", strokeOpacity: 0.6, strokeWeight: 1,
+        });
       }, function () {
         // 2026-08-09 추가 — 위치 권한을 거부한 상태에서 버튼을 누르면 아무 반응이 없어 혼란스럽다는
         // 지적으로, 실패 콜백에 안내 토스트를 추가했다(권한 거부/타임아웃/기기 미지원 등 사유 불문 동일 문구).

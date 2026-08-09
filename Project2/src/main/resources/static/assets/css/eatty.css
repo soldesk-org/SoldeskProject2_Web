@@ -1663,6 +1663,11 @@ body.is-modal-open { overflow: hidden; }
 .e-chat-input {
   padding: 14px 16px; border-top: 1px solid var(--line);
   background: var(--bg);
+  /* 2026-08-09 — PC 개발자도구의 모바일 에뮬레이션에서는 안 보이지만, 실기기(특히 홈 인디케이터가
+     있는 아이폰)에서는 하단 안내 문구("개인정보·연락처 공유는...")가 시스템 제스처 바에 가려 잘려
+     보였다. viewport-fit=cover(각 페이지의 <meta name=viewport>에 추가)와 짝을 이루는 안전영역
+     여백 — 안전영역이 없는 기기에서는 env()가 0이라 기존 padding과 동일하게 동작한다. */
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
 }
 .e-chat-input-box {
   display: flex; align-items: flex-end; gap: 8px;
