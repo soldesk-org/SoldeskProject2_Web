@@ -361,9 +361,16 @@
   if (mapZoomInBtn) mapZoomInBtn.addEventListener("click", function () { map.setZoom(map.getZoom() + 1); });
   if (mapZoomOutBtn) mapZoomOutBtn.addEventListener("click", function () { map.setZoom(map.getZoom() - 1); });
   // 2026-08-09 추가 — "현재 위치로 이동"만 하고 실제로 그 위치가 어딘지 지도 위에 표시가 안 되던 문제.
-  // 커스텀 아이콘을 새로 그리지 않고 네이버 지도가 기본으로 주는 마커(icon 옵션을 안 주면 뜨는 기본
-  // 빨간 핀)를 그대로 쓰고, 그 주변에 정확도 반경 원(Circle)을 함께 그려서 위치가 눈에 띄게 한다.
-  // 클릭할 때마다 새로 그리므로 이전 마커/원은 지우고 다시 그린다.
+  // 처음엔 네이버 지도의 기본(빨간 핀) 마커를 그대로 썼는데, "네이버 지도 앱이 실제로 쓰는 파란 점
+  // 스타일로 해달라"는 피드백으로 흰 테두리가 있는 파란 원(점) 아이콘을 직접 그려서 대체했다. 그 주변에
+  // 정확도 반경 원(Circle)을 함께 그려서 위치가 눈에 띄게 한다. 클릭할 때마다 새로 그리므로 이전
+  // 마커/원은 지우고 다시 그린다.
+  var MY_LOCATION_DOT_ICON = {
+    content: '<div style="width:18px;height:18px;border-radius:50%;background:#4285F4;' +
+      'border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25),0 2px 5px rgba(0,0,0,.35);"></div>',
+    size: new naver.maps.Size(18, 18),
+    anchor: new naver.maps.Point(9, 9),
+  };
   var myLocationMarker = null;
   var myLocationCircle = null;
   function clearMyLocationOverlay() {
@@ -381,9 +388,11 @@
         var here = new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
         map.setCenter(here);
         clearMyLocationOverlay();
-        myLocationMarker = new naver.maps.Marker({ position: here, map: map, title: "현재 위치", zIndex: 200 });
-        // GPS 정확도(accuracy, 미터)가 있으면 그 값을, 없으면 마커가 원 안에 잘 보이도록 넉넉한
-        // 기본값(120m)을 반경으로 쓴다 — 값이 너무 작으면 원이 마커 핀 아래에 거의 안 보인다.
+        myLocationMarker = new naver.maps.Marker({
+          position: here, map: map, title: "현재 위치", zIndex: 200, icon: MY_LOCATION_DOT_ICON,
+        });
+        // GPS 정확도(accuracy, 미터)가 있으면 그 값을, 없으면 원이 점 아이콘보다 넉넉히 보이도록
+        // 기본값(120m)을 반경으로 쓴다 — 값이 너무 작으면 원이 점 아이콘 아래에 거의 안 보인다.
         var radius = pos.coords.accuracy ? Math.max(pos.coords.accuracy, 120) : 120;
         myLocationCircle = new naver.maps.Circle({
           map: map, center: here, radius: radius,
