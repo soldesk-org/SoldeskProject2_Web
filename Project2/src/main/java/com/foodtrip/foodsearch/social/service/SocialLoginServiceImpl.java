@@ -69,9 +69,9 @@ public class SocialLoginServiceImpl implements SocialLoginService {
     }
 
     @Override
-    public String buildAuthorizeUrl(String providerPath) {
+    public String buildAuthorizeUrl(String providerPath, boolean rememberMe) {
         SocialOAuthClient client = resolveClient(providerPath);
-        String state = oAuthStateService.issue(client.provider());
+        String state = oAuthStateService.issue(client.provider(), rememberMe);
         return client.buildAuthorizeUrl(state);
     }
 
@@ -80,7 +80,8 @@ public class SocialLoginServiceImpl implements SocialLoginService {
     public LoginResponseDto handleCallback(String providerPath, String code, String state) {
         SocialOAuthClient client = resolveClient(providerPath);
 
-        if (!oAuthStateService.validate(state, client.provider())) {
+        OAuthStateService.StateResult stateResult = oAuthStateService.validate(state, client.provider());
+        if (!stateResult.valid()) {
             throw new CustomException(ErrorCode.INVALID_OAUTH_STATE);
         }
 
@@ -123,11 +124,13 @@ public class SocialLoginServiceImpl implements SocialLoginService {
         JwtProvider.IssuedAccessToken issuedAccessToken =
                 jwtProvider.generateAccessToken(member.getMemberId(), member.getEmail(), member.getRole());
         accessTokenSessionService.register(issuedAccessToken.jti(), member.getMemberId(), jwtProvider.getExpirationMillis());
-        // 소셜로그인은 체크박스가 있는 폼이 아니라 리다이렉트 콜백이라 "로그인 상태 유지" 선택지 자체가 없음 —
-        // 항상 긴 세션(rememberMe=true 취급, 001-02(로그인) 참고)으로 발급해 기존 동작(14일)을 그대로 유지한다.
-        String refreshToken = refreshTokenService.issue(member.getMemberId(), true);
+        // 2026-08-09 변경 — 예전엔 소셜로그인에 "로그인 상태 유지" 선택지 자체가 없어서 항상 14일 유지로
+        // 고정 발급했다. 이제 로그인 화면의 rememberMe 체크박스 값을 authorize 요청 때부터 OAuth state에
+        // 실어 콜백까지 들고 와서(OAuthStateService 참고) 그 값 그대로 반영한다.
+        boolean rememberMe = stateResult.rememberMe();
+        String refreshToken = refreshTokenService.issue(member.getMemberId(), rememberMe);
 
-        return new LoginResponseDto(true, "로그인에 성공하였습니다.", member.getMemberId(), issuedAccessToken.token(), refreshToken);
+        return new LoginResponseDto(true, "로그인에 성공하였습니다.", member.getMemberId(), issuedAccessToken.token(), refreshToken, rememberMe);
     }
 
     @Override

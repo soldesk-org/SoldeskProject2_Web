@@ -541,7 +541,9 @@
         if (item.roadAddress) shareParams.set("roadAddress", item.roadAddress);
         if (item.latitude != null) shareParams.set("latitude", item.latitude);
         if (item.longitude != null) shareParams.set("longitude", item.longitude);
-        var shareUrl = window.location.origin + "/explore?" + shareParams.toString();
+        var longPath = "explore?" + shareParams.toString();
+        var longUrl = window.location.origin + "/" + longPath;
+
         function fallbackCopy(text) {
           var textarea = document.createElement("textarea");
           textarea.value = text;
@@ -555,18 +557,27 @@
           document.body.removeChild(textarea);
           return ok;
         }
-        if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(shareUrl).then(function () {
+        function copyLink(text) {
+          if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(function () {
+              Eatty.toast("링크를 복사했습니다.", "success");
+            }).catch(function () {
+              var copied = fallbackCopy(text);
+              Eatty.toast(copied ? "링크를 복사했습니다." : "링크 복사에 실패했습니다.", copied ? "success" : "error");
+            });
+          } else if (fallbackCopy(text)) {
             Eatty.toast("링크를 복사했습니다.", "success");
-          }).catch(function () {
-            var copied = fallbackCopy(shareUrl);
-            Eatty.toast(copied ? "링크를 복사했습니다." : "링크 복사에 실패했습니다.", copied ? "success" : "error");
-          });
-        } else if (fallbackCopy(shareUrl)) {
-          Eatty.toast("링크를 복사했습니다.", "success");
-        } else {
-          Eatty.toast("링크 복사에 실패했습니다.", "error");
+          } else {
+            Eatty.toast("링크 복사에 실패했습니다.", "error");
+          }
         }
+
+        // 2026-08-09 추가 — 원래는 이 긴 쿼리스트링 URL을 그대로 복사했는데("너무 길어서 보기 안 좋다"는
+        // 지적) 서버에서 짧은 코드를 발급받아 그걸 복사한다. 발급 실패(네트워크 오류 등)해도 공유 자체가
+        // 막히면 안 되니 원래의 긴 URL로 조용히 대체한다(fail-open).
+        Api.request("/api/short-links", { method: "POST", auth: false, body: { path: longPath } })
+          .then(function (res) { copyLink(window.location.origin + "/s/" + res.code); })
+          .catch(function () { copyLink(longUrl); });
       };
     }
 

@@ -5,20 +5,37 @@
   var KEY_REFRESH = "ew_refresh_token";
   var KEY_MEMBER_ID = "ew_member_id";
 
-  function getAccessToken() { return localStorage.getItem(KEY_ACCESS); }
-  function getRefreshToken() { return localStorage.getItem(KEY_REFRESH); }
-  function getMemberId() { return localStorage.getItem(KEY_MEMBER_ID); }
+  // 2026-08-09 — "로그인 상태 유지"를 체크하지 않아도(심지어 소셜로그인처럼 체크박스 자체가 없어도)
+  // 항상 localStorage에만 저장돼서 브라우저를 닫았다 열어도 계속 로그인 상태로 남아있던 문제를 고쳤다.
+  // localStorage(브라우저를 껐다 켜도 유지) / sessionStorage(탭을 닫으면 사라짐) 중 로그인 시점에
+  // 고른 쪽에만 저장하고 반대쪽은 비워서, 실제로 "유지 안 함"이 브라우저 재시작 시 로그아웃으로 이어지게 한다.
+  function activeStorage() {
+    if (localStorage.getItem(KEY_ACCESS) || localStorage.getItem(KEY_REFRESH)) return localStorage;
+    if (sessionStorage.getItem(KEY_ACCESS) || sessionStorage.getItem(KEY_REFRESH)) return sessionStorage;
+    return localStorage; // 아직 아무 세션도 없으면 기본값(다음 setSession 호출이 실제로 결정함)
+  }
 
-  function setSession(data) {
-    if (data.accessToken) localStorage.setItem(KEY_ACCESS, data.accessToken);
-    if (data.refreshToken) localStorage.setItem(KEY_REFRESH, data.refreshToken);
-    if (data.memberId !== undefined && data.memberId !== null) localStorage.setItem(KEY_MEMBER_ID, String(data.memberId));
+  function getAccessToken() { return activeStorage().getItem(KEY_ACCESS); }
+  function getRefreshToken() { return activeStorage().getItem(KEY_REFRESH); }
+  function getMemberId() { return activeStorage().getItem(KEY_MEMBER_ID); }
+
+  // remember: true면 localStorage(로그인 유지), false면 sessionStorage(브라우저 닫으면 로그아웃).
+  // 생략하면(예: 토큰 재발급) 지금 로그인에 쓰이고 있는 저장소를 그대로 유지한다.
+  function setSession(data, remember) {
+    var storage = remember === undefined ? activeStorage() : (remember ? localStorage : sessionStorage);
+    var other = storage === localStorage ? sessionStorage : localStorage;
+    if (remember !== undefined) { other.removeItem(KEY_ACCESS); other.removeItem(KEY_REFRESH); other.removeItem(KEY_MEMBER_ID); }
+    if (data.accessToken) storage.setItem(KEY_ACCESS, data.accessToken);
+    if (data.refreshToken) storage.setItem(KEY_REFRESH, data.refreshToken);
+    if (data.memberId !== undefined && data.memberId !== null) storage.setItem(KEY_MEMBER_ID, String(data.memberId));
   }
 
   function clearSession() {
-    localStorage.removeItem(KEY_ACCESS);
-    localStorage.removeItem(KEY_REFRESH);
-    localStorage.removeItem(KEY_MEMBER_ID);
+    [localStorage, sessionStorage].forEach(function (storage) {
+      storage.removeItem(KEY_ACCESS);
+      storage.removeItem(KEY_REFRESH);
+      storage.removeItem(KEY_MEMBER_ID);
+    });
   }
 
   function decodeToken(token) {
@@ -111,7 +128,7 @@
   function login(email, password, rememberMe) {
     return request("/api/members/login", { method: "POST", auth: false, body: { email: email, password: password, rememberMe: !!rememberMe } })
       .then(function (data) {
-        setSession(data);
+        setSession(data, !!rememberMe);
         return data;
       });
   }

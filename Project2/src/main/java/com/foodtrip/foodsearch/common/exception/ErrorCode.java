@@ -97,7 +97,9 @@ public enum ErrorCode {
     CHAT_ROOM_FULL(HttpStatus.CONFLICT, "채팅방 인원이 가득 찼습니다."),
     GEOCODE_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "주소-좌표 변환 서버와 통신할 수 없습니다."),
     GEOCODE_NOT_FOUND(HttpStatus.NOT_FOUND, "입력한 주소의 좌표를 찾을 수 없습니다."),
-    FOOD_BTI_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "저장된 음BTI 결과가 없습니다.");
+    FOOD_BTI_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "저장된 음BTI 결과가 없습니다."),
+    SHORT_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않거나 만료된 링크입니다."),
+    SHORT_LINK_INVALID_TARGET(HttpStatus.BAD_REQUEST, "단축할 수 없는 주소입니다.");
 
     private final HttpStatus status;
     private final String defaultMessage;

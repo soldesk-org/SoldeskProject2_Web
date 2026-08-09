@@ -56,7 +56,11 @@
   socialButtons.forEach(function (btn) {
     btn.addEventListener("click", function () {
       var provider = btn.getAttribute("data-social");
-      window.location.href = "/api/auth/" + provider + "/authorize";
+      // 2026-08-09 추가 — 소셜로그인은 체크박스가 없는 리다이렉트 플로우라 "로그인 상태 유지"를
+      // 선택할 방법이 없었고, 서버도 항상 14일 유지로 고정 발급하고 있었다. 같은 화면의 rememberMe
+      // 체크박스 값을 그대로 실어 보낸다(/api/auth/{provider}/authorize?rememberMe=true|false).
+      var remember = !!(rememberInput && rememberInput.checked);
+      window.location.href = "/api/auth/" + provider + "/authorize?rememberMe=" + remember;
     });
   });
 
@@ -65,11 +69,12 @@
     var accessToken = params.get("accessToken");
     var refreshToken = params.get("refreshToken");
     var memberId = params.get("memberId");
+    var remember = params.get("rememberMe") === "true";
     var error = params.get("error");
     var errorMessage = params.get("errorMessage");
 
     if (accessToken && refreshToken && memberId) {
-      Api.setSession({ accessToken: accessToken, refreshToken: refreshToken, memberId: memberId });
+      Api.setSession({ accessToken: accessToken, refreshToken: refreshToken, memberId: memberId }, remember);
       window.location.replace(Api.landingPageForRole());
       return;
     }

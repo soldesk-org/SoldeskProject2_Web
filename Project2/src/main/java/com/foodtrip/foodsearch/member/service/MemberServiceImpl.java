@@ -377,7 +377,7 @@ public class MemberServiceImpl implements MemberService {
         boolean rememberMe = Boolean.TRUE.equals(request.getRememberMe());
         String refreshToken = refreshTokenService.issue(member.getMemberId(), rememberMe);
 
-        return new LoginResponseDto(true, "로그인에 성공하였습니다.", member.getMemberId(), issuedAccessToken.token(), refreshToken);
+        return new LoginResponseDto(true, "로그인에 성공하였습니다.", member.getMemberId(), issuedAccessToken.token(), refreshToken, rememberMe);
     }
 
     @Override

@@ -7,7 +7,7 @@ import com.foodtrip.foodsearch.social.dto.UnlinkResponseDto;
 
 public interface SocialLoginService {
 
-    String buildAuthorizeUrl(String providerPath);
+    String buildAuthorizeUrl(String providerPath, boolean rememberMe);
 
     LoginResponseDto handleCallback(String providerPath, String code, String state);
 

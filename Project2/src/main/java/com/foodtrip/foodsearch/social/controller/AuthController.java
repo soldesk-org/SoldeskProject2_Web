@@ -42,8 +42,9 @@ public class AuthController {
     }
 
     @GetMapping("/api/auth/{provider}/authorize")
-    public ResponseEntity<Void> authorize(@PathVariable String provider) {
-        String authorizeUrl = socialLoginService.buildAuthorizeUrl(provider);
+    public ResponseEntity<Void> authorize(@PathVariable String provider,
+                                           @RequestParam(defaultValue = "false") boolean rememberMe) {
+        String authorizeUrl = socialLoginService.buildAuthorizeUrl(provider, rememberMe);
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(authorizeUrl)).build();
     }
 
@@ -64,6 +65,7 @@ public class AuthController {
                     .queryParam("accessToken", result.getAccessToken())
                     .queryParam("refreshToken", result.getRefreshToken())
                     .queryParam("memberId", result.getMemberId())
+                    .queryParam("rememberMe", result.isRememberMe())
                     .build()
                     .encode()
                     .toUri();
