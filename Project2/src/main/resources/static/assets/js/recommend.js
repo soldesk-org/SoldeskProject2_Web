@@ -300,6 +300,29 @@
     }
   }
 
+  // 2026-08-09 추가 — 기본값을 OFF로 바꾸고(요청사항), 위치 권한이 없는 상태에서 스위치를 켜려고 하면
+  // 그냥 켜진 것처럼 보이다가 실제 요청 시 조용히 기본 좌표로 대체되던 것 대신, 그 자리에서 바로
+  // 권한을 확인해서 없으면 다시 꺼두고 안내한다.
+  (function initUseMyLocationSwitch() {
+    var sw = document.getElementById("useMyLocationSwitch");
+    if (!sw) return;
+    sw.addEventListener("change", function () {
+      if (!sw.checked) return;
+      if (!navigator.geolocation) {
+        sw.checked = false;
+        Eatty.toast("이 브라우저에서는 위치 정보를 사용할 수 없습니다.", "error");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        function () { /* 권한 있음 — 체크 상태 유지 */ },
+        function () {
+          sw.checked = false;
+          Eatty.toast("위치 권한이 없습니다.", "error");
+        }
+      );
+    });
+  })();
+
   document.getElementById("recommendForm").addEventListener("submit", function (e) {
     e.preventDefault();
     runRecommend();

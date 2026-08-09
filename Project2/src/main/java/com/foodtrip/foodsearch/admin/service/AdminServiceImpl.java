@@ -60,9 +60,15 @@ public class AdminServiceImpl implements AdminService {
         var page = StringUtils.hasText(role)
                 ? memberRepository.findAllByRoleOrderByCreatedAtDesc(role, PageRequest.of(0, LIST_LIMIT))
                 : memberRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, LIST_LIMIT));
-        return page.map(m -> new AdminMemberResponseDto(m.getMemberId(), m.getEmail(), m.getNickname(),
+        // Member.createPending()이 만든 "가입 미완료"(닉네임이 PENDING_로 시작) 행은 실제 회원이 아니라
+        // 이메일/전화번호 인증을 완료하지 않고 이탈한 임시 상태라, 관리자 회원 목록에는 노출하지 않는다
+        // (2026-08-09 지적 — member.cleanup.cron 스케줄러가 오래된 건 주기적으로 정리하지만 그 전까지는
+        // 목록에 그대로 남아있었음).
+        return page.getContent().stream()
+                .filter(m -> m.getNickname() == null || !m.getNickname().startsWith("PENDING_"))
+                .map(m -> new AdminMemberResponseDto(m.getMemberId(), m.getEmail(), m.getNickname(),
                         m.getStatus(), m.getRole(), m.getCreatedAt()))
-                .getContent();
+                .toList();
     }
 
     // 14(관리자-권한) 2차 — "전체 회원 수/일반 회원/사업자 회원", "작성된 리뷰 수/신고된 리뷰 수" 통계.

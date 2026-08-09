@@ -363,9 +363,16 @@
   var myLocationBtn = document.getElementById("myLocationBtn");
   if (myLocationBtn) {
     myLocationBtn.addEventListener("click", function () {
-      if (!navigator.geolocation) return;
+      if (!navigator.geolocation) {
+        Eatty.toast("이 브라우저에서는 위치 정보를 사용할 수 없습니다.", "error");
+        return;
+      }
       navigator.geolocation.getCurrentPosition(function (pos) {
         map.setCenter(new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude));
+      }, function () {
+        // 2026-08-09 추가 — 위치 권한을 거부한 상태에서 버튼을 누르면 아무 반응이 없어 혼란스럽다는
+        // 지적으로, 실패 콜백에 안내 토스트를 추가했다(권한 거부/타임아웃/기기 미지원 등 사유 불문 동일 문구).
+        Eatty.toast("위치 권한이 없습니다.", "error");
       });
     });
   }
