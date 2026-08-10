@@ -600,6 +600,7 @@
   var bizCloseTimeInput = document.getElementById("bizCloseTime");
   var bizShopNameInput = document.getElementById("bizShopName");
   var bizAddress1Input = document.getElementById("bizAddress1");
+  var bizIntroInput = document.getElementById("bizIntro");
 
   function fillShopInfoForm(shop) {
     // 2026-08-09 추가 — 매장명/주소는 저장 API가 없어(카카오 데이터, 07 참고) 읽기 전용으로 실데이터만
@@ -607,6 +608,15 @@
     if (bizShopNameInput) bizShopNameInput.value = shop.businessName || "";
     if (bizAddress1Input) bizAddress1Input.value = shop.businessAddress || "";
     if (bizShopPhoneInput) bizShopPhoneInput.value = shop.phone || "";
+    // 2026-08-09 추가 — 매장 소개/편의시설도 실제로 저장·조회되게(PATCH /api/restaurants/{id}/extras).
+    if (bizIntroInput) {
+      bizIntroInput.value = shop.description || "";
+      bizIntroInput.dispatchEvent(new Event("input")); // 글자수 카운터(data-counter) 갱신
+    }
+    var amenities = shop.amenities || [];
+    document.querySelectorAll('input[name="amenity"]').forEach(function (cb) {
+      cb.checked = amenities.indexOf(cb.value) !== -1;
+    });
     var hours = shop.businessHours || [];
     document.querySelectorAll('input[name="holiday"]').forEach(function (cb) {
       var entry = hours.filter(function (h) { return DAY_CODES[h.dayOfWeek] === cb.value; })[0];
@@ -641,13 +651,18 @@
       });
 
       var phone = (bizShopPhoneInput && bizShopPhoneInput.value.trim()) || "";
+      var description = (bizIntroInput && bizIntroInput.value.trim()) || "";
+      var amenities = Array.prototype.map.call(
+        document.querySelectorAll('input[name="amenity"]:checked'), function (cb) { return cb.value; });
       Promise.all([
         phone ? Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/phone",
           { method: "PATCH", body: { phone: phone } }) : Promise.resolve(),
         Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/business-hours",
-          { method: "PUT", body: { businessHours: businessHours } })
+          { method: "PUT", body: { businessHours: businessHours } }),
+        Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/extras",
+          { method: "PATCH", body: { description: description, amenities: amenities } })
       ]).then(function () {
-        Eatty.toast("전화번호·영업시간을 저장했습니다.", "success");
+        Eatty.toast("매장 정보를 저장했습니다.", "success");
       }).catch(function (err) {
         Eatty.toast((err && err.message) || "저장에 실패했습니다.", "error");
       });

@@ -26,6 +26,7 @@ import com.foodtrip.foodsearch.restaurant.dto.RestaurantImageResponseDto;
 import com.foodtrip.foodsearch.restaurant.dto.RestaurantListResponseDto;
 import com.foodtrip.foodsearch.restaurant.dto.UpdateBusinessHoursRequestDto;
 import com.foodtrip.foodsearch.restaurant.dto.UpdateMenuRequestDto;
+import com.foodtrip.foodsearch.restaurant.dto.UpdateRestaurantExtrasRequestDto;
 import com.foodtrip.foodsearch.restaurant.dto.UpdateRestaurantPhoneRequestDto;
 import com.foodtrip.foodsearch.restaurant.service.MenuService;
 import com.foodtrip.foodsearch.restaurant.service.RestaurantOwnerService;
@@ -136,6 +137,16 @@ public class RestaurantController {
                                                      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
                                                      @Valid @RequestBody UpdateRestaurantPhoneRequestDto request) {
         return restaurantOwnerService.updatePhone(restaurantId, authorizationHeader, request.getPhone());
+    }
+
+    // 매장 소개/편의시설(2026-08-09 추가) — 사업자 마이페이지 "매장 정보" 탭에서 저장 API가 없어
+    // 비활성화돼 있던 두 필드를 실제로 저장하게 함.
+    @PatchMapping("/{restaurantId}/extras")
+    public RestaurantDetailResponseDto updateExtras(@PathVariable String restaurantId,
+                                                       @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+                                                       @Valid @RequestBody UpdateRestaurantExtrasRequestDto request) {
+        return restaurantOwnerService.updateExtras(restaurantId, authorizationHeader, request.getDescription(),
+                request.getAmenities());
     }
 
     // 요일별 개별 API 대신 7일치를 통째로 교체(001-02 3장 원칙과 동일하게 필요한 만큼만 단순하게).

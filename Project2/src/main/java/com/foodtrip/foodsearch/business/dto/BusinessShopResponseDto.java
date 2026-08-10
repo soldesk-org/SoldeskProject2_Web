@@ -18,10 +18,14 @@ public class BusinessShopResponseDto {
     private final String businessRegistrationNumber;
     private final String phone;
     private final List<BusinessHourResponseDto> businessHours;
+    // 2026-08-09 추가 — 매장 소개/편의시설도 phone과 동일하게 사업자가 직접 저장하기 전까진 비어있다.
+    private final String description;
+    private final List<String> amenities;
 
     public BusinessShopResponseDto(String restaurantId, String imageUrl, String businessName,
                                     String businessAddress, String businessRegistrationNumber,
-                                    String phone, List<BusinessHourResponseDto> businessHours) {
+                                    String phone, List<BusinessHourResponseDto> businessHours,
+                                    String description, List<String> amenities) {
         this.restaurantId = restaurantId;
         this.imageUrl = imageUrl;
         this.businessName = businessName;
@@ -29,6 +33,16 @@ public class BusinessShopResponseDto {
         this.businessRegistrationNumber = businessRegistrationNumber;
         this.phone = phone;
         this.businessHours = businessHours;
+        this.description = description;
+        this.amenities = amenities;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public List<String> getAmenities() {
+        return amenities;
     }
 
     public String getPhone() {

@@ -36,6 +36,12 @@ public class Restaurant {
     @Column(name = "description", length = 500)
     private String description;
 
+    // 편의시설(2026-08-09 추가) — 콤마로 구분한 코드 목록(parking,wifi,pet,...). 별도 테이블을 새로
+    // 만들 만큼 값이 다양하거나 검색/필터에 쓰이는 게 아니라 사업자 마이페이지 표시용으로만 쓰여서,
+    // 단순하게 문자열 컬럼 하나로 둔다(과한 정규화 지양).
+    @Column(name = "amenities", length = 200)
+    private String amenities;
+
     // 사업자 등록 시 직접 입력/수정하는 전화번호. 검색 결과 표시용 전화번호는 카카오 라이브 응답 값을
     // 그대로 쓰고(저장 안 함), 이 값이 있으면 그걸로 덮어써서 우선 노출한다(RestaurantServiceImpl 참고).
     @Column(name = "phone", length = 20)
@@ -106,6 +112,11 @@ public class Restaurant {
         this.imageUrl = imageUrl;
     }
 
+    public void updateExtras(String description, String amenities) {
+        this.description = description;
+        this.amenities = amenities;
+    }
+
     // 리뷰 등록/삭제 시 평점/리뷰수 캐시를 다시 계산해 반영한다 — ReviewServiceImpl이 리뷰 저장 직후
     // 그 음식점의 AVG(rating)/COUNT(*)를 다시 조회해서 호출.
     public void updateRatingCache(BigDecimal avgRating, int reviewCount) {
@@ -119,6 +130,10 @@ public class Restaurant {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getAmenities() {
+        return amenities;
     }
 
     public String getPhone() {

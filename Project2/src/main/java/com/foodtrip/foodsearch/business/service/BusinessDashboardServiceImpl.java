@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,12 +101,17 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
                 .map(h -> new BusinessHourResponseDto(h.getDayOfWeek(), h.getOpenTime(), h.getCloseTime(),
                         Boolean.TRUE.equals(h.getIsClosed())))
                 .collect(Collectors.toList());
+        List<String> amenities = restaurant != null && restaurant.getAmenities() != null && !restaurant.getAmenities().isBlank()
+                ? Arrays.asList(restaurant.getAmenities().split(","))
+                : List.of();
         return new BusinessShopResponseDto(restaurantId, restaurant != null ? restaurant.getImageUrl() : null,
                 profile != null ? profile.getBusinessName() : null,
                 profile != null ? profile.getBusinessAddress() : null,
                 profile != null ? profile.getBusinessRegistrationNumber() : null,
                 restaurant != null ? restaurant.getPhone() : null,
-                businessHours);
+                businessHours,
+                restaurant != null ? restaurant.getDescription() : null,
+                amenities);
     }
 
     @Override
