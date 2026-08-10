@@ -77,6 +77,12 @@
         '</div>' +
         '<div class="flex flex-wrap gap-1.5 mt-4">' + tagsHtml(r.keywords) + '</div>' +
         '<p class="t-body mt-3 leading-relaxed">' + escapeHtml(r.content) + '</p>' +
+        // 2026-08-10 추가 — 리뷰 작성 시 첨부한 사진을 "내가 쓴 리뷰" 목록에도 노출.
+        ((r.images && r.images.length)
+          ? '<div class="flex gap-2 mt-3 overflow-x-auto">' + r.images.map(function (img) {
+              return '<img src="' + escapeHtml(img.imageUrl) + '" class="w-20 h-20 rounded-[var(--r-md)] object-cover flex-none" alt="리뷰 첨부 사진">';
+            }).join("") + '</div>'
+          : "") +
         '<div class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-[var(--line-soft)]">' +
           '<div class="ml-auto flex gap-2">' +
             '<button type="button" class="btn btn-outline btn-sm" data-edit-review>수정</button>' +

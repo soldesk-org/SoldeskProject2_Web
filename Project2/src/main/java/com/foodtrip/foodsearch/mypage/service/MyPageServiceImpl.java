@@ -18,8 +18,11 @@ import com.foodtrip.foodsearch.restaurant.entity.Favorite;
 import com.foodtrip.foodsearch.restaurant.entity.SearchHistory;
 import com.foodtrip.foodsearch.restaurant.repository.FavoriteRepository;
 import com.foodtrip.foodsearch.restaurant.repository.SearchHistoryRepository;
+import com.foodtrip.foodsearch.review.dto.ReviewImageResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewKeywordResponseDto;
 import com.foodtrip.foodsearch.review.entity.Review;
+import com.foodtrip.foodsearch.review.entity.ReviewImage;
+import com.foodtrip.foodsearch.review.repository.ReviewImageRepository;
 import com.foodtrip.foodsearch.review.repository.ReviewRepository;
 import com.foodtrip.foodsearch.review.service.ReviewKeywordCatalog;
 import com.foodtrip.foodsearch.review.service.ReviewKeywordDao;
@@ -39,16 +42,19 @@ public class MyPageServiceImpl implements MyPageService {
     private final ReviewKeywordDao reviewKeywordDao;
     private final JwtProvider jwtProvider;
     private final AccessTokenSessionService accessTokenSessionService;
+    private final ReviewImageRepository reviewImageRepository;
 
     public MyPageServiceImpl(FavoriteRepository favoriteRepository, ReviewRepository reviewRepository,
                               SearchHistoryRepository searchHistoryRepository, ReviewKeywordDao reviewKeywordDao,
-                              JwtProvider jwtProvider, AccessTokenSessionService accessTokenSessionService) {
+                              JwtProvider jwtProvider, AccessTokenSessionService accessTokenSessionService,
+                              ReviewImageRepository reviewImageRepository) {
         this.favoriteRepository = favoriteRepository;
         this.reviewRepository = reviewRepository;
         this.searchHistoryRepository = searchHistoryRepository;
         this.reviewKeywordDao = reviewKeywordDao;
         this.jwtProvider = jwtProvider;
         this.accessTokenSessionService = accessTokenSessionService;
+        this.reviewImageRepository = reviewImageRepository;
     }
 
     @Override
@@ -66,11 +72,17 @@ public class MyPageServiceImpl implements MyPageService {
                 .findByMemberIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(memberId, Review.STATUS_NORMAL);
         List<Long> reviewIds = reviews.stream().map(Review::getReviewId).collect(Collectors.toList());
         Map<Long, List<String>> keywordsByReviewId = reviewKeywordDao.findKeywordsByReviewIds(reviewIds);
+        Map<Long, List<ReviewImageResponseDto>> imagesByReviewId = reviewImageRepository
+                .findByReviewIdInOrderByReviewImageIdAsc(reviewIds).stream()
+                .collect(Collectors.groupingBy(ReviewImage::getReviewId,
+                        Collectors.mapping(img -> new ReviewImageResponseDto(img.getReviewImageId(), img.getImageUrl()),
+                                Collectors.toList())));
 
         return reviews.stream()
                 .map(r -> new MyPageReviewResponseDto(r.getReviewId(), r.getRestaurantId(), r.getRestaurantNameSnapshot(),
                         r.getRating(), r.getContent(), r.isReceiptVerified(), r.getCreatedAt(),
-                        toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of()))))
+                        toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of())),
+                        imagesByReviewId.getOrDefault(r.getReviewId(), List.of())))
                 .collect(Collectors.toList());
     }
 
