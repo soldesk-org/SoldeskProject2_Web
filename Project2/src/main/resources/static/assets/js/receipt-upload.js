@@ -235,10 +235,6 @@
       Eatty.toast("별점을 선택해주세요.", "error");
       return;
     }
-    if (!document.getElementById("agreeReviewPolicy").checked) {
-      Eatty.toast("리뷰 정책에 동의해주세요.", "error");
-      return;
-    }
     if (!ocrResult || !ocrResult.receiptId) {
       Eatty.toast("영수증 인증 정보가 없습니다. 처음부터 다시 진행해주세요.", "error");
       return;

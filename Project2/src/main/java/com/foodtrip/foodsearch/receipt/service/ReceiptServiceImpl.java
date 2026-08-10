@@ -28,6 +28,7 @@ import com.foodtrip.foodsearch.restaurant.client.KakaoLocalSearchClient;
 import com.foodtrip.foodsearch.restaurant.client.KakaoLocalSearchItem;
 import com.foodtrip.foodsearch.restaurant.entity.Restaurant;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantRepository;
+import com.foodtrip.foodsearch.review.repository.ReviewRepository;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -53,6 +54,7 @@ public class ReceiptServiceImpl implements ReceiptService {
     private final JwtProvider jwtProvider;
     private final AccessTokenSessionService accessTokenSessionService;
     private final KakaoLocalSearchClient kakaoLocalSearchClient;
+    private final ReviewRepository reviewRepository;
 
     public ReceiptServiceImpl(ReceiptRepository receiptRepository,
                                RestaurantRepository restaurantRepository,
@@ -62,7 +64,8 @@ public class ReceiptServiceImpl implements ReceiptService {
                                ReceiptSuccessRecorder receiptSuccessRecorder,
                                JwtProvider jwtProvider,
                                AccessTokenSessionService accessTokenSessionService,
-                               KakaoLocalSearchClient kakaoLocalSearchClient) {
+                               KakaoLocalSearchClient kakaoLocalSearchClient,
+                               ReviewRepository reviewRepository) {
         this.receiptRepository = receiptRepository;
         this.restaurantRepository = restaurantRepository;
         this.receiptImageStorageService = receiptImageStorageService;
@@ -72,6 +75,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         this.jwtProvider = jwtProvider;
         this.accessTokenSessionService = accessTokenSessionService;
         this.kakaoLocalSearchClient = kakaoLocalSearchClient;
+        this.reviewRepository = reviewRepository;
     }
 
     @Override
@@ -88,8 +92,12 @@ public class ReceiptServiceImpl implements ReceiptService {
         // 기존 중복 검사(transaction_id)를 아예 안 거쳐서, 같은 사진을 반복 업로드해 여러 개의 "인증된"
         // 영수증을 만들 수 있었다. transaction_id 인식 여부와 무관하게 이미지 바이트 자체의 해시로도
         // 중복을 막는다 — OCR 호출/저장 전에 먼저 확인해 낭비도 줄인다.
+        // 2026-08-10 재수정 — "업로드만 하고 리뷰 작성을 끝까지 안 하고 나간" 영수증까지 이 검사에
+        // 걸려서, 도중에 이탈했다가 같은 영수증으로 다시 시도하면 "이미 사용한 영수증입니다"로 막혀버리는
+        // 문제를 사용자가 실제로 겪었다. 실제로 리뷰까지 완료돼서 review.receipt_id로 연결된 적이 있는
+        // 영수증일 때만 중복으로 취급하도록 좁힌다(isReceiptUsedInReview 참고).
         String imageHash = hashImage(image);
-        if (imageHash != null && receiptRepository.existsByImageHash(imageHash)) {
+        if (imageHash != null && isReceiptUsedInReview(receiptRepository.findAllByImageHash(imageHash))) {
             throw new CustomException(ErrorCode.DUPLICATE_RECEIPT);
         }
 
@@ -107,7 +115,9 @@ public class ReceiptServiceImpl implements ReceiptService {
         }
 
         // 중복 검사(001-02 5장 6단계) — 어뷰징 방지. transaction_id를 못 찾은 경우(null)는 막지 않는다.
-        if (result.transactionId() != null && receiptRepository.existsByTransactionId(result.transactionId())) {
+        // 2026-08-10 재수정 — 위 이미지 해시 검사와 동일하게, 리뷰까지 완료된 영수증만 중복으로 취급.
+        if (result.transactionId() != null
+                && isReceiptUsedInReview(receiptRepository.findAllByTransactionId(result.transactionId()))) {
             receiptFailureRecorder.record(receipt.getReceiptId(), "duplicate transactionId", System.currentTimeMillis() - startedAt);
             throw new CustomException(ErrorCode.DUPLICATE_RECEIPT);
         }
@@ -134,6 +144,13 @@ public class ReceiptServiceImpl implements ReceiptService {
 
         return new ReceiptUploadResponseDto(receipt.getReceiptId(), result.storeName(), result.orderDatetime(),
                 result.totalPrice(), menuItems, verified, verified ? restaurantId : null);
+    }
+
+    // 후보 영수증들(같은 이미지 해시 또는 같은 transaction_id) 중 실제로 리뷰까지 완료된 게 하나라도
+    // 있는지 확인한다(2026-08-10 추가) — 단순 업로드만으로는 "사용됨"으로 치지 않는다.
+    private boolean isReceiptUsedInReview(List<Receipt> candidates) {
+        return candidates.stream()
+                .anyMatch(r -> reviewRepository.existsByReceiptIdAndDeletedAtIsNull(r.getReceiptId()));
     }
 
     // 이미지 바이트의 SHA-256 해시(2026-08-10 추가, 중복 영수증 검사 보조용). 계산 실패는 치명적이지

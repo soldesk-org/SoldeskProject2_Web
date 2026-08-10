@@ -51,4 +51,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     long countByRestaurantIdAndReceiptVerifiedTrueAndStatusAndDeletedAtIsNullAndCreatedAtBetween(
             String restaurantId, String status, LocalDateTime start, LocalDateTime end);
+
+    // 영수증 중복 검사(2026-08-10 수정) — 업로드만 하고 리뷰 작성을 끝까지 안 한 영수증까지 "이미 사용한
+    // 영수증"으로 막던 문제 수정용. 실제로 리뷰에 연결된 적이 있는 영수증인지 확인.
+    boolean existsByReceiptIdAndDeletedAtIsNull(Long receiptId);
 }
