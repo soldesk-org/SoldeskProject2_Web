@@ -635,6 +635,27 @@
   var DAY_CODES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
   var bizInfoForm = document.getElementById("bizInfoForm");
   var bizShopPhoneInput = document.getElementById("bizShopPhone");
+  // 전화번호 자동 하이픈(2026-08-10 추가) — 02(서울)는 2자리, 그 외(010/031/070...)는 3자리 지역/식별
+  // 번호 기준으로 자릿수에 맞춰 "-"를 넣는다. 커서 위치는 보정하지 않는 단순 구현(끝에서 입력하는
+  // 일반적인 사용 패턴 기준).
+  function formatPhoneNumber(value) {
+    var digits = (value || "").replace(/\D/g, "").slice(0, 11);
+    if (digits.startsWith("02")) {
+      if (digits.length <= 2) return digits;
+      if (digits.length <= 5) return digits.slice(0, 2) + "-" + digits.slice(2);
+      if (digits.length <= 9) return digits.slice(0, 2) + "-" + digits.slice(2, 5) + "-" + digits.slice(5);
+      return digits.slice(0, 2) + "-" + digits.slice(2, 6) + "-" + digits.slice(6, 10);
+    }
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 7) return digits.slice(0, 3) + "-" + digits.slice(3);
+    if (digits.length <= 10) return digits.slice(0, 3) + "-" + digits.slice(3, 6) + "-" + digits.slice(6);
+    return digits.slice(0, 3) + "-" + digits.slice(3, 7) + "-" + digits.slice(7, 11);
+  }
+  if (bizShopPhoneInput) {
+    bizShopPhoneInput.addEventListener("input", function () {
+      bizShopPhoneInput.value = formatPhoneNumber(bizShopPhoneInput.value);
+    });
+  }
   var bizOpenTimeInput = document.getElementById("bizOpenTime");
   var bizCloseTimeInput = document.getElementById("bizCloseTime");
   var bizShopNameInput = document.getElementById("bizShopName");
@@ -697,8 +718,8 @@
         document.querySelectorAll('input[name="amenity"]:checked'), function (cb) { return cb.value; });
       var priceRange = (bizPriceRangeInput && bizPriceRangeInput.value) || "";
       Promise.all([
-        phone ? Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/phone",
-          { method: "PATCH", body: { phone: phone } }) : Promise.resolve(),
+        Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/phone",
+          { method: "PATCH", body: { phone: phone || null } }),
         Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/business-hours",
           { method: "PUT", body: { businessHours: businessHours } }),
         Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/extras",
