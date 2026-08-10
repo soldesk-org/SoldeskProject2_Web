@@ -9,14 +9,16 @@
   var emailError = document.getElementById("bizLoginEmailError");
   var passwordError = document.getElementById("bizLoginPasswordError");
 
-  // 사업자/일반 회원 로그인은 백엔드에서 같은 API(/api/members/login)를 쓰고, role 클레임으로
-  // 구분한다(별도의 "/business" 로그인 엔드포인트는 없음).
+  // 사업자/일반 회원 로그인은 백엔드에서 같은 API(/api/members/login)를 쓰고, memberType("business")을
+  // 함께 보내 role과 일치하는지 서버가 비밀번호 확인 이후 검증한다(2026-08-10 — 예전엔 이 검증이 아예
+  // 없어서 일반 회원 로그인 탭에서 사업자 계정으로도 그냥 로그인이 됐다).
   var ERROR_MESSAGES = {
     INVALID_CREDENTIALS: "이메일 또는 비밀번호가 올바르지 않습니다.",
     ACCOUNT_LOCKED: "로그인 5회 실패로 계정이 30분간 잠겼습니다.",
     ACCOUNT_SUSPENDED: "정지된 계정입니다.",
     ACCOUNT_WITHDRAWN: "탈퇴한 계정입니다.",
     INVALID_INPUT: "입력값을 확인해주세요.",
+    MEMBER_TYPE_MISMATCH: "일반 회원 계정입니다. 일반 로그인을 이용해주세요.",
   };
 
   function showAlert(msg) {
@@ -44,13 +46,8 @@
     if (hasError) return;
 
     submitBtn.disabled = true;
-    Api.login(email, password, !!(rememberInput && rememberInput.checked))
+    Api.login(email, password, !!(rememberInput && rememberInput.checked), "business")
       .then(function () {
-        if (Api.getRole() !== "BUSINESS") {
-          showAlert("일반 회원 계정입니다. 일반 로그인을 이용해주세요.");
-          Api.clearSession();
-          return;
-        }
         window.location.href = "business-mypage";
       })
       .catch(function (err) {

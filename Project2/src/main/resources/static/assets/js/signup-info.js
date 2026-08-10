@@ -112,7 +112,7 @@
       .then(function () {
         // 회원가입은 토큰을 내려주지 않으므로, 방금 만든 계정으로 바로 로그인해서
         // 프로필 사진 업로드(인증 필요 API)까지 이어서 처리한다.
-        return Api.login(email, password, false);
+        return Api.login(email, password, false, "normal");
       })
       .then(function () {
         if (!profileFile) return Promise.resolve();

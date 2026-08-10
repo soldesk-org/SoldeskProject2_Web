@@ -125,8 +125,9 @@
     });
   }
 
-  function login(email, password, rememberMe) {
-    return request("/api/members/login", { method: "POST", auth: false, body: { email: email, password: password, rememberMe: !!rememberMe } })
+  function login(email, password, rememberMe, memberType) {
+    return request("/api/members/login", { method: "POST", auth: false,
+      body: { email: email, password: password, rememberMe: !!rememberMe, memberType: memberType } })
       .then(function (data) {
         setSession(data, !!rememberMe);
         return data;

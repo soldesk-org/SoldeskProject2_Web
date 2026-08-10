@@ -360,12 +360,17 @@ public class MemberServiceImpl implements MemberService {
             throw new CustomException(lockedNow ? ErrorCode.ACCOUNT_LOCKED : ErrorCode.INVALID_CREDENTIALS);
         }
 
-        // 계정 상태는 비밀번호가 맞은 이후에만 확인한다 (틀린 비밀번호로 계정 상태를 알아낼 수 없도록).
+        // 계정 상태/유형은 비밀번호가 맞은 이후에만 확인한다 (틀린 비밀번호로 알아낼 수 없도록).
         if (STATUS_SUSPENDED.equals(member.getStatus())) {
             throw new CustomException(ErrorCode.ACCOUNT_SUSPENDED);
         }
         if (STATUS_WITHDRAWN.equals(member.getStatus())) {
             throw new CustomException(ErrorCode.ACCOUNT_WITHDRAWN);
+        }
+        // 일반/사업자 로그인 탭이 서로 뒤바뀐 계정으로 로그인되던 문제(2026-08-10) — findEmail()의
+        // matchesMemberType()과 동일한 검증을 로그인에도 적용한다.
+        if (!matchesMemberType(member, request.getMemberType())) {
+            throw new CustomException(ErrorCode.MEMBER_TYPE_MISMATCH);
         }
 
         loginAttemptService.resetFailCount(member.getMemberId());

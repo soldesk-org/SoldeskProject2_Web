@@ -15,6 +15,7 @@
     ACCOUNT_SUSPENDED: "정지된 계정입니다.",
     ACCOUNT_WITHDRAWN: "탈퇴한 계정입니다.",
     INVALID_INPUT: "입력값을 확인해주세요.",
+    MEMBER_TYPE_MISMATCH: "사업자 회원 계정입니다. 사업자 회원 로그인을 이용해주세요.",
   };
 
   function showAlert(msg) {
@@ -42,7 +43,7 @@
     if (hasError) return;
 
     submitBtn.disabled = true;
-    Api.login(email, password, !!(rememberInput && rememberInput.checked))
+    Api.login(email, password, !!(rememberInput && rememberInput.checked), "normal")
       .then(function () {
         window.location.href = Api.landingPageForRole();
       })

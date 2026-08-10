@@ -18,6 +18,9 @@ public enum ErrorCode {
     ACCOUNT_LOCKED(HttpStatus.LOCKED, "로그인 실패 횟수를 초과하여 계정이 잠겼습니다. 30분 후 다시 시도해주세요."),
     ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, "이용이 정지된 계정입니다. 고객센터에 문의해주세요."),
     ACCOUNT_WITHDRAWN(HttpStatus.FORBIDDEN, "탈퇴 처리된 계정입니다."),
+    // 일반/사업자 로그인 탭이 서로 다른 회원 유형의 계정으로 로그인되던 문제(2026-08-10) — 비밀번호까지
+    // 확인된 이후에만 검사하므로 무차별 대입 공격에 계정 존재 여부를 추가로 노출하지 않는다.
+    MEMBER_TYPE_MISMATCH(HttpStatus.FORBIDDEN, "선택한 회원 유형과 계정 종류가 일치하지 않습니다."),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 재발급 토큰입니다. 다시 로그인해주세요."),
     NOT_LOGGED_IN(HttpStatus.UNAUTHORIZED, "로그인 상태가 아닙니다."),
     MEMBER_NOT_FOUND(HttpStatus.BAD_REQUEST, "일치하는 회원 정보를 찾을 수 없습니다."),

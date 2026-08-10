@@ -19,6 +19,10 @@ public class LoginRequestDto {
     // true면 기존과 동일하게 긴 세션(기본 14일)으로 refreshToken이 발급된다(001-02(로그인) 참고).
     private Boolean rememberMe;
 
+    // 로그인 화면의 "일반 회원"/"사업자 회원" 탭 구분(2026-08-10 추가) — "normal"/"business". 생략하면
+    // 검증을 건너뛴다(구버전 클라이언트 호환, MemberServiceImpl.matchesMemberType()과 동일한 관례).
+    private String memberType;
+
     protected LoginRequestDto() {
     }
 
@@ -43,5 +47,13 @@ public class LoginRequestDto {
 
     public Boolean getRememberMe() {
         return rememberMe;
+    }
+
+    public String getMemberType() {
+        return memberType;
+    }
+
+    public void setMemberType(String memberType) {
+        this.memberType = memberType;
     }
 }
