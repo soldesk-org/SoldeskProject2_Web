@@ -141,7 +141,19 @@ public class RestaurantClaimServiceImpl implements RestaurantClaimService {
                 || normalizedCandidate.contains(normalizedBusinessAddress);
     }
 
+    // 2026-08-09 — 공백만 제거하고 끝나서, 사업자등록증명원(OCR) 주소는 "서울특별시 서초구 ..."처럼
+    // 정식 명칭을 쓰는데 카카오는 "서울 서초구 ..."처럼 광역단체명을 줄여서 주는 경우 둘 다 서로의
+    // 부분 문자열이 아니게 돼 실제로는 같은 주소인데도 불일치로 판정될 위험이 있었다. 시/도 이름 뒤의
+    // 행정구역 접미사를 지워서 두 표기를 같은 형태로 맞춘다.
+    private static final java.util.regex.Pattern SIDO_SUFFIX =
+            java.util.regex.Pattern.compile("^(서울|부산|대구|인천|광주|대전|울산|세종)(특별시|광역시|특별자치시)?");
+    private static final java.util.regex.Pattern DO_SUFFIX =
+            java.util.regex.Pattern.compile("^(경기|강원|충북|충남|전북|전남|경북|경남|제주)(특별자치도|도)?");
+
     private String normalize(String address) {
-        return address.replaceAll("\\s", "");
+        String s = address.replaceAll("\\s", "");
+        s = SIDO_SUFFIX.matcher(s).replaceFirst("$1");
+        s = DO_SUFFIX.matcher(s).replaceFirst("$1");
+        return s;
     }
 }

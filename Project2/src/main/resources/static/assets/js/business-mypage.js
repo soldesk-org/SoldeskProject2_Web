@@ -325,7 +325,20 @@
     if (shopCategoryText) shopCategoryText.hidden = true;
     // 회원가입 시 자동귀속이 모호했던 계정을 위한 수동 연결 버튼(2026-08-07 추가) — 연결된 매장이
     // 없을 때만 보인다.
-    if (claimRestaurantBtn) claimRestaurantBtn.hidden = !!(shop && shop.restaurantId);
+    var connected = !!(shop && shop.restaurantId);
+    if (claimRestaurantBtn) claimRestaurantBtn.hidden = connected;
+    // 2026-08-09 추가 — 연결된 매장이 없어도 "영업중" 배지가 고정 시안 값 그대로 항상 떠 있던 문제.
+    // 실제로 영업중/휴업 상태를 서버에 저장하는 API가 아직 없어(이 파일 하단의 "시안 데모 스크립트"
+    // 참고) 값 자체를 신뢰할 수 없는 상태라, 매장이 연결됐을 때만 배지를 보여주고 임시휴업 토글도
+    // 함께 잠근다.
+    var shopOpenStatusEl = document.getElementById("shopOpenStatus");
+    var toggleOpenSwitchEl = document.getElementById("toggleOpenSwitch");
+    if (shopOpenStatusEl) shopOpenStatusEl.hidden = !connected;
+    if (toggleOpenSwitchEl) {
+      var toggleLabel = toggleOpenSwitchEl.closest("label");
+      if (toggleLabel) toggleLabel.hidden = !connected;
+      toggleOpenSwitchEl.disabled = !connected;
+    }
   }
 
   function buildPublicPageUrl(lat, lng) {
