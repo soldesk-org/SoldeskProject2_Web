@@ -112,7 +112,8 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
                 businessHours,
                 restaurant != null ? restaurant.getDescription() : null,
                 amenities,
-                restaurant != null ? restaurant.getPriceRange() : null);
+                restaurant != null ? restaurant.getPriceRange() : null,
+                restaurant != null && Restaurant.BUSINESS_STATUS_TEMP_CLOSED.equals(restaurant.getBusinessStatus()));
     }
 
     @Override

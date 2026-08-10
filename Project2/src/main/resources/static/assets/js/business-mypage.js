@@ -339,6 +339,45 @@
       if (toggleLabel) toggleLabel.hidden = !connected;
       toggleOpenSwitchEl.disabled = !connected;
     }
+    // 2026-08-10 추가 — PATCH /api/restaurants/{id}/open로 실제 저장되는 값이므로 새로고침해도
+    // 서버에 저장된 상태(shop.tempClosed) 그대로 배지/토글을 채운다.
+    applyOpenStatus(connected && shop.tempClosed);
+  }
+
+  function applyOpenStatus(tempClosed) {
+    var status = document.getElementById("shopOpenStatus");
+    var toggle = document.getElementById("toggleOpenSwitch");
+    if (toggle) toggle.checked = !!tempClosed;
+    if (!status) return;
+    if (tempClosed) {
+      status.className = "e-status e-status--off";
+      status.textContent = "임시 휴업";
+    } else {
+      status.className = "e-status e-status--on e-status--live";
+      status.textContent = "영업중";
+    }
+  }
+
+  // 임시 휴업 토글(2026-08-10 실연동) — 예전엔 화면 텍스트만 바꾸고 서버에 저장하지 않아 새로고침하면
+  // 원래대로 돌아가고 고객 화면(지도 탐색)에도 전혀 반영되지 않던 "시안 데모"였다. 실패 시 토글을
+  // 원래 상태로 되돌린다(낙관적 업데이트 롤백).
+  var toggleOpenSwitchElReal = document.getElementById("toggleOpenSwitch");
+  if (toggleOpenSwitchElReal) {
+    toggleOpenSwitchElReal.addEventListener("change", function () {
+      if (!state.restaurantId) return;
+      var tempClosed = toggleOpenSwitchElReal.checked;
+      applyOpenStatus(tempClosed);
+      Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/open",
+        { method: "PATCH", body: { tempClosed: tempClosed } })
+        .then(function () {
+          Eatty.toast(tempClosed ? "임시 휴업으로 전환했습니다. 고객 화면에 표시됩니다." : "영업중으로 전환했습니다.",
+            tempClosed ? "default" : "success");
+        })
+        .catch(function (err) {
+          applyOpenStatus(!tempClosed);
+          Eatty.toast((err && err.message) || "저장에 실패했습니다.", "error");
+        });
+    });
   }
 
   function buildPublicPageUrl(lat, lng) {
@@ -723,29 +762,4 @@
       }
     });
   })();
-})();
-
-/* ---------------------------------------------------------------------------
-   business-mypage 시안 데모 스크립트 — 실제 연동 시 business-mypage.js 로 대체
-   --------------------------------------------------------------------------- */
-(function () {
-  /* 임시 휴업 토글 */
-  var openSwitch = document.getElementById('toggleOpenSwitch');
-  openSwitch.addEventListener('change', function () {
-    var status = document.getElementById('shopOpenStatus');
-    if (openSwitch.checked) {
-      status.className = 'e-status e-status--off';
-      status.textContent = '임시 휴업';
-      Eatty.toast('임시 휴업으로 전환했습니다. 고객 화면에 표시됩니다.', 'default');
-    } else {
-      status.className = 'e-status e-status--on e-status--live';
-      status.textContent = '영업중';
-      Eatty.toast('영업중으로 전환했습니다.', 'success');
-    }
-  });
-
-  /* 주소 검색은 business-mypage.js가 실제 도로명주소 팝업 + 지도 마커로 처리한다(2026-08-06). */
-
-  /* 매장 정보(전화번호·영업시간) 저장, 메뉴 추가/수정/삭제, 사진 업로드/대표지정/삭제는
-     business-mypage.js가 실제 API로 처리한다(2026-08-06). */
 })();

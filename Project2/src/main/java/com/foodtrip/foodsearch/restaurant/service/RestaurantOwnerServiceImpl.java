@@ -100,6 +100,13 @@ public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
     }
 
     @Override
+    public RestaurantDetailResponseDto updateOpenStatus(String restaurantId, String authorizationHeader, boolean tempClosed) {
+        Restaurant restaurant = resolveOwnedRestaurant(restaurantId, authorizationHeader);
+        restaurant.updateBusinessStatus(tempClosed ? Restaurant.BUSINESS_STATUS_TEMP_CLOSED : Restaurant.BUSINESS_STATUS_UNKNOWN);
+        return restaurantService.getDetail(restaurantId, authorizationHeader, null, null, null, null, null);
+    }
+
+    @Override
     public RestaurantDetailResponseDto createMenu(String restaurantId, String authorizationHeader, CreateMenuRequestDto request) {
         resolveOwnedRestaurant(restaurantId, authorizationHeader);
         menuRepository.save(Menu.create(restaurantId, request.getMenuName(), request.getPrice(),

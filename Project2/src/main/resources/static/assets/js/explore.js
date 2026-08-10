@@ -517,12 +517,22 @@
   // 네이버지도 앱처럼 "영업 중 · 22:00에 영업 종료" 요약 한 줄 + 클릭 시 월~일 목록 펼침(2026-08-10).
   // 필드명 주의: BusinessHourResponseDto.isClosed()는 Jackson이 "closed"로 직렬화한다(is 접두어 제거).
   var MON_TO_SUN = [1, 2, 3, 4, 5, 6, 0];
-  function renderHours(businessHours) {
+  function renderHours(businessHours, tempClosed) {
     var summaryEl = document.getElementById("detailHoursSummary");
     var caretEl = document.getElementById("detailHoursCaret");
     var listEl = document.getElementById("detailHoursList");
     var toggleBtn = document.getElementById("detailHoursToggle");
     if (!summaryEl || !listEl || !toggleBtn) return;
+
+    // 사업자가 "임시 휴업" 토글을 켠 경우 영업시간표와 무관하게 항상 휴업으로 표시한다(2026-08-10).
+    if (tempClosed) {
+      summaryEl.textContent = "임시 휴업 중";
+      if (caretEl) caretEl.hidden = true;
+      listEl.hidden = true;
+      listEl.innerHTML = "";
+      toggleBtn.onclick = null;
+      return;
+    }
 
     if (!businessHours || !businessHours.length) {
       summaryEl.textContent = "영업시간 정보가 없습니다.";
@@ -694,7 +704,7 @@
       (item.longitude != null ? "&longitude=" + item.longitude : ""))
       .then(function (detail) {
         document.getElementById("detailPhone").textContent = detail.phone || "정보 없음";
-        renderHours(detail.businessHours);
+        renderHours(detail.businessHours, detail.businessStatus === "TEMP_CLOSED");
         if (callBtn) callBtn.setAttribute("href", detail.phone ? "tel:" + detail.phone : "tel:");
         renderMenus(detail.menus);
 

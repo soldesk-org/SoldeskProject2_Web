@@ -23,11 +23,14 @@ public class BusinessShopResponseDto {
     private final List<String> amenities;
     // 2026-08-10 추가 — 1인 평균 가격대(under10000/10000-20000/20000-40000/over40000).
     private final String priceRange;
+    // 2026-08-10 추가 — 임시 휴업 토글의 실제 저장값. 새로고침해도 토글 상태가 유지되도록 응답에 포함한다.
+    private final boolean tempClosed;
 
     public BusinessShopResponseDto(String restaurantId, String imageUrl, String businessName,
                                     String businessAddress, String businessRegistrationNumber,
                                     String phone, List<BusinessHourResponseDto> businessHours,
-                                    String description, List<String> amenities, String priceRange) {
+                                    String description, List<String> amenities, String priceRange,
+                                    boolean tempClosed) {
         this.restaurantId = restaurantId;
         this.imageUrl = imageUrl;
         this.businessName = businessName;
@@ -38,6 +41,11 @@ public class BusinessShopResponseDto {
         this.description = description;
         this.amenities = amenities;
         this.priceRange = priceRange;
+        this.tempClosed = tempClosed;
+    }
+
+    public boolean isTempClosed() {
+        return tempClosed;
     }
 
     public String getDescription() {

@@ -25,6 +25,9 @@ public interface RestaurantOwnerService {
     RestaurantDetailResponseDto replaceBusinessHours(String restaurantId, String authorizationHeader,
                                                        List<BusinessHourItemDto> businessHours);
 
+    // 임시 휴업 토글(2026-08-10 추가) — 영업시간표와 무관하게 강제로 영업종료 처리한다.
+    RestaurantDetailResponseDto updateOpenStatus(String restaurantId, String authorizationHeader, boolean tempClosed);
+
     RestaurantDetailResponseDto createMenu(String restaurantId, String authorizationHeader, CreateMenuRequestDto request);
 
     RestaurantDetailResponseDto updateMenu(String restaurantId, Long menuId, String authorizationHeader,

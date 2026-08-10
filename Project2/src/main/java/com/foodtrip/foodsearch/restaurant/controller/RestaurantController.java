@@ -27,6 +27,7 @@ import com.foodtrip.foodsearch.restaurant.dto.RestaurantListResponseDto;
 import com.foodtrip.foodsearch.restaurant.dto.UpdateBusinessHoursRequestDto;
 import com.foodtrip.foodsearch.restaurant.dto.UpdateMenuRequestDto;
 import com.foodtrip.foodsearch.restaurant.dto.UpdateRestaurantExtrasRequestDto;
+import com.foodtrip.foodsearch.restaurant.dto.UpdateRestaurantOpenStatusRequestDto;
 import com.foodtrip.foodsearch.restaurant.dto.UpdateRestaurantPhoneRequestDto;
 import com.foodtrip.foodsearch.restaurant.service.MenuService;
 import com.foodtrip.foodsearch.restaurant.service.RestaurantOwnerService;
@@ -147,6 +148,14 @@ public class RestaurantController {
                                                        @Valid @RequestBody UpdateRestaurantExtrasRequestDto request) {
         return restaurantOwnerService.updateExtras(restaurantId, authorizationHeader, request.getDescription(),
                 request.getAmenities(), request.getPriceRange());
+    }
+
+    // 임시 휴업 토글(2026-08-10 추가) — 영업시간표와 무관하게 강제로 영업종료 처리.
+    @PatchMapping("/{restaurantId}/open")
+    public RestaurantDetailResponseDto updateOpenStatus(@PathVariable String restaurantId,
+                                                           @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+                                                           @Valid @RequestBody UpdateRestaurantOpenStatusRequestDto request) {
+        return restaurantOwnerService.updateOpenStatus(restaurantId, authorizationHeader, request.isTempClosed());
     }
 
     // 요일별 개별 API 대신 7일치를 통째로 교체(001-02 3장 원칙과 동일하게 필요한 만큼만 단순하게).

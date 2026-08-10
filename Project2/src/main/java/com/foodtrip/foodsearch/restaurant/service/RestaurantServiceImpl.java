@@ -361,8 +361,13 @@ public class RestaurantServiceImpl implements RestaurantService {
                     continue;
                 }
             }
-            if (filterOpenNow && !isOpenNow(businessHoursById.get(item.id()))) {
-                continue; // 영업시간 미등록 가게도 "지금 열려있는지" 알 방법이 없어 함께 제외한다.
+            if (filterOpenNow) {
+                Restaurant extras = extrasById.get(item.id());
+                boolean tempClosed = extras != null
+                        && Restaurant.BUSINESS_STATUS_TEMP_CLOSED.equals(extras.getBusinessStatus());
+                if (tempClosed || !isOpenNow(businessHoursById.get(item.id()))) {
+                    continue; // 임시 휴업 중이거나, 영업시간 미등록이라 "지금 열려있는지" 알 방법이 없으면 제외.
+                }
             }
             String categoryName = category.map(RestaurantCategory::getCategoryName).orElse(null);
             matched.add(toSummaryDto(item, extrasById.get(item.id()), categoryName, favoritedIds));

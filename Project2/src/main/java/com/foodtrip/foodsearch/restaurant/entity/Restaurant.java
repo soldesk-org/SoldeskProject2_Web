@@ -25,6 +25,9 @@ public class Restaurant {
     public static final String MANAGEMENT_STATUS_UNCLAIMED = "UNCLAIMED";
     public static final String MANAGEMENT_STATUS_CLAIMED = "CLAIMED";
     public static final String BUSINESS_STATUS_UNKNOWN = "UNKNOWN";
+    // 사업자가 "임시 휴업" 토글로 직접 켜는 강제 휴업 상태(2026-08-10 추가) — 영업시간표와 무관하게
+    // 항상 영업종료로 취급한다. 토글을 다시 끄면 UNKNOWN으로 되돌아가 원래대로 영업시간표 기준 판단을 따른다.
+    public static final String BUSINESS_STATUS_TEMP_CLOSED = "TEMP_CLOSED";
 
     // 카카오 로컬 API 응답의 place id를 그대로 기본키로 쓴다(자동증가 아님) — 이 값만으로는 카카오 데이터를
     // "저장"하는 게 아니라 우리 서비스 부가정보를 그 장소에 연결하기 위한 참조키일 뿐이다.
@@ -122,6 +125,10 @@ public class Restaurant {
         this.description = description;
         this.amenities = amenities;
         this.priceRange = priceRange;
+    }
+
+    public void updateBusinessStatus(String businessStatus) {
+        this.businessStatus = businessStatus;
     }
 
     // 리뷰 등록/삭제 시 평점/리뷰수 캐시를 다시 계산해 반영한다 — ReviewServiceImpl이 리뷰 저장 직후
