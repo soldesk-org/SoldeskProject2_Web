@@ -598,8 +598,14 @@
   var bizShopPhoneInput = document.getElementById("bizShopPhone");
   var bizOpenTimeInput = document.getElementById("bizOpenTime");
   var bizCloseTimeInput = document.getElementById("bizCloseTime");
+  var bizShopNameInput = document.getElementById("bizShopName");
+  var bizAddress1Input = document.getElementById("bizAddress1");
 
   function fillShopInfoForm(shop) {
+    // 2026-08-09 추가 — 매장명/주소는 저장 API가 없어(카카오 데이터, 07 참고) 읽기 전용으로 실데이터만
+    // 보여준다. 헤더에 이미 나온 값과 같아서 "매장 정보" 탭에 고정 시안값이 뜨는 것처럼 보이던 문제 해결.
+    if (bizShopNameInput) bizShopNameInput.value = shop.businessName || "";
+    if (bizAddress1Input) bizAddress1Input.value = shop.businessAddress || "";
     if (bizShopPhoneInput) bizShopPhoneInput.value = shop.phone || "";
     var hours = shop.businessHours || [];
     document.querySelectorAll('input[name="holiday"]').forEach(function (cb) {

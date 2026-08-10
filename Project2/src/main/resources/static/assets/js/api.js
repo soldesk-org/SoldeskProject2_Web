@@ -201,14 +201,18 @@
     // 카드와 동일한 규칙 — 2026-08-04 전까지는 "잇" 하드코딩이라 마이페이지 본문 아바타와 서로 달라 보였다).
     if (loggedIn) {
       var headerNickname = document.getElementById("headerNickname");
+      // 2026-08-09 추가 — business-mypage.html의 프로필 드롭다운 헤더("잇티식당 강남점" 고정 시안값)가
+      // 이 공용 로직 대상이 아니어서 실제 사업자명과 무관하게 항상 그 값으로 떠 있었다.
+      var headerNicknameHead = document.getElementById("headerNicknameHead");
       var headerEmail = document.getElementById("headerEmail");
       var headerAvatar = document.getElementById("headerAvatar");
       var drawerNickname = document.getElementById("drawerNickname");
       var drawerEmail = document.getElementById("drawerEmail");
       var drawerAvatar = document.getElementById("drawerAvatar");
-      if (headerNickname || headerEmail || headerAvatar || drawerNickname || drawerEmail || drawerAvatar) {
+      if (headerNickname || headerNicknameHead || headerEmail || headerAvatar || drawerNickname || drawerEmail || drawerAvatar) {
         request("/api/members/me").then(function (data) {
           if (headerNickname && data.nickname) headerNickname.textContent = data.nickname;
+          if (headerNicknameHead && data.nickname) headerNicknameHead.textContent = data.nickname;
           if (headerEmail && data.email) headerEmail.textContent = data.email;
           if (drawerNickname && data.nickname) drawerNickname.textContent = data.nickname;
           if (drawerEmail && data.email) drawerEmail.textContent = data.email;
