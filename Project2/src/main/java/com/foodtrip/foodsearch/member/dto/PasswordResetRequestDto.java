@@ -17,6 +17,11 @@ public class PasswordResetRequestDto {
     @Size(max = 100, message = "pollKey는 최대 100자입니다.")
     private String pollKey;
 
+    // 화면의 "일반 회원"/"사업자 회원" 라디오 선택(2026-08-10 추가) — findEmail()과 동일한 관례로
+    // 생략하면 검증을 건너뛴다. 계정 존재 여부는 계속 비노출이라, 유형이 안 맞아도 응답은 항상 동일하게
+    // 성공으로 보이고 실제로는 메일만 안 보낸다(MemberServiceImpl.requestPasswordReset() 참고).
+    private String memberType;
+
     protected PasswordResetRequestDto() {
     }
 
@@ -30,5 +35,9 @@ public class PasswordResetRequestDto {
 
     public String getPollKey() {
         return pollKey;
+    }
+
+    public String getMemberType() {
+        return memberType;
     }
 }

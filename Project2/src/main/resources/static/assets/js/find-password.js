@@ -10,6 +10,8 @@
 
     var email = emailInput.value.trim();
     if (!email) { Eatty.toast("이메일을 입력해주세요.", "error"); return; }
+    var memberTypeEl = document.querySelector('input[name="memberType"]:checked');
+    var memberType = memberTypeEl ? memberTypeEl.value : "normal";
 
     // 다른 탭(이메일 링크)에서 인증 완료를 감지하기 위한 상관관계 키(2026-08-04 추가) —
     // 요청 전에 생성해서 서버로 같이 보내고, find-password-sent.html이 폴링할 때 재사용한다.
@@ -25,7 +27,7 @@
 
     submitBtn.disabled = true;
     // 이 API는 가입 여부와 무관하게 항상 200으로 응답한다(계정 존재 여부 비노출, 의도된 동작).
-    Api.request("/api/members/password-reset/request", { method: "POST", auth: false, body: { email: email, pollKey: pollKey } })
+    Api.request("/api/members/password-reset/request", { method: "POST", auth: false, body: { email: email, pollKey: pollKey, memberType: memberType } })
       .then(goToSent)
       .catch(function (err) {
         if (err.code === "INVALID_INPUT") {

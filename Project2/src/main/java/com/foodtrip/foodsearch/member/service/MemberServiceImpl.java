@@ -469,7 +469,11 @@ public class MemberServiceImpl implements MemberService {
         if (memberOpt.isPresent()) {
             Member member = memberOpt.get();
             // member_credentials까지 있어야(=회원가입을 끝까지 완료한 회원) 재설정 메일을 보낸다.
-            if (memberCredentialRepository.existsByMemberId(member.getMemberId())) {
+            // 일반/사업자 탭 선택이 실제 계정 유형과 다르면(2026-08-10 추가, findEmail()과 동일한 검증)
+            // 메일을 보내지 않는다 — 다만 계정 존재 여부 비노출 원칙은 그대로 지켜야 하므로, 아래 응답은
+            // 이 경우에도 항상 같은 성공 메시지를 반환한다.
+            if (memberCredentialRepository.existsByMemberId(member.getMemberId())
+                    && matchesMemberType(member, request.getMemberType())) {
                 String rawToken = passwordResetTokenService.issue(member.getMemberId(), request.getPollKey());
                 String resetUrl = passwordResetFrontendUrl + "?token=" + rawToken;
                 try {
