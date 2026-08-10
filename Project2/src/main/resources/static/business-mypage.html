@@ -44,7 +44,7 @@
    #ratingDistList         별점 분포 (5~1점, JS가 채움)
    #bizReviewList / #bizReviewEmpty        최근 리뷰 목록 (5개씩, JS가 채움)
    #bizReviewLoadMoreBtn   리뷰 더 보기 — 더 있을 때만 노출
-   [data-report-review]    리뷰 신고 (data-modal-open="bizReportModal", 미구현 — 모달 UI만 존재)
+   [data-report-review]    리뷰 신고 (data-modal-open="bizReportModal") ★ POST /api/reviews/{id}/report (2026-08-10 실제 연결)
    #bizReportModal         신고 모달 (#bizReportReason, #bizReportDetail, #bizReportSubmitBtn)
    #reviewPeriodSelect     기간 필터 (미구현 — 아직 전체 기간만 조회)
    매장이 아직 자동귀속되지 않은 사업자 계정(BUSINESS_RESTAURANT_NOT_CLAIMED)은 통계/리뷰 전부
@@ -631,13 +631,16 @@
     <div class="e-modal-body">
       <div class="e-field">
         <label class="e-label" for="bizReportReason">신고 사유 <span class="req">*</span></label>
+        <!-- 2026-08-10 수정 — 이 값들은 백엔드 ReportReasonCatalog와 무관하게 지어낸 사유 코드였고,
+             신고 버튼도 실제 API 호출 없이 data-demo-toast로 "접수됨" 토스트만 띄우는 가짜 UI였다.
+             ReportReasonCatalog(SPAM/ABUSE/FALSE_INFO/PRIVACY/ETC)와 실제로 맞춘다 -
+             explore.js의 고객용 신고 모달과 동일한 목록. -->
         <select class="e-select" id="bizReportReason" name="reason" required>
           <option value="">사유를 선택해주세요</option>
-          <option value="FALSE_FACT">허위 사실 기재</option>
-          <option value="NOT_VISITED">방문하지 않은 것으로 의심</option>
+          <option value="SPAM">광고 · 도배성 내용</option>
           <option value="ABUSE">욕설 · 비방</option>
-          <option value="COMPETITOR">경쟁업체 의심</option>
-          <option value="IRRELEVANT">매장과 무관한 내용</option>
+          <option value="FALSE_INFO">허위 사실</option>
+          <option value="PRIVACY">개인정보 노출</option>
           <option value="ETC">기타</option>
         </select>
       </div>
@@ -653,8 +656,7 @@
 
     <div class="e-modal-foot">
       <button type="button" class="btn btn-outline" data-modal-close>취소</button>
-      <button type="button" class="btn btn-danger" id="bizReportSubmitBtn"
-              data-demo-toast="신고가 접수되었습니다. 검토 후 안내드립니다." data-demo-type="success" data-modal-close>신고하기</button>
+      <button type="button" class="btn btn-danger" id="bizReportSubmitBtn">신고하기</button>
     </div>
   </div>
 </div>

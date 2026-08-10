@@ -438,7 +438,9 @@
       : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>';
     return (
       '<li class="e-file-item" data-menu-id="' + m.menuId + '">' +
-        '<button type="button" class="w-14 h-14 rounded-[10px] e-img-ph flex-none overflow-hidden relative" data-upload-menu-image aria-label="메뉴 사진 ' + (m.imageUrl ? "교체" : "등록") + '">' +
+        // e-shop-thumb는 이 정도 작은 썸네일에서 "NO IMAGE" 플레이스홀더 글자가 커지도록 하는 기존
+        // 클래스(eatty.css)를 그대로 재사용(2026-08-10 — 박스 크기는 그대로 두고 글자만 키워달라는 요청).
+        '<button type="button" class="w-14 h-14 rounded-[10px] e-img-ph e-shop-thumb flex-none overflow-hidden relative" data-upload-menu-image aria-label="메뉴 사진 ' + (m.imageUrl ? "교체" : "등록") + '">' +
           thumbHtml +
         '</button>' +
         '<div class="min-w-0 flex-1">' +
@@ -512,6 +514,29 @@
       .then(function () { Eatty.toast("메뉴 사진을 등록했습니다.", "success"); loadMenus(); })
       .catch(function (err) { Eatty.toast((err && err.message) || "메뉴 사진 등록에 실패했습니다.", "error"); });
   });
+
+  // 리뷰 신고(2026-08-10 실제 연결) — 예전엔 data-demo-toast로 "접수됨" 토스트만 띄우고 실제 API 호출이
+  // 없던 가짜 버튼이었다. explore.js 고객용 신고 모달과 동일한 패턴(POST /api/reviews/{id}/report).
+  var bizReportTargetReviewId = null;
+  if (els.reviewList) {
+    els.reviewList.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-report-review]");
+      if (!btn) return;
+      bizReportTargetReviewId = btn.getAttribute("data-review-id");
+    });
+  }
+  var bizReportSubmitBtn = document.getElementById("bizReportSubmitBtn");
+  if (bizReportSubmitBtn) {
+    bizReportSubmitBtn.addEventListener("click", function () {
+      var reason = document.getElementById("bizReportReason").value;
+      var detail = document.getElementById("bizReportDetail").value.trim();
+      if (!reason) { Eatty.toast("신고 사유를 선택해주세요.", "error"); return; }
+      if (!bizReportTargetReviewId) return;
+      Api.request("/api/reviews/" + bizReportTargetReviewId + "/report", { method: "POST", body: { reasonCode: reason, detail: detail } })
+        .then(function () { Eatty.closeModal("bizReportModal"); Eatty.toast("신고가 접수되었습니다.", "success"); })
+        .catch(function (err) { Eatty.toast((err && err.message) || "신고에 실패했습니다.", "error"); });
+    });
+  }
 
   if (menuList) {
     menuList.addEventListener("click", function (e) {
