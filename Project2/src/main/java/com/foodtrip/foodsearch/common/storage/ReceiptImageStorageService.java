@@ -23,6 +23,10 @@ public class ReceiptImageStorageService {
 
     private static final Set<String> ALLOWED_CONTENT_TYPES =
             Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
+    // 2026-08-10 보안 수정(경로 조작 방지) — extractExtension()이 반환할 수 있는 값을 이 화이트리스트로
+    // 제한한다. 원본 파일명에 "/"나 ".."가 섞여 있어도(예: "a.jpg/../../evil") 화이트리스트에 없으니
+    // 그냥 빈 문자열로 떨어져, uploadDir.resolve(filename)이 디렉터리 밖으로 나가지 못한다.
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
 
     private final Path uploadDir;
     private final String baseUrl;
@@ -71,6 +75,7 @@ public class ReceiptImageStorageService {
             return "";
         }
         int idx = originalFilename.lastIndexOf('.');
-        return idx >= 0 ? originalFilename.substring(idx) : "";
+        String ext = idx >= 0 ? originalFilename.substring(idx).toLowerCase() : "";
+        return ALLOWED_EXTENSIONS.contains(ext) ? ext : "";
     }
 }

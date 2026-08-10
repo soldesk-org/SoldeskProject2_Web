@@ -57,6 +57,12 @@ public class Receipt {
     @Column(name = "transaction_id", unique = true, length = 50)
     private String transactionId;
 
+    // 2026-08-10 추가 — 업로드된 이미지 파일 바이트의 SHA-256 해시(중복 검사 보조용, transaction_id를
+    // 못 읽은 영수증도 같은 사진 재업로드를 잡아내기 위함). unique 제약은 NULL을 여러 개 허용하는 MySQL
+    // 표준 동작을 그대로 이용한다(transaction_id 컬럼과 동일한 관례).
+    @Column(name = "image_hash", unique = true, length = 64)
+    private String imageHash;
+
     @Column(name = "retry_count", nullable = false)
     private int retryCount;
 
@@ -72,10 +78,11 @@ public class Receipt {
     protected Receipt() {
     }
 
-    public static Receipt createPending(Long memberId, String imagePath) {
+    public static Receipt createPending(Long memberId, String imagePath, String imageHash) {
         Receipt receipt = new Receipt();
         receipt.memberId = memberId;
         receipt.imagePath = imagePath;
+        receipt.imageHash = imageHash;
         receipt.ocrStatus = STATUS_PENDING;
         receipt.retryCount = 0;
         return receipt;
@@ -152,6 +159,10 @@ public class Receipt {
 
     public String getTransactionId() {
         return transactionId;
+    }
+
+    public String getImageHash() {
+        return imageHash;
     }
 
     public LocalDateTime getDeletedAt() {

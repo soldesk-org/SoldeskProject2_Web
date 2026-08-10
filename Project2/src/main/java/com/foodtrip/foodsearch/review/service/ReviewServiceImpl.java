@@ -97,10 +97,15 @@ public class ReviewServiceImpl implements ReviewService {
         if (request.getReceiptId() == null) {
             throw new CustomException(ErrorCode.REVIEW_RECEIPT_REQUIRED);
         }
+        // 2026-08-10 보안 수정 — 소유자/음식점 일치만 확인하고 정작 OCR 매장명 일치 판정(Receipt.verified)은
+        // 한 번도 읽지 않고 있었다. 그래서 다른 가게 영수증이나 OCR이 매칭에 실패한 영수증도 소유자만
+        // 맞으면 그대로 "영수증 인증 리뷰"로 등록됐다 — 위 주석의 원래 의도(verified 판정을 신뢰)대로
+        // 실제로 그 값을 확인하도록 고친다.
         Receipt receipt = receiptRepository.findByReceiptIdAndDeletedAtIsNull(request.getReceiptId()).orElse(null);
         boolean receiptVerified = receipt != null
                 && receipt.getMemberId().equals(memberId)
-                && request.getRestaurantId().equals(receipt.getRestaurantId());
+                && request.getRestaurantId().equals(receipt.getRestaurantId())
+                && receipt.isVerified();
         if (!receiptVerified) {
             throw new CustomException(ErrorCode.REVIEW_RECEIPT_NOT_VERIFIED);
         }

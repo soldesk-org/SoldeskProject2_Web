@@ -110,9 +110,13 @@ public class GoogleOAuthClient implements SocialOAuthClient {
             throw new CustomException(ErrorCode.SOCIAL_LOGIN_FAILED, "구글 사용자 정보 응답이 올바르지 않습니다.");
         }
 
+        // 2026-08-10 보안 수정 — verified_email(구글이 실제로 소유 확인한 이메일인지)을 함께 받아서
+        // 기존 계정 자동 연동 여부 판단에 쓴다(SocialLoginServiceImpl 참고). 필드가 없으면 미검증으로 취급.
+        boolean emailVerified = Boolean.TRUE.equals(body.get("verified_email"));
         return new SocialUserProfile(
                 String.valueOf(body.get("id")),
                 (String) body.get("email"),
+                emailVerified,
                 (String) body.get("name"),
                 null,
                 (String) body.get("picture")

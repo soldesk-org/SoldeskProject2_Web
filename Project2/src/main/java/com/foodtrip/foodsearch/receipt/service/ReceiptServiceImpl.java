@@ -1,8 +1,12 @@
 package com.foodtrip.foodsearch.receipt.service;
 
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,6 +24,8 @@ import com.foodtrip.foodsearch.receipt.dto.ReceiptItemResponseDto;
 import com.foodtrip.foodsearch.receipt.dto.ReceiptUploadResponseDto;
 import com.foodtrip.foodsearch.receipt.entity.Receipt;
 import com.foodtrip.foodsearch.receipt.repository.ReceiptRepository;
+import com.foodtrip.foodsearch.restaurant.client.KakaoLocalSearchClient;
+import com.foodtrip.foodsearch.restaurant.client.KakaoLocalSearchItem;
 import com.foodtrip.foodsearch.restaurant.entity.Restaurant;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantRepository;
 
@@ -46,6 +52,7 @@ public class ReceiptServiceImpl implements ReceiptService {
     private final ReceiptSuccessRecorder receiptSuccessRecorder;
     private final JwtProvider jwtProvider;
     private final AccessTokenSessionService accessTokenSessionService;
+    private final KakaoLocalSearchClient kakaoLocalSearchClient;
 
     public ReceiptServiceImpl(ReceiptRepository receiptRepository,
                                RestaurantRepository restaurantRepository,
@@ -54,7 +61,8 @@ public class ReceiptServiceImpl implements ReceiptService {
                                ReceiptFailureRecorder receiptFailureRecorder,
                                ReceiptSuccessRecorder receiptSuccessRecorder,
                                JwtProvider jwtProvider,
-                               AccessTokenSessionService accessTokenSessionService) {
+                               AccessTokenSessionService accessTokenSessionService,
+                               KakaoLocalSearchClient kakaoLocalSearchClient) {
         this.receiptRepository = receiptRepository;
         this.restaurantRepository = restaurantRepository;
         this.receiptImageStorageService = receiptImageStorageService;
@@ -63,6 +71,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         this.receiptSuccessRecorder = receiptSuccessRecorder;
         this.jwtProvider = jwtProvider;
         this.accessTokenSessionService = accessTokenSessionService;
+        this.kakaoLocalSearchClient = kakaoLocalSearchClient;
     }
 
     @Override
@@ -75,9 +84,18 @@ public class ReceiptServiceImpl implements ReceiptService {
         Restaurant restaurant = restaurantRepository.findByRestaurantIdAndDeletedAtIsNull(restaurantId)
                 .orElseGet(() -> restaurantRepository.save(Restaurant.createExtras(restaurantId)));
 
+        // 2026-08-10 보안 수정 — OCR이 거래번호를 못 읽는 영수증(예: 그 영역을 가리거나 지운 사진)은
+        // 기존 중복 검사(transaction_id)를 아예 안 거쳐서, 같은 사진을 반복 업로드해 여러 개의 "인증된"
+        // 영수증을 만들 수 있었다. transaction_id 인식 여부와 무관하게 이미지 바이트 자체의 해시로도
+        // 중복을 막는다 — OCR 호출/저장 전에 먼저 확인해 낭비도 줄인다.
+        String imageHash = hashImage(image);
+        if (imageHash != null && receiptRepository.existsByImageHash(imageHash)) {
+            throw new CustomException(ErrorCode.DUPLICATE_RECEIPT);
+        }
+
         String imagePath = receiptImageStorageService.store(image);
         // 별도 트랜잭션으로 즉시 커밋 — 이후 단계가 실패해도 "시도했다"는 기록 자체는 남는다.
-        Receipt receipt = receiptRepository.save(Receipt.createPending(memberId, imagePath));
+        Receipt receipt = receiptRepository.save(Receipt.createPending(memberId, imagePath, imageHash));
 
         long startedAt = System.currentTimeMillis();
         ReceiptOcrResult result;
@@ -95,7 +113,13 @@ public class ReceiptServiceImpl implements ReceiptService {
         }
 
         LocalDateTime parsedPaymentDate = parseDateTime(result.orderDatetime());
-        boolean verified = matchesRestaurant(result.storeName(), restaurantName);
+        // 2026-08-10 보안 수정 — 예전엔 클라이언트가 보낸 restaurantName을 그대로 신뢰해서 비교했는데,
+        // 공격자가 restaurantId(리뷰를 남길 대상)와 restaurantName(자기가 올린 영수증 내용에 맞춘 값)을
+        // 서로 무관하게 따로 조작할 수 있었다(예: 전혀 다른 가게 영수증을 올리면서 그 영수증에 찍힌
+        // 이름을 restaurantName으로 그대로 보내면 항상 매칭 성공). 카카오에서 이 restaurantId가 실제로
+        // 그 이름인지 다시 확인한 값으로만 비교한다.
+        String trustedRestaurantName = resolveTrustedRestaurantName(restaurantId, restaurantName);
+        boolean verified = trustedRestaurantName != null && matchesRestaurant(result.storeName(), trustedRestaurantName);
         long processingTimeMs = System.currentTimeMillis() - startedAt;
         receiptSuccessRecorder.record(receipt.getReceiptId(), result, rawJsonOf(result), parsedPaymentDate,
                 verified, restaurantId, processingTimeMs);
@@ -110,6 +134,39 @@ public class ReceiptServiceImpl implements ReceiptService {
 
         return new ReceiptUploadResponseDto(receipt.getReceiptId(), result.storeName(), result.orderDatetime(),
                 result.totalPrice(), menuItems, verified, verified ? restaurantId : null);
+    }
+
+    // 이미지 바이트의 SHA-256 해시(2026-08-10 추가, 중복 영수증 검사 보조용). 계산 실패는 치명적이지
+    // 않으므로(해시 없이도 기존 transaction_id 검사는 그대로 동작) null을 반환해 그냥 건너뛴다.
+    private String hashImage(MultipartFile image) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(image.getBytes());
+            return HexFormat.of().formatHex(hash);
+        } catch (IOException | NoSuchAlgorithmException e) {
+            return null;
+        }
+    }
+
+    // restaurantId가 실제로 카카오 상에서 restaurantName(클라이언트가 준 검색 힌트)에 해당하는지 다시
+    // 확인하고, 확인되면 카카오가 직접 준 상호명을 돌려준다(2026-08-10 보안 수정). 카카오가 place id
+    // 단건 재조회를 지원하지 않아 tryAutoClaim()/claimByRestaurantId()와 동일하게 키워드 검색 결과에서
+    // id로 찾는다. 못 찾으면 null(=인증 불가로 처리).
+    private String resolveTrustedRestaurantName(String restaurantId, String restaurantName) {
+        if (restaurantName == null || restaurantName.isBlank()) {
+            return null;
+        }
+        try {
+            List<KakaoLocalSearchItem> items = kakaoLocalSearchClient.searchByKeyword(restaurantName);
+            for (KakaoLocalSearchItem item : items) {
+                if (item.id().equals(restaurantId)) {
+                    return item.placeName();
+                }
+            }
+        } catch (CustomException e) {
+            // 카카오 호출 실패 시 검증 불가 — 인증 리뷰 오남용을 막는 쪽이 우선이라 실패로 처리한다.
+        }
+        return null;
     }
 
     // 정규화(공백 제거) 후 완전 일치 또는 양방향 부분 문자열 포함이면 방문 인증 성공으로 판단한다

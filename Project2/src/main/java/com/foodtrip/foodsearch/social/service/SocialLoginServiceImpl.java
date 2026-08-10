@@ -109,6 +109,14 @@ public class SocialLoginServiceImpl implements SocialLoginService {
             // 별도 확인 절차 없음). 06 001-02/001-03 갱신 참고.
             Optional<Member> existingMemberByEmail = memberRepository.findByEmail(profile.email());
             if (existingMemberByEmail.isPresent()) {
+                // 2026-08-10 보안 수정 — "같은 이메일=같은 사람"으로 자동 연동하려면, 그 이메일을 소셜
+                // 제공자가 실제로 소유 확인했다는 보장이 있어야 한다. 그렇지 않으면 공격자가 피해자의
+                // eattyway 가입 이메일을 자기 소셜 프로필의 미인증 이메일로 넣기만 해도 피해자 계정에
+                // 로그인해버리는 계정 탈취가 가능하다. 미인증이면 자동 연동을 거부하고, 이메일/비밀번호로
+                // 로그인하라고 안내한다(기존 EMAIL_ALREADY_REGISTERED 재사용).
+                if (!profile.emailVerified()) {
+                    throw new CustomException(ErrorCode.EMAIL_ALREADY_REGISTERED);
+                }
                 member = existingMemberByEmail.get();
                 checkAccountStatus(member);
             } else {

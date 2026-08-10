@@ -201,7 +201,7 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
                 .orElseThrow(() -> new CustomException(ErrorCode.BUSINESS_RESTAURANT_NOT_CLAIMED, "사업자 정보를 찾을 수 없습니다."));
 
         restaurantClaimService.claimByRestaurantId(memberId, profile.getBusinessProfileId(), profile.getBusinessAddress(),
-                request.getRestaurantId(), request.getAddress(), request.getRoadAddress());
+                profile.getBusinessName(), request.getRestaurantId());
 
         return getShop(authorizationHeader);
     }

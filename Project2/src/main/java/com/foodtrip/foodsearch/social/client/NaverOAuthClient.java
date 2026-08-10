@@ -106,9 +106,13 @@ public class NaverOAuthClient implements SocialOAuthClient {
             throw new CustomException(ErrorCode.SOCIAL_LOGIN_FAILED, "네이버 계정에서 이메일을 가져올 수 없습니다(이메일 제공 동의 필요).");
         }
 
+        // 2026-08-10 보안 수정 — 네이버 API는 카카오/구글과 달리 별도의 이메일 검증 여부 필드를 주지
+        // 않는다(네이버는 계정 가입 시점에 자체적으로 이메일을 확인시키는 구조라 별도 플래그가 없음).
+        // 그래서 여기서는 항상 true로 취급한다(SocialLoginServiceImpl의 자동 계정 연동 검증용).
         return new SocialUserProfile(
                 String.valueOf(response.get("id")),
                 (String) response.get("email"),
+                true,
                 (String) response.get("nickname"),
                 (String) response.get("mobile"),
                 (String) response.get("profile_image")

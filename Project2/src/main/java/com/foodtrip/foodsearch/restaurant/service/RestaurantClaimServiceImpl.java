@@ -93,13 +93,32 @@ public class RestaurantClaimServiceImpl implements RestaurantClaimService {
     @Override
     @Transactional
     public void claimByRestaurantId(Long memberId, Long businessProfileId, String businessAddress,
-                                     String restaurantId, String candidateAddress, String candidateRoadAddress) {
+                                     String businessName, String restaurantId) {
         if (businessAddress == null || businessAddress.isBlank()) {
             throw new CustomException(ErrorCode.BUSINESS_RESTAURANT_NOT_CLAIMED, "사업장 주소 정보가 없어 매장을 연결할 수 없습니다.");
         }
+        if (businessName == null || businessName.isBlank()) {
+            throw new CustomException(ErrorCode.BUSINESS_RESTAURANT_NOT_CLAIMED, "매장명 정보가 없어 매장을 연결할 수 없습니다.");
+        }
         String normalizedBusinessAddress = normalize(businessAddress);
-        boolean addressOk = matches(normalizedBusinessAddress, candidateAddress)
-                || matches(normalizedBusinessAddress, candidateRoadAddress);
+
+        // 2026-08-10 보안 수정 — 클라이언트가 보낸 주소 문자열은 신뢰하지 않는다. 카카오가 place id
+        // 단건 재조회를 지원하지 않으므로, tryAutoClaim()과 동일하게 가게명으로 다시 키워드 검색해서
+        // 그 결과 중 restaurantId가 일치하는 항목의 주소(서버가 직접 받은 값)로만 검증한다.
+        List<KakaoLocalSearchItem> liveResults;
+        try {
+            liveResults = kakaoLocalSearchClient.searchByKeyword(businessName);
+        } catch (CustomException e) {
+            log.warn("카카오 로컬 API 호출에 실패해 수동 귀속을 검증할 수 없습니다 (memberId={})", memberId, e);
+            throw new CustomException(ErrorCode.RESTAURANT_ADDRESS_MISMATCH);
+        }
+        KakaoLocalSearchItem target = liveResults.stream()
+                .filter(item -> restaurantId.equals(item.id()))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.RESTAURANT_ADDRESS_MISMATCH));
+
+        boolean addressOk = matches(normalizedBusinessAddress, target.addressName())
+                || matches(normalizedBusinessAddress, target.roadAddressName());
         if (!addressOk) {
             throw new CustomException(ErrorCode.RESTAURANT_ADDRESS_MISMATCH);
         }

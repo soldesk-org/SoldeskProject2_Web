@@ -96,6 +96,9 @@ public class KakaoOAuthClient implements SocialOAuthClient {
 
         Map<String, Object> kakaoAccount = (Map<String, Object>) body.get("kakao_account");
         String email = kakaoAccount != null ? (String) kakaoAccount.get("email") : null;
+        // 2026-08-10 보안 수정 — is_email_verified(카카오가 실제로 소유 확인한 이메일인지)를 함께 받아서
+        // 기존 계정 자동 연동 여부 판단에 쓴다(SocialLoginServiceImpl 참고). 필드가 없으면 미검증으로 취급.
+        boolean emailVerified = kakaoAccount != null && Boolean.TRUE.equals(kakaoAccount.get("is_email_verified"));
         String nickname = null;
         String profileImageUrl = null;
         if (kakaoAccount != null) {
@@ -109,7 +112,7 @@ public class KakaoOAuthClient implements SocialOAuthClient {
             throw new CustomException(ErrorCode.SOCIAL_LOGIN_FAILED, "카카오 계정에서 이메일을 가져올 수 없습니다(이메일 제공 동의 필요).");
         }
 
-        return new SocialUserProfile(String.valueOf(body.get("id")), email, nickname, null, profileImageUrl);
+        return new SocialUserProfile(String.valueOf(body.get("id")), email, emailVerified, nickname, null, profileImageUrl);
     }
 
     @Override

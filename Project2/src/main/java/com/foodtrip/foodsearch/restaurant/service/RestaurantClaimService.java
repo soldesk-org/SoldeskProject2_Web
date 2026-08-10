@@ -11,9 +11,11 @@ public interface RestaurantClaimService {
     RestaurantClaimResult tryAutoClaim(Long memberId, Long businessProfileId, String businessAddress, String storeName);
 
     // 자동귀속이 모호(0개/여러 개)했을 때 프론트가 후보 중 하나를 직접 골라 수동으로 귀속하는 경로
-    // (2026-08-07 신규, BusinessDashboardService.claimRestaurant 참고). candidateAddress/candidateRoadAddress는
-    // 프론트가 검색 결과에서 이미 들고 있는 값을 그대로 넘긴다(카카오가 place id 단건 재조회를 지원하지
-    // 않으므로) — 그 값이 사업장 주소와 실제로 일치하는지 서버가 다시 검증한다.
+    // (2026-08-07 신규, BusinessDashboardService.claimRestaurant 참고). 2026-08-10 보안 수정: 예전에는
+    // 프론트가 보낸 candidateAddress/candidateRoadAddress 문자열을 그대로 신뢰해서, 클라이언트가 그
+    // 값을 조작하면 임의의(아직 미귀속인) 매장을 주소 검증 없이 가로챌 수 있었다. 이제는 그 값을 받지
+    // 않고, 서버가 businessName으로 카카오를 다시 검색해 직접 얻은 주소로만 검증한다(카카오가 place id
+    // 단건 재조회를 지원하지 않아 tryAutoClaim()과 동일하게 키워드 검색 결과에서 id로 찾는다).
     void claimByRestaurantId(Long memberId, Long businessProfileId, String businessAddress,
-                              String restaurantId, String candidateAddress, String candidateRoadAddress);
+                              String businessName, String restaurantId);
 }
