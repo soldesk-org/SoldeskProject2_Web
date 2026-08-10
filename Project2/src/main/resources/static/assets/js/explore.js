@@ -501,11 +501,18 @@
   function weekdayLabel(n) {
     return ["일", "월", "화", "수", "목", "금", "토"][n] || "";
   }
+  var AMENITY_LABELS = {
+    parking: "주차 가능", wifi: "와이파이", pet: "반려동물", kids: "유아 의자",
+    delivery: "배달", takeout: "포장", group: "단체석", barrierFree: "휠체어 접근"
+  };
   function renderHours(businessHours) {
     if (!businessHours || !businessHours.length) return "영업시간 정보가 없습니다.";
-    return businessHours.filter(function (h) { return !h.isClosed; }).map(function (h) {
+    var openText = businessHours.filter(function (h) { return !h.isClosed; }).map(function (h) {
       return weekdayLabel(h.dayOfWeek) + " " + (h.openTime || "") + "~" + (h.closeTime || "");
     }).join(" · ");
+    var closedDays = businessHours.filter(function (h) { return h.isClosed; }).map(function (h) { return weekdayLabel(h.dayOfWeek); });
+    if (!openText) return closedDays.length ? "매주 " + closedDays.join(", ") + " 휴무" : "영업시간 정보가 없습니다.";
+    return closedDays.length ? openText + " (매주 " + closedDays.join(", ") + " 휴무)" : openText;
   }
 
   function openDetail(item) {
@@ -635,13 +642,27 @@
         var tagsWrap = document.getElementById("detailTagsWrap");
         var tagsEl = document.getElementById("detailTags");
         if (tagsWrap && tagsEl) {
-          var tags = detail.tags || [];
-          if (tags.length) {
-            tagsEl.innerHTML = tags.map(function (t) { return '<span class="e-tag">' + escapeHtml(t) + '</span>'; }).join("");
+          var amenities = detail.amenities || [];
+          if (amenities.length) {
+            tagsEl.innerHTML = amenities.map(function (a) {
+              return '<span class="e-tag">' + escapeHtml(AMENITY_LABELS[a] || a) + '</span>';
+            }).join("");
             tagsWrap.hidden = false;
           } else {
             tagsEl.innerHTML = "";
             tagsWrap.hidden = true;
+          }
+        }
+
+        var introWrap = document.getElementById("detailIntroWrap");
+        var introEl = document.getElementById("detailIntro");
+        if (introWrap && introEl) {
+          if (detail.description) {
+            introEl.textContent = detail.description;
+            introWrap.hidden = false;
+          } else {
+            introEl.textContent = "";
+            introWrap.hidden = true;
           }
         }
       })

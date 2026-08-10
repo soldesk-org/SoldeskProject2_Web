@@ -67,6 +67,7 @@
    #detailShopName #detailCategory #detailRating #detailReviewCount
    #detailReceiptReviewCount #detailReviewTabCount   (전부 reviewCount와 동일한 값 — 모든 리뷰는 영수증 인증 필수)
    #detailAddress #detailPhone #detailHours #detailTagsWrap #detailTags
+   #detailIntroWrap #detailIntro   사업자가 저장한 매장 소개(2026-08-10 추가, 값 없으면 섹션 자체 숨김)
    #favoriteBtn             즐겨찾기 토글 (aria-pressed) ★ POST/DELETE /api/favorites
    #directionBtn            길찾기 실행
    #directionsResult        길찾기 결과 영역 (기본 hidden)
@@ -587,10 +588,17 @@
               </div>
             </dl>
 
-            <!-- 편의시설(음식점 태그) — 실제 등록된 태그가 있을 때만 노출 (가짜 데이터 금지) -->
+            <!-- 편의시설 — 사업자가 "매장 정보" 탭에서 저장한 값(PATCH .../extras). 실제 등록된 값이
+                 있을 때만 노출한다(가짜 데이터 금지). -->
             <div class="mt-6" id="detailTagsWrap" hidden>
               <p class="text-[13px] font-extrabold text-[var(--ink-900)] mb-2.5">편의시설</p>
               <div class="flex flex-wrap gap-1.5" id="detailTags"></div>
+            </div>
+
+            <!-- 매장 소개 — 사업자가 저장한 값이 있을 때만 노출한다. -->
+            <div class="mt-6" id="detailIntroWrap" hidden>
+              <p class="text-[13px] font-extrabold text-[var(--ink-900)] mb-2.5">매장 소개</p>
+              <p class="text-sm text-[var(--ink-700)] whitespace-pre-line" id="detailIntro"></p>
             </div>
 
             <!-- ==================== 주변 주차장 ====================

@@ -50,15 +50,15 @@
    매장이 아직 자동귀속되지 않은 사업자 계정(BUSINESS_RESTAURANT_NOT_CLAIMED)은 통계/리뷰 전부
    빈 상태로 안내한다.
 
- [매장 정보 수정]  (2026-08-06 — 전화번호/영업시간만 실제 API로 저장됨, 나머지는 아직 준비 중)
+ [매장 정보 수정]  (2026-08-10 — 전화번호/영업시간/정기휴무일/편의시설/매장소개까지 전부 실제 API로 저장됨)
    #bizInfoForm            폼 루트
    #bizShopPhone           ★ PATCH /api/restaurants/{id}/phone
    #bizOpenTime #bizCloseTime / input[name="holiday"]   ★ PUT /api/restaurants/{id}/business-hours
      (요일별 개별 시간은 아직 지원 안 함 — 휴무 아닌 모든 요일에 같은 시작/종료 시간 적용)
-   #bizShopName #bizCategory #bizPriceRange #bizZipcode #bizAddress1 #bizAddress2
-   input[name="amenity"] #bizIntro   저장 API 없음(카카오 데이터 미저장 원칙, 07 참고) — 화면에만 반영
+   #bizShopName #bizCategory #bizZipcode #bizAddress1 #bizAddress2  카카오 데이터라 읽기 전용(07 참고)
+   input[name="amenity"] #bizIntro   ★ PATCH /api/restaurants/{id}/extras — 고객 화면(음식점 상세)에도 노출됨
    #bizSearchAddressBtn #bizMapArea  ★ 네이버 지도 삽입 영역(주소 검색 시 실좌표로 마커 표시, 저장은 안 됨)
-   #bizInfoSaveBtn         저장(전화번호·영업시간만 실제 반영)
+   #bizInfoSaveBtn         저장(전화번호·영업시간·정기휴무일·편의시설·매장소개 전부 실제 반영)
 
  [메뉴 관리]  ★ /api/business/me/menus
    #menuList               메뉴 목록
@@ -394,45 +394,26 @@
             <div>
               <h2 class="e-form-section-title">기본 정보</h2>
               <p class="e-form-section-desc">고객에게 표시되는 대표 정보입니다.</p>
-              <!-- 2026-08-09 추가 — 매장명/카테고리/가격대/주소는 카카오 데이터라 우리 DB에 저장하지
-                   않는다는 원칙상 저장 API가 없다(07 참고). 예전엔 이 사실을 안내하지 않고 "잇티식당
-                   강남점" 같은 가짜 예시값을 그대로 보여줘서, 실제 연결된 매장(예: 스타벅스 신논현점)
-                   계정에서도 엉뚱한 고정값이 뜨는 것처럼 보였다 — 실데이터로 채우고(읽기 전용),
-                   저장이 안 되는 항목은 비활성화 + 안내 문구로 명확히 한다. -->
-              <p class="t-xs mb-3" style="color:var(--ink-400)">매장명·카테고리·가격대·주소는 지도 탐색에 쓰이는 카카오 정보를 그대로 보여드리는 값이라 여기서 수정/저장할 수 없어요.</p>
-
               <div class="e-field">
                 <label class="e-label" for="bizShopName">매장명</label>
                 <input type="text" class="e-input" id="bizShopName" name="shopName" readonly>
               </div>
 
-              <div class="e-form-grid e-form-grid-2">
-                <div class="e-field">
-                  <label class="e-label" for="bizCategory">카테고리</label>
-                  <select class="e-select" id="bizCategory" name="category" disabled>
-                    <option value="" selected>-</option>
-                    <option value="korean">한식</option>
-                    <option value="western">양식</option>
-                    <option value="chinese">중식</option>
-                    <option value="japanese">일식</option>
-                    <option value="asian">아시안</option>
-                    <option value="cafe">카페 · 디저트</option>
-                    <option value="bunsik">분식</option>
-                    <option value="chicken">치킨 · 피자</option>
-                    <option value="meat">고기 · 구이</option>
-                    <option value="bar">술집 · 바</option>
-                  </select>
-                </div>
-                <div class="e-field">
-                  <label class="e-label" for="bizPriceRange">1인 평균 가격대</label>
-                  <select class="e-select" id="bizPriceRange" name="priceRange" disabled>
-                    <option value="" selected>-</option>
-                    <option value="under10000">1만원 이하</option>
-                    <option value="10000-20000">1~2만원</option>
-                    <option value="20000-40000">2~4만원</option>
-                    <option value="over40000">4만원 이상</option>
-                  </select>
-                </div>
+              <div class="e-field">
+                <label class="e-label" for="bizCategory">카테고리</label>
+                <select class="e-select" id="bizCategory" name="category" disabled>
+                  <option value="" selected>-</option>
+                  <option value="korean">한식</option>
+                  <option value="western">양식</option>
+                  <option value="chinese">중식</option>
+                  <option value="japanese">일식</option>
+                  <option value="asian">아시안</option>
+                  <option value="cafe">카페 · 디저트</option>
+                  <option value="bunsik">분식</option>
+                  <option value="chicken">치킨 · 피자</option>
+                  <option value="meat">고기 · 구이</option>
+                  <option value="bar">술집 · 바</option>
+                </select>
               </div>
 
               <div class="e-field">

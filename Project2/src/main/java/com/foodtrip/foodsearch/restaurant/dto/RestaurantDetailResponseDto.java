@@ -29,6 +29,8 @@ public class RestaurantDetailResponseDto {
     private final List<String> tags;
     private final List<BusinessHourResponseDto> businessHours;
     private final List<MenuResponseDto> menus;
+    // 2026-08-10 추가 — 사업자가 "매장 정보" 탭에서 저장한 편의시설을 고객 화면에도 보여준다.
+    private final List<String> amenities;
 
     public RestaurantDetailResponseDto(String restaurantId, String name, String category, String description,
                                         String roadAddress, String address, BigDecimal latitude, BigDecimal longitude,
@@ -36,7 +38,8 @@ public class RestaurantDetailResponseDto {
                                         String businessStatus,
                                         BigDecimal averageRating, Integer reviewCount, boolean favorite,
                                         List<String> categories, List<String> tags,
-                                        List<BusinessHourResponseDto> businessHours, List<MenuResponseDto> menus) {
+                                        List<BusinessHourResponseDto> businessHours, List<MenuResponseDto> menus,
+                                        List<String> amenities) {
         this.restaurantId = restaurantId;
         this.name = name;
         this.category = category;
@@ -57,6 +60,7 @@ public class RestaurantDetailResponseDto {
         this.tags = tags;
         this.businessHours = businessHours;
         this.menus = menus;
+        this.amenities = amenities;
     }
 
     public boolean isSuccess() {
@@ -141,5 +145,9 @@ public class RestaurantDetailResponseDto {
 
     public List<MenuResponseDto> getMenus() {
         return menus;
+    }
+
+    public List<String> getAmenities() {
+        return amenities;
     }
 }

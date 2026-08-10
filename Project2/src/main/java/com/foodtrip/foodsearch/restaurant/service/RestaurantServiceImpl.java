@@ -2,6 +2,7 @@ package com.foodtrip.foodsearch.restaurant.service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -307,11 +308,15 @@ public class RestaurantServiceImpl implements RestaurantService {
         // 갤러리(2026-08-06 추가) — 대표 이미지가 항상 0번으로 오도록 리포지토리 정렬(isMain desc)을 그대로 쓴다.
         List<String> images = restaurantImageRepository.findByRestaurantIdOrderByIsMainDescCreatedAtAsc(restaurantId)
                 .stream().map(RestaurantImage::getImageUrl).collect(Collectors.toList());
+        String amenitiesCsv = restaurant != null ? restaurant.getAmenities() : null;
+        List<String> amenities = (amenitiesCsv == null || amenitiesCsv.isBlank())
+                ? List.of()
+                : Arrays.stream(amenitiesCsv.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
 
         return new RestaurantDetailResponseDto(
                 restaurantId, name, category, description, roadAddress, address, latitude, longitude,
                 phone, null, imageUrl, images, businessStatus, avgRating, reviewCount, favorite,
-                categories, tags, businessHours, menus);
+                categories, tags, businessHours, menus, amenities);
     }
 
     // ---- 내부 헬퍼 ----
