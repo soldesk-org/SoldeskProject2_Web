@@ -635,17 +635,34 @@
   var DAY_CODES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
   var bizInfoForm = document.getElementById("bizInfoForm");
   var bizShopPhoneInput = document.getElementById("bizShopPhone");
-  // 전화번호 자동 하이픈(2026-08-10 추가) — 02(서울)는 2자리, 그 외(010/031/070...)는 3자리 지역/식별
-  // 번호 기준으로 자릿수에 맞춰 "-"를 넣는다. 커서 위치는 보정하지 않는 단순 구현(끝에서 입력하는
-  // 일반적인 사용 패턴 기준).
+  // 전화번호 자동 하이픈(2026-08-10 추가, 2026-08-10 대표번호 보강) — 자릿수/접두사에 맞춰 입력 중
+  // 자동으로 "-"를 넣는다. 커서 위치는 보정하지 않는 단순 구현(끝에서 입력하는 일반적인 사용 패턴 기준).
+  //   - 1544/1588/1600/1644/1666... 같은 "1"로 시작하는 8자리 대표번호: 지역번호 없이 XXXX-XXXX
+  //   - 02(서울): 2자리 지역번호
+  //   - 0505(평생번호): 4자리 식별번호
+  //   - 010/011/016~019, 031~064, 070 등: 3자리 지역/식별번호
   function formatPhoneNumber(value) {
-    var digits = (value || "").replace(/\D/g, "").slice(0, 11);
+    var digits = (value || "").replace(/\D/g, "");
+    if (!digits) return "";
+    if (digits[0] !== "0") {
+      // 지역번호 없는 대표번호(1544, 1588, 1600, 1644 등) — 0으로 시작하지 않는 전화번호는 이 형태뿐이다.
+      digits = digits.slice(0, 8);
+      return digits.length <= 4 ? digits : digits.slice(0, 4) + "-" + digits.slice(4);
+    }
     if (digits.startsWith("02")) {
+      digits = digits.slice(0, 10);
       if (digits.length <= 2) return digits;
       if (digits.length <= 5) return digits.slice(0, 2) + "-" + digits.slice(2);
       if (digits.length <= 9) return digits.slice(0, 2) + "-" + digits.slice(2, 5) + "-" + digits.slice(5);
       return digits.slice(0, 2) + "-" + digits.slice(2, 6) + "-" + digits.slice(6, 10);
     }
+    if (digits.startsWith("0505")) {
+      digits = digits.slice(0, 11);
+      if (digits.length <= 4) return digits;
+      if (digits.length <= 8) return digits.slice(0, 4) + "-" + digits.slice(4);
+      return digits.slice(0, 4) + "-" + digits.slice(4, 8) + "-" + digits.slice(8, 11);
+    }
+    digits = digits.slice(0, 11);
     if (digits.length <= 3) return digits;
     if (digits.length <= 7) return digits.slice(0, 3) + "-" + digits.slice(3);
     if (digits.length <= 10) return digits.slice(0, 3) + "-" + digits.slice(3, 6) + "-" + digits.slice(6);
