@@ -459,7 +459,9 @@
         var avatarHtml = r.profileImageUrl
           ? '<img src="' + escapeHtml(r.profileImageUrl) + '" class="e-avatar e-avatar-sm" alt="' + escapeHtml(r.nickname) + '">'
           : '<span class="e-avatar e-avatar-sm" aria-hidden="true">' + escapeHtml((r.nickname || "?").charAt(0)) + '</span>';
-        return '<li class="pb-4 border-b border-[var(--line-soft)]">' +
+        // 2026-08-10 — 메뉴 탭과 통일감 있게 각 리뷰를 박스(카드)로 감싸도록 디자인 변경(기존엔
+        // 구분선만 있는 이어붙인 리스트였음).
+        return '<li class="p-3.5 rounded-[var(--r)] border border-[var(--line-soft)]">' +
           '<div class="flex items-center justify-between gap-2">' +
           '<div class="flex items-center gap-2">' + avatarHtml +
           '<span class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(r.nickname) + '</span></div>' +
