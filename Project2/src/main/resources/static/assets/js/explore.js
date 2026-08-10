@@ -505,6 +505,10 @@
     parking: "주차 가능", wifi: "와이파이", pet: "반려동물", kids: "유아 의자",
     delivery: "배달", takeout: "포장", group: "단체석", barrierFree: "휠체어 접근"
   };
+  var PRICE_RANGE_LABELS = {
+    under10000: "1인 1만원 이하", "10000-20000": "1인 1~2만원",
+    "20000-40000": "1인 2~4만원", over40000: "1인 4만원 이상"
+  };
   function renderHours(businessHours) {
     if (!businessHours || !businessHours.length) return "영업시간 정보가 없습니다.";
     var openText = businessHours.filter(function (h) { return !h.isClosed; }).map(function (h) {
@@ -529,6 +533,8 @@
     var categoryEl = document.getElementById("detailCategory");
     categoryEl.textContent = item.category || "";
     categoryEl.hidden = !item.category;
+    var priceRangeElInit = document.getElementById("detailPriceRange");
+    if (priceRangeElInit) priceRangeElInit.hidden = true;
     document.getElementById("detailRating").innerHTML = starsHtml(item.averageRating) +
       '<span class="e-rating-score">' + (item.averageRating != null ? Number(item.averageRating).toFixed(1) : "-") + '</span>';
     document.getElementById("detailReviewCount").textContent = item.reviewCount || 0;
@@ -652,6 +658,13 @@
             tagsEl.innerHTML = "";
             tagsWrap.hidden = true;
           }
+        }
+
+        var priceRangeEl = document.getElementById("detailPriceRange");
+        if (priceRangeEl) {
+          var priceLabel = PRICE_RANGE_LABELS[detail.priceRange];
+          priceRangeEl.textContent = priceLabel || "";
+          priceRangeEl.hidden = !priceLabel;
         }
 
         var introWrap = document.getElementById("detailIntroWrap");

@@ -312,11 +312,12 @@ public class RestaurantServiceImpl implements RestaurantService {
         List<String> amenities = (amenitiesCsv == null || amenitiesCsv.isBlank())
                 ? List.of()
                 : Arrays.stream(amenitiesCsv.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+        String priceRange = restaurant != null ? restaurant.getPriceRange() : null;
 
         return new RestaurantDetailResponseDto(
                 restaurantId, name, category, description, roadAddress, address, latitude, longitude,
                 phone, null, imageUrl, images, businessStatus, avgRating, reviewCount, favorite,
-                categories, tags, businessHours, menus, amenities);
+                categories, tags, businessHours, menus, amenities, priceRange);
     }
 
     // ---- 내부 헬퍼 ----

@@ -111,7 +111,8 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
                 restaurant != null ? restaurant.getPhone() : null,
                 businessHours,
                 restaurant != null ? restaurant.getDescription() : null,
-                amenities);
+                amenities,
+                restaurant != null ? restaurant.getPriceRange() : null);
     }
 
     @Override

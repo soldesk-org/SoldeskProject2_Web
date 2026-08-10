@@ -12,6 +12,9 @@ public class UpdateRestaurantExtrasRequestDto {
 
     private List<String> amenities;
 
+    @Size(max = 20)
+    private String priceRange;
+
     public String getDescription() {
         return description;
     }
@@ -26,5 +29,13 @@ public class UpdateRestaurantExtrasRequestDto {
 
     public void setAmenities(List<String> amenities) {
         this.amenities = amenities;
+    }
+
+    public String getPriceRange() {
+        return priceRange;
+    }
+
+    public void setPriceRange(String priceRange) {
+        this.priceRange = priceRange;
     }
 }

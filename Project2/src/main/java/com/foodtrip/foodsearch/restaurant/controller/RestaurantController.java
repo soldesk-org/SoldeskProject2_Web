@@ -146,7 +146,7 @@ public class RestaurantController {
                                                        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
                                                        @Valid @RequestBody UpdateRestaurantExtrasRequestDto request) {
         return restaurantOwnerService.updateExtras(restaurantId, authorizationHeader, request.getDescription(),
-                request.getAmenities());
+                request.getAmenities(), request.getPriceRange());
     }
 
     // 요일별 개별 API 대신 7일치를 통째로 교체(001-02 3장 원칙과 동일하게 필요한 만큼만 단순하게).

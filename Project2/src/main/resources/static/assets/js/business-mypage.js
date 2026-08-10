@@ -601,6 +601,7 @@
   var bizShopNameInput = document.getElementById("bizShopName");
   var bizAddress1Input = document.getElementById("bizAddress1");
   var bizIntroInput = document.getElementById("bizIntro");
+  var bizPriceRangeInput = document.getElementById("bizPriceRange");
 
   function fillShopInfoForm(shop) {
     // 2026-08-09 추가 — 매장명/주소는 저장 API가 없어(카카오 데이터, 07 참고) 읽기 전용으로 실데이터만
@@ -617,6 +618,7 @@
     document.querySelectorAll('input[name="amenity"]').forEach(function (cb) {
       cb.checked = amenities.indexOf(cb.value) !== -1;
     });
+    if (bizPriceRangeInput) bizPriceRangeInput.value = shop.priceRange || "";
     var hours = shop.businessHours || [];
     document.querySelectorAll('input[name="holiday"]').forEach(function (cb) {
       var entry = hours.filter(function (h) { return DAY_CODES[h.dayOfWeek] === cb.value; })[0];
@@ -654,13 +656,14 @@
       var description = (bizIntroInput && bizIntroInput.value.trim()) || "";
       var amenities = Array.prototype.map.call(
         document.querySelectorAll('input[name="amenity"]:checked'), function (cb) { return cb.value; });
+      var priceRange = (bizPriceRangeInput && bizPriceRangeInput.value) || "";
       Promise.all([
         phone ? Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/phone",
           { method: "PATCH", body: { phone: phone } }) : Promise.resolve(),
         Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/business-hours",
           { method: "PUT", body: { businessHours: businessHours } }),
         Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/extras",
-          { method: "PATCH", body: { description: description, amenities: amenities } })
+          { method: "PATCH", body: { description: description, amenities: amenities, priceRange: priceRange || null } })
       ]).then(function () {
         Eatty.toast("매장 정보를 저장했습니다.", "success");
       }).catch(function (err) {

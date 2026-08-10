@@ -20,7 +20,7 @@ public interface RestaurantOwnerService {
 
     // 매장 소개/편의시설 수정(2026-08-09 추가) — amenities는 콤마 구분 문자열로 저장(Restaurant.amenities).
     RestaurantDetailResponseDto updateExtras(String restaurantId, String authorizationHeader, String description,
-                                              List<String> amenities);
+                                              List<String> amenities, String priceRange);
 
     RestaurantDetailResponseDto replaceBusinessHours(String restaurantId, String authorizationHeader,
                                                        List<BusinessHourItemDto> businessHours);

@@ -77,10 +77,10 @@ public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
 
     @Override
     public RestaurantDetailResponseDto updateExtras(String restaurantId, String authorizationHeader,
-                                                      String description, List<String> amenities) {
+                                                      String description, List<String> amenities, String priceRange) {
         Restaurant restaurant = resolveOwnedRestaurant(restaurantId, authorizationHeader);
         String amenitiesCsv = amenities == null || amenities.isEmpty() ? null : String.join(",", amenities);
-        restaurant.updateExtras(description, amenitiesCsv);
+        restaurant.updateExtras(description, amenitiesCsv, priceRange);
         return restaurantService.getDetail(restaurantId, authorizationHeader, null, null, null, null, null);
     }
 

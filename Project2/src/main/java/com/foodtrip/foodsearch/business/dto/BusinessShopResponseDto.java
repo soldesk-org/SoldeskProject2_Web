@@ -21,11 +21,13 @@ public class BusinessShopResponseDto {
     // 2026-08-09 추가 — 매장 소개/편의시설도 phone과 동일하게 사업자가 직접 저장하기 전까진 비어있다.
     private final String description;
     private final List<String> amenities;
+    // 2026-08-10 추가 — 1인 평균 가격대(under10000/10000-20000/20000-40000/over40000).
+    private final String priceRange;
 
     public BusinessShopResponseDto(String restaurantId, String imageUrl, String businessName,
                                     String businessAddress, String businessRegistrationNumber,
                                     String phone, List<BusinessHourResponseDto> businessHours,
-                                    String description, List<String> amenities) {
+                                    String description, List<String> amenities, String priceRange) {
         this.restaurantId = restaurantId;
         this.imageUrl = imageUrl;
         this.businessName = businessName;
@@ -35,6 +37,7 @@ public class BusinessShopResponseDto {
         this.businessHours = businessHours;
         this.description = description;
         this.amenities = amenities;
+        this.priceRange = priceRange;
     }
 
     public String getDescription() {
@@ -43,6 +46,10 @@ public class BusinessShopResponseDto {
 
     public List<String> getAmenities() {
         return amenities;
+    }
+
+    public String getPriceRange() {
+        return priceRange;
     }
 
     public String getPhone() {

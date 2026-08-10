@@ -42,6 +42,12 @@ public class Restaurant {
     @Column(name = "amenities", length = 200)
     private String amenities;
 
+    // 1인 평균 가격대(2026-08-10 추가) — 사업자가 직접 선택하는 값(under10000/10000-20000/20000-40000/
+    // over40000). 메뉴 평균가로 자동 산출되는 검색 필터용 가격 범위(RestaurantServiceImpl의 PriceRange)와는
+    // 별개로, 매장 정보 탭에 표시/저장되는 사업자 입력값이다.
+    @Column(name = "price_range", length = 20)
+    private String priceRange;
+
     // 사업자 등록 시 직접 입력/수정하는 전화번호. 검색 결과 표시용 전화번호는 카카오 라이브 응답 값을
     // 그대로 쓰고(저장 안 함), 이 값이 있으면 그걸로 덮어써서 우선 노출한다(RestaurantServiceImpl 참고).
     @Column(name = "phone", length = 20)
@@ -112,9 +118,10 @@ public class Restaurant {
         this.imageUrl = imageUrl;
     }
 
-    public void updateExtras(String description, String amenities) {
+    public void updateExtras(String description, String amenities, String priceRange) {
         this.description = description;
         this.amenities = amenities;
+        this.priceRange = priceRange;
     }
 
     // 리뷰 등록/삭제 시 평점/리뷰수 캐시를 다시 계산해 반영한다 — ReviewServiceImpl이 리뷰 저장 직후
@@ -134,6 +141,10 @@ public class Restaurant {
 
     public String getAmenities() {
         return amenities;
+    }
+
+    public String getPriceRange() {
+        return priceRange;
     }
 
     public String getPhone() {
