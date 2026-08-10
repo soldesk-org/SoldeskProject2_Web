@@ -639,7 +639,7 @@
   // 자동으로 "-"를 넣는다. 커서 위치는 보정하지 않는 단순 구현(끝에서 입력하는 일반적인 사용 패턴 기준).
   //   - 1544/1588/1600/1644/1666... 같은 "1"로 시작하는 8자리 대표번호: 지역번호 없이 XXXX-XXXX
   //   - 02(서울): 2자리 지역번호
-  //   - 0505(평생번호): 4자리 식별번호
+  //   - 050X(0503~0509, 평생번호/안심번호): 4자리 식별번호, 총 12자리(XXXX-XXXX-XXXX)
   //   - 010/011/016~019, 031~064, 070 등: 3자리 지역/식별번호
   function formatPhoneNumber(value) {
     var digits = (value || "").replace(/\D/g, "");
@@ -656,11 +656,12 @@
       if (digits.length <= 9) return digits.slice(0, 2) + "-" + digits.slice(2, 5) + "-" + digits.slice(5);
       return digits.slice(0, 2) + "-" + digits.slice(2, 6) + "-" + digits.slice(6, 10);
     }
-    if (digits.startsWith("0505")) {
-      digits = digits.slice(0, 11);
+    if (/^050\d/.test(digits)) {
+      // 0505(평생번호)뿐 아니라 0503/0504/0506~0509(안심번호 등) 전부 같은 4자리 접두사 형식.
+      digits = digits.slice(0, 12);
       if (digits.length <= 4) return digits;
       if (digits.length <= 8) return digits.slice(0, 4) + "-" + digits.slice(4);
-      return digits.slice(0, 4) + "-" + digits.slice(4, 8) + "-" + digits.slice(8, 11);
+      return digits.slice(0, 4) + "-" + digits.slice(4, 8) + "-" + digits.slice(8, 12);
     }
     digits = digits.slice(0, 11);
     if (digits.length <= 3) return digits;
