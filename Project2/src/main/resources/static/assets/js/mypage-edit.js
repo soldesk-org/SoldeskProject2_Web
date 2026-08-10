@@ -71,6 +71,11 @@
 
     var avatarPlaceholder = document.getElementById("avatarPlaceholder");
     var avatarPreview = document.getElementById("avatarPreview");
+    // "잇"으로 고정돼 있던 플레이스홀더 이니셜을 닉네임 첫 글자로 채운다(2026-08-10 수정).
+    var avatarInitialEl = avatarPlaceholder && avatarPlaceholder.querySelector(".e-avatar");
+    if (avatarInitialEl) {
+      avatarInitialEl.textContent = (data.nickname || "잇").trim().charAt(0).toUpperCase();
+    }
     if (data.profileImageUrl) {
       avatarPreview.hidden = false;
       avatarPreview.querySelector("img").src = data.profileImageUrl;
