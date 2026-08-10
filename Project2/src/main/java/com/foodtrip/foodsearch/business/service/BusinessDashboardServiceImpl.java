@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -185,8 +186,15 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
         List<Review> reviews = reviewPage.getContent();
 
         List<Long> memberIds = reviews.stream().map(Review::getMemberId).distinct().collect(Collectors.toList());
-        Map<Long, String> nicknameByMemberId = memberRepository.findAllById(memberIds).stream()
+        List<Member> reviewMembers = memberRepository.findAllById(memberIds);
+        Map<Long, String> nicknameByMemberId = reviewMembers.stream()
                 .collect(Collectors.toMap(Member::getMemberId, Member::getNickname));
+        // 2026-08-10 추가 — 작성자 프로필 사진도 고객용 화면과 동일하게 노출. profileImageUrl이 null일 수
+        // 있어(미설정 회원) Collectors.toMap 대신 직접 채운다(toMap은 값이 null이면 NPE를 던진다).
+        Map<Long, String> profileImageByMemberId = new HashMap<>();
+        for (Member m : reviewMembers) {
+            profileImageByMemberId.put(m.getMemberId(), m.getProfileImageUrl());
+        }
         List<Long> reviewIds = reviews.stream().map(Review::getReviewId).collect(Collectors.toList());
         Map<Long, List<String>> keywordsByReviewId = reviewKeywordDao.findKeywordsByReviewIds(reviewIds);
         // 2026-08-10 추가 — 고객 리뷰 첨부 사진이 사업자 마이페이지 리뷰 목록엔 안 보이던 걸 발견해 추가.
@@ -198,6 +206,7 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
 
         List<BusinessReviewItemDto> items = reviews.stream()
                 .map(r -> new BusinessReviewItemDto(r.getReviewId(), nicknameByMemberId.get(r.getMemberId()),
+                        profileImageByMemberId.get(r.getMemberId()),
                         r.getRating(), r.getContent(), r.isReceiptVerified(), r.getCreatedAt(),
                         toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of())),
                         imagesByReviewId.getOrDefault(r.getReviewId(), List.of())))

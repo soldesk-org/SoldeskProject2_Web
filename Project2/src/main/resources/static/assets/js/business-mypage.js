@@ -138,10 +138,14 @@
     var imagesHtml = (r.images || []).map(function (img) {
       return '<img src="' + escapeHtml(img.imageUrl) + '" class="w-16 h-16 rounded-[var(--r-md)] object-cover flex-none" alt="리뷰 첨부 사진">';
     }).join("");
+    // 작성자 프로필 사진(2026-08-10 추가) — 미설정이면 기존처럼 이니셜 아바타.
+    var avatarHtml = r.profileImageUrl
+      ? '<img src="' + escapeHtml(r.profileImageUrl) + '" class="e-avatar e-avatar-sm" alt="' + escapeHtml(nickname) + '">'
+      : '<span class="e-avatar e-avatar-sm" aria-hidden="true">' + escapeHtml(initial) + '</span>';
     return (
       '<li class="pb-4 border-b border-[var(--line-soft)]">' +
         '<div class="flex items-center gap-2.5">' +
-          '<span class="e-avatar e-avatar-sm" aria-hidden="true">' + escapeHtml(initial) + '</span>' +
+          avatarHtml +
           '<div class="min-w-0 flex-1">' +
             '<p class="text-[13.5px] font-bold text-[var(--ink-900)]">' + escapeHtml(nickname) + '</p>' +
             '<div class="flex items-center gap-2">' +
@@ -428,11 +432,15 @@
   var editingMenuId = null;
 
   function menuItemHtml(m) {
+    // 메뉴 사진(2026-08-10 추가) — 썸네일을 눌러 업로드/교체(별도 아이콘 없이 이미지 자리 자체가 버튼).
+    var thumbHtml = m.imageUrl
+      ? '<img src="' + escapeHtml(m.imageUrl) + '" class="w-full h-full object-cover" alt="' + escapeHtml(m.menuName) + ' 사진">'
+      : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>';
     return (
       '<li class="e-file-item" data-menu-id="' + m.menuId + '">' +
-        '<span class="w-14 h-14 rounded-[10px] e-img-ph flex-none">' +
-          '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>' +
-        '</span>' +
+        '<button type="button" class="w-14 h-14 rounded-[10px] e-img-ph flex-none overflow-hidden relative" data-upload-menu-image aria-label="메뉴 사진 ' + (m.imageUrl ? "교체" : "등록") + '">' +
+          thumbHtml +
+        '</button>' +
         '<div class="min-w-0 flex-1">' +
           '<div class="flex items-center gap-2">' +
             '<p class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(m.menuName) + '</p>' +
@@ -485,8 +493,34 @@
     });
   }
 
+  // 메뉴 사진 업로드용 숨김 파일 입력(2026-08-10 추가) — 메뉴 목록의 썸네일 버튼 하나가 클릭될 때마다
+  // 대상 menuId만 바꿔서 이 하나의 input을 재사용한다(리스트 아이템마다 input을 두지 않기 위함).
+  var menuImageInput = document.createElement("input");
+  menuImageInput.type = "file";
+  menuImageInput.accept = "image/png,image/jpeg,image/webp";
+  menuImageInput.hidden = true;
+  document.body.appendChild(menuImageInput);
+  var menuImageTargetId = null;
+  menuImageInput.addEventListener("change", function () {
+    var file = menuImageInput.files && menuImageInput.files[0];
+    menuImageInput.value = "";
+    if (!file || !menuImageTargetId || !state.restaurantId) return;
+    var formData = new FormData();
+    formData.append("image", file);
+    Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/" + menuImageTargetId + "/image",
+      { method: "POST", body: formData, isForm: true })
+      .then(function () { Eatty.toast("메뉴 사진을 등록했습니다.", "success"); loadMenus(); })
+      .catch(function (err) { Eatty.toast((err && err.message) || "메뉴 사진 등록에 실패했습니다.", "error"); });
+  });
+
   if (menuList) {
     menuList.addEventListener("click", function (e) {
+      var imageBtn = e.target.closest("[data-upload-menu-image]");
+      if (imageBtn) {
+        menuImageTargetId = imageBtn.closest("[data-menu-id]").getAttribute("data-menu-id");
+        menuImageInput.click();
+        return;
+      }
       var editBtn = e.target.closest("[data-edit-menu]");
       if (editBtn) {
         var id = Number(editBtn.closest("[data-menu-id]").getAttribute("data-menu-id"));

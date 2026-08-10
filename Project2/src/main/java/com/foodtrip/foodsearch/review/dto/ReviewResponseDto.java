@@ -7,6 +7,9 @@ public class ReviewResponseDto {
 
     private final Long reviewId;
     private final String nickname;
+    // 작성자 프로필 사진(2026-08-10 추가) — Member.profileImageUrl 그대로, 미설정이면 null(프론트가
+    // 기본 이니셜 아바타로 대체).
+    private final String profileImageUrl;
     private final int rating;
     private final String content;
     private final boolean receiptVerified;
@@ -16,11 +19,12 @@ public class ReviewResponseDto {
     // 리뷰 사진(2026-08-10 추가) — 최대 3장, 등록 순서대로.
     private final List<ReviewImageResponseDto> images;
 
-    public ReviewResponseDto(Long reviewId, String nickname, int rating, String content,
+    public ReviewResponseDto(Long reviewId, String nickname, String profileImageUrl, int rating, String content,
                               boolean receiptVerified, LocalDateTime createdAt, List<ReviewKeywordResponseDto> keywords,
                               List<ReviewImageResponseDto> images) {
         this.reviewId = reviewId;
         this.nickname = nickname;
+        this.profileImageUrl = profileImageUrl;
         this.rating = rating;
         this.content = content;
         this.receiptVerified = receiptVerified;
@@ -35,6 +39,10 @@ public class ReviewResponseDto {
 
     public String getNickname() {
         return nickname;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
     }
 
     public int getRating() {

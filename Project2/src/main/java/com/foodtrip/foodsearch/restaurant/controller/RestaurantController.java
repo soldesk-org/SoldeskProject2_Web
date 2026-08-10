@@ -206,6 +206,14 @@ public class RestaurantController {
         return restaurantOwnerService.listMyMenus(restaurantId, authorizationHeader);
     }
 
+    // 메뉴 사진(2026-08-10 추가).
+    @PostMapping(value = "/{restaurantId}/menus/{menuId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public List<OwnerMenuResponseDto> uploadMenuImage(@PathVariable String restaurantId, @PathVariable Long menuId,
+                                                        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+                                                        @RequestParam("image") MultipartFile image) {
+        return restaurantOwnerService.uploadMenuImage(restaurantId, menuId, authorizationHeader, image);
+    }
+
     // 사업자 마이페이지 "사진 관리"(2026-08-06 추가) — 최대 4장 갤러리.
     @GetMapping("/{restaurantId}/images")
     public List<RestaurantImageResponseDto> listGalleryImages(@PathVariable String restaurantId,

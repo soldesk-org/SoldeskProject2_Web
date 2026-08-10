@@ -10,6 +10,8 @@ public class BusinessReviewItemDto {
 
     private final Long reviewId;
     private final String nickname;
+    // 작성자 프로필 사진(2026-08-10 추가) — 고객용 ReviewResponseDto와 동일한 이유로 추가.
+    private final String profileImageUrl;
     private final int rating;
     private final String content;
     private final boolean receiptVerified;
@@ -19,11 +21,12 @@ public class BusinessReviewItemDto {
     // 발견해 추가. 고객용 ReviewResponseDto.images와 동일한 데이터를 그대로 재사용.
     private final List<ReviewImageResponseDto> images;
 
-    public BusinessReviewItemDto(Long reviewId, String nickname, int rating, String content,
+    public BusinessReviewItemDto(Long reviewId, String nickname, String profileImageUrl, int rating, String content,
                                   boolean receiptVerified, LocalDateTime createdAt,
                                   List<ReviewKeywordResponseDto> keywords, List<ReviewImageResponseDto> images) {
         this.reviewId = reviewId;
         this.nickname = nickname;
+        this.profileImageUrl = profileImageUrl;
         this.rating = rating;
         this.content = content;
         this.receiptVerified = receiptVerified;
@@ -38,6 +41,10 @@ public class BusinessReviewItemDto {
 
     public String getNickname() {
         return nickname;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
     }
 
     public int getRating() {

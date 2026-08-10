@@ -418,8 +418,16 @@
     if (!el) return;
     if (!menus || !menus.length) { el.innerHTML = '<p class="t-sm py-4 text-center">등록된 메뉴 정보가 없습니다.</p>'; return; }
     el.innerHTML = '<div class="space-y-2.5">' + menus.map(function (m) {
-      return '<div class="flex items-center justify-between"><span class="text-sm font-semibold text-[var(--ink-800)]">' + escapeHtml(m.name) + '</span>' +
-        '<span class="text-sm font-bold text-[var(--ink-800)]">' + (m.price != null ? Number(m.price).toLocaleString() + "원" : "") + '</span></div>';
+      // 메뉴 사진(2026-08-10 추가) — 사업자가 등록한 사진이 있으면 함께 노출.
+      // 2026-08-10 발견/수정 — MenuResponseDto의 실제 JSON 필드는 menuName인데 여기선 m.name(존재하지
+      // 않는 필드)을 읽고 있어서 메뉴명이 항상 빈 문자열로 표시되고 있었다.
+      var thumbHtml = m.imageUrl
+        ? '<img src="' + escapeHtml(m.imageUrl) + '" class="w-11 h-11 rounded-[10px] object-cover flex-none" alt="' + escapeHtml(m.menuName) + ' 사진">'
+        : "";
+      return '<div class="flex items-center justify-between gap-3">' +
+        '<div class="flex items-center gap-2.5 min-w-0">' + thumbHtml +
+        '<span class="text-sm font-semibold text-[var(--ink-800)] truncate">' + escapeHtml(m.menuName) + '</span></div>' +
+        '<span class="text-sm font-bold text-[var(--ink-800)] flex-none">' + (m.price != null ? Number(m.price).toLocaleString() + "원" : "") + '</span></div>';
     }).join("") + '</div>';
   }
 
@@ -437,9 +445,14 @@
         var photos = (r.images || []).map(function (img) {
           return '<img src="' + escapeHtml(img.imageUrl) + '" class="w-16 h-16 rounded-[var(--r-md)] object-cover flex-none" alt="리뷰 사진">';
         }).join("");
+        // 작성자 프로필 사진(2026-08-10 추가) — 미설정이면 닉네임 첫 글자 이니셜 아바타로 대체.
+        var avatarHtml = r.profileImageUrl
+          ? '<img src="' + escapeHtml(r.profileImageUrl) + '" class="e-avatar e-avatar-sm" alt="' + escapeHtml(r.nickname) + '">'
+          : '<span class="e-avatar e-avatar-sm" aria-hidden="true">' + escapeHtml((r.nickname || "?").charAt(0)) + '</span>';
         return '<li class="pb-4 border-b border-[var(--line-soft)]">' +
           '<div class="flex items-center justify-between gap-2">' +
-          '<span class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(r.nickname) + '</span>' +
+          '<div class="flex items-center gap-2">' + avatarHtml +
+          '<span class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(r.nickname) + '</span></div>' +
           '<span class="e-rating">' + starsHtml(r.rating) + '<span class="e-rating-score">' + Number(r.rating).toFixed(1) + '</span></span>' +
           '</div>' +
           (keywords ? '<div class="flex flex-wrap gap-1 mt-2">' + keywords + '</div>' : "") +
@@ -461,33 +474,6 @@
       });
     });
 
-    renderTagDistribution(reviews);
-  }
-
-  function renderTagDistribution(reviews) {
-    var wrap = document.getElementById("detailTagDistWrap");
-    var el = document.getElementById("detailTagDist");
-    if (!wrap || !el) return;
-    var counts = {};
-    var total = 0;
-    (reviews || []).forEach(function (r) {
-      (r.keywords || []).forEach(function (k) {
-        counts[k.keyword] = (counts[k.keyword] || 0) + 1;
-        total++;
-      });
-    });
-    var entries = Object.keys(counts).map(function (k) { return { keyword: k, count: counts[k] }; })
-      .sort(function (a, b) { return b.count - a.count; }).slice(0, 5);
-    if (!entries.length) { wrap.hidden = true; return; }
-    wrap.hidden = false;
-    var max = entries[0].count;
-    el.innerHTML = entries.map(function (e) {
-      var pct = Math.round((e.count / max) * 100);
-      return '<div><div class="flex items-center justify-between mb-1">' +
-        '<span class="t-xs font-bold text-[var(--ink-700)]">' + escapeHtml(e.keyword) + '</span>' +
-        '<span class="t-xs t-num">' + e.count + '</span></div>' +
-        '<div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:' + pct + '%"></div></div></div>';
-    }).join("");
   }
 
   var reportTargetReviewId = null;

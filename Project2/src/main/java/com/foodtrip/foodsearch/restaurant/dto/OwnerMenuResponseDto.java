@@ -8,15 +8,17 @@ public class OwnerMenuResponseDto {
     private final String menuName;
     private final Integer price;
     private final String description;
+    private final String imageUrl;
     private final boolean isSignature;
     private final boolean isAvailable;
 
-    public OwnerMenuResponseDto(Long menuId, String menuName, Integer price, String description,
+    public OwnerMenuResponseDto(Long menuId, String menuName, Integer price, String description, String imageUrl,
                                  boolean isSignature, boolean isAvailable) {
         this.menuId = menuId;
         this.menuName = menuName;
         this.price = price;
         this.description = description;
+        this.imageUrl = imageUrl;
         this.isSignature = isSignature;
         this.isAvailable = isAvailable;
     }
@@ -35,6 +37,10 @@ public class OwnerMenuResponseDto {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
     }
 
     public boolean isSignature() {

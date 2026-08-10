@@ -158,8 +158,24 @@ public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
         return menuRepository.findByRestaurantIdAndDeletedAtIsNullOrderByIsSignatureDescPriceAsc(restaurantId)
                 .stream()
                 .map(m -> new OwnerMenuResponseDto(m.getMenuId(), m.getMenuName(), m.getPrice(), m.getDescription(),
-                        Boolean.TRUE.equals(m.getIsSignature()), Boolean.TRUE.equals(m.getIsAvailable())))
+                        m.getImageUrl(), Boolean.TRUE.equals(m.getIsSignature()), Boolean.TRUE.equals(m.getIsAvailable())))
                 .collect(Collectors.toList());
+    }
+
+    // 메뉴 사진(2026-08-10 추가) — 매장 사진(uploadImage)과 같은 패턴, 같은 RestaurantImageStorageService
+    // 재사용(별도 스토리지 서비스를 새로 만들 만큼 다른 종류의 파일이 아니라서). 기존 사진 교체 시 이전
+    // 파일을 정리하는 것도 동일하다.
+    @Override
+    public List<OwnerMenuResponseDto> uploadMenuImage(String restaurantId, Long menuId, String authorizationHeader,
+                                                        MultipartFile file) {
+        resolveOwnedRestaurant(restaurantId, authorizationHeader);
+        Menu menu = menuRepository.findByMenuIdAndRestaurantIdAndDeletedAtIsNull(menuId, restaurantId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MENU_NOT_FOUND));
+        String previousImageUrl = menu.getImageUrl();
+        String newImageUrl = restaurantImageStorageService.store(file);
+        menu.updateImage(newImageUrl);
+        restaurantImageStorageService.delete(previousImageUrl);
+        return listMyMenus(restaurantId, authorizationHeader);
     }
 
     @Override

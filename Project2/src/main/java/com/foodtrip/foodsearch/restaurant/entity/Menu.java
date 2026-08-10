@@ -83,6 +83,11 @@ public class Menu {
         this.deletedAt = LocalDateTime.now();
     }
 
+    // 메뉴 사진(2026-08-10 추가) — 컬럼 자체는 애초부터 있었지만 채워주는 API가 없었다.
+    public void updateImage(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();

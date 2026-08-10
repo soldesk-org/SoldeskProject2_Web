@@ -42,6 +42,10 @@ public interface RestaurantOwnerService {
     // 사업자 마이페이지 "메뉴 관리"(2026-08-06 추가) — 판매중지 메뉴 포함 전체 목록.
     List<OwnerMenuResponseDto> listMyMenus(String restaurantId, String authorizationHeader);
 
+    // 메뉴 사진(2026-08-10 추가) — 매장 사진과 같은 패턴(교체 시 기존 파일 정리).
+    List<OwnerMenuResponseDto> uploadMenuImage(String restaurantId, Long menuId, String authorizationHeader,
+                                                MultipartFile file);
+
     // 사업자 마이페이지 "사진 관리"(2026-08-06 추가) — 최대 4장 갤러리. 대표 지정 시 Restaurant.imageUrl과 동기화.
     List<RestaurantImageResponseDto> listGalleryImages(String restaurantId, String authorizationHeader);
 

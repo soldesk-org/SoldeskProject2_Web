@@ -133,6 +133,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         Member member = memberRepository.findById(memberId).orElse(null);
         return new ReviewResponseDto(review.getReviewId(), member != null ? member.getNickname() : null,
+                member != null ? member.getProfileImageUrl() : null,
                 review.getRating(), review.getContent(), review.isReceiptVerified(), review.getCreatedAt(),
                 toKeywordDtos(keywords), List.of());
     }
@@ -147,8 +148,10 @@ public class ReviewServiceImpl implements ReviewService {
 
         List<Long> memberIds = reviews.stream().map(Review::getMemberId).distinct().collect(Collectors.toList());
         Map<Long, String> nicknameByMemberId = new HashMap<>();
+        Map<Long, String> profileImageByMemberId = new HashMap<>();
         for (Member member : memberRepository.findAllById(memberIds)) {
             nicknameByMemberId.put(member.getMemberId(), member.getNickname());
+            profileImageByMemberId.put(member.getMemberId(), member.getProfileImageUrl());
         }
 
         List<Long> reviewIds = reviews.stream().map(Review::getReviewId).collect(Collectors.toList());
@@ -160,6 +163,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         return reviews.stream()
                 .map(r -> new ReviewResponseDto(r.getReviewId(), nicknameByMemberId.get(r.getMemberId()),
+                        profileImageByMemberId.get(r.getMemberId()),
                         r.getRating(), r.getContent(), r.isReceiptVerified(), r.getCreatedAt(),
                         toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of())),
                         imagesByReviewId.getOrDefault(r.getReviewId(), List.of())))
@@ -194,6 +198,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         Member member = memberRepository.findById(memberId).orElse(null);
         return new ReviewResponseDto(review.getReviewId(), member != null ? member.getNickname() : null,
+                member != null ? member.getProfileImageUrl() : null,
                 review.getRating(), review.getContent(), review.isReceiptVerified(), review.getCreatedAt(),
                 toKeywordDtos(keywords), toImageDtos(reviewId));
     }
