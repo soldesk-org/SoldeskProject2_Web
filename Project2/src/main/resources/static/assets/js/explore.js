@@ -430,7 +430,8 @@
       return (
         '<div class="flex items-start gap-3.5 p-3.5 rounded-[var(--r)] border border-[var(--line-soft)]">' +
           '<div class="min-w-0 flex-1">' +
-            (m.signature ? '<span class="e-badge e-badge--brand-solid mb-1.5">대표</span>' : "") +
+            // 사업자 쪽 "시그니처 메뉴로 지정" 문구와 용어 통일(2026-08-10 — "대표"는 다른 뜻으로 보일 수 있음).
+            (m.signature ? '<span class="e-badge e-badge--brand-solid mb-1.5">시그니처</span>' : "") +
             '<p class="text-[15px] font-extrabold text-[var(--ink-900)] leading-snug">' + escapeHtml(m.menuName) + '</p>' +
             (m.description ? '<p class="t-xs mt-1 leading-relaxed" style="color:var(--ink-500)">' + escapeHtml(m.description) + '</p>' : "") +
             '<p class="text-sm font-bold text-[var(--ink-800)] mt-2">' + (m.price != null ? Number(m.price).toLocaleString() + "원" : "") + '</p>' +
