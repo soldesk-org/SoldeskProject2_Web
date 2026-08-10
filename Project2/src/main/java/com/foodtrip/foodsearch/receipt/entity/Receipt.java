@@ -52,15 +52,19 @@ public class Receipt {
     @Column(name = "parsed_total_amount")
     private Integer parsedTotalAmount;
 
-    // 2026-07-21 신규 추가(001-02 3장) — 중복 리뷰 등록 방지용 고유값. 값이 있으면 유일해야 하지만
-    // NULL은 여러 개 허용(MySQL UNIQUE 제약의 표준 동작, OCR이 못 찾은 경우까지 막을 이유는 없음).
-    @Column(name = "transaction_id", unique = true, length = 50)
+    // 2026-07-21 신규 추가(001-02 3장) — 중복 리뷰 등록 방지용 고유값.
+    // 2026-08-10 수정 — 애초엔 DB UNIQUE 제약으로 막았는데, 그날 "업로드만 하고 리뷰를 끝까지 안 쓴
+    // 영수증까지 재사용 못 하게 막던" 오탐 버그를 고치면서 애플리케이션 레벨 중복 판정(리뷰까지 연결된
+    // 경우만 차단, ReceiptServiceImpl.isReceiptUsedInReview())으로 옮겼다. DB UNIQUE는 그대로 두면 이제
+    // 이 판정과 모순되어(리뷰로 안 이어진 영수증도 같은 값으로 재INSERT를 시도하면 제약 위반 500) 그대로
+    // 두면 안 된다 — unique 제거, 중복 차단은 전적으로 애플리케이션 로직이 책임진다.
+    @Column(name = "transaction_id", length = 50)
     private String transactionId;
 
     // 2026-08-10 추가 — 업로드된 이미지 파일 바이트의 SHA-256 해시(중복 검사 보조용, transaction_id를
-    // 못 읽은 영수증도 같은 사진 재업로드를 잡아내기 위함). unique 제약은 NULL을 여러 개 허용하는 MySQL
-    // 표준 동작을 그대로 이용한다(transaction_id 컬럼과 동일한 관례).
-    @Column(name = "image_hash", unique = true, length = 64)
+    // 못 읽은 영수증도 같은 사진 재업로드를 잡아내기 위함). 위 transaction_id와 같은 이유로 DB UNIQUE는
+    // 두지 않는다(같은 날 재수정) — 중복 차단은 ReceiptServiceImpl의 리뷰 연결 여부 판정이 담당.
+    @Column(name = "image_hash", length = 64)
     private String imageHash;
 
     @Column(name = "retry_count", nullable = false)
