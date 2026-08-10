@@ -578,31 +578,25 @@
            선택할 수 있게 변경. 실제 업로드는 저장 시점(메뉴 생성/수정 API 성공 후)에 이어서 진행한다.
            네이티브 <input type=file> 박스 대신 프로필 사진(mypage-edit.html)과 같은 원형 드롭존 패턴을
            정사각형으로 재사용(2026-08-10 재수정 — "토스 스럽게 예쁘게" 요청). -->
-      <!-- 2026-08-10 4차 수정 — "박스가 작다, 옆으로 길게" 요청. 정사각형 중앙 정렬 대신 모달 폭
-           전체를 채우는 가로형(16:9 비슷한 비율) 배너 형태로 변경 — 실제 메뉴 사진이 가로 사진인
-           경우가 많아 미리보기도 실제 노출 비율에 더 가깝게 맞춘다. -->
+      <!-- 2026-08-10 5차 수정 — 가로형 배너가 "너무 부자연스럽다"는 재피드백. 빈 상태의 큰 배너가
+           어색해 보인다는 문제라, 다시 정사각형 타일로 되돌리되(2차 수정과 다르게 중앙 정렬하지 않고
+           폼 왼쪽에 자연스럽게 배치) 크기를 112px로 키우고 카메라 배지 없이 아이콘+텍스트만 있는
+           더 단순한 톤(토스페이먼츠 재요청)으로 다듬었다. -->
       <div class="e-field">
         <label class="e-label">메뉴 사진 <span class="e-label-side">선택</span></label>
-        <div class="relative w-full">
-          <div class="e-dropzone !border-0 !p-0 w-full h-[160px] rounded-[20px] grid place-items-center overflow-hidden"
-               style="background:var(--bg-muted)"
-               id="menuImageDrop" data-dropzone data-dropzone-preview="menuImagePreview">
-            <input type="file" id="menuImageInput" name="menuImage" accept="image/png,image/jpeg,image/webp" aria-label="메뉴 사진 선택">
-            <div class="text-center pointer-events-none" id="menuImagePlaceholder">
-              <svg class="w-9 h-9 mx-auto" style="color:var(--ink-300)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5L5 20"/>
-              </svg>
-              <p class="t-sm mt-2 font-bold" style="color:var(--ink-400)">사진을 클릭해서 추가하세요</p>
-            </div>
-            <div class="absolute inset-0 pointer-events-none" id="menuImagePreview" hidden>
-              <img alt="메뉴 사진 미리보기" data-dropzone-img id="menuImagePreviewImg" class="w-full h-full object-cover" style="display:none">
-            </div>
-          </div>
-          <span class="absolute right-3 bottom-3 w-10 h-10 rounded-full grid place-items-center text-white pointer-events-none" style="background:var(--brand-grad);box-shadow:var(--sh-sm)">
-            <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15V7a2 2 0 0 0-2-2h-3l-1.5-2h-5L8 5H5a2 2 0 0 0-2 2v8"/><circle cx="12" cy="12" r="3"/><path d="M3 15v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+        <div class="e-dropzone !border-0 !p-0 w-[112px] h-[112px] rounded-[20px] grid place-items-center overflow-hidden transition-colors"
+             style="background:var(--bg-muted)"
+             id="menuImageDrop" data-dropzone data-dropzone-preview="menuImagePreview">
+          <input type="file" id="menuImageInput" name="menuImage" accept="image/png,image/jpeg,image/webp" aria-label="메뉴 사진 선택">
+          <div class="text-center pointer-events-none" id="menuImagePlaceholder">
+            <svg class="w-7 h-7 mx-auto" style="color:var(--ink-300)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5L5 20"/>
             </svg>
-          </span>
+            <p class="t-xs mt-1.5 font-bold" style="color:var(--ink-400)">사진 추가</p>
+          </div>
+          <div class="absolute inset-0 pointer-events-none" id="menuImagePreview" hidden>
+            <img alt="메뉴 사진 미리보기" data-dropzone-img id="menuImagePreviewImg" class="w-full h-full object-cover" style="display:none">
+          </div>
         </div>
       </div>
       <div class="e-field">
