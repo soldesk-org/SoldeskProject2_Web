@@ -151,7 +151,6 @@
             '<div class="flex items-center gap-2">' +
               '<span class="e-rating">' + starsHtml(r.rating) + '</span>' +
               '<span class="t-xs t-num">' + formatDate(r.createdAt) + '</span>' +
-              (r.receiptVerified ? '<span class="e-badge e-badge--success">영수증 인증</span>' : '') +
             '</div>' +
           '</div>' +
           '<button type="button" class="btn btn-ghost btn-xs flex-none" data-report-review data-review-id="' + r.reviewId + '" data-modal-open="bizReportModal">' +
@@ -429,10 +428,22 @@
   var menuSignatureSwitch = document.getElementById("menuSignatureSwitch");
   var menuSaveBtn = document.getElementById("menuSaveBtn");
   var addMenuBtn = document.getElementById("addMenuBtn");
+  var menuImageInput = document.getElementById("menuImageInput");
+  var menuImagePreviewBox = document.getElementById("menuImagePreviewBox");
   var editingMenuId = null;
 
+  // 메뉴 사진 미리보기(2026-08-10 수정) — 등록/수정 모달 안에서 파일을 고르면 바로 미리보기.
+  function setMenuImagePreview(url) {
+    menuImagePreviewBox.innerHTML = url ? '<img src="' + escapeHtml(url) + '" class="w-full h-full object-cover" alt="메뉴 사진 미리보기">' : "";
+  }
+  if (menuImageInput) {
+    menuImageInput.addEventListener("change", function () {
+      var file = menuImageInput.files && menuImageInput.files[0];
+      if (file) setMenuImagePreview(URL.createObjectURL(file));
+    });
+  }
+
   function menuItemHtml(m) {
-    // 메뉴 사진(2026-08-10 추가) — 썸네일을 눌러 업로드/교체(별도 아이콘 없이 이미지 자리 자체가 버튼).
     var thumbHtml = m.imageUrl
       ? '<img src="' + escapeHtml(m.imageUrl) + '" class="w-full h-full object-cover" alt="' + escapeHtml(m.menuName) + ' 사진">'
       : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>';
@@ -440,9 +451,9 @@
       '<li class="e-file-item" data-menu-id="' + m.menuId + '">' +
         // e-shop-thumb는 이 정도 작은 썸네일에서 "NO IMAGE" 플레이스홀더 글자가 커지도록 하는 기존
         // 클래스(eatty.css)를 그대로 재사용(2026-08-10 — 박스 크기는 그대로 두고 글자만 키워달라는 요청).
-        '<button type="button" class="w-14 h-14 rounded-[10px] e-img-ph e-shop-thumb flex-none overflow-hidden relative" data-upload-menu-image aria-label="메뉴 사진 ' + (m.imageUrl ? "교체" : "등록") + '">' +
+        '<span class="w-14 h-14 rounded-[10px] e-img-ph e-shop-thumb flex-none overflow-hidden">' +
           thumbHtml +
-        '</button>' +
+        '</span>' +
         '<div class="min-w-0 flex-1">' +
           '<div class="flex items-center gap-2">' +
             '<p class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(m.menuName) + '</p>' +
@@ -467,20 +478,22 @@
   var menuCache = [];
 
   function loadMenus() {
-    if (!state.restaurantId) return;
-    Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/mine").then(function (menus) {
+    if (!state.restaurantId) return Promise.resolve([]);
+    return Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/mine").then(function (menus) {
       menuCache = menus;
       if (menuTabCount) menuTabCount.textContent = menus.length;
       menuList.innerHTML = "";
       if (!menus.length) {
         menuEmpty.hidden = false;
-        return;
+        return menus;
       }
       menuEmpty.hidden = true;
       menuList.insertAdjacentHTML("beforeend", menus.map(menuItemHtml).join(""));
+      return menus;
     }).catch(function (err) {
       if (menuTabCount) menuTabCount.textContent = "0";
       Eatty.toast((err && err.message) || "메뉴를 불러오지 못했습니다.", "error");
+      return [];
     });
   }
 
@@ -492,28 +505,10 @@
       menuPriceInput.value = "";
       menuDescInput.value = "";
       menuSignatureSwitch.checked = false;
+      if (menuImageInput) menuImageInput.value = "";
+      setMenuImagePreview(null);
     });
   }
-
-  // 메뉴 사진 업로드용 숨김 파일 입력(2026-08-10 추가) — 메뉴 목록의 썸네일 버튼 하나가 클릭될 때마다
-  // 대상 menuId만 바꿔서 이 하나의 input을 재사용한다(리스트 아이템마다 input을 두지 않기 위함).
-  var menuImageInput = document.createElement("input");
-  menuImageInput.type = "file";
-  menuImageInput.accept = "image/png,image/jpeg,image/webp";
-  menuImageInput.hidden = true;
-  document.body.appendChild(menuImageInput);
-  var menuImageTargetId = null;
-  menuImageInput.addEventListener("change", function () {
-    var file = menuImageInput.files && menuImageInput.files[0];
-    menuImageInput.value = "";
-    if (!file || !menuImageTargetId || !state.restaurantId) return;
-    var formData = new FormData();
-    formData.append("image", file);
-    Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/" + menuImageTargetId + "/image",
-      { method: "POST", body: formData, isForm: true })
-      .then(function () { Eatty.toast("메뉴 사진을 등록했습니다.", "success"); loadMenus(); })
-      .catch(function (err) { Eatty.toast((err && err.message) || "메뉴 사진 등록에 실패했습니다.", "error"); });
-  });
 
   // 리뷰 신고(2026-08-10 실제 연결) — 예전엔 data-demo-toast로 "접수됨" 토스트만 띄우고 실제 API 호출이
   // 없던 가짜 버튼이었다. explore.js 고객용 신고 모달과 동일한 패턴(POST /api/reviews/{id}/report).
@@ -540,12 +535,6 @@
 
   if (menuList) {
     menuList.addEventListener("click", function (e) {
-      var imageBtn = e.target.closest("[data-upload-menu-image]");
-      if (imageBtn) {
-        menuImageTargetId = imageBtn.closest("[data-menu-id]").getAttribute("data-menu-id");
-        menuImageInput.click();
-        return;
-      }
       var editBtn = e.target.closest("[data-edit-menu]");
       if (editBtn) {
         var id = Number(editBtn.closest("[data-menu-id]").getAttribute("data-menu-id"));
@@ -557,6 +546,8 @@
         menuPriceInput.value = menu.price;
         menuDescInput.value = menu.description || "";
         menuSignatureSwitch.checked = !!menu.isSignature;
+        if (menuImageInput) menuImageInput.value = "";
+        setMenuImagePreview(menu.imageUrl || null);
         return;
       }
       var delBtn = e.target.closest("[data-delete-menu]");
@@ -584,15 +575,44 @@
         description: menuDescInput.value.trim(),
         isSignature: menuSignatureSwitch.checked
       };
+      var previousIds = menuCache.map(function (m) { return m.menuId; });
       var request = editingMenuId
         ? Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/" + editingMenuId,
             { method: "PATCH", body: Object.assign({}, body, { isAvailable: true }) })
         : Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus", { method: "POST", body: body });
 
+      // 메뉴 등록 시점부터 사진 첨부 가능(2026-08-10 변경) — 등록 후 썸네일을 따로 눌러 올리던 방식에서,
+      // 모달에서 고른 파일이 있으면 메뉴 저장 직후 이어서 업로드하도록 변경. 생성(POST)은 응답이 메뉴
+      // 단건이 아니라 매장 상세 전체라 새로 만들어진 menuId를 직접 못 받으므로, loadMenus()로 다시
+      // 받아온 목록을 이전 id 목록과 비교해서 새로 생긴 id를 찾는다.
+      var imageFile = menuImageInput && menuImageInput.files && menuImageInput.files[0];
       request.then(function () {
-        Eatty.closeModal("menuModal");
-        Eatty.toast("메뉴를 저장했습니다.", "success");
-        loadMenus();
+        return loadMenus();
+      }).then(function (menus) {
+        if (!imageFile) {
+          Eatty.closeModal("menuModal");
+          Eatty.toast("메뉴를 저장했습니다.", "success");
+          return;
+        }
+        var targetId = editingMenuId || (menus.filter(function (m) { return previousIds.indexOf(m.menuId) === -1; })[0] || {}).menuId;
+        if (!targetId) {
+          Eatty.closeModal("menuModal");
+          Eatty.toast("메뉴는 저장했지만 사진 등록 대상을 찾지 못했습니다.", "error");
+          return;
+        }
+        var formData = new FormData();
+        formData.append("image", imageFile);
+        return Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/" + targetId + "/image",
+          { method: "POST", body: formData, isForm: true })
+          .then(function () {
+            Eatty.closeModal("menuModal");
+            Eatty.toast("메뉴를 저장했습니다.", "success");
+            return loadMenus();
+          })
+          .catch(function (err) {
+            Eatty.closeModal("menuModal");
+            Eatty.toast("메뉴는 저장했지만 사진 등록에 실패했습니다: " + ((err && err.message) || "알 수 없는 오류"), "error");
+          });
       }).catch(function (err) {
         Eatty.toast((err && err.message) || "메뉴 저장에 실패했습니다.", "error");
       });

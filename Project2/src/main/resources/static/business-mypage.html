@@ -574,6 +574,15 @@
     </div>
 
     <div class="e-modal-body">
+      <!-- 메뉴 사진(2026-08-10 수정) — 등록 후 썸네일을 눌러 첨부하던 방식에서, 등록 모달 안에서 바로
+           선택할 수 있게 변경. 실제 업로드는 저장 시점(메뉴 생성/수정 API 성공 후)에 이어서 진행한다. -->
+      <div class="e-field">
+        <label class="e-label" for="menuImageInput">메뉴 사진 <span class="e-label-side">선택</span></label>
+        <div class="flex items-center gap-3">
+          <span class="w-16 h-16 rounded-[10px] e-img-ph e-shop-thumb flex-none overflow-hidden" id="menuImagePreviewBox"></span>
+          <input type="file" class="e-input" id="menuImageInput" name="menuImage" accept="image/png,image/jpeg,image/webp">
+        </div>
+      </div>
       <div class="e-field">
         <label class="e-label" for="menuNameInput">메뉴명 <span class="req">*</span></label>
         <input type="text" class="e-input" id="menuNameInput" name="menuName" placeholder="예) 한우 갈비탕" data-modal-autofocus>
