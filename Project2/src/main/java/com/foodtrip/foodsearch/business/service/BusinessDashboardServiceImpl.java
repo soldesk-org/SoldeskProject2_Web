@@ -37,8 +37,11 @@ import com.foodtrip.foodsearch.restaurant.repository.RestaurantBusinessHourRepos
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantManagerRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantRepository;
 import com.foodtrip.foodsearch.restaurant.service.RestaurantClaimService;
+import com.foodtrip.foodsearch.review.dto.ReviewImageResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewKeywordResponseDto;
 import com.foodtrip.foodsearch.review.entity.Review;
+import com.foodtrip.foodsearch.review.entity.ReviewImage;
+import com.foodtrip.foodsearch.review.repository.ReviewImageRepository;
 import com.foodtrip.foodsearch.review.repository.ReviewRepository;
 import com.foodtrip.foodsearch.review.service.ReviewKeywordCatalog;
 import com.foodtrip.foodsearch.review.service.ReviewKeywordDao;
@@ -65,6 +68,7 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
     private final JwtProvider jwtProvider;
     private final AccessTokenSessionService accessTokenSessionService;
     private final RestaurantClaimService restaurantClaimService;
+    private final ReviewImageRepository reviewImageRepository;
 
     public BusinessDashboardServiceImpl(RestaurantManagerRepository restaurantManagerRepository,
                                          RestaurantRepository restaurantRepository,
@@ -76,7 +80,8 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
                                          ReviewKeywordDao reviewKeywordDao,
                                          JwtProvider jwtProvider,
                                          AccessTokenSessionService accessTokenSessionService,
-                                         RestaurantClaimService restaurantClaimService) {
+                                         RestaurantClaimService restaurantClaimService,
+                                         ReviewImageRepository reviewImageRepository) {
         this.restaurantManagerRepository = restaurantManagerRepository;
         this.restaurantRepository = restaurantRepository;
         this.reviewRepository = reviewRepository;
@@ -88,6 +93,7 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
         this.jwtProvider = jwtProvider;
         this.accessTokenSessionService = accessTokenSessionService;
         this.restaurantClaimService = restaurantClaimService;
+        this.reviewImageRepository = reviewImageRepository;
     }
 
     @Override
@@ -183,11 +189,18 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
                 .collect(Collectors.toMap(Member::getMemberId, Member::getNickname));
         List<Long> reviewIds = reviews.stream().map(Review::getReviewId).collect(Collectors.toList());
         Map<Long, List<String>> keywordsByReviewId = reviewKeywordDao.findKeywordsByReviewIds(reviewIds);
+        // 2026-08-10 추가 — 고객 리뷰 첨부 사진이 사업자 마이페이지 리뷰 목록엔 안 보이던 걸 발견해 추가.
+        Map<Long, List<ReviewImageResponseDto>> imagesByReviewId = reviewImageRepository
+                .findByReviewIdInOrderByReviewImageIdAsc(reviewIds).stream()
+                .collect(Collectors.groupingBy(ReviewImage::getReviewId,
+                        Collectors.mapping(img -> new ReviewImageResponseDto(img.getReviewImageId(), img.getImageUrl()),
+                                Collectors.toList())));
 
         List<BusinessReviewItemDto> items = reviews.stream()
                 .map(r -> new BusinessReviewItemDto(r.getReviewId(), nicknameByMemberId.get(r.getMemberId()),
                         r.getRating(), r.getContent(), r.isReceiptVerified(), r.getCreatedAt(),
-                        toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of()))))
+                        toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of())),
+                        imagesByReviewId.getOrDefault(r.getReviewId(), List.of())))
                 .collect(Collectors.toList());
 
         return new BusinessReviewsResponseDto(positiveTags, negativeTags, positiveRatio, negativeRatio,

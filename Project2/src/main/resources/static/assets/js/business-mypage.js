@@ -134,6 +134,10 @@
       var cls = k.sentiment === "NEGATIVE" ? "e-tag--neg" : "e-tag--pos";
       return '<span class="e-tag ' + cls + '">' + escapeHtml(k.keyword) + '</span>';
     }).join("");
+    // 2026-08-10 추가 — 고객이 리뷰에 첨부한 사진을 사업자 마이페이지 리뷰 목록에도 노출.
+    var imagesHtml = (r.images || []).map(function (img) {
+      return '<img src="' + escapeHtml(img.imageUrl) + '" class="w-16 h-16 rounded-[var(--r-md)] object-cover flex-none" alt="리뷰 첨부 사진">';
+    }).join("");
     return (
       '<li class="pb-4 border-b border-[var(--line-soft)]">' +
         '<div class="flex items-center gap-2.5">' +
@@ -152,6 +156,7 @@
         '</div>' +
         (tagsHtml ? '<div class="flex flex-wrap gap-1.5 mt-3">' + tagsHtml + '</div>' : '') +
         (r.content ? '<p class="t-sm mt-2.5 leading-relaxed">' + escapeHtml(r.content) + '</p>' : '') +
+        (imagesHtml ? '<div class="flex gap-2 mt-2.5 overflow-x-auto">' + imagesHtml + '</div>' : '') +
       '</li>'
     );
   }
