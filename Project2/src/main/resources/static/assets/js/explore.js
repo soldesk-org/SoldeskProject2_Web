@@ -505,17 +505,31 @@
     parking: "주차 가능", wifi: "와이파이", pet: "반려동물", kids: "유아 의자",
     delivery: "배달", takeout: "포장", group: "단체석", barrierFree: "휠체어 접근"
   };
-  var PRICE_RANGE_LABELS = {
-    under10000: "1인 1만원 이하", "10000-20000": "1인 1~2만원",
-    "20000-40000": "1인 2~4만원", over40000: "1인 4만원 이상"
-  };
+  // "HH:mm:ss" -> "HH:mm" (백엔드가 LocalTime을 초 단위까지 그대로 내려준다).
+  function hhmm(t) {
+    return t ? t.slice(0, 5) : "";
+  }
   function renderHours(businessHours) {
     if (!businessHours || !businessHours.length) return "영업시간 정보가 없습니다.";
-    var openText = businessHours.filter(function (h) { return !h.isClosed; }).map(function (h) {
-      return weekdayLabel(h.dayOfWeek) + " " + (h.openTime || "") + "~" + (h.closeTime || "");
-    }).join(" · ");
-    var closedDays = businessHours.filter(function (h) { return h.isClosed; }).map(function (h) { return weekdayLabel(h.dayOfWeek); });
-    if (!openText) return closedDays.length ? "매주 " + closedDays.join(", ") + " 휴무" : "영업시간 정보가 없습니다.";
+    // 필드명 주의: BusinessHourResponseDto.isClosed()는 Jackson이 "closed"로 직렬화한다(is 접두어 제거).
+    var openDays = businessHours.filter(function (h) { return !h.closed; });
+    var closedDays = businessHours.filter(function (h) { return h.closed; }).map(function (h) { return weekdayLabel(h.dayOfWeek); });
+    if (!openDays.length) {
+      return closedDays.length ? "매주 " + closedDays.join(", ") + " 휴무" : "영업시간 정보가 없습니다.";
+    }
+    // 모든 영업일의 시간이 동일하면(현재 서비스가 요일별 개별 시간을 지원하지 않아 대부분 이 경우다)
+    // "일~토 11:32~23:35"처럼 한 줄로 압축하고, 요일마다 다르면 개별 표기로 나열한다.
+    var sameTime = openDays.every(function (h) {
+      return h.openTime === openDays[0].openTime && h.closeTime === openDays[0].closeTime;
+    });
+    var timeRange = function (h) { return hhmm(h.openTime) + "~" + hhmm(h.closeTime); };
+    var openText;
+    if (sameTime) {
+      var days = openDays.map(function (h) { return weekdayLabel(h.dayOfWeek); });
+      openText = days.join("") + " " + timeRange(openDays[0]);
+    } else {
+      openText = openDays.map(function (h) { return weekdayLabel(h.dayOfWeek) + " " + timeRange(h); }).join(" · ");
+    }
     return closedDays.length ? openText + " (매주 " + closedDays.join(", ") + " 휴무)" : openText;
   }
 
@@ -533,8 +547,6 @@
     var categoryEl = document.getElementById("detailCategory");
     categoryEl.textContent = item.category || "";
     categoryEl.hidden = !item.category;
-    var priceRangeElInit = document.getElementById("detailPriceRange");
-    if (priceRangeElInit) priceRangeElInit.hidden = true;
     document.getElementById("detailRating").innerHTML = starsHtml(item.averageRating) +
       '<span class="e-rating-score">' + (item.averageRating != null ? Number(item.averageRating).toFixed(1) : "-") + '</span>';
     document.getElementById("detailReviewCount").textContent = item.reviewCount || 0;
@@ -658,13 +670,6 @@
             tagsEl.innerHTML = "";
             tagsWrap.hidden = true;
           }
-        }
-
-        var priceRangeEl = document.getElementById("detailPriceRange");
-        if (priceRangeEl) {
-          var priceLabel = PRICE_RANGE_LABELS[detail.priceRange];
-          priceRangeEl.textContent = priceLabel || "";
-          priceRangeEl.hidden = !priceLabel;
         }
 
         var introWrap = document.getElementById("detailIntroWrap");
