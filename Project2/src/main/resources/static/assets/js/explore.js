@@ -509,28 +509,72 @@
   function hhmm(t) {
     return t ? t.slice(0, 5) : "";
   }
+  function toMinutes(t) {
+    if (!t) return null;
+    var parts = t.split(":");
+    return Number(parts[0]) * 60 + Number(parts[1]);
+  }
+  // 네이버지도 앱처럼 "영업 중 · 22:00에 영업 종료" 요약 한 줄 + 클릭 시 월~일 목록 펼침(2026-08-10).
+  // 필드명 주의: BusinessHourResponseDto.isClosed()는 Jackson이 "closed"로 직렬화한다(is 접두어 제거).
+  var MON_TO_SUN = [1, 2, 3, 4, 5, 6, 0];
   function renderHours(businessHours) {
-    if (!businessHours || !businessHours.length) return "영업시간 정보가 없습니다.";
-    // 필드명 주의: BusinessHourResponseDto.isClosed()는 Jackson이 "closed"로 직렬화한다(is 접두어 제거).
-    var openDays = businessHours.filter(function (h) { return !h.closed; });
-    var closedDays = businessHours.filter(function (h) { return h.closed; }).map(function (h) { return weekdayLabel(h.dayOfWeek); });
-    if (!openDays.length) {
-      return closedDays.length ? "매주 " + closedDays.join(", ") + " 휴무" : "영업시간 정보가 없습니다.";
+    var summaryEl = document.getElementById("detailHoursSummary");
+    var caretEl = document.getElementById("detailHoursCaret");
+    var listEl = document.getElementById("detailHoursList");
+    var toggleBtn = document.getElementById("detailHoursToggle");
+    if (!summaryEl || !listEl || !toggleBtn) return;
+
+    if (!businessHours || !businessHours.length) {
+      summaryEl.textContent = "영업시간 정보가 없습니다.";
+      if (caretEl) caretEl.hidden = true;
+      listEl.hidden = true;
+      listEl.innerHTML = "";
+      toggleBtn.onclick = null;
+      return;
     }
-    // 모든 영업일의 시간이 동일하면(현재 서비스가 요일별 개별 시간을 지원하지 않아 대부분 이 경우다)
-    // "일~토 11:32~23:35"처럼 한 줄로 압축하고, 요일마다 다르면 개별 표기로 나열한다.
-    var sameTime = openDays.every(function (h) {
-      return h.openTime === openDays[0].openTime && h.closeTime === openDays[0].closeTime;
-    });
-    var timeRange = function (h) { return hhmm(h.openTime) + "~" + hhmm(h.closeTime); };
-    var openText;
-    if (sameTime) {
-      var days = openDays.map(function (h) { return weekdayLabel(h.dayOfWeek); });
-      openText = days.join("") + " " + timeRange(openDays[0]);
+
+    var byDay = {};
+    businessHours.forEach(function (h) { byDay[h.dayOfWeek] = h; });
+    var now = new Date();
+    var today = now.getDay(); // 0=일 ~ 6=토, dayOfWeek와 동일한 기준
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    var todayHours = byDay[today];
+
+    var summary;
+    if (!todayHours || todayHours.closed) {
+      summary = "오늘 휴무";
     } else {
-      openText = openDays.map(function (h) { return weekdayLabel(h.dayOfWeek) + " " + timeRange(h); }).join(" · ");
+      var openMin = toMinutes(todayHours.openTime);
+      var closeMin = toMinutes(todayHours.closeTime);
+      if (openMin != null && closeMin != null && nowMin >= openMin && nowMin < closeMin) {
+        summary = "영업 중 · " + hhmm(todayHours.closeTime) + "에 영업 종료";
+      } else if (openMin != null && nowMin < openMin) {
+        summary = "영업 전 · " + hhmm(todayHours.openTime) + "에 영업 시작";
+      } else {
+        summary = "영업 종료";
+      }
     }
-    return closedDays.length ? openText + " (매주 " + closedDays.join(", ") + " 휴무)" : openText;
+    summaryEl.textContent = summary;
+    if (caretEl) caretEl.hidden = false;
+
+    listEl.innerHTML = MON_TO_SUN.map(function (dayOfWeek) {
+      var h = byDay[dayOfWeek];
+      var isToday = dayOfWeek === today;
+      var text = (!h || h.closed) ? "정기휴무" : hhmm(h.openTime) + " - " + hhmm(h.closeTime);
+      return '<li class="flex gap-2' + (isToday ? " font-bold text-[var(--ink-900)]" : "") + '">' +
+        '<span class="w-4 flex-none">' + escapeHtml(weekdayLabel(dayOfWeek)) + '</span>' +
+        '<span>' + escapeHtml(text) + '</span></li>';
+    }).join("");
+
+    listEl.hidden = true;
+    toggleBtn.setAttribute("aria-expanded", "false");
+    if (caretEl) caretEl.style.transform = "";
+    toggleBtn.onclick = function () {
+      var expanded = toggleBtn.getAttribute("aria-expanded") === "true";
+      listEl.hidden = expanded;
+      toggleBtn.setAttribute("aria-expanded", expanded ? "false" : "true");
+      if (caretEl) caretEl.style.transform = expanded ? "" : "rotate(180deg)";
+    };
   }
 
   function openDetail(item) {
@@ -542,6 +586,7 @@
     if (directionsLine) { directionsLine.setMap(null); directionsLine = null; }
     var tagDistWrap = document.getElementById("detailTagDistWrap");
     if (tagDistWrap) tagDistWrap.hidden = true;
+    renderHours(null);
 
     document.getElementById("detailShopName").textContent = item.name;
     var categoryEl = document.getElementById("detailCategory");
@@ -649,7 +694,7 @@
       (item.longitude != null ? "&longitude=" + item.longitude : ""))
       .then(function (detail) {
         document.getElementById("detailPhone").textContent = detail.phone || "정보 없음";
-        document.getElementById("detailHours").textContent = renderHours(detail.businessHours);
+        renderHours(detail.businessHours);
         if (callBtn) callBtn.setAttribute("href", detail.phone ? "tel:" + detail.phone : "tel:");
         renderMenus(detail.menus);
 
