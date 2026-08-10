@@ -65,7 +65,7 @@
    [data-edit-menu] / [data-delete-menu]
    #addMenuBtn             메뉴 추가 (data-modal-open="menuModal")
    #menuModal              메뉴 추가/수정 모달
-     #menuImageInput #menuPhotoAddBtn #menuPhotoList(선택, 최대 3장) #menuNameInput #menuPriceInput #menuDescInput #menuSignatureSwitch #menuSaveBtn
+     #menuImageDrop(선택) #menuNameInput #menuPriceInput #menuDescInput #menuSignatureSwitch #menuSaveBtn
 
  [사진 관리]  ★ /api/business/me/photos
    #photoDrop / #photoInput / #photoGrid
@@ -574,23 +574,31 @@
     </div>
 
     <div class="e-modal-body">
-      <!-- 메뉴 사진(2026-08-10, 최대 3장으로 재변경) — "옆이 비어 보인다"는 피드백으로 사진 1장짜리
-           단일 드롭존 대신, 리뷰 사진(receipt-upload.html #reviewPhotoList)과 동일한 "썸네일들 + 추가
-           타일" 패턴으로 전환. 수정 모드에서는 이미 등록된 사진이 개별 삭제 가능한 썸네일로 먼저
-           채워지고, 새로 고른 파일은 저장 시점에 이어서 업로드된다. -->
+      <!-- 메뉴 사진(2026-08-10, 오늘 여러 번 디자인을 바꿔보다가 최초 버전으로 최종 확정) — 작은
+           정사각형 드롭존 하나 + 카메라 배지, 클릭하면 파일 선택. 백엔드는 최대 3장까지 지원하도록
+           이미 확장돼 있지만(menu_images 테이블), 이 화면은 그중 첫 장만 다루는 가장 단순한 UI로
+           되돌렸다 — 수정 모드에서 이미 사진이 있으면 그 사진이 미리보기로 채워지고, 새로 고르면
+           기존 사진을 지우고 새 사진으로 교체한다(저장 시점에 실제 반영). -->
       <div class="e-field">
-        <label class="e-label">
-          메뉴 사진 <span class="e-label-side"><span id="menuPhotoCount">0</span> / 3</span>
-        </label>
-        <input type="file" id="menuImageInput" accept="image/png,image/jpeg,image/webp" multiple hidden>
-        <div class="flex flex-wrap gap-2.5" id="menuPhotoList">
-          <button type="button"
-                  class="w-20 h-20 rounded-[var(--r-md)] grid place-items-center gap-1 text-[var(--ink-400)] flex-none"
-                  style="background:var(--bg-muted)"
-                  id="menuPhotoAddBtn" aria-label="사진 추가">
-            <svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-            <span class="t-xs">사진 추가</span>
-          </button>
+        <label class="e-label">메뉴 사진 <span class="e-label-side">선택</span></label>
+        <div class="relative w-[76px]">
+          <div class="e-dropzone !p-0 !rounded-[16px] w-[76px] h-[76px] grid place-items-center overflow-hidden"
+               id="menuImageDrop" data-dropzone data-dropzone-preview="menuImagePreview">
+            <input type="file" id="menuImageInput" name="menuImage" accept="image/png,image/jpeg,image/webp" aria-label="메뉴 사진 선택">
+            <div class="text-center pointer-events-none" id="menuImagePlaceholder">
+              <svg class="w-6 h-6 mx-auto" style="color:var(--ink-300)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5L5 20"/>
+              </svg>
+            </div>
+            <div class="absolute inset-0 pointer-events-none" id="menuImagePreview" hidden>
+              <img alt="메뉴 사진 미리보기" data-dropzone-img id="menuImagePreviewImg" class="w-full h-full object-cover" style="display:none">
+            </div>
+          </div>
+          <span class="absolute -right-1.5 -bottom-1.5 w-7 h-7 rounded-full grid place-items-center text-white pointer-events-none" style="background:var(--brand-grad);box-shadow:var(--sh-sm)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15V7a2 2 0 0 0-2-2h-3l-1.5-2h-5L8 5H5a2 2 0 0 0-2 2v8"/><circle cx="12" cy="12" r="3"/><path d="M3 15v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+            </svg>
+          </span>
         </div>
       </div>
       <div class="e-field">

@@ -440,88 +440,34 @@
   var menuSaveBtn = document.getElementById("menuSaveBtn");
   var addMenuBtn = document.getElementById("addMenuBtn");
   var menuImageInput = document.getElementById("menuImageInput");
-  var menuPhotoAddBtn = document.getElementById("menuPhotoAddBtn");
-  var menuPhotoList = document.getElementById("menuPhotoList");
-  var menuPhotoCount = document.getElementById("menuPhotoCount");
+  var menuImageDrop = document.getElementById("menuImageDrop");
+  var menuImagePlaceholder = document.getElementById("menuImagePlaceholder");
+  var menuImagePreviewWrap = document.getElementById("menuImagePreview");
   var editingMenuId = null;
-  var MENU_PHOTO_LIMIT = 3;
-  // 메뉴 사진(2026-08-10, 최대 3장으로 재변경) — 리뷰 사진 피커(receipt-upload.js)와 동일한 구조.
-  // existingMenuImages: 수정 모드에서 이미 서버에 저장돼 있는 사진(menuImageId 있음, 삭제 시 즉시 API 호출).
-  // menuPhotoFiles: 아직 업로드 안 한 새로 고른 파일(저장 버튼 눌렀을 때 한꺼번에 업로드).
-  var existingMenuImages = [];
-  var menuPhotoFiles = [];
+  // 오늘 여러 번 디자인을 바꿔보다가 가장 처음 버전(작은 정사각형 드롭존 하나)으로 최종 확정(2026-08-10).
+  // 백엔드는 메뉴당 사진 최대 3장을 지원하지만, 이 화면은 그중 첫 장만 다루는 가장 단순한 단일 사진
+  // UI로 되돌렸다. existingMenuImageId: 수정 모드에서 이미 등록된 사진이 있으면 그 menuImageId(교체
+  // 시 먼저 지우고 새로 올린다). menuImageFile: 새로 고른 파일(저장 시점에 업로드).
+  var existingMenuImageId = null;
+  var menuImageFile = null;
 
-  function renderMenuPhotos() {
-    menuPhotoList.querySelectorAll("[data-menu-photo]").forEach(function (el) { el.remove(); });
-    var total = existingMenuImages.length + menuPhotoFiles.length;
-    // 사진이 1장뿐일 때는 작은 정사각형 그리드보다 크게 보여주는 게 더 자연스럽다는 요청(2026-08-10)
-    // — 1장이면 큼직하게(160px), 2장 이상이면 기존 그리드 크기(80px)로 자동 전환.
-    var tileSizeClass = total <= 1 ? "w-40 h-40" : "w-20 h-20";
-    if (menuPhotoAddBtn) {
-      menuPhotoAddBtn.classList.remove("w-20", "h-20", "w-40", "h-40");
-      menuPhotoAddBtn.classList.add.apply(menuPhotoAddBtn.classList, tileSizeClass.split(" "));
+  function setMenuImagePreview(url) {
+    if (url) {
+      menuImagePreviewWrap.hidden = false;
+      menuImagePreviewWrap.querySelector("img").src = url;
+      menuImagePreviewWrap.querySelector("img").style.display = "block";
+      if (menuImagePlaceholder) menuImagePlaceholder.style.display = "none";
+    } else {
+      menuImagePreviewWrap.hidden = true;
+      menuImagePreviewWrap.querySelector("img").style.display = "none";
+      if (menuImagePlaceholder) menuImagePlaceholder.style.display = "";
     }
-    existingMenuImages.forEach(function (img) {
-      var item = document.createElement("div");
-      item.className = "relative " + tileSizeClass + " rounded-[var(--r-md)] overflow-hidden flex-none";
-      item.setAttribute("data-menu-photo", "");
-      item.innerHTML =
-        '<img src="' + img.imageUrl + '" class="w-full h-full object-cover" alt="메뉴 사진">' +
-        '<button type="button" class="absolute right-1 top-1 w-5 h-5 rounded-full bg-black/50 text-white grid place-items-center" data-remove-existing-photo="' + img.menuImageId + '" aria-label="사진 삭제">' +
-          '<svg style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
-        '</button>';
-      menuPhotoList.insertBefore(item, menuPhotoAddBtn);
-    });
-    menuPhotoFiles.forEach(function (file, index) {
-      var url = URL.createObjectURL(file);
-      var item = document.createElement("div");
-      item.className = "relative " + tileSizeClass + " rounded-[var(--r-md)] overflow-hidden flex-none";
-      item.setAttribute("data-menu-photo", "");
-      item.innerHTML =
-        '<img src="' + url + '" class="w-full h-full object-cover" alt="첨부할 메뉴 사진 미리보기">' +
-        '<button type="button" class="absolute right-1 top-1 w-5 h-5 rounded-full bg-black/50 text-white grid place-items-center" data-remove-pending-photo="' + index + '" aria-label="사진 삭제">' +
-          '<svg style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
-        '</button>';
-      menuPhotoList.insertBefore(item, menuPhotoAddBtn);
-    });
-    if (menuPhotoCount) menuPhotoCount.textContent = total;
-    if (menuPhotoAddBtn) menuPhotoAddBtn.hidden = total >= MENU_PHOTO_LIMIT;
   }
-
-  if (menuPhotoAddBtn && menuImageInput) {
-    menuPhotoAddBtn.addEventListener("click", function () { menuImageInput.click(); });
-    menuImageInput.addEventListener("change", function () {
-      var picked = Array.prototype.slice.call(menuImageInput.files || []);
-      var room = MENU_PHOTO_LIMIT - existingMenuImages.length - menuPhotoFiles.length;
-      if (picked.length > room) {
-        Eatty.toast("사진은 최대 " + MENU_PHOTO_LIMIT + "장까지 첨부할 수 있어요.", "error");
-      }
-      menuPhotoFiles = menuPhotoFiles.concat(picked.slice(0, room));
-      menuImageInput.value = "";
-      renderMenuPhotos();
-    });
-  }
-  if (menuPhotoList) {
-    menuPhotoList.addEventListener("click", function (e) {
-      var pendingBtn = e.target.closest("[data-remove-pending-photo]");
-      if (pendingBtn) {
-        menuPhotoFiles.splice(Number(pendingBtn.getAttribute("data-remove-pending-photo")), 1);
-        renderMenuPhotos();
-        return;
-      }
-      var existingBtn = e.target.closest("[data-remove-existing-photo]");
-      if (existingBtn) {
-        if (!state.restaurantId || !editingMenuId) return;
-        var menuImageId = existingBtn.getAttribute("data-remove-existing-photo");
-        Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/" + editingMenuId + "/images/" + menuImageId,
-          { method: "DELETE" })
-          .then(function () {
-            existingMenuImages = existingMenuImages.filter(function (img) { return String(img.menuImageId) !== menuImageId; });
-            renderMenuPhotos();
-            loadMenus();
-          })
-          .catch(function (err) { Eatty.toast((err && err.message) || "사진 삭제에 실패했습니다.", "error"); });
-      }
+  if (menuImageDrop) {
+    menuImageDrop.addEventListener("eatty:filepicked", function (e) {
+      menuImageFile = e.detail.file;
+      menuImagePreviewWrap.hidden = false;
+      if (menuImagePlaceholder) menuImagePlaceholder.style.display = "none";
     });
   }
 
@@ -588,9 +534,9 @@
       menuDescInput.value = "";
       menuSignatureSwitch.checked = false;
       if (menuImageInput) menuImageInput.value = "";
-      existingMenuImages = [];
-      menuPhotoFiles = [];
-      renderMenuPhotos();
+      existingMenuImageId = null;
+      menuImageFile = null;
+      setMenuImagePreview(null);
     });
   }
 
@@ -631,9 +577,10 @@
         menuDescInput.value = menu.description || "";
         menuSignatureSwitch.checked = !!menu.isSignature;
         if (menuImageInput) menuImageInput.value = "";
-        existingMenuImages = (menu.images || []).slice();
-        menuPhotoFiles = [];
-        renderMenuPhotos();
+        var firstImage = (menu.images || [])[0] || null;
+        existingMenuImageId = firstImage ? firstImage.menuImageId : null;
+        menuImageFile = null;
+        setMenuImagePreview(firstImage ? firstImage.imageUrl : null);
         return;
       }
       var delBtn = e.target.closest("[data-delete-menu]");
@@ -667,15 +614,17 @@
             { method: "PATCH", body: Object.assign({}, body, { isAvailable: true }) })
         : Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus", { method: "POST", body: body });
 
-      // 메뉴 등록 시점부터 사진 첨부 가능(2026-08-10 변경) — 등록 후 썸네일을 따로 눌러 올리던 방식에서,
-      // 모달에서 고른 파일이 있으면 메뉴 저장 직후 이어서 업로드하도록 변경. 생성(POST)은 응답이 메뉴
-      // 단건이 아니라 매장 상세 전체라 새로 만들어진 menuId를 직접 못 받으므로, loadMenus()로 다시
-      // 받아온 목록을 이전 id 목록과 비교해서 새로 생긴 id를 찾는다.
-      var pendingFiles = menuPhotoFiles.slice();
+      // 메뉴 등록 시점부터 사진 첨부 가능 — 모달에서 고른 파일이 있으면 메뉴 저장 직후 이어서
+      // 업로드한다. 생성(POST)은 응답이 메뉴 단건이 아니라 매장 상세 전체라 새로 만들어진 menuId를
+      // 직접 못 받으므로, loadMenus()로 다시 받아온 목록을 이전 id 목록과 비교해서 새로 생긴 id를
+      // 찾는다. 사진 교체(기존 사진이 있는데 새로 고른 경우)는 새 사진 업로드 전에 기존 사진을 먼저
+      // 지운다(단일 사진 UI라 "교체" 동작을 이렇게 흉내낸다).
+      var pickedFile = menuImageFile;
+      var imageIdToDelete = existingMenuImageId;
       request.then(function () {
         return loadMenus();
       }).then(function (menus) {
-        if (!pendingFiles.length) {
+        if (!pickedFile) {
           Eatty.closeModal("menuModal");
           Eatty.toast("메뉴를 저장했습니다.", "success");
           return;
@@ -686,19 +635,23 @@
           Eatty.toast("메뉴는 저장했지만 사진 등록 대상을 찾지 못했습니다.", "error");
           return;
         }
-        var formData = new FormData();
-        pendingFiles.forEach(function (file) { formData.append("images", file); });
-        return Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/" + targetId + "/images",
-          { method: "POST", body: formData, isForm: true })
-          .then(function () {
-            Eatty.closeModal("menuModal");
-            Eatty.toast("메뉴를 저장했습니다.", "success");
-            return loadMenus();
-          })
-          .catch(function (err) {
-            Eatty.closeModal("menuModal");
-            Eatty.toast("메뉴는 저장했지만 사진 등록에 실패했습니다: " + ((err && err.message) || "알 수 없는 오류"), "error");
-          });
+        var deletePrevious = imageIdToDelete
+          ? Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/" + targetId + "/images/" + imageIdToDelete,
+              { method: "DELETE" }).catch(function () {})
+          : Promise.resolve();
+        return deletePrevious.then(function () {
+          var formData = new FormData();
+          formData.append("images", pickedFile);
+          return Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/menus/" + targetId + "/images",
+            { method: "POST", body: formData, isForm: true });
+        }).then(function () {
+          Eatty.closeModal("menuModal");
+          Eatty.toast("메뉴를 저장했습니다.", "success");
+          return loadMenus();
+        }).catch(function (err) {
+          Eatty.closeModal("menuModal");
+          Eatty.toast("메뉴는 저장했지만 사진 등록에 실패했습니다: " + ((err && err.message) || "알 수 없는 오류"), "error");
+        });
       }).catch(function (err) {
         Eatty.toast((err && err.message) || "메뉴 저장에 실패했습니다.", "error");
       });
