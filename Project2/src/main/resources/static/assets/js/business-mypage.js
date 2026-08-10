@@ -453,9 +453,17 @@
 
   function renderMenuPhotos() {
     menuPhotoList.querySelectorAll("[data-menu-photo]").forEach(function (el) { el.remove(); });
+    var total = existingMenuImages.length + menuPhotoFiles.length;
+    // 사진이 1장뿐일 때는 작은 정사각형 그리드보다 크게 보여주는 게 더 자연스럽다는 요청(2026-08-10)
+    // — 1장이면 큼직하게(160px), 2장 이상이면 기존 그리드 크기(80px)로 자동 전환.
+    var tileSizeClass = total <= 1 ? "w-40 h-40" : "w-20 h-20";
+    if (menuPhotoAddBtn) {
+      menuPhotoAddBtn.classList.remove("w-20", "h-20", "w-40", "h-40");
+      menuPhotoAddBtn.classList.add.apply(menuPhotoAddBtn.classList, tileSizeClass.split(" "));
+    }
     existingMenuImages.forEach(function (img) {
       var item = document.createElement("div");
-      item.className = "relative w-20 h-20 rounded-[var(--r-md)] overflow-hidden flex-none";
+      item.className = "relative " + tileSizeClass + " rounded-[var(--r-md)] overflow-hidden flex-none";
       item.setAttribute("data-menu-photo", "");
       item.innerHTML =
         '<img src="' + img.imageUrl + '" class="w-full h-full object-cover" alt="메뉴 사진">' +
@@ -467,7 +475,7 @@
     menuPhotoFiles.forEach(function (file, index) {
       var url = URL.createObjectURL(file);
       var item = document.createElement("div");
-      item.className = "relative w-20 h-20 rounded-[var(--r-md)] overflow-hidden flex-none";
+      item.className = "relative " + tileSizeClass + " rounded-[var(--r-md)] overflow-hidden flex-none";
       item.setAttribute("data-menu-photo", "");
       item.innerHTML =
         '<img src="' + url + '" class="w-full h-full object-cover" alt="첨부할 메뉴 사진 미리보기">' +
@@ -476,7 +484,6 @@
         '</button>';
       menuPhotoList.insertBefore(item, menuPhotoAddBtn);
     });
-    var total = existingMenuImages.length + menuPhotoFiles.length;
     if (menuPhotoCount) menuPhotoCount.textContent = total;
     if (menuPhotoAddBtn) menuPhotoAddBtn.hidden = total >= MENU_PHOTO_LIMIT;
   }
