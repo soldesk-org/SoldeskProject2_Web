@@ -53,6 +53,15 @@
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
 
+		<!-- 2026-08-10 추가 — Lettuce 커넥션 풀링용. 이게 없으면 Lettuce가 공유 커넥션 하나를 계속 재사용하는데,
+		     그 커넥션이 한 번 타임아웃으로 꼬이면 재기동 전까지 이후 모든 Redis 명령이 계속 실패하는 문제를
+		     실제로 겪었다(소셜 로그인이 "일시적인 오류"로 매번 막힘). commons-pool2가 클래스패스에 있으면
+		     Spring Boot가 자동으로 풀링 모드로 전환하고, test-on-borrow로 죽은 커넥션을 빌려주기 전에 걸러낸다. -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-pool2</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
