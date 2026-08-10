@@ -91,6 +91,13 @@ pipeline {
                         string(credentialsId: 'soldesk-hyperclova-model', variable: 'HYPERCLOVA_MODEL'),
                         string(credentialsId: 'soldesk-hyperclova-api-key', variable: 'HYPERCLOVA_API_KEY'),
                         string(credentialsId: 'soldesk-chat-log-aes-key', variable: 'CHAT_LOG_AES_KEY'),
+                        // 이미지 업로드 URL(2026-08-10 추가) — 값이 비어있으면 application.yml 기본값
+                        // (http://localhost:8081/...)으로 빠져서 운영 환경에서도 로컬 URL이 응답에 섞여
+                        // 나가는 문제가 있었다(보안 점검 중 발견, docs/26.보안적개선사항 참고).
+                        string(credentialsId: 'soldesk-profile-image-base-url', variable: 'PROFILE_IMAGE_BASE_URL'),
+                        string(credentialsId: 'soldesk-restaurant-image-base-url', variable: 'RESTAURANT_IMAGE_BASE_URL'),
+                        string(credentialsId: 'soldesk-receipt-image-base-url', variable: 'RECEIPT_IMAGE_BASE_URL'),
+                        string(credentialsId: 'soldesk-review-image-base-url', variable: 'REVIEW_IMAGE_BASE_URL'),
                     ]) {
                         sh './mvnw test'
                     }
@@ -170,6 +177,13 @@ pipeline {
                         string(credentialsId: 'soldesk-hyperclova-model', variable: 'HYPERCLOVA_MODEL'),
                         string(credentialsId: 'soldesk-hyperclova-api-key', variable: 'HYPERCLOVA_API_KEY'),
                         string(credentialsId: 'soldesk-chat-log-aes-key', variable: 'CHAT_LOG_AES_KEY'),
+                        // 이미지 업로드 URL(2026-08-10 추가) — 값이 비어있으면 application.yml 기본값
+                        // (http://localhost:8081/...)으로 빠져서 운영 환경에서도 로컬 URL이 응답에 섞여
+                        // 나가는 문제가 있었다(보안 점검 중 발견, docs/26.보안적개선사항 참고).
+                        string(credentialsId: 'soldesk-profile-image-base-url', variable: 'PROFILE_IMAGE_BASE_URL'),
+                        string(credentialsId: 'soldesk-restaurant-image-base-url', variable: 'RESTAURANT_IMAGE_BASE_URL'),
+                        string(credentialsId: 'soldesk-receipt-image-base-url', variable: 'RECEIPT_IMAGE_BASE_URL'),
+                        string(credentialsId: 'soldesk-review-image-base-url', variable: 'REVIEW_IMAGE_BASE_URL'),
                     ]) {
                         sh '''
                             cp target/*.war /opt/soldesk-app/soldesk-app.war
@@ -216,6 +230,10 @@ HYPERCLOVA_BASE_URL=$HYPERCLOVA_BASE_URL
 HYPERCLOVA_MODEL=$HYPERCLOVA_MODEL
 HYPERCLOVA_API_KEY=$HYPERCLOVA_API_KEY
 CHAT_LOG_AES_KEY=$CHAT_LOG_AES_KEY
+PROFILE_IMAGE_BASE_URL=$PROFILE_IMAGE_BASE_URL
+RESTAURANT_IMAGE_BASE_URL=$RESTAURANT_IMAGE_BASE_URL
+RECEIPT_IMAGE_BASE_URL=$RECEIPT_IMAGE_BASE_URL
+REVIEW_IMAGE_BASE_URL=$REVIEW_IMAGE_BASE_URL
 ENVEOF
                             chmod 600 /opt/soldesk-app/.env
                             sudo systemctl restart soldesk-app.service
