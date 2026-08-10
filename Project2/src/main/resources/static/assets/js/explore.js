@@ -556,9 +556,13 @@
     } else {
       var openMin = toMinutes(todayHours.openTime);
       var closeMin = toMinutes(todayHours.closeTime);
-      if (openMin != null && closeMin != null && nowMin >= openMin && nowMin < closeMin) {
+      // 요일이 "휴무 아님"으로 저장돼 있어도 아직 시간을 등록 안 했으면(openTime/closeTime 둘 다 null)
+      // "영업 종료"라고 단정할 근거가 없다 — 등록 자체가 안 된 걸로 안내한다.
+      if (openMin == null || closeMin == null) {
+        summary = "영업시간 정보가 없습니다.";
+      } else if (nowMin >= openMin && nowMin < closeMin) {
         summary = "영업 중 · " + hhmm(todayHours.closeTime) + "에 영업 종료";
-      } else if (openMin != null && nowMin < openMin) {
+      } else if (nowMin < openMin) {
         summary = "영업 전 · " + hhmm(todayHours.openTime) + "에 영업 시작";
       } else {
         summary = "영업 종료";
@@ -570,7 +574,14 @@
     listEl.innerHTML = MON_TO_SUN.map(function (dayOfWeek) {
       var h = byDay[dayOfWeek];
       var isToday = dayOfWeek === today;
-      var text = (!h || h.closed) ? "정기휴무" : hhmm(h.openTime) + " - " + hhmm(h.closeTime);
+      var text;
+      if (!h || h.closed) {
+        text = "정기휴무";
+      } else if (h.openTime && h.closeTime) {
+        text = hhmm(h.openTime) + " - " + hhmm(h.closeTime);
+      } else {
+        text = "시간 미등록";
+      }
       return '<li class="flex gap-2' + (isToday ? " font-bold text-[var(--ink-900)]" : "") + '">' +
         '<span class="w-4 flex-none">' + escapeHtml(weekdayLabel(dayOfWeek)) + '</span>' +
         '<span>' + escapeHtml(text) + '</span></li>';

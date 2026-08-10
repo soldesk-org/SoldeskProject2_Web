@@ -709,6 +709,15 @@
   }
 
   if (bizInfoForm) {
+    // "변경 취소" 버튼(type=reset)의 네이티브 동작은 폼을 HTML 기본값(대부분 빈 값)으로 되돌리는데,
+    // 영업시간/편의시설/매장소개 같은 필드는 JS가 fillShopInfoForm()으로 채운 값이라 기본값 자체가
+    // 비어있다 — 그래서 "변경 취소"를 누르면 실제 저장된 값이 아니라 완전히 빈 폼이 되고, 그 상태로
+    // 실수로 저장하면 서버 값까지 지워지는 문제가 있었다(2026-08-10, "영업시간이 영업종료로 나온다"
+    // 리포트로 발견). 네이티브 reset을 막고, 서버에서 마지막으로 받아온 값으로 다시 채운다.
+    bizInfoForm.addEventListener("reset", function (e) {
+      e.preventDefault();
+      if (state.lastShop) fillShopInfoForm(state.lastShop);
+    });
     bizInfoForm.addEventListener("submit", function (e) {
       e.preventDefault();
       if (!state.restaurantId) {
@@ -752,6 +761,7 @@
   function loadShop() {
     return Api.request("/api/business/me/shop").then(function (shop) {
       state.restaurantId = shop.restaurantId;
+      state.lastShop = shop;
       updateShopHeader(shop);
       updateShopMainImage(shop.imageUrl);
       updatePublicPageLink();
