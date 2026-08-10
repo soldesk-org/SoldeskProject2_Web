@@ -282,9 +282,12 @@
         show("result");
         pushRecent(query.value.trim() || text);
         resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
-      }).catch(function (err) {
+      }).catch(function () {
+        // 2026-08-10 수정 — Cloudflare 터널이 끊기면 err.message에 "error code: 1033" 같은 원본 에러
+        // 페이지 내용이 그대로 담겨오는데, 그걸 alert()로 그대로 노출하고 있었다. 서버 쪽 원인 문자열이
+        // 무엇이든 사용자에게는 고정된 안내만 토스트로 보여준다.
         show("empty");
-        alert(err && err.message ? err.message : "추천을 가져오지 못했어요. 잠시 후 다시 시도해주세요.");
+        Eatty.toast("AI 추천 서버가 작동하지 않습니다.", "error");
       });
     }
 
