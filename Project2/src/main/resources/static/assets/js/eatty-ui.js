@@ -110,7 +110,12 @@
     var bd = $('[data-drawer-backdrop="' + id + '"]');
     if (bd) bd.classList.add('is-open');
     document.body.classList.add('is-modal-open');
-    var first = d.querySelector('a, button, input');
+    // 2026-08-09 수정 — 예전엔 드로어 안 첫 번째 포커스 가능 요소(대부분 로고 링크)에 무조건 포커스를
+    // 줘서, 브라우저의 :focus-visible 표시 여부 판정이 기기마다 달라 로고 주변에 가끔 포커스 링(브랜드
+    // 오렌지 테두리)이 보였다("가끔 생긴다"는 리포트와 일치). 닫기 버튼이 있으면 그쪽으로 포커스를
+    // 옮겨서(다이얼로그 접근성 관례에도 더 맞음) 로고가 포커스를 받는 일 자체를 없앤다.
+    var closeEl = d.querySelector('[data-drawer-close="' + id + '"]');
+    var first = closeEl || d.querySelector('a, button, input');
     if (first) first.focus({ preventScroll: true });
   }
   function closeDrawer(id) {
