@@ -206,12 +206,19 @@ public class RestaurantController {
         return restaurantOwnerService.listMyMenus(restaurantId, authorizationHeader);
     }
 
-    // 메뉴 사진(2026-08-10 추가).
-    @PostMapping(value = "/{restaurantId}/menus/{menuId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public List<OwnerMenuResponseDto> uploadMenuImage(@PathVariable String restaurantId, @PathVariable Long menuId,
-                                                        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
-                                                        @RequestParam("image") MultipartFile image) {
-        return restaurantOwnerService.uploadMenuImage(restaurantId, menuId, authorizationHeader, image);
+    // 메뉴 사진(2026-08-10 추가, 최대 3장).
+    @PostMapping(value = "/{restaurantId}/menus/{menuId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public List<OwnerMenuResponseDto> addMenuImages(@PathVariable String restaurantId, @PathVariable Long menuId,
+                                                      @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+                                                      @RequestParam("images") List<MultipartFile> images) {
+        return restaurantOwnerService.addMenuImages(restaurantId, menuId, authorizationHeader, images);
+    }
+
+    @DeleteMapping("/{restaurantId}/menus/{menuId}/images/{menuImageId}")
+    public List<OwnerMenuResponseDto> deleteMenuImage(@PathVariable String restaurantId, @PathVariable Long menuId,
+                                                        @PathVariable Long menuImageId,
+                                                        @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return restaurantOwnerService.deleteMenuImage(restaurantId, menuId, menuImageId, authorizationHeader);
     }
 
     // 사업자 마이페이지 "사진 관리"(2026-08-06 추가) — 최대 4장 갤러리.

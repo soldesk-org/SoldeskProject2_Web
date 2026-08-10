@@ -57,6 +57,8 @@ public enum ErrorCode {
     INVALID_RESTAURANT_IMAGE(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식이거나 용량이 너무 큽니다."),
     RESTAURANT_IMAGE_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "매장 사진은 최대 4장까지 등록할 수 있습니다."),
     RESTAURANT_IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "사진을 찾을 수 없습니다."),
+    MENU_IMAGE_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "메뉴 사진은 최대 3장까지 등록할 수 있습니다."),
+    MENU_IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메뉴 사진을 찾을 수 없습니다."),
     KAKAO_LOCAL_SEARCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "카카오 로컬 API 연동 중 오류가 발생했습니다."),
     RECEIPT_EMPTY_FILE(HttpStatus.BAD_REQUEST, "빈 파일입니다."),
     RECEIPT_INVALID_IMAGE(HttpStatus.BAD_REQUEST, "이미지를 인식할 수 없습니다."),
