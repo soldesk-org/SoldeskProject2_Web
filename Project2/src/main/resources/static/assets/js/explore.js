@@ -387,9 +387,11 @@
       navigator.geolocation.getCurrentPosition(function (pos) {
         var here = new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
         map.setCenter(here);
-        // 2026-08-09 추가 — 이동만 하고 확대는 안 해서 반경 원이 화면에 작게 나오던 문제. 지금 줌이
-        // 이미 그보다 가까우면(사용자가 이미 확대해서 보고 있던 경우) 더 확대하지 않고 그대로 둔다.
-        if (map.getZoom() < 16) map.setZoom(16);
+        // 2026-08-09 추가/수정 — 이동만 하고 확대는 안 해서 반경 원이 화면에 작게 나오던 문제.
+        // 처음엔 16으로 했는데, 넓은 데스크탑 창에서는 줌 16이어도 화면에 보이는 반경이 1km를
+        // 넘어가 원이 여전히 작아 보였다("이렇게 크게 해줘야" 피드백) — 17로 한 단계 더 확대한다.
+        // 지금 줌이 이미 그보다 가까우면(사용자가 이미 확대해서 보고 있던 경우) 더 확대하지 않는다.
+        if (map.getZoom() < 17) map.setZoom(17);
         clearMyLocationOverlay();
         myLocationMarker = new naver.maps.Marker({
           position: here, map: map, title: "현재 위치", zIndex: 200, icon: MY_LOCATION_DOT_ICON,
