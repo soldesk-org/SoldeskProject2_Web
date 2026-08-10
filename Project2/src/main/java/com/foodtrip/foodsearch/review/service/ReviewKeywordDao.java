@@ -1,5 +1,6 @@
 package com.foodtrip.foodsearch.review.service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,11 +45,19 @@ public class ReviewKeywordDao {
 
     // 사업자 마이페이지 "리뷰 반응 요약"(2026-08-06 추가) — 매장 단위 태그 빈도수 집계, 많이 받은 순.
     public List<Map<String, Object>> countKeywordsByRestaurantId(String restaurantId) {
+        return countKeywordsByRestaurantId(restaurantId, null);
+    }
+
+    // 기간 필터(2026-08-10 추가) — periodStart가 null이면 전체 기간(기존과 동일).
+    public List<Map<String, Object>> countKeywordsByRestaurantId(String restaurantId, LocalDateTime periodStart) {
         String sql = "SELECT rk.keyword AS keyword, rk.sentiment AS sentiment, COUNT(*) AS cnt "
                 + "FROM review_keywords rk JOIN reviews r ON r.review_id = rk.review_id "
                 + "WHERE r.restaurant_id = ? AND r.status = 'NORMAL' AND r.deleted_at IS NULL "
+                + (periodStart != null ? "AND r.created_at >= ? " : "")
                 + "GROUP BY rk.keyword, rk.sentiment ORDER BY cnt DESC";
-        return jdbcTemplate.queryForList(sql, restaurantId);
+        return periodStart != null
+                ? jdbcTemplate.queryForList(sql, restaurantId, periodStart)
+                : jdbcTemplate.queryForList(sql, restaurantId);
     }
 
     // 목록 조회(리뷰 여러 건)에서 N+1 없이 한 번에 가져오기 위한 배치 조회.

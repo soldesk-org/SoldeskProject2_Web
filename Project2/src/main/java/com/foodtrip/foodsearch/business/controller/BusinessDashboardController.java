@@ -38,12 +38,14 @@ public class BusinessDashboardController {
         return businessDashboardService.getStats(authorizationHeader);
     }
 
+    // period(2026-08-10 실제 구현 — 그전엔 select box만 있고 무시되던 값): "1m"|"3m"|생략(전체 기간).
     @GetMapping("/api/business/me/reviews")
     public BusinessReviewsResponseDto getReviews(
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
-        return businessDashboardService.getReviews(authorizationHeader, page, size);
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) String period) {
+        return businessDashboardService.getReviews(authorizationHeader, page, size, period);
     }
 
     // 매장 자동귀속이 모호했을 때(회원가입 응답의 AMBIGUOUS 후보 목록) 사업자가 직접 골라 수동 귀속(2026-08-07 신규).

@@ -49,6 +49,16 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
             + "AND r.status = 'NORMAL' AND r.deletedAt IS NULL")
     List<Integer> findAllRatingsByRestaurantId(@Param("restaurantId") String restaurantId);
 
+    // 기간 필터(2026-08-10 추가) — 사업자 마이페이지 "리뷰 반응" 탭의 최근 1개월/3개월 select box가
+    // 그동안 UI만 있고 실제로는 무시되던 걸 실제로 연결.
+    @Query("SELECT r.rating FROM Review r WHERE r.restaurantId = :restaurantId "
+            + "AND r.status = 'NORMAL' AND r.deletedAt IS NULL AND r.createdAt >= :periodStart")
+    List<Integer> findAllRatingsByRestaurantIdAndCreatedAtAfter(
+            @Param("restaurantId") String restaurantId, @Param("periodStart") LocalDateTime periodStart);
+
+    Page<Review> findByRestaurantIdAndStatusAndDeletedAtIsNullAndCreatedAtAfterOrderByCreatedAtDesc(
+            String restaurantId, String status, LocalDateTime periodStart, Pageable pageable);
+
     long countByRestaurantIdAndReceiptVerifiedTrueAndStatusAndDeletedAtIsNullAndCreatedAtBetween(
             String restaurantId, String status, LocalDateTime start, LocalDateTime end);
 

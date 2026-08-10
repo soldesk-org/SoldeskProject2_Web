@@ -46,7 +46,7 @@
    #bizReviewLoadMoreBtn   리뷰 더 보기 — 더 있을 때만 노출
    [data-report-review]    리뷰 신고 (data-modal-open="bizReportModal") ★ POST /api/reviews/{id}/report (2026-08-10 실제 연결)
    #bizReportModal         신고 모달 (#bizReportReason, #bizReportDetail, #bizReportSubmitBtn)
-   #reviewPeriodSelect     기간 필터 (미구현 — 아직 전체 기간만 조회)
+   #reviewPeriodSelect     기간 필터 ★ GET /api/business/me/reviews?period= (2026-08-10 실제 연결)
    매장이 아직 자동귀속되지 않은 사업자 계정(BUSINESS_RESTAURANT_NOT_CLAIMED)은 통계/리뷰 전부
    빈 상태로 안내한다.
 

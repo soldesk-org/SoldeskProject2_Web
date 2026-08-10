@@ -143,20 +143,35 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
         return new BusinessStatsResponseDto(totalReviewCount, avgRating, favoriteCount, visitCertThisMonth);
     }
 
+    // period select box(2026-08-10 실제 구현) -> 조회 시작 시각. null이면 전체 기간(기존 그대로).
+    private LocalDateTime resolvePeriodStart(String period) {
+        if ("1m".equals(period)) {
+            return LocalDateTime.now().minusMonths(1);
+        }
+        if ("3m".equals(period)) {
+            return LocalDateTime.now().minusMonths(3);
+        }
+        return null;
+    }
+
     @Override
-    public BusinessReviewsResponseDto getReviews(String authorizationHeader, int page, int size) {
+    public BusinessReviewsResponseDto getReviews(String authorizationHeader, int page, int size, String period) {
         Long memberId = resolveMemberId(authorizationHeader);
         String restaurantId = resolveOwnedRestaurantId(memberId);
+        LocalDateTime periodStart = resolvePeriodStart(period);
 
         Map<Integer, Long> ratingDistribution = new LinkedHashMap<>();
         for (int i = 5; i >= 1; i--) {
             ratingDistribution.put(i, 0L);
         }
-        for (Integer rating : reviewRepository.findAllRatingsByRestaurantId(restaurantId)) {
+        List<Integer> ratings = periodStart != null
+                ? reviewRepository.findAllRatingsByRestaurantIdAndCreatedAtAfter(restaurantId, periodStart)
+                : reviewRepository.findAllRatingsByRestaurantId(restaurantId);
+        for (Integer rating : ratings) {
             ratingDistribution.merge(rating, 1L, Long::sum);
         }
 
-        List<Map<String, Object>> keywordCounts = reviewKeywordDao.countKeywordsByRestaurantId(restaurantId);
+        List<Map<String, Object>> keywordCounts = reviewKeywordDao.countKeywordsByRestaurantId(restaurantId, periodStart);
         List<ReviewTagCountDto> positiveTags = new ArrayList<>();
         List<ReviewTagCountDto> negativeTags = new ArrayList<>();
         long positiveTotal = 0;
@@ -181,8 +196,11 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
         int positiveRatio = tagTotal > 0 ? (int) Math.round(positiveTotal * 100.0 / tagTotal) : 0;
         int negativeRatio = tagTotal > 0 ? 100 - positiveRatio : 0;
 
-        Page<Review> reviewPage = reviewRepository.findByRestaurantIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
-                restaurantId, Review.STATUS_NORMAL, PageRequest.of(page, size));
+        Page<Review> reviewPage = periodStart != null
+                ? reviewRepository.findByRestaurantIdAndStatusAndDeletedAtIsNullAndCreatedAtAfterOrderByCreatedAtDesc(
+                        restaurantId, Review.STATUS_NORMAL, periodStart, PageRequest.of(page, size))
+                : reviewRepository.findByRestaurantIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
+                        restaurantId, Review.STATUS_NORMAL, PageRequest.of(page, size));
         List<Review> reviews = reviewPage.getContent();
 
         List<Long> memberIds = reviews.stream().map(Review::getMemberId).distinct().collect(Collectors.toList());

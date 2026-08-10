@@ -164,8 +164,15 @@
     );
   }
 
+  // 기간 필터(2026-08-10 실제 구현) — select box는 있었지만 그동안 API에 전달되지 않아 무시되고
+  // 있었다. 값은 그대로 쿼리스트링에 실어 보낸다("1m"/"3m"/기본 옵션 없음 -> period 생략=전체 기간).
+  var reviewPeriodSelect = document.getElementById("reviewPeriodSelect");
+
   function loadReviews(page, append) {
-    Api.request("/api/business/me/reviews?page=" + page + "&size=" + PAGE_SIZE).then(function (data) {
+    var period = reviewPeriodSelect ? reviewPeriodSelect.value : "";
+    var url = "/api/business/me/reviews?page=" + page + "&size=" + PAGE_SIZE
+      + (period ? "&period=" + encodeURIComponent(period) : "");
+    Api.request(url).then(function (data) {
       currentPage = page;
       if (!append) {
         renderReviewSummary(data);
@@ -196,6 +203,10 @@
     els.loadMoreBtn.addEventListener("click", function () {
       loadReviews(currentPage + 1, true);
     });
+  }
+
+  if (reviewPeriodSelect) {
+    reviewPeriodSelect.addEventListener("change", function () { loadReviews(0, false); });
   }
 
   loadStats();
