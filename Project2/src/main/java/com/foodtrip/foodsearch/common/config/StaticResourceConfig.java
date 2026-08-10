@@ -19,13 +19,16 @@ public class StaticResourceConfig implements WebMvcConfigurer {
     private final String profileImageUploadDir;
     private final String restaurantImageUploadDir;
     private final String receiptImageUploadDir;
+    private final String reviewImageUploadDir;
 
     public StaticResourceConfig(@Value("${profile-image.upload-dir}") String profileImageUploadDir,
                                  @Value("${restaurant-image.upload-dir}") String restaurantImageUploadDir,
-                                 @Value("${receipt-image.upload-dir}") String receiptImageUploadDir) {
+                                 @Value("${receipt-image.upload-dir}") String receiptImageUploadDir,
+                                 @Value("${review-image.upload-dir}") String reviewImageUploadDir) {
         this.profileImageUploadDir = profileImageUploadDir;
         this.restaurantImageUploadDir = restaurantImageUploadDir;
         this.receiptImageUploadDir = receiptImageUploadDir;
+        this.reviewImageUploadDir = reviewImageUploadDir;
     }
 
     @Override
@@ -41,5 +44,9 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         Path receiptImagePath = Paths.get(receiptImageUploadDir).toAbsolutePath().normalize();
         registry.addResourceHandler("/receipt-images/**")
                 .addResourceLocations("file:" + receiptImagePath + "/");
+
+        Path reviewImagePath = Paths.get(reviewImageUploadDir).toAbsolutePath().normalize();
+        registry.addResourceHandler("/review-images/**")
+                .addResourceLocations("file:" + reviewImagePath + "/");
     }
 }

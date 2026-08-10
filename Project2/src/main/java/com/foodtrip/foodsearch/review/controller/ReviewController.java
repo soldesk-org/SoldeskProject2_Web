@@ -2,6 +2,7 @@ package com.foodtrip.foodsearch.review.controller;
 
 import java.util.List;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,9 +11,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.foodtrip.foodsearch.review.dto.CreateReviewRequestDto;
+import com.foodtrip.foodsearch.review.dto.ReviewImageResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewResponseDto;
 import com.foodtrip.foodsearch.review.dto.UpdateReviewRequestDto;
 import com.foodtrip.foodsearch.review.service.ReviewService;
@@ -54,5 +58,14 @@ public class ReviewController {
                                         @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         reviewService.delete(reviewId, authorizationHeader);
         return ResponseEntity.noContent().build();
+    }
+
+    // 리뷰 사진 첨부(2026-08-10 추가) — 리뷰 작성 성공 직후 프론트가 이어서 호출한다(최대 3장, 기존
+    // profile-image/restaurant-image/receipt-image와 같은 별도 업로드 엔드포인트 패턴).
+    @PostMapping(value = "/api/reviews/{reviewId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public List<ReviewImageResponseDto> addImages(@PathVariable Long reviewId,
+                                                    @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+                                                    @RequestParam("images") List<MultipartFile> images) {
+        return reviewService.addImages(reviewId, authorizationHeader, images);
     }
 }

@@ -78,6 +78,8 @@ public enum ErrorCode {
     REVIEW_RECEIPT_REQUIRED(HttpStatus.BAD_REQUEST, "영수증 인증 후에만 리뷰를 작성할 수 있습니다. 영수증을 먼저 등록해주세요."),
     REVIEW_RECEIPT_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "이 영수증으로는 리뷰 인증을 확인할 수 없습니다. 본인이 등록한, 이 음식점의 영수증인지 확인해주세요."),
     REVIEW_CONTENT_PROFANITY(HttpStatus.BAD_REQUEST, "리뷰 내용에 부적절한 표현이 포함되어 있습니다."),
+    INVALID_REVIEW_IMAGE(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식이거나 용량이 너무 큽니다."),
+    REVIEW_IMAGE_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "리뷰 사진은 최대 3장까지 등록할 수 있습니다."),
     RECOMMENDATION_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "AI 추천 서버와 통신할 수 없습니다."),
     RECOMMENDATION_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "피드백을 남길 추천 요청 이력을 찾을 수 없습니다."),
     ADMIN_ACCESS_DENIED(HttpStatus.FORBIDDEN, "관리자만 접근할 수 있습니다."),

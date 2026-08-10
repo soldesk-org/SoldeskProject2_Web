@@ -53,6 +53,8 @@
    #positiveTagList       긍정 태그 10종 (ReviewKeywordCatalog.POSITIVE 값 그대로)
    #negativeTagList       부정 태그 10종 (ReviewKeywordCatalog.NEGATIVE 값 그대로)
    #tagSelectedCount      선택한 태그 수
+   #reviewPhotoInput #reviewPhotoAddBtn #reviewPhotoList   리뷰 사진(2026-08-10 추가, 최대 3장, 선택)
+     ★ 리뷰 등록(POST /api/reviews) 성공 직후 POST /api/reviews/{reviewId}/images로 이어서 업로드
    #reviewContent         자유 텍스트 (name="content", maxlength=1000, 선택)
    #reviewContentCounter  글자수 (data-counter="reviewContent")
    #agreeReviewPolicy     리뷰 정책 동의 (name="agreePolicy")
@@ -442,6 +444,23 @@
         <div class="e-card e-card-pad mb-5">
           <h2 class="e-form-section-title">리뷰 내용</h2>
           <p class="e-form-section-desc">방문 경험을 자유롭게 적어주세요. (선택)</p>
+
+          <div class="e-field">
+            <label class="e-label">
+              음식 사진
+              <span class="e-label-side"><span id="reviewPhotoCount">0</span> / 3</span>
+            </label>
+            <input type="file" id="reviewPhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
+            <div class="flex flex-wrap gap-2.5" id="reviewPhotoList">
+              <button type="button"
+                      class="w-20 h-20 rounded-[var(--r-md)] border-2 border-dashed border-[var(--line)] flex flex-col items-center justify-center gap-1 text-[var(--ink-400)] flex-none"
+                      id="reviewPhotoAddBtn" aria-label="사진 추가">
+                <svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                <span class="t-xs">사진 추가</span>
+              </button>
+            </div>
+            <p class="e-hint">최대 3장까지 첨부할 수 있어요. (jpg/png/gif/webp, 장당 5MB 이하)</p>
+          </div>
 
           <div class="e-field !mb-0">
             <label class="e-label" for="reviewContent">

@@ -433,6 +433,10 @@
         var keywords = (r.keywords || []).map(function (k) {
           return '<span class="e-tag ' + (k.sentiment === "NEGATIVE" ? "e-tag--neg" : "e-tag--pos") + '">' + escapeHtml(k.keyword) + '</span>';
         }).join("");
+        // 리뷰 사진(2026-08-10 추가) — 최대 3장, 등록 순서대로.
+        var photos = (r.images || []).map(function (img) {
+          return '<img src="' + escapeHtml(img.imageUrl) + '" class="w-16 h-16 rounded-[var(--r-md)] object-cover flex-none" alt="리뷰 사진">';
+        }).join("");
         return '<li class="pb-4 border-b border-[var(--line-soft)]">' +
           '<div class="flex items-center justify-between gap-2">' +
           '<span class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(r.nickname) + '</span>' +
@@ -440,6 +444,7 @@
           '</div>' +
           (keywords ? '<div class="flex flex-wrap gap-1 mt-2">' + keywords + '</div>' : "") +
           '<p class="t-sm mt-2.5 leading-relaxed">' + escapeHtml(r.content) + '</p>' +
+          (photos ? '<div class="flex flex-wrap gap-2 mt-2.5">' + photos + '</div>' : "") +
           '<button type="button" class="btn btn-ghost btn-xs mt-2 inline-flex items-center gap-1" data-report-review="' + r.reviewId + '">' +
             '<svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>' +
             '신고' +

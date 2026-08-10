@@ -180,6 +180,52 @@
     });
   });
 
+  // ---- 리뷰 사진(2026-08-10 추가, 최대 3장) ----
+  var REVIEW_PHOTO_LIMIT = 3;
+  var reviewPhotoFiles = [];
+  var reviewPhotoInput = document.getElementById("reviewPhotoInput");
+  var reviewPhotoAddBtn = document.getElementById("reviewPhotoAddBtn");
+  var reviewPhotoList = document.getElementById("reviewPhotoList");
+  var reviewPhotoCount = document.getElementById("reviewPhotoCount");
+
+  function renderReviewPhotos() {
+    reviewPhotoList.querySelectorAll("[data-photo-preview]").forEach(function (el) { el.remove(); });
+    reviewPhotoFiles.forEach(function (file, index) {
+      var url = URL.createObjectURL(file);
+      var item = document.createElement("div");
+      item.className = "relative w-20 h-20 rounded-[var(--r-md)] overflow-hidden flex-none";
+      item.setAttribute("data-photo-preview", "");
+      item.innerHTML =
+        '<img src="' + url + '" class="w-full h-full object-cover" alt="첨부한 리뷰 사진 미리보기">' +
+        '<button type="button" class="absolute right-1 top-1 w-5 h-5 rounded-full bg-black/50 text-white grid place-items-center" data-remove-photo="' + index + '" aria-label="사진 삭제">' +
+          '<svg style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>';
+      reviewPhotoList.insertBefore(item, reviewPhotoAddBtn);
+    });
+    reviewPhotoCount.textContent = reviewPhotoFiles.length;
+    reviewPhotoAddBtn.hidden = reviewPhotoFiles.length >= REVIEW_PHOTO_LIMIT;
+  }
+
+  if (reviewPhotoAddBtn && reviewPhotoInput) {
+    reviewPhotoAddBtn.addEventListener("click", function () { reviewPhotoInput.click(); });
+    reviewPhotoInput.addEventListener("change", function () {
+      var picked = Array.prototype.slice.call(reviewPhotoInput.files || []);
+      var room = REVIEW_PHOTO_LIMIT - reviewPhotoFiles.length;
+      if (picked.length > room) {
+        Eatty.toast("사진은 최대 " + REVIEW_PHOTO_LIMIT + "장까지 첨부할 수 있어요.", "error");
+      }
+      reviewPhotoFiles = reviewPhotoFiles.concat(picked.slice(0, room));
+      reviewPhotoInput.value = "";
+      renderReviewPhotos();
+    });
+    reviewPhotoList.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-remove-photo]");
+      if (!btn) return;
+      reviewPhotoFiles.splice(Number(btn.getAttribute("data-remove-photo")), 1);
+      renderReviewPhotos();
+    });
+  }
+
   // ---- 리뷰 등록 ----
   document.getElementById("reviewForm").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -217,11 +263,23 @@
         keywords: keywords,
         receiptId: ocrResult.receiptId,
       },
-    }).then(function () {
-      document.getElementById("step3Section").hidden = true;
-      stepsRoot.parentElement.hidden = true;
-      doneSection.hidden = false;
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    }).then(function (review) {
+      // 리뷰 사진(2026-08-10 추가) — 리뷰 자체는 이미 등록됐으니, 사진 업로드가 실패해도 리뷰 등록
+      // 자체를 실패로 보지 않는다(완료 화면은 그대로 보여주고 사진 실패만 토스트로 안내).
+      var uploadPhotos = reviewPhotoFiles.length
+        ? (function () {
+            var formData = new FormData();
+            reviewPhotoFiles.forEach(function (file) { formData.append("images", file); });
+            return Api.request("/api/reviews/" + review.reviewId + "/images", { method: "POST", body: formData, isForm: true })
+              .catch(function (err) { Eatty.toast((err && err.message) || "리뷰 사진 등록에 실패했습니다.", "error"); });
+          })()
+        : Promise.resolve();
+      return uploadPhotos.then(function () {
+        document.getElementById("step3Section").hidden = true;
+        stepsRoot.parentElement.hidden = true;
+        doneSection.hidden = false;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
     }).catch(function (err) {
       Eatty.toast(err.message || "리뷰 등록에 실패했습니다.", "error");
     }).finally(function () { submitBtn.disabled = false; });
@@ -235,6 +293,8 @@
     document.getElementById("reviewScoreLabel").textContent = "별점을 선택해주세요";
     document.getElementById("tagSelectedCount").textContent = "0";
     ocrResult = null;
+    reviewPhotoFiles = [];
+    renderReviewPhotos();
 
     // 2026-08-06 추가 - "또 작성하기"를 눌러도 처음 올렸던 영수증 사진/OCR 결과가 그대로 남아있던
     // 문제. step1의 파일 입력·미리보기·드롭존, step2의 OCR 표시 필드까지 처음 접속한 상태로 되돌린다.

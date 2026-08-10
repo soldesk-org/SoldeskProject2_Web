@@ -9,10 +9,12 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.foodtrip.foodsearch.common.exception.CustomException;
 import com.foodtrip.foodsearch.common.exception.ErrorCode;
 import com.foodtrip.foodsearch.common.security.JwtProvider;
+import com.foodtrip.foodsearch.common.storage.ReviewImageStorageService;
 import com.foodtrip.foodsearch.member.entity.Member;
 import com.foodtrip.foodsearch.member.repository.MemberRepository;
 import com.foodtrip.foodsearch.member.service.AccessTokenSessionService;
@@ -22,10 +24,13 @@ import com.foodtrip.foodsearch.restaurant.entity.Restaurant;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantRepository;
 import com.foodtrip.foodsearch.reviewfilter.client.ReviewFilterClient;
 import com.foodtrip.foodsearch.review.dto.CreateReviewRequestDto;
+import com.foodtrip.foodsearch.review.dto.ReviewImageResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewKeywordResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewResponseDto;
 import com.foodtrip.foodsearch.review.dto.UpdateReviewRequestDto;
 import com.foodtrip.foodsearch.review.entity.Review;
+import com.foodtrip.foodsearch.review.entity.ReviewImage;
+import com.foodtrip.foodsearch.review.repository.ReviewImageRepository;
 import com.foodtrip.foodsearch.review.repository.ReviewRepository;
 
 import io.jsonwebtoken.Claims;
@@ -37,6 +42,9 @@ import io.jsonwebtoken.JwtException;
 @Service
 public class ReviewServiceImpl implements ReviewService {
 
+    // 리뷰 사진 첨부 개수 제한(2026-08-10 추가) — "최대 1~3장" 요청 반영.
+    private static final int REVIEW_IMAGE_LIMIT = 3;
+
     private final ReviewRepository reviewRepository;
     private final RestaurantRepository restaurantRepository;
     private final ReceiptRepository receiptRepository;
@@ -45,6 +53,8 @@ public class ReviewServiceImpl implements ReviewService {
     private final JwtProvider jwtProvider;
     private final AccessTokenSessionService accessTokenSessionService;
     private final ReviewFilterClient reviewFilterClient;
+    private final ReviewImageRepository reviewImageRepository;
+    private final ReviewImageStorageService reviewImageStorageService;
 
     public ReviewServiceImpl(ReviewRepository reviewRepository,
                               RestaurantRepository restaurantRepository,
@@ -53,7 +63,9 @@ public class ReviewServiceImpl implements ReviewService {
                               ReviewKeywordDao reviewKeywordDao,
                               JwtProvider jwtProvider,
                               AccessTokenSessionService accessTokenSessionService,
-                              ReviewFilterClient reviewFilterClient) {
+                              ReviewFilterClient reviewFilterClient,
+                              ReviewImageRepository reviewImageRepository,
+                              ReviewImageStorageService reviewImageStorageService) {
         this.reviewRepository = reviewRepository;
         this.restaurantRepository = restaurantRepository;
         this.receiptRepository = receiptRepository;
@@ -62,6 +74,8 @@ public class ReviewServiceImpl implements ReviewService {
         this.jwtProvider = jwtProvider;
         this.accessTokenSessionService = accessTokenSessionService;
         this.reviewFilterClient = reviewFilterClient;
+        this.reviewImageRepository = reviewImageRepository;
+        this.reviewImageStorageService = reviewImageStorageService;
     }
 
     // 리뷰 욕설/비속어 필터(17.리뷰-필터링, 2026-07-24 추가) - 태그(keywords)는 고정 목록이라 검사 대상이
@@ -120,7 +134,7 @@ public class ReviewServiceImpl implements ReviewService {
         Member member = memberRepository.findById(memberId).orElse(null);
         return new ReviewResponseDto(review.getReviewId(), member != null ? member.getNickname() : null,
                 review.getRating(), review.getContent(), review.isReceiptVerified(), review.getCreatedAt(),
-                toKeywordDtos(keywords));
+                toKeywordDtos(keywords), List.of());
     }
 
     @Override
@@ -139,11 +153,16 @@ public class ReviewServiceImpl implements ReviewService {
 
         List<Long> reviewIds = reviews.stream().map(Review::getReviewId).collect(Collectors.toList());
         Map<Long, List<String>> keywordsByReviewId = reviewKeywordDao.findKeywordsByReviewIds(reviewIds);
+        Map<Long, List<ReviewImageResponseDto>> imagesByReviewId = reviewImageRepository
+                .findByReviewIdInOrderByReviewImageIdAsc(reviewIds).stream()
+                .collect(Collectors.groupingBy(ReviewImage::getReviewId,
+                        Collectors.mapping(this::toImageDto, Collectors.toList())));
 
         return reviews.stream()
                 .map(r -> new ReviewResponseDto(r.getReviewId(), nicknameByMemberId.get(r.getMemberId()),
                         r.getRating(), r.getContent(), r.isReceiptVerified(), r.getCreatedAt(),
-                        toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of()))))
+                        toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of())),
+                        imagesByReviewId.getOrDefault(r.getReviewId(), List.of())))
                 .collect(Collectors.toList());
     }
 
@@ -176,7 +195,7 @@ public class ReviewServiceImpl implements ReviewService {
         Member member = memberRepository.findById(memberId).orElse(null);
         return new ReviewResponseDto(review.getReviewId(), member != null ? member.getNickname() : null,
                 review.getRating(), review.getContent(), review.isReceiptVerified(), review.getCreatedAt(),
-                toKeywordDtos(keywords));
+                toKeywordDtos(keywords), toImageDtos(reviewId));
     }
 
     @Override
@@ -190,12 +209,47 @@ public class ReviewServiceImpl implements ReviewService {
         }
         review.delete();
         reviewKeywordDao.deleteByReviewId(reviewId);
+        for (ReviewImage image : reviewImageRepository.findByReviewIdOrderByReviewImageIdAsc(reviewId)) {
+            reviewImageStorageService.delete(image.getImageUrl());
+        }
+        reviewImageRepository.deleteByReviewId(reviewId);
 
         Restaurant restaurant = restaurantRepository.findByRestaurantIdAndDeletedAtIsNull(review.getRestaurantId())
                 .orElse(null);
         if (restaurant != null) {
             refreshRatingCache(restaurant);
         }
+    }
+
+    @Override
+    @Transactional
+    public List<ReviewImageResponseDto> addImages(Long reviewId, String authorizationHeader, List<MultipartFile> images) {
+        Long memberId = resolveMemberId(authorizationHeader);
+        Review review = reviewRepository.findByReviewIdAndDeletedAtIsNull(reviewId)
+                .orElseThrow(() -> new CustomException(ErrorCode.REVIEW_NOT_FOUND));
+        if (!review.getMemberId().equals(memberId)) {
+            throw new CustomException(ErrorCode.REVIEW_ACCESS_DENIED);
+        }
+        long existingCount = reviewImageRepository.countByReviewId(reviewId);
+        List<MultipartFile> files = images == null ? List.of() : images;
+        if (existingCount + files.size() > REVIEW_IMAGE_LIMIT) {
+            throw new CustomException(ErrorCode.REVIEW_IMAGE_LIMIT_EXCEEDED);
+        }
+        for (MultipartFile file : files) {
+            String url = reviewImageStorageService.store(file);
+            reviewImageRepository.save(ReviewImage.create(reviewId, url));
+        }
+        return toImageDtos(reviewId);
+    }
+
+    private ReviewImageResponseDto toImageDto(ReviewImage image) {
+        return new ReviewImageResponseDto(image.getReviewImageId(), image.getImageUrl());
+    }
+
+    private List<ReviewImageResponseDto> toImageDtos(Long reviewId) {
+        return reviewImageRepository.findByReviewIdOrderByReviewImageIdAsc(reviewId).stream()
+                .map(this::toImageDto)
+                .collect(Collectors.toList());
     }
 
     // 목록에 없는 값이 하나라도 있으면 전체를 거부한다(일부만 몰래 버리는 것보다 명확한 에러가 낫다는 판단).
