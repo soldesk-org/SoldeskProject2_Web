@@ -429,17 +429,31 @@
   var menuSaveBtn = document.getElementById("menuSaveBtn");
   var addMenuBtn = document.getElementById("addMenuBtn");
   var menuImageInput = document.getElementById("menuImageInput");
-  var menuImagePreviewBox = document.getElementById("menuImagePreviewBox");
+  var menuImageDrop = document.getElementById("menuImageDrop");
+  var menuImagePlaceholder = document.getElementById("menuImagePlaceholder");
+  var menuImagePreviewWrap = document.getElementById("menuImagePreview");
   var editingMenuId = null;
 
-  // 메뉴 사진 미리보기(2026-08-10 수정) — 등록/수정 모달 안에서 파일을 고르면 바로 미리보기.
+  // 메뉴 사진 미리보기(2026-08-10 수정) — 프로필 사진(mypage-edit.js)과 같은 드롭존 패턴. 실제 파일
+  // 선택 시 미리보기는 eatty-ui.js의 공용 드롭존 로직(eatty:filepicked)이 처리해주고, 여기서는 그
+  // 이벤트에 맞춰 플레이스홀더 아이콘만 켜고 끈다. 기존 등록된 이미지 URL로 초기화할 때는 이 함수로
+  // 직접 채운다(파일 선택 이벤트가 아니라서).
   function setMenuImagePreview(url) {
-    menuImagePreviewBox.innerHTML = url ? '<img src="' + escapeHtml(url) + '" class="w-full h-full object-cover" alt="메뉴 사진 미리보기">' : "";
+    if (url) {
+      menuImagePreviewWrap.hidden = false;
+      menuImagePreviewWrap.querySelector("img").src = url;
+      menuImagePreviewWrap.querySelector("img").style.display = "block";
+      if (menuImagePlaceholder) menuImagePlaceholder.style.display = "none";
+    } else {
+      menuImagePreviewWrap.hidden = true;
+      menuImagePreviewWrap.querySelector("img").style.display = "none";
+      if (menuImagePlaceholder) menuImagePlaceholder.style.display = "";
+    }
   }
-  if (menuImageInput) {
-    menuImageInput.addEventListener("change", function () {
-      var file = menuImageInput.files && menuImageInput.files[0];
-      if (file) setMenuImagePreview(URL.createObjectURL(file));
+  if (menuImageDrop) {
+    menuImageDrop.addEventListener("eatty:filepicked", function () {
+      menuImagePreviewWrap.hidden = false;
+      if (menuImagePlaceholder) menuImagePlaceholder.style.display = "none";
     });
   }
 

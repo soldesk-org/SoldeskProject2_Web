@@ -417,17 +417,27 @@
     var el = document.getElementById("detailTabMenu");
     if (!el) return;
     if (!menus || !menus.length) { el.innerHTML = '<p class="t-sm py-4 text-center">등록된 메뉴 정보가 없습니다.</p>'; return; }
-    el.innerHTML = '<div class="space-y-2.5">' + menus.map(function (m) {
-      // 메뉴 사진(2026-08-10 추가) — 사업자가 등록한 사진이 있으면 함께 노출.
-      // 2026-08-10 발견/수정 — MenuResponseDto의 실제 JSON 필드는 menuName인데 여기선 m.name(존재하지
-      // 않는 필드)을 읽고 있어서 메뉴명이 항상 빈 문자열로 표시되고 있었다.
+    // 2026-08-10 발견/수정 — MenuResponseDto의 실제 JSON 필드는 menuName인데 여기선 m.name(존재하지
+    // 않는 필드)을 읽고 있어서 메뉴명이 항상 빈 문자열로 표시되고 있었다.
+    // 2026-08-10 재수정 — 사진이 붙은 카드형 리스트로 디자인 개선(요청: "네이버 지도 메뉴 탭처럼").
+    el.innerHTML = '<div class="space-y-3">' + menus.map(function (m) {
       var thumbHtml = m.imageUrl
-        ? '<img src="' + escapeHtml(m.imageUrl) + '" class="w-11 h-11 rounded-[10px] object-cover flex-none" alt="' + escapeHtml(m.menuName) + ' 사진">'
-        : "";
-      return '<div class="flex items-center justify-between gap-3">' +
-        '<div class="flex items-center gap-2.5 min-w-0">' + thumbHtml +
-        '<span class="text-sm font-semibold text-[var(--ink-800)] truncate">' + escapeHtml(m.menuName) + '</span></div>' +
-        '<span class="text-sm font-bold text-[var(--ink-800)] flex-none">' + (m.price != null ? Number(m.price).toLocaleString() + "원" : "") + '</span></div>';
+        ? '<img src="' + escapeHtml(m.imageUrl) + '" class="w-full h-full object-cover" alt="' + escapeHtml(m.menuName) + ' 사진">'
+        : '<div class="w-full h-full grid place-items-center" style="color:var(--ink-200)">' +
+            '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+              '<path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/>' +
+            '</svg></div>';
+      return (
+        '<div class="flex items-start gap-3.5 p-3.5 rounded-[var(--r)] border border-[var(--line-soft)]">' +
+          '<div class="min-w-0 flex-1">' +
+            (m.signature ? '<span class="e-badge e-badge--brand-solid mb-1.5">대표</span>' : "") +
+            '<p class="text-[15px] font-extrabold text-[var(--ink-900)] leading-snug">' + escapeHtml(m.menuName) + '</p>' +
+            (m.description ? '<p class="t-xs mt-1 leading-relaxed" style="color:var(--ink-500)">' + escapeHtml(m.description) + '</p>' : "") +
+            '<p class="text-sm font-bold text-[var(--ink-800)] mt-2">' + (m.price != null ? Number(m.price).toLocaleString() + "원" : "") + '</p>' +
+          '</div>' +
+          '<div class="w-20 h-20 rounded-[var(--r-md)] overflow-hidden flex-none" style="background:var(--bg-muted)">' + thumbHtml + '</div>' +
+        '</div>'
+      );
     }).join("") + '</div>';
   }
 
