@@ -692,9 +692,9 @@ public class MemberServiceImpl implements MemberService {
     public VerifyPasswordResponseDto verifyPassword(String authorizationHeader, VerifyPasswordRequestDto request) {
         Long memberId = resolveMemberId(authorizationHeader);
         MemberCredential credential = memberCredentialRepository.findByMemberId(memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CREDENTIALS));
+                .orElseThrow(() -> new CustomException(ErrorCode.PASSWORD_MISMATCH));
         if (!passwordEncoder.matches(request.getPassword(), credential.getPasswordHash())) {
-            throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
+            throw new CustomException(ErrorCode.PASSWORD_MISMATCH);
         }
         return new VerifyPasswordResponseDto(true, "비밀번호가 확인되었습니다.");
     }

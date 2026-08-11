@@ -15,6 +15,10 @@ public enum ErrorCode {
     ALREADY_SIGNED_UP(HttpStatus.CONFLICT, "이미 가입이 완료된 회원입니다."),
     MAIL_SEND_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "메일 발송에 실패했습니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."),
+    // 마이페이지 본인 확인 게이트(2026-08-10 수정) — 이미 로그인된 사용자의 비밀번호 재확인이라
+    // 이메일 존재 여부를 감출 이유가 없다(로그인의 INVALID_CREDENTIALS와 다른 문맥). "아이디 또는"이
+    // 붙은 문구가 오해를 줘서 별도 메시지로 분리.
+    PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다."),
     ACCOUNT_LOCKED(HttpStatus.LOCKED, "로그인 실패 횟수를 초과하여 계정이 잠겼습니다. 30분 후 다시 시도해주세요."),
     ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, "이용이 정지된 계정입니다. 고객센터에 문의해주세요."),
     ACCOUNT_WITHDRAWN(HttpStatus.FORBIDDEN, "탈퇴 처리된 계정입니다."),
