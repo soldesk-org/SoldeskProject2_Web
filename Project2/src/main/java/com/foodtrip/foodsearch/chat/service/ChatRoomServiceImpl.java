@@ -169,6 +169,13 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         ChatRoomMember membership = chatRoomMemberRepository.findByChatRoomIdAndMemberId(chatRoomId, memberId)
                 .filter(ChatRoomMember::isActive)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_NOT_MEMBER));
+        // 방장 나가기 차단(2026-08-10 추가) — 프론트에서 버튼을 숨기는 것과 별개로, 방장이 나가면 방이
+        // 주인 없이 붕 떠서 아무도 방을 폭파할 수 없게 되는 걸 서버에서도 막는다.
+        ChatRoom room = chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+        if (room.getHostMemberId().equals(memberId)) {
+            throw new CustomException(ErrorCode.CHAT_ROOM_HOST_CANNOT_LEAVE);
+        }
         membership.leave();
 
         // 2026-08-05 추가 - joinRoom과 동일한 이유로 퇴장도 실시간 인원수 갱신을 브로드캐스트한다.

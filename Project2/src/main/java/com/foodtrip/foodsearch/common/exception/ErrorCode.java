@@ -106,6 +106,9 @@ public enum ErrorCode {
     CHAT_MESSAGE_PROFANITY(HttpStatus.BAD_REQUEST, "메시지에 부적절한 표현이 포함되어 있습니다."),
     CHAT_ALREADY_REPORTED(HttpStatus.CONFLICT, "이미 신고했습니다."),
     CHAT_ROOM_FULL(HttpStatus.CONFLICT, "채팅방 인원이 가득 찼습니다."),
+    // 방장 나가기 차단(2026-08-10 추가) — 프론트에서 버튼을 숨겨도 API를 직접 호출하면 방장이 나가서
+    // 방이 주인 없이 붕 뜰 수 있었다(그 뒤로는 아무도 방을 폭파할 수 없게 됨). 방을 없애려면 방 폭파를 써야 한다.
+    CHAT_ROOM_HOST_CANNOT_LEAVE(HttpStatus.CONFLICT, "방장은 방을 나갈 수 없습니다. 방을 없애려면 방 폭파를 이용해주세요."),
     GEOCODE_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "주소-좌표 변환 서버와 통신할 수 없습니다."),
     GEOCODE_NOT_FOUND(HttpStatus.NOT_FOUND, "입력한 주소의 좌표를 찾을 수 없습니다."),
     FOOD_BTI_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "저장된 음BTI 결과가 없습니다."),
