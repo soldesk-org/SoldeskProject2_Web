@@ -155,12 +155,17 @@
     // 2026-08-12 — 4쌍을 양방향 막대 하나로 합쳐서 보여주던 방식에서, 각 성향을 개별 퍼센트 막대로
     // 쪼개 8개로 보여주는 방식으로 변경(요청: "4개인데 8개로 해서 %를 보여주는 형식"). 실제 선택
     // 비율을 그대로 %로 보여준다(예전처럼 55~94%로 눌러 맞추지 않음).
-    axisList.innerHTML = AXIS_PAIRS.map(function (pair) {
+    // 2026-08-12 재수정 — 8개가 쭉 이어붙어 있으니 원래 4쌍이었다는 게 안 드러나서, 2개씩(원래 쌍
+    // 단위로) 묶고 그 아래에 옅은 구분선을 넣어 그룹을 나눴다(마지막 쌍은 구분선 없음).
+    axisList.innerHTML = AXIS_PAIRS.map(function (pair, pairIdx) {
       var left = score[pair[0]], right = score[pair[1]];
       var total = left + right || 1;
       var leftPct = Math.round((left / total) * 100);
       var rightPct = 100 - leftPct;
-      return axisBarRowHtml(AXIS_LABEL[pair[0]], leftPct) + axisBarRowHtml(AXIS_LABEL[pair[1]], rightPct);
+      var isLast = pairIdx === AXIS_PAIRS.length - 1;
+      return '<div class="space-y-4' + (isLast ? "" : " pb-5 border-b border-[var(--line-soft)]") + '">' +
+        axisBarRowHtml(AXIS_LABEL[pair[0]], leftPct) + axisBarRowHtml(AXIS_LABEL[pair[1]], rightPct) +
+        '</div>';
     }).join("");
 
     var saveStatus = document.getElementById("saveResultStatus");
