@@ -414,6 +414,7 @@
   var draftCountEl = document.getElementById("draftCount");
   var draftClearAllBtn = document.getElementById("draftClearAllBtn");
   var draftToolbar = document.getElementById("draftToolbar");
+  var draftSearchInput = document.getElementById("draftSearchInput");
   var discardTargetId = null;
 
   function readDrafts() {
@@ -454,18 +455,27 @@
     return li;
   }
 
+  // 2026-08-12 추가 — 작성한 리뷰 탭과 같은 위치에 검색창을 가져오면서 실제로 가게명 검색이 되도록
+  // 구현. 탭 배지 숫자(draftCount)/전체 삭제 버튼 노출 여부는 검색 결과가 아니라 항상 전체 개수 기준.
   function renderDrafts() {
     var drafts = readDrafts();
-    draftList.innerHTML = "";
-    drafts.forEach(function (d) { draftList.appendChild(renderDraftItem(d)); });
     var n = drafts.length;
     draftCountEl.textContent = n;
-    draftList.hidden = n === 0;
-    draftEmpty.hidden = n !== 0;
     draftClearAllBtn.hidden = n === 0;
     if (draftToolbar) draftToolbar.hidden = n === 0;
+
+    var keyword = (draftSearchInput ? draftSearchInput.value : "").trim().toLowerCase();
+    var filtered = keyword
+      ? drafts.filter(function (d) { return (d.shopName || "").toLowerCase().indexOf(keyword) > -1; })
+      : drafts;
+
+    draftList.innerHTML = "";
+    filtered.forEach(function (d) { draftList.appendChild(renderDraftItem(d)); });
+    draftList.hidden = filtered.length === 0;
+    draftEmpty.hidden = filtered.length !== 0;
   }
   renderDrafts();
+  if (draftSearchInput) draftSearchInput.addEventListener("input", renderDrafts);
 
   draftList.addEventListener("click", function (e) {
     var row = e.target.closest(".rv-draft");

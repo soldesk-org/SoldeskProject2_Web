@@ -44,6 +44,7 @@
    #favoriteSearchInput    즐겨찾기 내 검색
 
  [방문기록]  ★ GET /api/members/me/visits
+   #visitSearchInput       방문기록 내 검색(2026-08-12 추가, 즐겨찾기 검색창과 동일 패턴)
    #visitList              목록 컨테이너
    .visit-item[data-review-id]
    [data-view-review]      리뷰 보기
@@ -268,7 +269,7 @@
             <svg viewBox="0 0 384 512" fill="currentColor"><path d="M14 2.2C22.5-1.7 32.5-.3 39.6 5.8L80 40.4 120.4 5.8c9-7.7 22.3-7.7 31.2 0L192 40.4 232.4 5.8c9-7.7 22.3-7.7 31.2 0L304 40.4 344.4 5.8c7.1-6.1 17.1-7.5 25.6-3.6s14 12.4 14 21.8l0 464c0 9.4-5.5 17.9-14 21.8s-18.5 2.5-25.6-3.6L304 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L192 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L80 471.6 39.6 506.2c-7.1 6.1-17.1 7.5-25.6 3.6S0 497.4 0 488L0 24C0 14.6 5.5 6.1 14 2.2zM96 144c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 144zM80 352c0 8.8 7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 336c-8.8 0-16 7.2-16 16zM96 240c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 240z"/></svg>
           </span>
         </div>
-        <p class="e-stat-sub">영수증 OCR 인증 완료</p>
+        <p class="e-stat-sub">영수증 인증 완료</p>
       </div>
 
       <div class="e-card e-stat">
@@ -467,7 +468,10 @@
       <!-- ---------- 탭: 방문기록 ---------- -->
       <div class="p-5 md:p-6" id="tabVisits" data-tab-panel hidden>
         <div class="e-toolbar !pt-0">
-          <p class="t-sm">영수증으로 인증된 방문 기록입니다.</p>
+          <div class="e-input-wrap has-icon" style="max-width:280px">
+            <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="search" class="e-input e-input-sm" id="visitSearchInput" placeholder="방문기록 내 검색" aria-label="방문기록 검색">
+          </div>
           <div class="e-toolbar-right">
             <select class="e-select e-input-sm" id="visitPeriodSelect" aria-label="기간 필터" style="width:auto">
               <option value="all">전체 기간</option>

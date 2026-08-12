@@ -47,6 +47,8 @@
   var FAVORITES_PAGE_SIZE = 10;
   var favoritesAll = [];
   var favoritesPage = 1;
+  var favoriteSearchInput = document.getElementById("favoriteSearchInput");
+  var favoriteSortSelect = document.getElementById("favoriteSortSelect");
 
   function favoriteItemHtml(it) {
     return (
@@ -64,9 +66,16 @@
     );
   }
 
+  // 2026-08-12 추가 — 검색창은 있었는데 실제로는 아무 것도 안 걸러지고 있었다.
+  function filteredFavorites() {
+    var keyword = (favoriteSearchInput ? favoriteSearchInput.value : "").trim().toLowerCase();
+    if (!keyword) return favoritesAll;
+    return favoritesAll.filter(function (it) { return (it.name || "").toLowerCase().indexOf(keyword) > -1; });
+  }
+
   function renderFavoritesPage() {
     favoriteList.innerHTML = "";
-    var items = favoritesAll;
+    var items = filteredFavorites();
     if (!items.length) {
       favoriteEmpty.hidden = false;
       if (favoritePagination) favoritePagination.hidden = true;
@@ -114,9 +123,13 @@
   }
   if (favoritePageNext) {
     favoritePageNext.addEventListener("click", function () {
-      var totalPages = Math.max(1, Math.ceil(favoritesAll.length / FAVORITES_PAGE_SIZE));
+      var totalPages = Math.max(1, Math.ceil(filteredFavorites().length / FAVORITES_PAGE_SIZE));
       if (favoritesPage < totalPages) { favoritesPage++; renderFavoritesPage(); }
     });
+  }
+
+  if (favoriteSearchInput) {
+    favoriteSearchInput.addEventListener("input", function () { favoritesPage = 1; renderFavoritesPage(); });
   }
 
   function renderFavorites(items) {
@@ -145,13 +158,25 @@
   var visitList = document.getElementById("visitList");
   var visitEmpty = document.getElementById("visitEmpty");
   var statVisitCount = document.getElementById("statVisitCount");
+  var visitSearchInput = document.getElementById("visitSearchInput");
+  var visitsAll = [];
 
   var tabVisitCount = document.getElementById("tabVisitCount");
 
+  // 2026-08-12 추가 — 즐겨찾기 탭 검색창을 그대로 가져와 방문기록에도 실제 검색이 되도록 구현.
+  function renderVisitsPage() {
+    var keyword = (visitSearchInput ? visitSearchInput.value : "").trim().toLowerCase();
+    var items = keyword
+      ? visitsAll.filter(function (it) { return (it.name || "").toLowerCase().indexOf(keyword) > -1; })
+      : visitsAll;
+    renderVisits(items);
+  }
+  if (visitSearchInput) visitSearchInput.addEventListener("input", renderVisitsPage);
+
   function renderVisits(items) {
     visitList.innerHTML = "";
-    if (statVisitCount) statVisitCount.textContent = items.length;
-    if (tabVisitCount) tabVisitCount.textContent = items.length;
+    if (statVisitCount) statVisitCount.textContent = visitsAll.length;
+    if (tabVisitCount) tabVisitCount.textContent = visitsAll.length;
     if (!items.length) { visitEmpty.hidden = false; return; }
     visitEmpty.hidden = true;
     items.forEach(function (it) {
@@ -171,7 +196,10 @@
   }
 
   function loadVisits() {
-    return Api.request("/api/mypage/visits").then(renderVisits).catch(function () { renderVisits([]); });
+    return Api.request("/api/mypage/visits").then(function (items) {
+      visitsAll = items || [];
+      renderVisitsPage();
+    }).catch(function () { visitsAll = []; renderVisitsPage(); });
   }
 
   // ---- 검색기록 ----
