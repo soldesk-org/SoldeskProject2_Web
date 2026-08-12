@@ -190,14 +190,9 @@
   });
   document.getElementById("reviewBackBtn").addEventListener("click", function () { goStep(2); });
 
-  // ---- 작성 중 이탈 경고(2026-08-12 추가) — 별점을 고르거나 내용을 입력한 뒤 창을 닫거나 새로고침하면
-  // 브라우저 기본 확인창으로 경고한다. 리뷰 등록 성공/임시저장 직후에는 다시 꺼서 그 이동은 막지 않는다.
+  // ---- 작성 중 이탈 감지(2026-08-12 추가) — 별점을 고르거나 내용을 입력한 뒤 페이지를 벗어나려 하면
+  // 아래쪽의 링크 클릭 가로채기/beforeunload 핸들러가 이 플래그를 보고 임시저장 여부를 처리한다.
   var leaveGuardArmed = false;
-  window.addEventListener("beforeunload", function (e) {
-    if (!leaveGuardArmed) return;
-    e.preventDefault();
-    e.returnValue = "";
-  });
 
   // ---- 별점 라벨 ----
   var LABELS = { 1: "많이 아쉬웠어요", 2: "조금 아쉬웠어요", 3: "보통이에요", 4: "만족했어요", 5: "아주 좋았어요!" };
@@ -328,48 +323,66 @@
     }).finally(function () { submitBtn.disabled = false; });
   });
 
-  // ---- 임시저장(2026-08-12 추가) — mypage-reviews.js가 읽는 것과 동일한 localStorage 목록에
-  // upsert한다. 영수증은 이미 인증된 상태이므로 receiptId만 있으면 사진 재업로드 없이 복원 가능하다.
-  var reviewSaveDraftBtn = document.getElementById("reviewSaveDraftBtn");
-  if (reviewSaveDraftBtn) {
-    reviewSaveDraftBtn.addEventListener("click", function () {
-      if (!restaurant || !ocrResult || !ocrResult.receiptId) {
-        Eatty.toast("영수증 인증 정보가 없어 임시저장할 수 없습니다.", "error");
-        return;
-      }
-      var score = Number(document.getElementById("reviewScore").value);
-      var content = document.getElementById("reviewContent").value.trim();
-      var draftId = currentDraftId || ("draft-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8));
-      var draft = {
-        draftId: draftId,
-        shopId: restaurant.restaurantId,
-        shopName: restaurant.name,
-        address: restaurant.address,
-        roadAddress: restaurant.roadAddress,
-        latitude: restaurant.latitude,
-        longitude: restaurant.longitude,
-        receiptId: ocrResult.receiptId,
-        orderDatetime: ocrResult.orderDatetime || null,
-        totalPrice: ocrResult.totalPrice != null ? ocrResult.totalPrice : null,
-        rating: score,
-        content: content,
-        positiveTags: Array.prototype.filter.call(
-          document.querySelectorAll("#positiveTagList input:checked"), function () { return true; }
-        ).map(function (i) { return i.value; }),
-        negativeTags: Array.prototype.filter.call(
-          document.querySelectorAll("#negativeTagList input:checked"), function () { return true; }
-        ).map(function (i) { return i.value; }),
-        savedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
-      };
-      var list = readDrafts().filter(function (d) { return d.draftId !== draftId; });
-      list.unshift(draft);
-      writeDrafts(list);
-      currentDraftId = draftId;
-      leaveGuardArmed = false;
-      Eatty.toast("임시저장했습니다.", "success");
-      window.location.href = "mypage-reviews";
-    });
+  // ---- 임시저장(2026-08-12 추가, 2026-08-12 버튼 제거하고 이탈 시점으로 변경) — 별도 버튼 없이,
+  // 작성 중(leaveGuardArmed)에 다른 페이지로 이동하려고 하면 그 시점에 저장한다. mypage-reviews.js가
+  // 읽는 것과 동일한 localStorage 목록에 upsert. 영수증은 이미 인증된 상태이므로 receiptId만 있으면
+  // 사진 재업로드 없이 복원 가능하다.
+  function saveDraft() {
+    if (!restaurant || !ocrResult || !ocrResult.receiptId) return false;
+    var score = Number(document.getElementById("reviewScore").value);
+    var content = document.getElementById("reviewContent").value.trim();
+    var draftId = currentDraftId || ("draft-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8));
+    var draft = {
+      draftId: draftId,
+      shopId: restaurant.restaurantId,
+      shopName: restaurant.name,
+      address: restaurant.address,
+      roadAddress: restaurant.roadAddress,
+      latitude: restaurant.latitude,
+      longitude: restaurant.longitude,
+      receiptId: ocrResult.receiptId,
+      orderDatetime: ocrResult.orderDatetime || null,
+      totalPrice: ocrResult.totalPrice != null ? ocrResult.totalPrice : null,
+      rating: score,
+      content: content,
+      positiveTags: Array.prototype.filter.call(
+        document.querySelectorAll("#positiveTagList input:checked"), function () { return true; }
+      ).map(function (i) { return i.value; }),
+      negativeTags: Array.prototype.filter.call(
+        document.querySelectorAll("#negativeTagList input:checked"), function () { return true; }
+      ).map(function (i) { return i.value; }),
+      savedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+    };
+    var list = readDrafts().filter(function (d) { return d.draftId !== draftId; });
+    list.unshift(draft);
+    writeDrafts(list);
+    currentDraftId = draftId;
+    leaveGuardArmed = false;
+    return true;
   }
+
+  // 사이트 안에서 다른 페이지로 이동하는 링크(헤더 로고/메뉴 등)를 눌렀을 때만 커스텀 확인창을 띄울 수
+  // 있다(브라우저 자체 종료/새로고침은 커스텀 UI를 띄울 수 없어 아래 beforeunload에서 별도 처리).
+  // "이전"(goStep) 버튼처럼 페이지 안에서만 이동하는 요소는 href가 없거나 "#"이라 걸리지 않는다.
+  document.addEventListener("click", function (e) {
+    if (!leaveGuardArmed) return;
+    var a = e.target.closest("a[href]");
+    if (!a) return;
+    var href = a.getAttribute("href");
+    if (!href || href.charAt(0) === "#" || href.indexOf("javascript:") === 0) return;
+    e.preventDefault();
+    var wantsSave = window.confirm("작성 중인 리뷰가 있습니다. 임시저장하고 이동할까요?\n(취소를 누르면 저장하지 않고 이동합니다)");
+    if (wantsSave) saveDraft();
+    leaveGuardArmed = false;
+    window.location.href = a.href;
+  }, true);
+
+  // 브라우저 탭 닫기/새로고침/주소창 이동은 커스텀 다이얼로그를 띄울 방법이 없어(확인 결과를 알 수도
+  // 없어) 사용자에게 묻는 대신 조용히 자동 임시저장한다 — 데이터를 잃는 것보다 안전한 쪽을 택함.
+  window.addEventListener("beforeunload", function (e) {
+    if (!leaveGuardArmed) return;
+    saveDraft();
+  });
 
   // ---- 임시저장 이어서 쓰기 복원(2026-08-12 추가) — 별점/태그/내용을 그대로 되돌려서 3단계로 바로 진입.
   if (resumedDraft && restaurant && ocrResult) {
