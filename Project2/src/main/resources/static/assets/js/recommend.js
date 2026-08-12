@@ -21,6 +21,10 @@
   var cardList = document.getElementById("recommendCardList");
   var lastHistoryId = null;
   var lastRecommendations = [];
+  // "다른 결과 다시 검색"(2026-08-12 추가) — retryBtn을 눌렀을 때 이전에 보여준 음식점들은 제외하고
+  // 새로운 곳들로 채워지도록, 지금까지 보여준 place_id를 누적해서 기억해둔다. 새 검색(폼 제출/예시
+  // 칩)이면 다른 조건이므로 초기화한다.
+  var shownPlaceIds = [];
 
   function show(which) {
     emptyBox.hidden = which !== "empty";
@@ -236,9 +240,24 @@
     return article;
   }
 
-  function renderResults(data) {
+  function renderResults(data, isRetry) {
     lastHistoryId = data.history_id || null;
-    lastRecommendations = data.recommendations || [];
+    var incoming = data.recommendations || [];
+
+    if (isRetry) {
+      var fresh = incoming.filter(function (p) { return shownPlaceIds.indexOf(p.place_id) === -1; });
+      if (!fresh.length && incoming.length) {
+        // 필터링했더니 전부 이미 봤던 곳뿐이면(후보 자체가 적은 경우) 새로운 결과가 없다는 걸 알리고
+        // 기존 화면은 그대로 둔다 — 빈 화면으로 덮어쓰지 않는다.
+        Eatty.toast("더 이상 새로운 추천 결과가 없어요.", "default");
+        return;
+      }
+      lastRecommendations = fresh;
+    } else {
+      shownPlaceIds = [];
+      lastRecommendations = incoming;
+    }
+    shownPlaceIds = shownPlaceIds.concat(lastRecommendations.map(function (p) { return p.place_id; }));
 
     document.getElementById("recommendResultTitle").textContent = "추천 결과 " + lastRecommendations.length + "곳";
     var noticeEl = document.getElementById("recommendDataNotice");
@@ -271,19 +290,22 @@
     return text;
   }
 
-  function runRecommend() {
+  function runRecommend(isRetry) {
     var text = buildQueryText();
     if (!text) { Eatty.toast("찾고 있는 조건을 입력해주세요.", "error"); query.focus(); return; }
     show("loading");
 
     function request(center) {
       var useAuth = document.getElementById("useMyBtiSwitch").checked;
+      // 재검색은 이전에 본 곳들을 걸러내고도 10곳을 채울 수 있도록 후보를 더 넉넉히 요청한다
+      // (Python 쪽에 "제외" 파라미터가 없어 클라이언트에서 겹치는 곳만 걸러내는 방식이라 여유가 필요).
+      var size = isRetry ? Math.min(10 + shownPlaceIds.length, 40) : 10;
       Api.request("/api/recommendation/query", {
         method: "POST",
         auth: useAuth,
-        body: { text: text, x: center ? center.lng : undefined, y: center ? center.lat : undefined, radius: 3000, size: 10 },
+        body: { text: text, x: center ? center.lng : undefined, y: center ? center.lat : undefined, radius: 3000, size: size },
       }).then(function (data) {
-        renderResults(data);
+        renderResults(data, isRetry);
         show("result");
         pushRecent(query.value.trim() || text);
         resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -333,9 +355,9 @@
 
   document.getElementById("recommendForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    runRecommend();
+    runRecommend(false);
   });
-  document.getElementById("retryBtn").addEventListener("click", runRecommend);
+  document.getElementById("retryBtn").addEventListener("click", function () { runRecommend(true); });
 
   document.getElementById("saveAllBtn").addEventListener("click", function () {
     if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
