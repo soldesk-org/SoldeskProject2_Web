@@ -472,7 +472,7 @@
           '<div class="flex items-center justify-between gap-2">' +
           '<div class="flex items-center gap-2">' + avatarHtml +
           '<span class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(r.nickname) + '</span>' +
-          (isEdited(r) ? '<span class="t-xs" style="color:var(--ink-400)">· 수정됨</span>' : "") +
+          (isEdited(r) ? '<span class="t-xs" style="color:var(--ink-400)">수정됨</span>' : "") +
           '</div>' +
           '<span class="e-rating">' + starsHtml(r.rating) + '<span class="e-rating-score">' + Number(r.rating).toFixed(1) + '</span></span>' +
           '</div>' +
