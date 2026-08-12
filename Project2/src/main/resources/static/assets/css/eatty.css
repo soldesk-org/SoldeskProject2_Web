@@ -1295,7 +1295,10 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   box-shadow: var(--sh-lg);
   transform: translateY(14px) scale(.98);
   transition: transform .26s var(--ease);
+  /* 스크롤은 그대로 되지만 스크롤바만 시각적으로 숨긴다(2026-08-12 추가) */
+  scrollbar-width: none; -ms-overflow-style: none;
 }
+.e-modal-panel::-webkit-scrollbar { display: none; }
 .e-modal.is-open .e-modal-panel { transform: translateY(0) scale(1); }
 .e-modal-panel--lg { max-width: 680px; }
 .e-modal-panel--sm { max-width: 400px; }
