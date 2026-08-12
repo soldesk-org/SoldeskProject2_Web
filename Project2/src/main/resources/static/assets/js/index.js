@@ -77,8 +77,26 @@ if (window.Api && Api.isLoggedIn()) {
       var list = (data.restaurants || []).filter(function (r) { return r.latitude != null && r.longitude != null; }).slice(0, 10);
       if (!list.length) return;
       var bounds = new naver.maps.LatLngBounds();
+      // 좌표가 거의 같은 가게(같은 건물 다른 층 등)가 있으면 마커가 완전히 겹쳐서 하나만 보이는 문제
+      // (2026-08-10 발견) — 실제 위치를 임의로 바꾸는 대신, 이미 사용한 좌표와 너무 가까우면 시각적으로만
+      // 살짝(반경 15m 안팎) 떨어뜨려서 표시한다. 소개용 미니 지도라 이 정도 오차는 실사용에 영향 없음.
+      var usedPositions = [];
+      var NEAR_THRESHOLD = 0.0001; // 위도/경도 약 11m
+      function nudgeIfOverlapping(lat, lng) {
+        var isNear = usedPositions.some(function (p) {
+          return Math.abs(p.lat - lat) < NEAR_THRESHOLD && Math.abs(p.lng - lng) < NEAR_THRESHOLD;
+        });
+        if (isNear) {
+          var angle = Math.random() * Math.PI * 2;
+          lat += Math.cos(angle) * 0.00013;
+          lng += Math.sin(angle) * 0.00013;
+        }
+        usedPositions.push({ lat: lat, lng: lng });
+        return { lat: lat, lng: lng };
+      }
       list.forEach(function (item) {
-        var pos = new naver.maps.LatLng(item.latitude, item.longitude);
+        var adjusted = nudgeIfOverlapping(item.latitude, item.longitude);
+        var pos = new naver.maps.LatLng(adjusted.lat, adjusted.lng);
         new naver.maps.Marker({ position: pos, map: map, title: item.name, icon: markerIcon(item.category) });
         bounds.extend(pos);
       });
