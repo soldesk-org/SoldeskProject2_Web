@@ -134,6 +134,19 @@
   };
   var AXIS_PAIRS = [["l", "s"], ["f", "n"], ["a", "t"], ["p", "i"]];
 
+  // taste-quiz.js와 동일한 8개 퍼센트 막대 방식으로 통일(2026-08-12).
+  function axisBarRowHtml(label, pct) {
+    return (
+      '<div>' +
+        '<div class="flex items-center justify-between mb-1">' +
+          '<span class="t-xs font-bold text-[var(--ink-700)]">' + label + '</span>' +
+          '<span class="t-xs t-num">' + pct + '%</span>' +
+        '</div>' +
+        '<div class="e-progress" style="height:12px"><div class="e-progress-bar" style="width:' + pct + '%"></div></div>' +
+      '</div>'
+    );
+  }
+
   function loadFoodBtiResult() {
     var resultBox = document.getElementById("foodBtiResult");
     var emptyBox = document.getElementById("foodBtiEmpty");
@@ -148,18 +161,15 @@
 
         var axisList = document.getElementById("btiAxisList");
         var score = data.score;
-        axisList.innerHTML = AXIS_PAIRS.map(function (pair) {
-          // taste-quiz.js와 동일한 규칙(2026-08-07 방식으로 되돌림, 2026-08-08) — 우세한 쪽에서부터 채운다.
+        // taste-quiz.js와 동일하게 2개씩 묶어 실제 비율(% 표시)로 렌더링(2026-08-12).
+        axisList.innerHTML = AXIS_PAIRS.map(function (pair, pairIdx) {
           var left = score[pair[0]], right = score[pair[1]];
           var total = left + right || 1;
-          var leftWins = left >= right;
-          var pct = Math.round(((leftWins ? left : right) / total) * 100);
-          pct = Math.max(55, Math.min(94, pct));
-          return '<div class="axis-row">' +
-            '<span class="axis-label ' + (leftWins ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
-            '<span class="axis-bar"><span class="axis-fill' + (leftWins ? "" : " axis-fill--right") +
-              '" style="width:' + pct + '%"></span></span>' +
-            '<span class="axis-label ' + (leftWins ? "axis-label--off" : "axis-label--on") + '">' + AXIS_LABEL[pair[1]] + '</span>' +
+          var leftPct = Math.round((left / total) * 100);
+          var rightPct = 100 - leftPct;
+          var isLast = pairIdx === AXIS_PAIRS.length - 1;
+          return '<div class="space-y-4' + (isLast ? "" : " pb-5 border-b border-[var(--line-soft)]") + '">' +
+            axisBarRowHtml(AXIS_LABEL[pair[0]], leftPct) + axisBarRowHtml(AXIS_LABEL[pair[1]], rightPct) +
             '</div>';
         }).join("");
 
