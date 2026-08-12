@@ -319,12 +319,12 @@
       <!-- ==================== 툴바(2026-08-12 추가/수정) — 작성한 리뷰 탭 툴바를 그대로 가져오되
            별점/기간/정렬 필터만 빼고, 그 자리에 전체 삭제 버튼을 배치 ==================== -->
       <section class="e-card e-card-pad !py-4 mb-5" id="draftToolbar">
-        <div class="flex flex-wrap items-center gap-2.5">
-          <div class="e-input-wrap has-icon flex-1" style="min-width:220px;max-width:340px">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2.5">
+          <div class="e-input-wrap has-icon flex-1" style="min-width:0;max-width:340px">
             <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
             <input type="search" class="e-input e-input-sm" id="draftSearchInput" placeholder="가게명 검색" aria-label="임시저장 검색">
           </div>
-          <div class="ml-auto flex items-center gap-2.5">
+          <div class="sm:ml-auto flex items-center gap-2.5">
             <button type="button" class="btn btn-danger-soft btn-sm" id="draftClearAllBtn">
               임시저장 전체 삭제
             </button>
