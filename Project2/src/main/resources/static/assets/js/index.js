@@ -6,25 +6,9 @@ document.addEventListener('click', function (e) {
   if (input) { input.value = chip.getAttribute('data-keyword'); input.focus(); }
 });
 
-/* 헤더 드롭다운/드로어의 닉네임·이메일·음식 취향 찾기는 api.js가 못 채우는 중복 표시 영역이라 여기서 채운다. */
-if (window.Api && Api.isLoggedIn()) {
-  Api.request('/api/members/me').then(function (me) {
-    ['headerNicknameHead', 'drawerNickname'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.textContent = me.nickname || '';
-    });
-    var drawerEmail = document.getElementById('drawerEmail');
-    if (drawerEmail) drawerEmail.textContent = me.email || '';
-    if (me.foodBti) {
-      ['headerFoodBtiBadge', 'drawerFoodBtiBadge'].forEach(function (id) {
-        var el = document.getElementById(id);
-        // 배지에는 유형 코드만 보여준다(2026-08-07) — 앞에 "음식 취향 찾기 ·" 같은 라벨을 붙이면
-        // 좁은 드롭다운에서 배지가 길어져 닉네임/이메일 줄을 밀어낸다.
-        if (el) { el.textContent = me.foodBti; el.hidden = false; }
-      });
-    }
-  }).catch(function () {});
-}
+/* 헤더 드롭다운/드로어의 닉네임(헤드)·이메일(드로어)·음식 취향 찾기 배지는 2026-08-12부터 api.js
+   initNavAuthUI()가 모든 페이지 공통으로 채운다(중복 GET /api/members/me 호출을 피하기 위해 이전
+   해왔던 이 페이지 전용 로직은 제거) — index.js는 헤더 관련 로직을 더 이상 담당하지 않는다. */
 
 /* 지도 탐색 소개 섹션의 미니 지도 — 실제 NCP Maps + 실제 음식점 3곳(강남역 인근) */
 (function () {

@@ -242,7 +242,13 @@
       var drawerNickname = document.getElementById("drawerNickname");
       var drawerEmail = document.getElementById("drawerEmail");
       var drawerAvatar = document.getElementById("drawerAvatar");
-      if (headerNickname || headerNicknameHead || headerEmail || headerAvatar || drawerNickname || drawerEmail || drawerAvatar) {
+      // 2026-08-12 추가 — 음식 취향 찾기(음BTI) 배지가 index.html에서만 채워지고 있었다(index.js에만
+      // 있던 로직이라 다른 페이지는 #headerFoodBtiBadge 요소 자체가 없거나 있어도 안 채워졌음). 관리자/
+      // 사업자 전용 페이지(admin.html/business-mypage.html)는 이 배지를 두지 않아 자연히 대상에서 빠진다.
+      var headerFoodBtiBadge = document.getElementById("headerFoodBtiBadge");
+      var drawerFoodBtiBadge = document.getElementById("drawerFoodBtiBadge");
+      if (headerNickname || headerNicknameHead || headerEmail || headerAvatar || drawerNickname || drawerEmail || drawerAvatar
+          || headerFoodBtiBadge || drawerFoodBtiBadge) {
         request("/api/members/me").then(function (data) {
           if (headerNickname && data.nickname) headerNickname.textContent = data.nickname;
           if (headerNicknameHead && data.nickname) headerNicknameHead.textContent = data.nickname;
@@ -257,6 +263,11 @@
               avatarEl.textContent = data.nickname.charAt(0);
             }
           });
+          if (data.foodBti) {
+            [headerFoodBtiBadge, drawerFoodBtiBadge].forEach(function (el) {
+              if (el) { el.textContent = data.foodBti; el.hidden = false; }
+            });
+          }
         }).catch(function () {});
       }
     }

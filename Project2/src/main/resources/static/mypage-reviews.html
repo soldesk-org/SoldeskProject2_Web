@@ -124,6 +124,7 @@
             <div class="e-dropdown-head">
               <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
               <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
+              <span class="e-badge e-badge--brand mt-2" id="headerFoodBtiBadge" hidden></span>
             </div>
             <a class="e-dropdown-item" href="mypage">마이페이지</a>
             <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
@@ -324,8 +325,7 @@
             <input type="search" class="e-input e-input-sm" id="draftSearchInput" placeholder="가게명 검색" aria-label="임시저장 검색">
           </div>
           <div class="ml-auto flex items-center gap-2.5">
-            <button type="button" class="e-chip e-chip-sm" id="draftClearAllBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+            <button type="button" class="btn btn-outline btn-sm" id="draftClearAllBtn">
               임시저장 전체 삭제
             </button>
           </div>
