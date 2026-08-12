@@ -64,9 +64,33 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // ---- 대상 매장 (explore.html에서 가게를 클릭한 시점에 저장해둔 신뢰 스냅샷 — URL 파라미터는
-  // 안 쓴다. entrySnapshot은 위 접근 제어 통과 시점에 이미 restaurantId까지 검증된 값이다.) ----
-  var restaurant = entrySnapshot ? {
+  // ---- 임시저장(2026-08-12 추가) — 서버 API 없이 localStorage만 사용(mypage-reviews.js와 동일 키).
+  // 지금까지는 "이어서 쓰기"로 들어와도 draft 파라미터가 접근 제어에만 쓰이고 실제로 저장된 내용을
+  // 복원하지 않아서, 다시 영수증부터 처음부터 해야 했다 — 영수증은 이미 인증됐으므로(receiptId가
+  // 있으므로) 사진을 다시 올릴 필요 없이 3단계(별점/태그/내용)로 바로 복원한다.
+  var DRAFT_KEY = "eatty.reviewDrafts";
+  function readDrafts() {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "[]"); } catch (e) { return []; }
+  }
+  function writeDrafts(list) {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(list)); } catch (e) { /* 용량 초과 무시 */ }
+  }
+  var resumedDraft = entryDraftId
+    ? readDrafts().filter(function (d) { return d.draftId === entryDraftId; })[0] || null
+    : null;
+  var currentDraftId = resumedDraft ? resumedDraft.draftId : null;
+
+  // ---- 대상 매장 ----
+  // 일반 진입(explore.html에서 가게를 클릭)은 그 시점 sessionStorage 스냅샷(entrySnapshot)을 쓰고,
+  // 임시저장 이어서 쓰기는 draft 자체에 저장해둔 스냅샷을 쓴다(둘 다 URL 파라미터는 신뢰하지 않는다).
+  var restaurant = resumedDraft ? {
+    restaurantId: resumedDraft.shopId,
+    name: resumedDraft.shopName || "",
+    address: resumedDraft.address || "",
+    roadAddress: resumedDraft.roadAddress || "",
+    latitude: resumedDraft.latitude != null ? Number(resumedDraft.latitude) : null,
+    longitude: resumedDraft.longitude != null ? Number(resumedDraft.longitude) : null,
+  } : entrySnapshot ? {
     restaurantId: entrySnapshot.restaurantId,
     name: entrySnapshot.name || "",
     address: entrySnapshot.address || "",
@@ -82,7 +106,12 @@
     document.getElementById("runOcrBtn") && (document.getElementById("runOcrBtn").disabled = true);
   }
 
-  var ocrResult = null;
+  var ocrResult = resumedDraft && resumedDraft.receiptId ? {
+    receiptId: resumedDraft.receiptId,
+    verified: true,
+    orderDatetime: resumedDraft.orderDatetime || null,
+    totalPrice: resumedDraft.totalPrice != null ? resumedDraft.totalPrice : null,
+  } : null;
 
   // ---- 드롭존/미리보기는 eatty-ui.js가 처리, 여기서는 실행 버튼만 담당 ----
   var receiptDrop = document.getElementById("receiptDrop");
@@ -161,6 +190,15 @@
   });
   document.getElementById("reviewBackBtn").addEventListener("click", function () { goStep(2); });
 
+  // ---- 작성 중 이탈 경고(2026-08-12 추가) — 별점을 고르거나 내용을 입력한 뒤 창을 닫거나 새로고침하면
+  // 브라우저 기본 확인창으로 경고한다. 리뷰 등록 성공/임시저장 직후에는 다시 꺼서 그 이동은 막지 않는다.
+  var leaveGuardArmed = false;
+  window.addEventListener("beforeunload", function (e) {
+    if (!leaveGuardArmed) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+
   // ---- 별점 라벨 ----
   var LABELS = { 1: "많이 아쉬웠어요", 2: "조금 아쉬웠어요", 3: "보통이에요", 4: "만족했어요", 5: "아주 좋았어요!" };
   document.getElementById("reviewRatingInput").addEventListener("click", function (e) {
@@ -169,6 +207,7 @@
     var v = Number(b.getAttribute("data-rating-value"));
     document.getElementById("reviewScoreLabel").textContent = LABELS[v];
     document.getElementById("ratingError").classList.remove("is-visible");
+    leaveGuardArmed = true;
   });
 
   // ---- 태그 선택 개수 ----
@@ -177,8 +216,11 @@
     i.addEventListener("change", function () {
       var n = Array.prototype.filter.call(tagInputs, function (x) { return x.checked; }).length;
       document.getElementById("tagSelectedCount").textContent = n;
+      leaveGuardArmed = true;
     });
   });
+  var reviewContentInput = document.getElementById("reviewContent");
+  if (reviewContentInput) reviewContentInput.addEventListener("input", function () { leaveGuardArmed = true; });
 
   // ---- 리뷰 사진(2026-08-10 추가, 최대 3장) ----
   var REVIEW_PHOTO_LIMIT = 3;
@@ -271,6 +313,11 @@
           })()
         : Promise.resolve();
       return uploadPhotos.then(function () {
+        leaveGuardArmed = false;
+        if (currentDraftId) {
+          writeDrafts(readDrafts().filter(function (d) { return d.draftId !== currentDraftId; }));
+          currentDraftId = null;
+        }
         document.getElementById("step3Section").hidden = true;
         stepsRoot.parentElement.hidden = true;
         doneSection.hidden = false;
@@ -280,6 +327,78 @@
       Eatty.toast(err.message || "리뷰 등록에 실패했습니다.", "error");
     }).finally(function () { submitBtn.disabled = false; });
   });
+
+  // ---- 임시저장(2026-08-12 추가) — mypage-reviews.js가 읽는 것과 동일한 localStorage 목록에
+  // upsert한다. 영수증은 이미 인증된 상태이므로 receiptId만 있으면 사진 재업로드 없이 복원 가능하다.
+  var reviewSaveDraftBtn = document.getElementById("reviewSaveDraftBtn");
+  if (reviewSaveDraftBtn) {
+    reviewSaveDraftBtn.addEventListener("click", function () {
+      if (!restaurant || !ocrResult || !ocrResult.receiptId) {
+        Eatty.toast("영수증 인증 정보가 없어 임시저장할 수 없습니다.", "error");
+        return;
+      }
+      var score = Number(document.getElementById("reviewScore").value);
+      var content = document.getElementById("reviewContent").value.trim();
+      var draftId = currentDraftId || ("draft-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8));
+      var draft = {
+        draftId: draftId,
+        shopId: restaurant.restaurantId,
+        shopName: restaurant.name,
+        address: restaurant.address,
+        roadAddress: restaurant.roadAddress,
+        latitude: restaurant.latitude,
+        longitude: restaurant.longitude,
+        receiptId: ocrResult.receiptId,
+        orderDatetime: ocrResult.orderDatetime || null,
+        totalPrice: ocrResult.totalPrice != null ? ocrResult.totalPrice : null,
+        rating: score,
+        content: content,
+        positiveTags: Array.prototype.filter.call(
+          document.querySelectorAll("#positiveTagList input:checked"), function () { return true; }
+        ).map(function (i) { return i.value; }),
+        negativeTags: Array.prototype.filter.call(
+          document.querySelectorAll("#negativeTagList input:checked"), function () { return true; }
+        ).map(function (i) { return i.value; }),
+        savedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+      };
+      var list = readDrafts().filter(function (d) { return d.draftId !== draftId; });
+      list.unshift(draft);
+      writeDrafts(list);
+      currentDraftId = draftId;
+      leaveGuardArmed = false;
+      Eatty.toast("임시저장했습니다.", "success");
+      window.location.href = "mypage-reviews";
+    });
+  }
+
+  // ---- 임시저장 이어서 쓰기 복원(2026-08-12 추가) — 별점/태그/내용을 그대로 되돌려서 3단계로 바로 진입.
+  if (resumedDraft && restaurant && ocrResult) {
+    document.getElementById("step3RestaurantName").textContent = restaurant.name;
+    document.getElementById("step3VisitSummary").textContent =
+      (ocrResult.orderDatetime || "-") + " 방문 · " + (ocrResult.totalPrice != null ? Number(ocrResult.totalPrice).toLocaleString() + "원" : "-");
+
+    var resumeRating = Number(resumedDraft.rating) || 0;
+    document.getElementById("reviewScore").value = resumeRating;
+    document.getElementById("reviewScoreText").textContent = resumeRating > 0 ? resumeRating.toFixed(1) : "-";
+    document.getElementById("reviewScoreLabel").textContent = resumeRating > 0 ? LABELS[resumeRating] : "별점을 선택해주세요";
+    document.querySelectorAll("#reviewRatingInput [data-rating-value]").forEach(function (b) {
+      var v = Number(b.getAttribute("data-rating-value"));
+      b.classList.toggle("is-on", v <= resumeRating);
+      b.setAttribute("aria-checked", v === resumeRating ? "true" : "false");
+    });
+
+    var resumeKeywords = (resumedDraft.positiveTags || []).concat(resumedDraft.negativeTags || []);
+    tagInputs.forEach(function (cb) { cb.checked = resumeKeywords.indexOf(cb.value) > -1; });
+    document.getElementById("tagSelectedCount").textContent = resumeKeywords.length;
+
+    if (reviewContentInput) {
+      reviewContentInput.value = resumedDraft.content || "";
+      reviewContentInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    leaveGuardArmed = false;
+
+    goStep(3);
+  }
 
   document.getElementById("writeAnotherBtn").addEventListener("click", function () {
     document.getElementById("reviewForm").reset();

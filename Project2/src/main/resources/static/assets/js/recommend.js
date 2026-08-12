@@ -241,6 +241,11 @@
     lastRecommendations = data.recommendations || [];
 
     document.getElementById("recommendResultTitle").textContent = "추천 결과 " + lastRecommendations.length + "곳";
+    var noticeEl = document.getElementById("recommendDataNotice");
+    if (noticeEl) {
+      noticeEl.hidden = !data.data_notice;
+      noticeEl.textContent = data.data_notice || "";
+    }
     cardList.innerHTML = "";
     if (!lastRecommendations.length) {
       cardList.innerHTML = '<div class="e-card e-card-pad"><p class="t-sm">조건에 맞는 추천 결과를 찾지 못했어요. 다른 표현으로 다시 시도해보세요.</p></div>';

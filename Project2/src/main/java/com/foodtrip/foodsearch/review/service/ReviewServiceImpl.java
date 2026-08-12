@@ -24,12 +24,15 @@ import com.foodtrip.foodsearch.restaurant.entity.Restaurant;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantRepository;
 import com.foodtrip.foodsearch.reviewfilter.client.ReviewFilterClient;
 import com.foodtrip.foodsearch.review.dto.CreateReviewRequestDto;
+import com.foodtrip.foodsearch.review.dto.ReviewHelpfulResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewImageResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewKeywordResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewResponseDto;
 import com.foodtrip.foodsearch.review.dto.UpdateReviewRequestDto;
 import com.foodtrip.foodsearch.review.entity.Review;
+import com.foodtrip.foodsearch.review.entity.ReviewHelpfulVote;
 import com.foodtrip.foodsearch.review.entity.ReviewImage;
+import com.foodtrip.foodsearch.review.repository.ReviewHelpfulVoteRepository;
 import com.foodtrip.foodsearch.review.repository.ReviewImageRepository;
 import com.foodtrip.foodsearch.review.repository.ReviewRepository;
 
@@ -55,6 +58,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewFilterClient reviewFilterClient;
     private final ReviewImageRepository reviewImageRepository;
     private final ReviewImageStorageService reviewImageStorageService;
+    private final ReviewHelpfulVoteRepository reviewHelpfulVoteRepository;
 
     public ReviewServiceImpl(ReviewRepository reviewRepository,
                               RestaurantRepository restaurantRepository,
@@ -65,7 +69,8 @@ public class ReviewServiceImpl implements ReviewService {
                               AccessTokenSessionService accessTokenSessionService,
                               ReviewFilterClient reviewFilterClient,
                               ReviewImageRepository reviewImageRepository,
-                              ReviewImageStorageService reviewImageStorageService) {
+                              ReviewImageStorageService reviewImageStorageService,
+                              ReviewHelpfulVoteRepository reviewHelpfulVoteRepository) {
         this.reviewRepository = reviewRepository;
         this.restaurantRepository = restaurantRepository;
         this.receiptRepository = receiptRepository;
@@ -76,6 +81,7 @@ public class ReviewServiceImpl implements ReviewService {
         this.reviewFilterClient = reviewFilterClient;
         this.reviewImageRepository = reviewImageRepository;
         this.reviewImageStorageService = reviewImageStorageService;
+        this.reviewHelpfulVoteRepository = reviewHelpfulVoteRepository;
     }
 
     // 리뷰 욕설/비속어 필터(17.리뷰-필터링, 2026-07-24 추가) - 태그(keywords)는 고정 목록이라 검사 대상이
@@ -135,11 +141,11 @@ public class ReviewServiceImpl implements ReviewService {
         return new ReviewResponseDto(review.getReviewId(), member != null ? member.getNickname() : null,
                 member != null ? member.getProfileImageUrl() : null,
                 review.getRating(), review.getContent(), review.isReceiptVerified(), review.getCreatedAt(),
-                review.getUpdatedAt(), toKeywordDtos(keywords), List.of());
+                review.getUpdatedAt(), toKeywordDtos(keywords), List.of(), 0, false);
     }
 
     @Override
-    public List<ReviewResponseDto> listByRestaurant(String restaurantId) {
+    public List<ReviewResponseDto> listByRestaurant(String restaurantId, String authorizationHeader) {
         List<Review> reviews = reviewRepository
                 .findByRestaurantIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(restaurantId, Review.STATUS_NORMAL);
         if (reviews.isEmpty()) {
@@ -161,12 +167,23 @@ public class ReviewServiceImpl implements ReviewService {
                 .collect(Collectors.groupingBy(ReviewImage::getReviewId,
                         Collectors.mapping(this::toImageDto, Collectors.toList())));
 
+        Map<Long, Long> helpfulCountByReviewId = new HashMap<>();
+        for (Object[] row : reviewHelpfulVoteRepository.countByReviewIdIn(reviewIds)) {
+            helpfulCountByReviewId.put((Long) row[0], (Long) row[1]);
+        }
+        Long viewerId = resolveMemberIdOrNull(authorizationHeader);
+        java.util.Set<Long> helpfulByMeReviewIds = viewerId == null ? java.util.Set.of()
+                : reviewHelpfulVoteRepository.findByMemberIdAndReviewIdIn(viewerId, reviewIds).stream()
+                        .map(ReviewHelpfulVote::getReviewId).collect(Collectors.toSet());
+
         return reviews.stream()
                 .map(r -> new ReviewResponseDto(r.getReviewId(), nicknameByMemberId.get(r.getMemberId()),
                         profileImageByMemberId.get(r.getMemberId()),
                         r.getRating(), r.getContent(), r.isReceiptVerified(), r.getCreatedAt(), r.getUpdatedAt(),
                         toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of())),
-                        imagesByReviewId.getOrDefault(r.getReviewId(), List.of())))
+                        imagesByReviewId.getOrDefault(r.getReviewId(), List.of()),
+                        helpfulCountByReviewId.getOrDefault(r.getReviewId(), 0L),
+                        helpfulByMeReviewIds.contains(r.getReviewId())))
                 .collect(Collectors.toList());
     }
 
@@ -197,10 +214,11 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         Member member = memberRepository.findById(memberId).orElse(null);
+        long helpfulCount = reviewHelpfulVoteRepository.countByReviewId(reviewId);
         return new ReviewResponseDto(review.getReviewId(), member != null ? member.getNickname() : null,
                 member != null ? member.getProfileImageUrl() : null,
                 review.getRating(), review.getContent(), review.isReceiptVerified(), review.getCreatedAt(),
-                review.getUpdatedAt(), toKeywordDtos(keywords), toImageDtos(reviewId));
+                review.getUpdatedAt(), toKeywordDtos(keywords), toImageDtos(reviewId), helpfulCount, false);
     }
 
     @Override
@@ -264,6 +282,46 @@ public class ReviewServiceImpl implements ReviewService {
         reviewImageStorageService.delete(image.getImageUrl());
         reviewImageRepository.delete(image);
         return toImageDtos(reviewId);
+    }
+
+    // 리뷰 "도움됨" 토글(2026-08-12 추가) — 이미 눌렀으면 취소, 아니면 등록. 본인 리뷰는 투표 대상에서
+    // 제외(자기 리뷰에 스스로 표를 쌓는 걸 막기 위함).
+    @Override
+    @Transactional
+    public ReviewHelpfulResponseDto toggleHelpful(Long reviewId, String authorizationHeader) {
+        Long memberId = resolveMemberId(authorizationHeader);
+        Review review = reviewRepository.findByReviewIdAndDeletedAtIsNull(reviewId)
+                .orElseThrow(() -> new CustomException(ErrorCode.REVIEW_NOT_FOUND));
+        if (review.getMemberId().equals(memberId)) {
+            throw new CustomException(ErrorCode.REVIEW_HELPFUL_SELF_NOT_ALLOWED);
+        }
+
+        boolean nowHelpful;
+        var existing = reviewHelpfulVoteRepository.findByReviewIdAndMemberId(reviewId, memberId);
+        if (existing.isPresent()) {
+            reviewHelpfulVoteRepository.delete(existing.get());
+            nowHelpful = false;
+        } else {
+            reviewHelpfulVoteRepository.save(ReviewHelpfulVote.create(reviewId, memberId));
+            nowHelpful = true;
+        }
+        return new ReviewHelpfulResponseDto(reviewHelpfulVoteRepository.countByReviewId(reviewId), nowHelpful);
+    }
+
+    // 07/12/18 등에서 이미 쓰는 "로그인 필수 아님" 패턴 — 토큰이 없거나 무효해도 예외 없이 null만 반환.
+    private Long resolveMemberIdOrNull(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        try {
+            Claims claims = jwtProvider.parseClaims(authorizationHeader.substring("Bearer ".length()));
+            if (!accessTokenSessionService.isActive(claims.getId())) {
+                return null;
+            }
+            return Long.valueOf(claims.getSubject());
+        } catch (JwtException e) {
+            return null;
+        }
     }
 
     private ReviewImageResponseDto toImageDto(ReviewImage image) {

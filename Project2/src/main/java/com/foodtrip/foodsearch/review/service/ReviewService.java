@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.foodtrip.foodsearch.review.dto.CreateReviewRequestDto;
+import com.foodtrip.foodsearch.review.dto.ReviewHelpfulResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewImageResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewResponseDto;
 import com.foodtrip.foodsearch.review.dto.UpdateReviewRequestDto;
@@ -13,7 +14,7 @@ public interface ReviewService {
 
     ReviewResponseDto create(String authorizationHeader, CreateReviewRequestDto request);
 
-    List<ReviewResponseDto> listByRestaurant(String restaurantId);
+    List<ReviewResponseDto> listByRestaurant(String restaurantId, String authorizationHeader);
 
     ReviewResponseDto update(Long reviewId, String authorizationHeader, UpdateReviewRequestDto request);
 
@@ -24,4 +25,6 @@ public interface ReviewService {
     List<ReviewImageResponseDto> addImages(Long reviewId, String authorizationHeader, List<MultipartFile> images);
 
     List<ReviewImageResponseDto> deleteImage(Long reviewId, Long reviewImageId, String authorizationHeader);
+
+    ReviewHelpfulResponseDto toggleHelpful(Long reviewId, String authorizationHeader);
 }

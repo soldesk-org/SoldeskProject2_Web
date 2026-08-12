@@ -217,6 +217,15 @@
     renderMarkers(list, alwaysShowMarkers);
   }
 
+  // 2026-08-12 추가 — 상세 필터 모달의 "최소 별점"은 백엔드 /filter, /search 어느 쪽도 지원하는
+  // 파라미터가 아니라서(카테고리/가격/영업중만 뿐), 응답으로 받은 목록을 클라이언트에서 한 번 더 거른다.
+  // averageRating은 실제 리뷰 기반 값이라 지어낸 데이터는 아니다.
+  var minRatingFilter = 0;
+  function applyMinRatingFilter(list) {
+    if (!minRatingFilter) return list;
+    return list.filter(function (item) { return (item.averageRating || 0) >= minRatingFilter; });
+  }
+
   function searchArea() {
     if (!map) return;
     closeDetail();
@@ -231,7 +240,7 @@
       maxPrice: priceMax >= 50000 ? null : priceMax,
       openNow: openNowOnly ? true : null,
       page: 0, size: 50,
-    }).then(function (data) { renderResults(data.restaurants || []); }).catch(function () { renderResults([]); });
+    }).then(function (data) { renderResults(applyMinRatingFilter(data.restaurants || [])); }).catch(function () { renderResults([]); });
   }
 
   function searchKeyword(keyword) {
@@ -246,8 +255,9 @@
       type: currentSearchType,
       page: 0, size: 50,
     }).then(function (data) {
-      renderResults(data.restaurants || []);
-      var first = (data.restaurants || [])[0];
+      var filtered = applyMinRatingFilter(data.restaurants || []);
+      renderResults(filtered);
+      var first = filtered[0];
       if (first && first.latitude != null) map.setCenter(new naver.maps.LatLng(first.latitude, first.longitude));
       updateRadiusBadge();
     }).catch(function () { renderResults([]); });
@@ -309,16 +319,13 @@
   function filterResetBtnEl() { return document.getElementById("filterResetBtn"); }
 
   var priceFilterList = document.getElementById("priceFilterList");
-  var filterMinPrice = document.getElementById("filterMinPrice");
-  var filterMaxPrice = document.getElementById("filterMaxPrice");
   if (priceFilterList) {
     priceFilterList.addEventListener("click", function (e) {
       var btn = e.target.closest("[data-price]");
       if (!btn) return;
       priceMin = Number(btn.getAttribute("data-price-min") || 0);
       priceMax = Number(btn.getAttribute("data-price-max") || 50000);
-      if (filterMinPrice) filterMinPrice.value = priceMin;
-      if (filterMaxPrice) filterMaxPrice.value = priceMax;
+      syncMoreFilterPriceUI();
       searchArea();
     });
   }
@@ -335,9 +342,120 @@
       }
       document.querySelectorAll('[data-price]').forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-price") === "all" ? "true" : "false"); });
       if (openNowSwitch) openNowSwitch.checked = false;
+      minRatingFilter = 0;
+      resetMoreFilterUI();
       searchArea();
     });
   }
+
+  // ==========================================================
+  // 상세 필터 모달(2026-08-12 추가) — 지금까지 화면에만 있고 뒤에 아무 JS도 없어서 슬라이더를
+  // 움직여도 값 표시가 그대로였고 "적용하기"도 실제로 검색에 반영되지 않던 걸 발견해서 구현.
+  // ==========================================================
+  var priceMinHandle = document.getElementById("priceMinHandle");
+  var priceMaxHandle = document.getElementById("priceMaxHandle");
+  var priceRangeFill = document.getElementById("priceRangeFill");
+  var priceMinValue = document.getElementById("priceMinValue");
+  var priceMaxValue = document.getElementById("priceMaxValue");
+  var priceRangeLabel = document.getElementById("priceRangeLabel");
+  var filterMinRating = document.getElementById("filterMinRating");
+  var filterMinRatingText = document.getElementById("filterMinRatingText");
+  var filterDistance = document.getElementById("filterDistance");
+  var filterDistanceText = document.getElementById("filterDistanceText");
+  var moreFilterApplyBtn = document.getElementById("moreFilterApplyBtn");
+  var moreFilterResetBtn = document.getElementById("moreFilterResetBtn");
+  var PRICE_HANDLE_MAX = 50000;
+  var DISTANCE_MIN = 300, DISTANCE_MAX = 3000;
+
+  function formatWon(v) {
+    return v >= PRICE_HANDLE_MAX ? "5만원+" : Number(v).toLocaleString() + "원";
+  }
+  function formatDistance(v) {
+    return v < 1000 ? v + "m" : (v / 1000).toFixed(1).replace(/\.0$/, "") + "km";
+  }
+
+  function renderPriceRangeUI(min, max) {
+    if (priceMinValue) priceMinValue.textContent = formatWon(min);
+    if (priceMaxValue) priceMaxValue.textContent = formatWon(max);
+    if (priceRangeLabel) priceRangeLabel.textContent = (min <= 0 && max >= PRICE_HANDLE_MAX) ? "전체" : formatWon(min) + " ~ " + formatWon(max);
+    if (priceRangeFill) {
+      var left = (min / PRICE_HANDLE_MAX) * 100;
+      var right = 100 - (max / PRICE_HANDLE_MAX) * 100;
+      priceRangeFill.style.left = left + "%";
+      priceRangeFill.style.right = right + "%";
+    }
+  }
+
+  function syncMoreFilterPriceUI() {
+    if (priceMinHandle) priceMinHandle.value = priceMin;
+    if (priceMaxHandle) priceMaxHandle.value = priceMax;
+    renderPriceRangeUI(priceMin, priceMax);
+  }
+
+  if (priceMinHandle && priceMaxHandle) {
+    priceMinHandle.addEventListener("input", function () {
+      var v = Math.min(Number(priceMinHandle.value), Number(priceMaxHandle.value));
+      priceMinHandle.value = v;
+      renderPriceRangeUI(v, Number(priceMaxHandle.value));
+    });
+    priceMaxHandle.addEventListener("input", function () {
+      var v = Math.max(Number(priceMaxHandle.value), Number(priceMinHandle.value));
+      priceMaxHandle.value = v;
+      renderPriceRangeUI(Number(priceMinHandle.value), v);
+    });
+  }
+
+  if (filterMinRating) {
+    filterMinRating.addEventListener("input", function () {
+      var v = Number(filterMinRating.value);
+      if (filterMinRatingText) filterMinRatingText.textContent = v > 0 ? v.toFixed(1) + " 이상" : "전체";
+    });
+  }
+
+  // 검색은 지도에 보이는 영역(bbox) 기준이라 반경 파라미터 자체가 없다 — 대신 "적용하기"를 누르면
+  // 요청한 반경만큼 지도를 확대/축소해서 실제로 그 범위를 검색하게 만든다(아래 moreFilterApplyBtn).
+  if (filterDistance) {
+    filterDistance.addEventListener("input", function () {
+      if (filterDistanceText) filterDistanceText.textContent = formatDistance(Number(filterDistance.value));
+    });
+  }
+
+  function resetMoreFilterUI() {
+    if (priceMinHandle) priceMinHandle.value = 0;
+    if (priceMaxHandle) priceMaxHandle.value = PRICE_HANDLE_MAX;
+    renderPriceRangeUI(0, PRICE_HANDLE_MAX);
+    if (filterMinRating) filterMinRating.value = 0;
+    if (filterMinRatingText) filterMinRatingText.textContent = "전체";
+    if (filterDistance) filterDistance.value = 1000;
+    if (filterDistanceText) filterDistanceText.textContent = "1km";
+  }
+
+  if (moreFilterResetBtn) moreFilterResetBtn.addEventListener("click", resetMoreFilterUI);
+
+  if (moreFilterApplyBtn) {
+    moreFilterApplyBtn.addEventListener("click", function () {
+      if (priceMinHandle && priceMaxHandle) {
+        priceMin = Number(priceMinHandle.value);
+        priceMax = Number(priceMaxHandle.value);
+        document.querySelectorAll("[data-price]").forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
+      }
+      minRatingFilter = filterMinRating ? Number(filterMinRating.value) : 0;
+      if (map && filterDistance) {
+        var radiusMeters = Number(filterDistance.value);
+        var center = map.getCenter();
+        var dLat = radiusMeters / 111000;
+        var dLng = radiusMeters / (111000 * Math.cos(center.y * Math.PI / 180));
+        map.fitBounds(new naver.maps.LatLngBounds(
+          new naver.maps.LatLng(center.y - dLat, center.x - dLng),
+          new naver.maps.LatLng(center.y + dLat, center.x + dLng)
+        ));
+      }
+      searchArea();
+    });
+  }
+
+  // 초기 렌더 값(HTML 기본값)과 라벨을 맞춘다.
+  renderPriceRangeUI(0, PRICE_HANDLE_MAX);
 
   // "영업중만" 토글(2026-08-03) — 사업자가 영업시간을 등록한 가게만 대상으로 서버(openNow 파라미터)가
   // 실제로 필터링한다. 영업시간 미등록 가게는 열려있는지 알 방법이 없어 결과에서 함께 빠진다.
@@ -479,10 +597,20 @@
           (keywords ? '<div class="flex flex-wrap gap-1 mt-2">' + keywords + '</div>' : "") +
           '<p class="t-sm mt-2.5 leading-relaxed">' + escapeHtml(r.content) + '</p>' +
           (photos ? '<div class="flex flex-wrap gap-2 mt-2.5">' + photos + '</div>' : "") +
-          '<button type="button" class="btn btn-ghost btn-xs mt-2 inline-flex items-center gap-1" data-report-review="' + r.reviewId + '">' +
+          '<div class="flex items-center gap-1 mt-2">' +
+          // "도움됨"(2026-08-12 추가) — 본인 리뷰인지는 이 응답만으로는 알 수 없어(작성자 memberId를
+          // 안 내려줌) 버튼은 항상 보여주고, 본인 리뷰를 눌렀을 때만 서버가 REVIEW_HELPFUL_SELF_NOT_ALLOWED로
+          // 거부하면 그 메시지를 토스트로 보여준다.
+          '<button type="button" class="btn btn-ghost btn-xs inline-flex items-center gap-1' + (r.helpfulByMe ? " is-active" : "") + '" ' +
+            'data-toggle-helpful="' + r.reviewId + '" aria-pressed="' + (r.helpfulByMe ? "true" : "false") + '" style="' + (r.helpfulByMe ? "color:var(--brand-600)" : "") + '">' +
+            '<svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="' + (r.helpfulByMe ? "currentColor" : "none") + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h12.6a2 2 0 0 0 2-1.7l1.2-8a2 2 0 0 0-2-2.3H14V4a2 2 0 0 0-2-2h-.5a1 1 0 0 0-1 .8L9 8.5 7 11"/></svg>' +
+            '<span>도움돼요</span> <span data-helpful-count>' + (r.helpfulCount || 0) + '</span>' +
+          '</button>' +
+          '<button type="button" class="btn btn-ghost btn-xs inline-flex items-center gap-1" data-report-review="' + r.reviewId + '">' +
             '<svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 3h6l-1 4 1 4h-8l1-3H4"/></svg>' +
             '신고' +
           '</button>' +
+          '</div>' +
           '</li>';
       }).join("");
     }
@@ -495,6 +623,23 @@
       });
     });
 
+    el.querySelectorAll("[data-toggle-helpful]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
+        var reviewId = btn.getAttribute("data-toggle-helpful");
+        btn.disabled = true;
+        Api.request("/api/reviews/" + reviewId + "/helpful", { method: "POST" })
+          .then(function (res) {
+            btn.setAttribute("aria-pressed", res.helpfulByMe ? "true" : "false");
+            btn.classList.toggle("is-active", res.helpfulByMe);
+            btn.style.color = res.helpfulByMe ? "var(--brand-600)" : "";
+            btn.querySelector("svg").setAttribute("fill", res.helpfulByMe ? "currentColor" : "none");
+            btn.querySelector("[data-helpful-count]").textContent = res.helpfulCount;
+          })
+          .catch(function (err) { Eatty.toast(err.message || "처리에 실패했습니다.", "error"); })
+          .finally(function () { btn.disabled = false; });
+      });
+    });
   }
 
   var reportTargetReviewId = null;

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.foodtrip.foodsearch.review.dto.CreateReviewRequestDto;
+import com.foodtrip.foodsearch.review.dto.ReviewHelpfulResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewImageResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewResponseDto;
 import com.foodtrip.foodsearch.review.dto.UpdateReviewRequestDto;
@@ -42,8 +43,9 @@ public class ReviewController {
     }
 
     @GetMapping("/api/restaurants/{restaurantId}/reviews")
-    public List<ReviewResponseDto> listByRestaurant(@PathVariable String restaurantId) {
-        return reviewService.listByRestaurant(restaurantId);
+    public List<ReviewResponseDto> listByRestaurant(@PathVariable String restaurantId,
+                                                      @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return reviewService.listByRestaurant(restaurantId, authorizationHeader);
     }
 
     @PatchMapping("/api/reviews/{reviewId}")
@@ -74,5 +76,12 @@ public class ReviewController {
                                                        @PathVariable Long reviewImageId,
                                                        @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         return reviewService.deleteImage(reviewId, reviewImageId, authorizationHeader);
+    }
+
+    // 리뷰 "도움됨" 토글(2026-08-12 추가) — 눌렀을 때 등록, 다시 누르면 취소.
+    @PostMapping("/api/reviews/{reviewId}/helpful")
+    public ReviewHelpfulResponseDto toggleHelpful(@PathVariable Long reviewId,
+                                                    @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return reviewService.toggleHelpful(reviewId, authorizationHeader);
     }
 }

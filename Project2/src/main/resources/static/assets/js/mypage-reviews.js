@@ -51,11 +51,6 @@
   var summaryAvgRating = document.getElementById("summaryAvgRating");
   var summaryThisMonth = document.getElementById("summaryThisMonth");
   var summaryHelpful = document.getElementById("summaryHelpful");
-  // "도움됨" 누적 수는 백엔드에 없는 값이라 통계 카드에서 숨긴다(지어낸 수치 금지).
-  if (summaryHelpful) {
-    var helpfulCard = summaryHelpful.closest(".e-card");
-    if (helpfulCard) helpfulCard.hidden = true;
-  }
 
   function renderReviewItem(r) {
     var li = document.createElement("li");
@@ -77,6 +72,7 @@
             '<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">' +
               '<span class="e-rating">' + starsHtml(r.rating) + '<span class="e-rating-score">' + r.rating.toFixed(1) + '</span></span>' +
               '<span class="t-xs t-num">' + formatDate(r.createdAt) + ' 작성</span>' +
+              (r.helpfulCount ? '<span class="t-xs" style="color:var(--ink-400)">도움돼요 ' + r.helpfulCount + '</span>' : "") +
             '</div>' +
           '</div>' +
           '<div class="e-dropdown flex-none">' +
@@ -195,6 +191,7 @@
     filtered.sort(function (a, b) {
       if (sort === "rating-high") return b.rating - a.rating || new Date(b.createdAt) - new Date(a.createdAt);
       if (sort === "rating-low") return a.rating - b.rating || new Date(b.createdAt) - new Date(a.createdAt);
+      if (sort === "helpful") return (b.helpfulCount || 0) - (a.helpfulCount || 0) || new Date(b.createdAt) - new Date(a.createdAt);
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
@@ -216,6 +213,9 @@
       summaryAvgRating.textContent = reviews.length
         ? (reviews.reduce(function (s, r) { return s + r.rating; }, 0) / reviews.length).toFixed(1)
         : "-";
+    }
+    if (summaryHelpful) {
+      summaryHelpful.textContent = reviews.reduce(function (s, r) { return s + (r.helpfulCount || 0); }, 0);
     }
     if (summaryThisMonth) {
       var ym = new Date().toISOString().slice(0, 7);

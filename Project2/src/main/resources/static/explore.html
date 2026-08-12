@@ -43,7 +43,8 @@
    #openNowSwitch           영업중만 보기 switch
    #filterResetBtn          필터 초기화
    #moreFilterBtn           상세 필터 모달 열기 (data-modal-open="moreFilterModal")
-   #moreFilterModal         상세 필터 모달 (가격/평점/거리/편의시설)
+   #moreFilterModal         상세 필터 모달 (가격/평점/거리) — 편의시설은 카카오 로컬 API에 데이터가
+                            없어 제거함(2026-08-12)
      #priceRangeDual        가격 이중 슬라이더 래퍼
        #priceMinHandle      최소 금액 손잡이 (data-range-min)
        #priceMaxHandle      최대 금액 손잡이 (data-range-max)
@@ -814,26 +815,13 @@
         <div class="flex justify-between t-xs mt-1"><span>전체</span><span>2.5</span><span>5.0</span></div>
       </div>
 
-      <div class="e-field">
+      <div class="e-field !mb-0">
         <label class="e-label" for="filterDistance">
           검색 반경
           <span class="e-label-side" id="filterDistanceText">1km</span>
         </label>
         <input type="range" class="w-full accent-[var(--brand-500)]" id="filterDistance" name="distance" min="300" max="3000" step="100" value="1000">
         <div class="flex justify-between t-xs mt-1"><span>300m</span><span>1.5km</span><span>3km</span></div>
-      </div>
-
-      <div class="e-field !mb-0">
-        <span class="e-label">편의시설</span>
-        <div class="flex flex-wrap gap-2">
-          <label class="e-chip-check"><input type="checkbox" name="amenity" value="parking"><span class="e-chip e-chip-sm">주차 가능</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="amenity" value="wifi"><span class="e-chip e-chip-sm">와이파이</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="amenity" value="pet"><span class="e-chip e-chip-sm">반려동물</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="amenity" value="kids"><span class="e-chip e-chip-sm">유아 의자</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="amenity" value="group"><span class="e-chip e-chip-sm">단체석</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="amenity" value="takeout"><span class="e-chip e-chip-sm">포장 가능</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="amenity" value="barrierFree"><span class="e-chip e-chip-sm">휠체어 접근</span></label>
-        </div>
       </div>
     </div>
 

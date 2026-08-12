@@ -280,7 +280,7 @@
         <!-- ==================== 결과 ==================== -->
         <div id="recommendResult" hidden>
           <!-- 결과 헤더 -->
-          <div class="flex flex-wrap items-center gap-3 mb-4">
+          <div class="flex flex-wrap items-center gap-3 mb-1">
             <h2 class="t-h3" id="recommendResultTitle">추천 결과</h2>
             <div class="ml-auto flex gap-2">
               <button type="button" class="btn btn-outline btn-sm" id="saveAllBtn">
@@ -293,6 +293,9 @@
               </a>
             </div>
           </div>
+          <!-- 2026-08-12 추가 — 백엔드가 이미 내려주던 data_notice(예산 조건은 카카오 API에 가격 정보가
+               없어 결과 필터링에 반영되지 않는다는 안내)가 화면에 한 번도 표시된 적이 없어서 추가. -->
+          <p class="t-xs mb-4" style="color:var(--ink-400)" id="recommendDataNotice" hidden></p>
 
           <!-- 추천 카드 목록 -->
           <div class="space-y-4" id="recommendCardList">

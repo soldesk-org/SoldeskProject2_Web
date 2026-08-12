@@ -32,12 +32,15 @@ public class MyPageReviewResponseDto {
     private final String roadAddress;
     private final BigDecimal latitude;
     private final BigDecimal longitude;
+    // "도움됨" 투표 수(2026-08-12 추가) — "받은 도움됨" 통계 카드/"도움됨 많은순" 정렬이 실제 데이터
+    // 없이 화면에만 있던 문제를 review_helpful_votes 신설로 해결.
+    private final long helpfulCount;
 
     public MyPageReviewResponseDto(Long reviewId, String restaurantId, String restaurantName, int rating,
                                     String content, boolean receiptVerified, LocalDateTime createdAt,
                                     LocalDateTime updatedAt, List<ReviewKeywordResponseDto> keywords,
                                     List<ReviewImageResponseDto> images, String address, String roadAddress,
-                                    BigDecimal latitude, BigDecimal longitude) {
+                                    BigDecimal latitude, BigDecimal longitude, long helpfulCount) {
         this.reviewId = reviewId;
         this.restaurantId = restaurantId;
         this.restaurantName = restaurantName;
@@ -52,6 +55,7 @@ public class MyPageReviewResponseDto {
         this.roadAddress = roadAddress;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.helpfulCount = helpfulCount;
     }
 
     public Long getReviewId() {
@@ -108,5 +112,9 @@ public class MyPageReviewResponseDto {
 
     public BigDecimal getLongitude() {
         return longitude;
+    }
+
+    public long getHelpfulCount() {
+        return helpfulCount;
     }
 }

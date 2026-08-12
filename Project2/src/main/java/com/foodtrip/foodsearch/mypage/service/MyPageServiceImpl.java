@@ -22,6 +22,7 @@ import com.foodtrip.foodsearch.review.dto.ReviewImageResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewKeywordResponseDto;
 import com.foodtrip.foodsearch.review.entity.Review;
 import com.foodtrip.foodsearch.review.entity.ReviewImage;
+import com.foodtrip.foodsearch.review.repository.ReviewHelpfulVoteRepository;
 import com.foodtrip.foodsearch.review.repository.ReviewImageRepository;
 import com.foodtrip.foodsearch.review.repository.ReviewRepository;
 import com.foodtrip.foodsearch.review.service.ReviewKeywordCatalog;
@@ -43,11 +44,13 @@ public class MyPageServiceImpl implements MyPageService {
     private final JwtProvider jwtProvider;
     private final AccessTokenSessionService accessTokenSessionService;
     private final ReviewImageRepository reviewImageRepository;
+    private final ReviewHelpfulVoteRepository reviewHelpfulVoteRepository;
 
     public MyPageServiceImpl(FavoriteRepository favoriteRepository, ReviewRepository reviewRepository,
                               SearchHistoryRepository searchHistoryRepository, ReviewKeywordDao reviewKeywordDao,
                               JwtProvider jwtProvider, AccessTokenSessionService accessTokenSessionService,
-                              ReviewImageRepository reviewImageRepository) {
+                              ReviewImageRepository reviewImageRepository,
+                              ReviewHelpfulVoteRepository reviewHelpfulVoteRepository) {
         this.favoriteRepository = favoriteRepository;
         this.reviewRepository = reviewRepository;
         this.searchHistoryRepository = searchHistoryRepository;
@@ -55,6 +58,7 @@ public class MyPageServiceImpl implements MyPageService {
         this.jwtProvider = jwtProvider;
         this.accessTokenSessionService = accessTokenSessionService;
         this.reviewImageRepository = reviewImageRepository;
+        this.reviewHelpfulVoteRepository = reviewHelpfulVoteRepository;
     }
 
     @Override
@@ -78,12 +82,18 @@ public class MyPageServiceImpl implements MyPageService {
                         Collectors.mapping(img -> new ReviewImageResponseDto(img.getReviewImageId(), img.getImageUrl()),
                                 Collectors.toList())));
 
+        Map<Long, Long> helpfulCountByReviewId = new java.util.HashMap<>();
+        for (Object[] row : reviewHelpfulVoteRepository.countByReviewIdIn(reviewIds)) {
+            helpfulCountByReviewId.put((Long) row[0], (Long) row[1]);
+        }
+
         return reviews.stream()
                 .map(r -> new MyPageReviewResponseDto(r.getReviewId(), r.getRestaurantId(), r.getRestaurantNameSnapshot(),
                         r.getRating(), r.getContent(), r.isReceiptVerified(), r.getCreatedAt(), r.getUpdatedAt(),
                         toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of())),
                         imagesByReviewId.getOrDefault(r.getReviewId(), List.of()),
-                        r.getAddressSnapshot(), r.getRoadAddressSnapshot(), r.getLatitudeSnapshot(), r.getLongitudeSnapshot()))
+                        r.getAddressSnapshot(), r.getRoadAddressSnapshot(), r.getLatitudeSnapshot(), r.getLongitudeSnapshot(),
+                        helpfulCountByReviewId.getOrDefault(r.getReviewId(), 0L)))
                 .collect(Collectors.toList());
     }
 

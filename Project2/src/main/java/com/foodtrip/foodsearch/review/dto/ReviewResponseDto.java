@@ -21,10 +21,15 @@ public class ReviewResponseDto {
     private final List<ReviewKeywordResponseDto> keywords;
     // 리뷰 사진(2026-08-10 추가) — 최대 3장, 등록 순서대로.
     private final List<ReviewImageResponseDto> images;
+    // "도움됨" 투표(2026-08-12 추가) — helpfulCount는 항상, helpfulByMe는 로그인 요청일 때만 실제 값
+    // (비로그인이면 항상 false).
+    private final long helpfulCount;
+    private final boolean helpfulByMe;
 
     public ReviewResponseDto(Long reviewId, String nickname, String profileImageUrl, int rating, String content,
                               boolean receiptVerified, LocalDateTime createdAt, LocalDateTime updatedAt,
-                              List<ReviewKeywordResponseDto> keywords, List<ReviewImageResponseDto> images) {
+                              List<ReviewKeywordResponseDto> keywords, List<ReviewImageResponseDto> images,
+                              long helpfulCount, boolean helpfulByMe) {
         this.reviewId = reviewId;
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
@@ -35,6 +40,8 @@ public class ReviewResponseDto {
         this.updatedAt = updatedAt;
         this.keywords = keywords;
         this.images = images;
+        this.helpfulCount = helpfulCount;
+        this.helpfulByMe = helpfulByMe;
     }
 
     public Long getReviewId() {
@@ -75,5 +82,13 @@ public class ReviewResponseDto {
 
     public List<ReviewImageResponseDto> getImages() {
         return images;
+    }
+
+    public long getHelpfulCount() {
+        return helpfulCount;
+    }
+
+    public boolean isHelpfulByMe() {
+        return helpfulByMe;
     }
 }
