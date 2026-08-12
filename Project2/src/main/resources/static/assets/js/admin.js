@@ -553,7 +553,10 @@
       renderReviews();
       renderReports();
       document.getElementById("adminLastUpdated").textContent = new Date().toLocaleTimeString();
-    }).catch(function () {});
+    }).catch(function (err) {
+      // 2026-08-12 수정 — 예전엔 실패를 그냥 삼켜서 관리자가 갱신이 안 됐는지 알 방법이 없었다.
+      Eatty.toast((err && err.message) || "데이터를 불러오지 못했습니다.", "error");
+    });
   }
 
   document.getElementById("adminRefreshBtn").addEventListener("click", reloadAll);
