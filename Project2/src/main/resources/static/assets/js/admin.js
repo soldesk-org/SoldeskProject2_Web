@@ -556,10 +556,15 @@
     }).catch(function (err) {
       // 2026-08-12 수정 — 예전엔 실패를 그냥 삼켜서 관리자가 갱신이 안 됐는지 알 방법이 없었다.
       Eatty.toast((err && err.message) || "데이터를 불러오지 못했습니다.", "error");
+      throw err; // 호출부(갱신 버튼 등)가 성공 여부를 구분할 수 있도록 다시 던진다.
     });
   }
 
-  document.getElementById("adminRefreshBtn").addEventListener("click", reloadAll);
+  // 2026-08-12 추가 — 갱신 버튼을 눌렀을 때 성공해도 아무 반응이 없어 "갱신됐나?" 헷갈린다는 지적으로
+  // 성공 토스트 추가(실패는 위 reloadAll()의 catch가 이미 토스트로 안내하므로 여기선 조용히 무시).
+  document.getElementById("adminRefreshBtn").addEventListener("click", function () {
+    reloadAll().then(function () { Eatty.toast("최신 데이터로 갱신했습니다.", "success"); }).catch(function () {});
+  });
   var adminSearchInput = document.getElementById("adminSearchInput");
   adminSearchInput.addEventListener("keydown", function (e) {
     if (e.key !== "Enter") return;

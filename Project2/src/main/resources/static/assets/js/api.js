@@ -188,9 +188,13 @@
 
     // 2026-08-12 추가 — 헤더 프로필 드롭다운(#headerProfileMenu) 메뉴 항목이 페이지마다 각자 손으로
     // 복붙되면서 서로 달라져 있었다(어떤 페이지는 "프로필 수정"이 아예 없고, 어떤 페이지는 "내 리뷰"가
-    // 빠져있는 등). business-mypage.html은 사업자 전용 메뉴("내 매장 관리" 등)라 대상에서 제외하고,
-    // 일반회원(state === "user")일 때만 마이페이지/내 리뷰/프로필 수정/로그아웃 4개로 고정 재구성한다.
-    if (state === "user") {
+    // 빠져있는 등). business-mypage.html은 사업자 전용 메뉴("내 매장 관리" 등)라 대상에서 제외한다.
+    // (2026-08-12 2차 추가) admin/business 계정이 index.html 등 일반 페이지에서 이 드롭다운을 열면
+    // "관리자 콘솔"/"내 매장 관리" 링크가 함께 나왔는데, 이미 상단 네비게이션에 "관리자"/"내 매장" 탭이
+    // 있어서 중복이라는 지적으로 admin/business도 같은 4개 항목으로 통일한다(사업자 본인 전용 페이지인
+    // business-mypage.html만 예외).
+    var onBusinessOwnPage = /\/business-mypage(\.html)?\/?$/.test(window.location.pathname);
+    if ((state === "user" || state === "admin" || state === "business") && !(state === "business" && onBusinessOwnPage)) {
       var profileMenu = document.getElementById("headerProfileMenu");
       var menuHead = profileMenu && profileMenu.querySelector(".e-dropdown-head");
       if (profileMenu && menuHead) {
