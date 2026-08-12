@@ -16,7 +16,8 @@
           '<span class="t-xs font-bold text-[var(--ink-700)]">' + label + '</span>' +
           '<span class="t-xs t-num">' + pct + '%</span>' +
         '</div>' +
-        '<div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:' + pct + '%"></div></div>' +
+        // 2026-08-12 — "바가 얇다"는 피드백으로 기본 e-progress(8px)보다 더 두껍게(12px) 키운다.
+        '<div class="e-progress" style="height:12px"><div class="e-progress-bar" style="width:' + pct + '%"></div></div>' +
       '</div>'
     );
   }
