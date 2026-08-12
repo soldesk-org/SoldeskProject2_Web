@@ -16,6 +16,9 @@ public class MyPageReviewResponseDto {
     private final String content;
     private final boolean receiptVerified;
     private final LocalDateTime createdAt;
+    // 2026-08-12 추가 — "수정하면 작성일이 '수정됨'으로 표시됩니다" 안내 문구가 실제로는 아무 데도
+    // 반영이 안 되고 있던 걸 발견해서 추가.
+    private final LocalDateTime updatedAt;
     // 리뷰 태그(2026-07-22 추가).
     private final List<ReviewKeywordResponseDto> keywords;
     // 2026-08-10 추가 — 리뷰 첨부 사진이 이 "내가 쓴 리뷰" 목록엔 안 보이던 걸 발견해 추가(고객용
@@ -24,7 +27,8 @@ public class MyPageReviewResponseDto {
 
     public MyPageReviewResponseDto(Long reviewId, String restaurantId, String restaurantName, int rating,
                                     String content, boolean receiptVerified, LocalDateTime createdAt,
-                                    List<ReviewKeywordResponseDto> keywords, List<ReviewImageResponseDto> images) {
+                                    LocalDateTime updatedAt, List<ReviewKeywordResponseDto> keywords,
+                                    List<ReviewImageResponseDto> images) {
         this.reviewId = reviewId;
         this.restaurantId = restaurantId;
         this.restaurantName = restaurantName;
@@ -32,6 +36,7 @@ public class MyPageReviewResponseDto {
         this.content = content;
         this.receiptVerified = receiptVerified;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
         this.keywords = keywords;
         this.images = images;
     }
@@ -62,6 +67,10 @@ public class MyPageReviewResponseDto {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
     public List<ReviewKeywordResponseDto> getKeywords() {

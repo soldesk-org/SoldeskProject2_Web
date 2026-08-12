@@ -164,6 +164,12 @@ public class Review {
         return createdAt;
     }
 
+    // 2026-08-12 추가 — "수정하면 작성일이 '수정됨'으로 표시됩니다" 안내 문구가 실제로는 아무것도
+    // 안 하고 있던 걸 발견해서 추가(마이페이지 "내가 쓴 리뷰"에서 실제로 보여주기 위해 필요).
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
     public String getRestaurantNameSnapshot() {
         return restaurantNameSnapshot;
     }

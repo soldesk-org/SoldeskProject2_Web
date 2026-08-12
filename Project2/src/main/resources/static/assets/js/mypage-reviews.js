@@ -9,6 +9,10 @@
     if (!iso) return "-";
     return String(iso).slice(0, 10);
   }
+  function isEdited(r) {
+    if (!r.updatedAt || !r.createdAt) return false;
+    return Math.abs(new Date(r.updatedAt).getTime() - new Date(r.createdAt).getTime()) > 60000;
+  }
   function starsHtml(rating) {
     var html = "";
     for (var i = 1; i <= 5; i++) {
@@ -60,7 +64,12 @@
             '</div>' +
             '<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">' +
               '<span class="e-rating">' + starsHtml(r.rating) + '<span class="e-rating-score">' + r.rating.toFixed(1) + '</span></span>' +
-              '<span class="t-xs t-num">' + formatDate(r.createdAt) + ' 작성</span>' +
+              // 2026-08-12 추가 — "수정하면 작성일이 '수정됨'으로 표시됩니다" 안내가 실제로는 아무 데도
+              // 반영이 안 되던 걸 발견해서 실제로 보여주도록 구현. updatedAt이 createdAt과 1분 넘게
+              // 차이나면 실제로 수정된 것으로 판단(같은 순간 두 값이 몇 초 어긋나는 DB 라운딩은 무시).
+              '<span class="t-xs t-num">' + formatDate(r.createdAt) + ' 작성' +
+                (isEdited(r) ? ' · 수정됨' : '') +
+              '</span>' +
             '</div>' +
           '</div>' +
           '<div class="e-dropdown flex-none">' +
