@@ -15,6 +15,8 @@ import com.foodtrip.foodsearch.foodbti.dto.FoodBtiResultResponseDto;
 import com.foodtrip.foodsearch.foodbti.service.FoodBtiService;
 import com.foodtrip.foodsearch.member.service.AccessTokenSessionService;
 import com.foodtrip.foodsearch.recommendation.client.RecommendationClient;
+import com.foodtrip.foodsearch.restaurant.entity.Favorite;
+import com.foodtrip.foodsearch.restaurant.repository.FavoriteRepository;
 import com.foodtrip.foodsearch.recommendation.dto.RecommendResponseDto;
 import com.foodtrip.foodsearch.recommendation.dto.RecommendationFeedbackResponseDto;
 import com.foodtrip.foodsearch.recommendation.dto.RecommendationSearchAnalysisDto;
@@ -38,17 +40,20 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final JwtProvider jwtProvider;
     private final AccessTokenSessionService accessTokenSessionService;
     private final FoodBtiService foodBtiService;
+    private final FavoriteRepository favoriteRepository;
 
     public RecommendationServiceImpl(RecommendationClient recommendationClient,
                                       RecommendationHistoryRepository recommendationHistoryRepository,
                                       JwtProvider jwtProvider,
                                       AccessTokenSessionService accessTokenSessionService,
-                                      FoodBtiService foodBtiService) {
+                                      FoodBtiService foodBtiService,
+                                      FavoriteRepository favoriteRepository) {
         this.recommendationClient = recommendationClient;
         this.recommendationHistoryRepository = recommendationHistoryRepository;
         this.jwtProvider = jwtProvider;
         this.accessTokenSessionService = accessTokenSessionService;
         this.foodBtiService = foodBtiService;
+        this.favoriteRepository = favoriteRepository;
     }
 
     @Override
@@ -61,7 +66,11 @@ public class RecommendationServiceImpl implements RecommendationService {
         // 원문 뒤에 자연스러운 문장으로 덧붙여서 Python(recommendation_api.py)의 LLM 분석기에 같이
         // 넘긴다 - 팀원 Python 코드는 건드리지 않고, 입력 텍스트만 보강하는 방식이라 안전하다. 음BTI
         // 결과가 없거나 비로그인이면 원문 그대로 보낸다(조용히 건너뜀, 추천 자체를 막지 않음).
+        // 2026-08-10 — 홈 배너("즐겨찾기 이력을 반영해 후보를 추립니다")가 실제로는 반영되지 않고 있던
+        // 걸 발견해서 추가. 음BTI 힌트와 같은 방식(원문 텍스트 보강)으로, 최근 즐겨찾기한 가게 이름 몇 개를
+        // 자연어 힌트로 덧붙인다.
         String augmentedText = augmentWithFoodBti(authorizationHeader, memberId, text);
+        augmentedText = augmentWithFavorites(memberId, augmentedText);
         RecommendResponseDto response = recommendationClient.recommend(augmentedText, x, y, radius, size);
 
         if (memberId == null) {
@@ -110,6 +119,29 @@ public class RecommendationServiceImpl implements RecommendationService {
             // 음BTI 결과가 아직 없는 회원(FOOD_BTI_RESULT_NOT_FOUND) — 원문 그대로 진행.
             return text;
         }
+    }
+
+    // 최근 즐겨찾기한 가게 이름 상위 3개를 자연어 문장으로 붙인다(2026-08-10 추가) — augmentWithFoodBti와
+    // 같은 톤/같은 보조 역할(강제로 그 가게만 나오게 만드는 게 아니라 조건이 애매할 때만 참고).
+    // restaurantNameSnapshot만 저장돼 있어 카테고리 정보는 없지만, 가게명 자체도 어느 정도 음식 종류를
+    // 암시한다("교촌치킨"처럼)고 판단해 그대로 사용한다.
+    private String augmentWithFavorites(Long memberId, String text) {
+        if (memberId == null) {
+            return text;
+        }
+        List<Favorite> favorites = favoriteRepository.findByMemberIdOrderByCreatedAtDesc(memberId);
+        if (favorites.isEmpty()) {
+            return text;
+        }
+        String preferred = favorites.stream()
+                .map(Favorite::getRestaurantNameSnapshot)
+                .filter(name -> name != null && !name.isBlank())
+                .limit(3)
+                .collect(Collectors.joining(", "));
+        if (preferred.isBlank()) {
+            return text;
+        }
+        return text + " (평소에 " + preferred + " 같은 곳을 즐겨찾기해뒀어요.)";
     }
 
     // analysis의 여러 키워드 목록을 하나로 합쳐 500자 제한(extracted_keywords 컬럼)에 맞게 자른다.
