@@ -186,6 +186,34 @@
     }
     global.Eatty.setAuth(state);
 
+    // 2026-08-12 추가 — 헤더 프로필 드롭다운(#headerProfileMenu) 메뉴 항목이 페이지마다 각자 손으로
+    // 복붙되면서 서로 달라져 있었다(어떤 페이지는 "프로필 수정"이 아예 없고, 어떤 페이지는 "내 리뷰"가
+    // 빠져있는 등). business-mypage.html은 사업자 전용 메뉴("내 매장 관리" 등)라 대상에서 제외하고,
+    // 일반회원(state === "user")일 때만 마이페이지/내 리뷰/프로필 수정/로그아웃 4개로 고정 재구성한다.
+    if (state === "user") {
+      var profileMenu = document.getElementById("headerProfileMenu");
+      var menuHead = profileMenu && profileMenu.querySelector(".e-dropdown-head");
+      if (profileMenu && menuHead) {
+        profileMenu.innerHTML = "";
+        profileMenu.appendChild(menuHead);
+        profileMenu.insertAdjacentHTML("beforeend",
+          '<a class="e-dropdown-item" href="mypage">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>' +
+            '마이페이지</a>' +
+          '<a class="e-dropdown-item" href="mypage-reviews">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>' +
+            '내 리뷰</a>' +
+          '<a class="e-dropdown-item" href="mypage-edit">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 3.5a2.1 2.1 0 0 1 3 3L7.5 14.2l-3.8 1 1-3.8 7.5-7.9Z"/><path d="M20 21H4"/></svg>' +
+            '프로필 수정</a>' +
+          '<div class="e-dropdown-sep"></div>' +
+          '<button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>' +
+            '로그아웃</button>'
+        );
+      }
+    }
+
     // 페이지마다 로그아웃 버튼 id가 다름(headerLogoutBtn/adminLogoutBtn/bizLogoutBtn/drawerLogoutBtn/logoutBtn 등)
     // — "LogoutBtn"으로 끝나거나 정확히 "logoutBtn"인 요소를 전부 잡아서 공통 처리.
     document.querySelectorAll("[id$='LogoutBtn'], #logoutBtn").forEach(function (el) {

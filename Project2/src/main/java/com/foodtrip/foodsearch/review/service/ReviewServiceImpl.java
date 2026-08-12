@@ -247,6 +247,25 @@ public class ReviewServiceImpl implements ReviewService {
         return toImageDtos(reviewId);
     }
 
+    // 리뷰 사진 개별 삭제(2026-08-12 추가) — 그동안 addImages()만 있고 개별 삭제 API가 없어서, 리뷰
+    // 수정 화면에서 사진을 빼려면 방법이 없었다(메뉴 사진에 이미 적용한 것과 동일한 패턴 재사용).
+    @Override
+    @Transactional
+    public List<ReviewImageResponseDto> deleteImage(Long reviewId, Long reviewImageId, String authorizationHeader) {
+        Long memberId = resolveMemberId(authorizationHeader);
+        Review review = reviewRepository.findByReviewIdAndDeletedAtIsNull(reviewId)
+                .orElseThrow(() -> new CustomException(ErrorCode.REVIEW_NOT_FOUND));
+        if (!review.getMemberId().equals(memberId)) {
+            throw new CustomException(ErrorCode.REVIEW_ACCESS_DENIED);
+        }
+        ReviewImage image = reviewImageRepository.findById(reviewImageId)
+                .filter(img -> img.getReviewId().equals(reviewId))
+                .orElseThrow(() -> new CustomException(ErrorCode.REVIEW_IMAGE_NOT_FOUND));
+        reviewImageStorageService.delete(image.getImageUrl());
+        reviewImageRepository.delete(image);
+        return toImageDtos(reviewId);
+    }
+
     private ReviewImageResponseDto toImageDto(ReviewImage image) {
         return new ReviewImageResponseDto(image.getReviewImageId(), image.getImageUrl());
     }

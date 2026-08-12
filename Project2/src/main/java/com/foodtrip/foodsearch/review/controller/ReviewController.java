@@ -68,4 +68,11 @@ public class ReviewController {
                                                     @RequestParam("images") List<MultipartFile> images) {
         return reviewService.addImages(reviewId, authorizationHeader, images);
     }
+
+    @DeleteMapping("/api/reviews/{reviewId}/images/{reviewImageId}")
+    public List<ReviewImageResponseDto> deleteImage(@PathVariable Long reviewId,
+                                                       @PathVariable Long reviewImageId,
+                                                       @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return reviewService.deleteImage(reviewId, reviewImageId, authorizationHeader);
+    }
 }

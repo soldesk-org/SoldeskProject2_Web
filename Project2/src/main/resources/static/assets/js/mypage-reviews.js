@@ -177,6 +177,80 @@
 
   var targetId = null;
 
+  // ---- 리뷰 수정 - 사진 추가/삭제(2026-08-12 추가, 최대 3장, receipt-upload.js와 동일 디자인) ----
+  var EDIT_PHOTO_LIMIT = 3;
+  var editExistingImages = []; // [{reviewImageId, imageUrl}] - 서버에 이미 저장된 사진
+  var editNewFiles = []; // 이번 저장에서 새로 추가할 파일
+  var editReviewPhotoInput = document.getElementById("editReviewPhotoInput");
+  var editReviewPhotoAddBtn = document.getElementById("editReviewPhotoAddBtn");
+  var editReviewPhotoList = document.getElementById("editReviewPhotoList");
+  var editReviewPhotoCount = document.getElementById("editReviewPhotoCount");
+
+  function renderEditReviewPhotos() {
+    editReviewPhotoList.querySelectorAll("[data-photo-preview]").forEach(function (el) { el.remove(); });
+    editExistingImages.forEach(function (img) {
+      var item = document.createElement("div");
+      item.className = "relative w-20 h-20 rounded-[var(--r-md)] overflow-hidden flex-none";
+      item.setAttribute("data-photo-preview", "");
+      item.innerHTML =
+        '<img src="' + escapeHtml(img.imageUrl) + '" class="w-full h-full object-cover" alt="첨부한 리뷰 사진 미리보기">' +
+        '<button type="button" class="absolute right-1 top-1 w-5 h-5 rounded-full bg-black/50 text-white grid place-items-center" data-remove-existing-photo="' + img.reviewImageId + '" aria-label="사진 삭제">' +
+          '<svg style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>';
+      editReviewPhotoList.insertBefore(item, editReviewPhotoAddBtn);
+    });
+    editNewFiles.forEach(function (file, index) {
+      var url = URL.createObjectURL(file);
+      var item = document.createElement("div");
+      item.className = "relative w-20 h-20 rounded-[var(--r-md)] overflow-hidden flex-none";
+      item.setAttribute("data-photo-preview", "");
+      item.innerHTML =
+        '<img src="' + url + '" class="w-full h-full object-cover" alt="첨부한 리뷰 사진 미리보기">' +
+        '<button type="button" class="absolute right-1 top-1 w-5 h-5 rounded-full bg-black/50 text-white grid place-items-center" data-remove-new-photo="' + index + '" aria-label="사진 삭제">' +
+          '<svg style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>';
+      editReviewPhotoList.insertBefore(item, editReviewPhotoAddBtn);
+    });
+    var total = editExistingImages.length + editNewFiles.length;
+    editReviewPhotoCount.textContent = total;
+    editReviewPhotoAddBtn.hidden = total >= EDIT_PHOTO_LIMIT;
+  }
+
+  if (editReviewPhotoAddBtn && editReviewPhotoInput) {
+    editReviewPhotoAddBtn.addEventListener("click", function () { editReviewPhotoInput.click(); });
+    editReviewPhotoInput.addEventListener("change", function () {
+      var picked = Array.prototype.slice.call(editReviewPhotoInput.files || []);
+      var room = EDIT_PHOTO_LIMIT - (editExistingImages.length + editNewFiles.length);
+      if (picked.length > room) {
+        Eatty.toast("사진은 최대 " + EDIT_PHOTO_LIMIT + "장까지 첨부할 수 있어요.", "error");
+      }
+      editNewFiles = editNewFiles.concat(picked.slice(0, room));
+      editReviewPhotoInput.value = "";
+      renderEditReviewPhotos();
+    });
+    editReviewPhotoList.addEventListener("click", function (e) {
+      var newBtn = e.target.closest("[data-remove-new-photo]");
+      if (newBtn) {
+        editNewFiles.splice(Number(newBtn.getAttribute("data-remove-new-photo")), 1);
+        renderEditReviewPhotos();
+        return;
+      }
+      var existingBtn = e.target.closest("[data-remove-existing-photo]");
+      if (!existingBtn) return;
+      var reviewImageId = existingBtn.getAttribute("data-remove-existing-photo");
+      existingBtn.disabled = true;
+      Api.request("/api/reviews/" + targetId + "/images/" + reviewImageId, { method: "DELETE" })
+        .then(function () {
+          editExistingImages = editExistingImages.filter(function (img) { return String(img.reviewImageId) !== reviewImageId; });
+          renderEditReviewPhotos();
+        })
+        .catch(function (err) {
+          Eatty.toast(err.message || "사진 삭제에 실패했습니다.", "error");
+          existingBtn.disabled = false;
+        });
+    });
+  }
+
   reviewList.addEventListener("click", function (e) {
     var editBtn = e.target.closest("[data-edit-review]");
     var delBtn = e.target.closest("[data-delete-review]");
@@ -205,6 +279,10 @@
       document.querySelectorAll('#editPositiveTagList input, #editNegativeTagList input').forEach(function (cb) {
         cb.checked = selectedKeywords.indexOf(cb.value) > -1;
       });
+
+      editExistingImages = (review.images || []).slice();
+      editNewFiles = [];
+      renderEditReviewPhotos();
 
       Eatty.openModal("editReviewModal");
       return;
@@ -237,6 +315,13 @@
     );
 
     Api.request("/api/reviews/" + targetId, { method: "PATCH", body: { rating: rating, content: content, keywords: keywords } })
+      .then(function () {
+        if (!editNewFiles.length) return;
+        var formData = new FormData();
+        editNewFiles.forEach(function (file) { formData.append("images", file); });
+        return Api.request("/api/reviews/" + targetId + "/images", { method: "POST", body: formData, isForm: true })
+          .catch(function (err) { Eatty.toast((err && err.message) || "리뷰 사진 등록에 실패했습니다.", "error"); });
+      })
       .then(function () {
         Eatty.closeModal("editReviewModal");
         Eatty.toast("리뷰를 수정했습니다.", "success");

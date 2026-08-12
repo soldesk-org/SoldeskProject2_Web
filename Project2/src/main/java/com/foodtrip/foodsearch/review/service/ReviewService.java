@@ -22,4 +22,6 @@ public interface ReviewService {
     // 리뷰 사진 첨부(2026-08-10 추가) — 리뷰 작성 직후 별도 호출(receipt-upload.js가 리뷰 생성 성공 후
     // 이어서 호출), 최대 3장까지(기존 첨부 수 포함).
     List<ReviewImageResponseDto> addImages(Long reviewId, String authorizationHeader, List<MultipartFile> images);
+
+    List<ReviewImageResponseDto> deleteImage(Long reviewId, Long reviewImageId, String authorizationHeader);
 }

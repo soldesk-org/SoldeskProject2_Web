@@ -439,6 +439,23 @@
         </div>
       </div>
 
+      <!-- 사진 -->
+      <div class="e-field">
+        <label class="e-label">
+          음식 사진
+          <span class="e-label-side"><span id="editReviewPhotoCount">0</span> / 3</span>
+        </label>
+        <input type="file" id="editReviewPhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
+        <div class="flex flex-wrap gap-2.5" id="editReviewPhotoList">
+          <button type="button"
+                  class="w-20 h-20 rounded-[var(--r-md)] border-2 border-dashed border-[var(--line)] flex flex-col items-center justify-center gap-1 text-[var(--ink-400)] flex-none"
+                  id="editReviewPhotoAddBtn" aria-label="사진 추가">
+            <svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            <span class="t-xs">사진 추가</span>
+          </button>
+        </div>
+      </div>
+
       <!-- 내용 -->
       <div class="e-field !mb-0">
         <label class="e-label" for="editReviewContent">
