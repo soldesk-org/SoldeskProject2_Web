@@ -1,5 +1,6 @@
 package com.foodtrip.foodsearch.mypage.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,11 +25,19 @@ public class MyPageReviewResponseDto {
     // 2026-08-10 추가 — 리뷰 첨부 사진이 이 "내가 쓴 리뷰" 목록엔 안 보이던 걸 발견해 추가(고객용
     // 음식점 상세/사업자 마이페이지엔 이미 있었는데 여기만 빠져 있었음).
     private final List<ReviewImageResponseDto> images;
+    // 2026-08-12 추가 — "가게 보기"가 explore.html의 공유 링크(?shopId=...) 흐름을 타려면 카카오 단건
+    // 재조회가 안 되는 구조상 name/address/좌표를 함께 실어보내야 한다(RestaurantServiceImpl.verifySnapshot
+    // 참고). reviews 테이블에 이미 있던 스냅샷 컬럼을 그대로 노출.
+    private final String address;
+    private final String roadAddress;
+    private final BigDecimal latitude;
+    private final BigDecimal longitude;
 
     public MyPageReviewResponseDto(Long reviewId, String restaurantId, String restaurantName, int rating,
                                     String content, boolean receiptVerified, LocalDateTime createdAt,
                                     LocalDateTime updatedAt, List<ReviewKeywordResponseDto> keywords,
-                                    List<ReviewImageResponseDto> images) {
+                                    List<ReviewImageResponseDto> images, String address, String roadAddress,
+                                    BigDecimal latitude, BigDecimal longitude) {
         this.reviewId = reviewId;
         this.restaurantId = restaurantId;
         this.restaurantName = restaurantName;
@@ -39,6 +48,10 @@ public class MyPageReviewResponseDto {
         this.updatedAt = updatedAt;
         this.keywords = keywords;
         this.images = images;
+        this.address = address;
+        this.roadAddress = roadAddress;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     public Long getReviewId() {
@@ -79,5 +92,21 @@ public class MyPageReviewResponseDto {
 
     public List<ReviewImageResponseDto> getImages() {
         return images;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getRoadAddress() {
+        return roadAddress;
+    }
+
+    public BigDecimal getLatitude() {
+        return latitude;
+    }
+
+    public BigDecimal getLongitude() {
+        return longitude;
     }
 }

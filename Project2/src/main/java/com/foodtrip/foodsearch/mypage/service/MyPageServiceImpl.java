@@ -82,7 +82,8 @@ public class MyPageServiceImpl implements MyPageService {
                 .map(r -> new MyPageReviewResponseDto(r.getReviewId(), r.getRestaurantId(), r.getRestaurantNameSnapshot(),
                         r.getRating(), r.getContent(), r.isReceiptVerified(), r.getCreatedAt(), r.getUpdatedAt(),
                         toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of())),
-                        imagesByReviewId.getOrDefault(r.getReviewId(), List.of())))
+                        imagesByReviewId.getOrDefault(r.getReviewId(), List.of()),
+                        r.getAddressSnapshot(), r.getRoadAddressSnapshot(), r.getLatitudeSnapshot(), r.getLongitudeSnapshot()))
                 .collect(Collectors.toList());
     }
 

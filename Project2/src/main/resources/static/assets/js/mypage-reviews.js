@@ -9,10 +9,6 @@
     if (!iso) return "-";
     return String(iso).slice(0, 10);
   }
-  function isEdited(r) {
-    if (!r.updatedAt || !r.createdAt) return false;
-    return Math.abs(new Date(r.updatedAt).getTime() - new Date(r.createdAt).getTime()) > 60000;
-  }
   function starsHtml(rating) {
     var html = "";
     for (var i = 1; i <= 5; i++) {
@@ -26,6 +22,19 @@
       var cls = k.sentiment === "NEGATIVE" ? "e-tag--neg" : "e-tag--pos";
       return '<span class="e-tag ' + cls + '">' + escapeHtml(k.keyword) + '</span>';
     }).join("");
+  }
+  // 2026-08-12 추가 — "가게 보기"를 눌렀을 때 그 가게만 보이도록 explore.js의 기존 공유 링크
+  // (?shopId=...) 흐름을 재사용. 카카오는 단건 재조회가 안 돼 name/address/좌표를 함께 실어보내야
+  // RestaurantServiceImpl.verifySnapshot이 검증할 수 있다(URLSearchParams가 인코딩까지 해준다).
+  function shopHref(r) {
+    var qp = new URLSearchParams();
+    qp.set("shopId", r.restaurantId);
+    if (r.restaurantName) qp.set("name", r.restaurantName);
+    if (r.address) qp.set("address", r.address);
+    if (r.roadAddress) qp.set("roadAddress", r.roadAddress);
+    if (r.latitude != null) qp.set("latitude", r.latitude);
+    if (r.longitude != null) qp.set("longitude", r.longitude);
+    return "explore?" + qp.toString();
   }
 
   var reviewsCache = [];
@@ -53,23 +62,21 @@
     li.className = "rv-item";
     li.setAttribute("data-review-id", r.reviewId);
     li.setAttribute("data-shop-name", r.restaurantName);
+    var shopUrl = shopHref(r);
     li.innerHTML =
       '<article class="e-card e-card-pad">' +
         '<div class="flex items-start gap-3.5">' +
-          '<a href="explore" class="w-16 h-16 rounded-[var(--r)] e-img-ph flex-none"><svg viewBox="0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg></a>' +
+          // 2026-08-12 — 박스 크기(w-16 h-16)는 그대로 두고 background-size만 키워서 "NO IMAGE"
+          // 배경 이미지가 잘 보이게 한다(e-shop-thumb 클래스는 84px 고정폭까지 함께 와서 박스 자체가
+          // 커지므로 대신 인라인 스타일로 background-size만 덮어쓴다).
+          '<a href="' + shopUrl + '" class="w-16 h-16 rounded-[var(--r)] e-img-ph flex-none" style="background-size:130%"></a>' +
           '<div class="min-w-0 flex-1">' +
             '<div class="flex flex-wrap items-center gap-2">' +
-              '<a href="explore" class="text-[16px] font-extrabold text-[var(--ink-900)] hover:text-[var(--brand-600)]">' + escapeHtml(r.restaurantName) + '</a>' +
-              (r.receiptVerified ? '<span class="e-badge e-badge--success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>영수증 인증</span>' : "") +
+              '<a href="' + shopUrl + '" class="text-[16px] font-extrabold text-[var(--ink-900)] hover:text-[var(--brand-600)]">' + escapeHtml(r.restaurantName) + '</a>' +
             '</div>' +
             '<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">' +
               '<span class="e-rating">' + starsHtml(r.rating) + '<span class="e-rating-score">' + r.rating.toFixed(1) + '</span></span>' +
-              // 2026-08-12 추가 — "수정하면 작성일이 '수정됨'으로 표시됩니다" 안내가 실제로는 아무 데도
-              // 반영이 안 되던 걸 발견해서 실제로 보여주도록 구현. updatedAt이 createdAt과 1분 넘게
-              // 차이나면 실제로 수정된 것으로 판단(같은 순간 두 값이 몇 초 어긋나는 DB 라운딩은 무시).
-              '<span class="t-xs t-num">' + formatDate(r.createdAt) + ' 작성' +
-                (isEdited(r) ? ' · 수정됨' : '') +
-              '</span>' +
+              '<span class="t-xs t-num">' + formatDate(r.createdAt) + ' 작성</span>' +
             '</div>' +
           '</div>' +
           '<div class="e-dropdown flex-none">' +
@@ -77,10 +84,7 @@
               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="5" r=".5"/><circle cx="12" cy="12" r=".5"/><circle cx="12" cy="19" r=".5"/></svg>' +
             '</button>' +
             '<div class="e-dropdown-menu !min-w-[168px]" id="rvMenu' + r.reviewId + '">' +
-              '<button type="button" class="e-dropdown-item" data-edit-review>수정하기</button>' +
-              '<a class="e-dropdown-item" href="explore">가게 보기</a>' +
-              '<div class="e-dropdown-sep"></div>' +
-              '<button type="button" class="e-dropdown-item e-dropdown-item--danger" data-delete-review>삭제하기</button>' +
+              '<a class="e-dropdown-item" href="' + shopUrl + '">가게 보기</a>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -153,9 +157,59 @@
     });
   }
 
-  function renderReviews(reviews) {
-    reviewsCache = reviews;
+  var allReviews = [];
+
+  // 2026-08-12 추가 — 검색/별점/기간/정렬 필터가 화면에만 있고 실제로는 아무 동작도 안 하던 걸 발견해서
+  // 실제로 동작하도록 구현. 통계 카드(총 리뷰/평균 별점/이번 달 작성)는 필터와 무관하게 항상 전체
+  // 기준으로 유지한다.
+  var reviewSearchInput = document.getElementById("reviewSearchInput");
+  var reviewRatingFilter = document.getElementById("reviewRatingFilter");
+  var reviewPeriodFilter = document.getElementById("reviewPeriodFilter");
+  var reviewSortSelect = document.getElementById("reviewSortSelect");
+
+  function periodCutoff(period) {
+    var now = new Date();
+    if (period === "1m") return new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    if (period === "3m") return new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+    if (period === "1y") return new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    return null;
+  }
+
+  function applyFilters() {
+    var search = (reviewSearchInput ? reviewSearchInput.value : "").trim().toLowerCase();
+    var rating = reviewRatingFilter ? reviewRatingFilter.value : "all";
+    var period = reviewPeriodFilter ? reviewPeriodFilter.value : "all";
+    var sort = reviewSortSelect ? reviewSortSelect.value : "recent";
+    var cutoff = periodCutoff(period);
+
+    var filtered = allReviews.filter(function (r) {
+      if (rating !== "all" && String(r.rating) !== rating) return false;
+      if (cutoff && new Date(r.createdAt) < cutoff) return false;
+      if (search) {
+        var haystack = ((r.restaurantName || "") + " " + (r.content || "")).toLowerCase();
+        if (haystack.indexOf(search) === -1) return false;
+      }
+      return true;
+    });
+
+    filtered.sort(function (a, b) {
+      if (sort === "rating-high") return b.rating - a.rating || new Date(b.createdAt) - new Date(a.createdAt);
+      if (sort === "rating-low") return a.rating - b.rating || new Date(b.createdAt) - new Date(a.createdAt);
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    reviewsCache = filtered;
     reviewPage = 1;
+    renderReviewPage();
+  }
+
+  [reviewSearchInput].forEach(function (el) { if (el) el.addEventListener("input", applyFilters); });
+  [reviewRatingFilter, reviewPeriodFilter, reviewSortSelect].forEach(function (el) {
+    if (el) el.addEventListener("change", applyFilters);
+  });
+
+  function renderReviews(reviews) {
+    allReviews = reviews;
     if (publishedCountEl) publishedCountEl.textContent = reviews.length;
     if (summaryTotal) summaryTotal.textContent = reviews.length;
     if (summaryAvgRating) {
@@ -167,7 +221,7 @@
       var ym = new Date().toISOString().slice(0, 7);
       summaryThisMonth.textContent = reviews.filter(function (r) { return (r.createdAt || "").slice(0, 7) === ym; }).length;
     }
-    renderReviewPage();
+    applyFilters();
   }
 
   function loadReviews() {
@@ -343,10 +397,11 @@
   var resetBtn = document.getElementById("reviewFilterResetBtn");
   if (resetBtn) {
     resetBtn.addEventListener("click", function () {
-      document.getElementById("reviewSearchInput").value = "";
-      document.getElementById("reviewRatingFilter").value = "all";
-      document.getElementById("reviewPeriodFilter").value = "all";
-      document.getElementById("reviewSortSelect").value = "recent";
+      if (reviewSearchInput) reviewSearchInput.value = "";
+      if (reviewRatingFilter) reviewRatingFilter.value = "all";
+      if (reviewPeriodFilter) reviewPeriodFilter.value = "all";
+      if (reviewSortSelect) reviewSortSelect.value = "recent";
+      applyFilters();
     });
   }
 
