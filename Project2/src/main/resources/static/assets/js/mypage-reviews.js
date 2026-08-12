@@ -95,7 +95,7 @@
         '<div class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-[var(--line-soft)]">' +
           '<div class="ml-auto flex gap-2">' +
             '<button type="button" class="btn btn-outline btn-sm" data-edit-review>수정</button>' +
-            '<button type="button" class="btn btn-ghost btn-sm !text-[var(--danger)]" data-delete-review>삭제</button>' +
+            '<button type="button" class="btn btn-danger-soft btn-sm" data-delete-review>삭제</button>' +
           '</div>' +
         '</div>' +
       '</article>';
@@ -448,7 +448,7 @@
           '</div>' +
           '<div class="flex flex-col gap-2 flex-none">' +
             '<button type="button" class="btn btn-primary btn-sm" data-continue-draft>이어서 쓰기</button>' +
-            '<button type="button" class="btn btn-ghost btn-sm" data-discard-draft>삭제</button>' +
+            '<button type="button" class="btn btn-danger-soft btn-sm" data-discard-draft>삭제</button>' +
           '</div>' +
         '</div>' +
       '</article>';
