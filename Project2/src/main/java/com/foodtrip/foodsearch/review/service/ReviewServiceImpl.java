@@ -135,7 +135,7 @@ public class ReviewServiceImpl implements ReviewService {
         return new ReviewResponseDto(review.getReviewId(), member != null ? member.getNickname() : null,
                 member != null ? member.getProfileImageUrl() : null,
                 review.getRating(), review.getContent(), review.isReceiptVerified(), review.getCreatedAt(),
-                toKeywordDtos(keywords), List.of());
+                review.getUpdatedAt(), toKeywordDtos(keywords), List.of());
     }
 
     @Override
@@ -164,7 +164,7 @@ public class ReviewServiceImpl implements ReviewService {
         return reviews.stream()
                 .map(r -> new ReviewResponseDto(r.getReviewId(), nicknameByMemberId.get(r.getMemberId()),
                         profileImageByMemberId.get(r.getMemberId()),
-                        r.getRating(), r.getContent(), r.isReceiptVerified(), r.getCreatedAt(),
+                        r.getRating(), r.getContent(), r.isReceiptVerified(), r.getCreatedAt(), r.getUpdatedAt(),
                         toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of())),
                         imagesByReviewId.getOrDefault(r.getReviewId(), List.of())))
                 .collect(Collectors.toList());
@@ -200,7 +200,7 @@ public class ReviewServiceImpl implements ReviewService {
         return new ReviewResponseDto(review.getReviewId(), member != null ? member.getNickname() : null,
                 member != null ? member.getProfileImageUrl() : null,
                 review.getRating(), review.getContent(), review.isReceiptVerified(), review.getCreatedAt(),
-                toKeywordDtos(keywords), toImageDtos(reviewId));
+                review.getUpdatedAt(), toKeywordDtos(keywords), toImageDtos(reviewId));
     }
 
     @Override

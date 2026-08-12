@@ -18,6 +18,12 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+  // 2026-08-12 추가 — mypage-reviews.js와 동일한 판정(1분 넘게 차이나면 실제 수정으로 간주). 고객
+  // 상세 화면 리뷰 목록에는 이 표시가 빠져 있어서 "내가 쓴 리뷰"에서만 보인다는 지적으로 추가.
+  function isEdited(r) {
+    if (!r.updatedAt || !r.createdAt) return false;
+    return Math.abs(new Date(r.updatedAt).getTime() - new Date(r.createdAt).getTime()) > 60000;
+  }
   function starsHtml(rating) {
     var r = Number(rating) || 0, html = "";
     for (var i = 1; i <= 5; i++) {
@@ -465,7 +471,9 @@
         return '<li class="p-3.5 rounded-[var(--r)] border border-[var(--line-soft)]">' +
           '<div class="flex items-center justify-between gap-2">' +
           '<div class="flex items-center gap-2">' + avatarHtml +
-          '<span class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(r.nickname) + '</span></div>' +
+          '<span class="text-sm font-extrabold text-[var(--ink-900)]">' + escapeHtml(r.nickname) + '</span>' +
+          (isEdited(r) ? '<span class="t-xs" style="color:var(--ink-400)">· 수정됨</span>' : "") +
+          '</div>' +
           '<span class="e-rating">' + starsHtml(r.rating) + '<span class="e-rating-score">' + Number(r.rating).toFixed(1) + '</span></span>' +
           '</div>' +
           (keywords ? '<div class="flex flex-wrap gap-1 mt-2">' + keywords + '</div>' : "") +

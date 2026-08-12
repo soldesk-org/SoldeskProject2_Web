@@ -14,14 +14,17 @@ public class ReviewResponseDto {
     private final String content;
     private final boolean receiptVerified;
     private final LocalDateTime createdAt;
+    // 2026-08-12 추가 — 마이페이지 "내가 쓴 리뷰"에는 있는데 고객 상세 화면엔 없어서 "수정됨" 표시가
+    // 여기서만 안 뜨던 걸 발견해 추가.
+    private final LocalDateTime updatedAt;
     // 리뷰 태그(2026-07-22 추가) — review_keywords 테이블에서 조회한 값.
     private final List<ReviewKeywordResponseDto> keywords;
     // 리뷰 사진(2026-08-10 추가) — 최대 3장, 등록 순서대로.
     private final List<ReviewImageResponseDto> images;
 
     public ReviewResponseDto(Long reviewId, String nickname, String profileImageUrl, int rating, String content,
-                              boolean receiptVerified, LocalDateTime createdAt, List<ReviewKeywordResponseDto> keywords,
-                              List<ReviewImageResponseDto> images) {
+                              boolean receiptVerified, LocalDateTime createdAt, LocalDateTime updatedAt,
+                              List<ReviewKeywordResponseDto> keywords, List<ReviewImageResponseDto> images) {
         this.reviewId = reviewId;
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
@@ -29,6 +32,7 @@ public class ReviewResponseDto {
         this.content = content;
         this.receiptVerified = receiptVerified;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
         this.keywords = keywords;
         this.images = images;
     }
@@ -59,6 +63,10 @@ public class ReviewResponseDto {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
     public List<ReviewKeywordResponseDto> getKeywords() {
