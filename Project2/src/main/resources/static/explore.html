@@ -614,7 +614,7 @@
             <div class="mt-6">
               <div class="flex items-center gap-2 mb-2.5">
                 <p class="text-[13px] font-extrabold text-[var(--ink-900)]">주변 주차장</p>
-                <span class="e-badge e-badge--gray" id="parkingCountBadge">3곳</span>
+                <span class="e-badge e-badge--gray" id="parkingCountBadge">0곳</span>
                 <select class="e-select e-input-sm ml-auto" id="parkingRadiusSelect" aria-label="검색 반경" style="width:auto;min-width:92px">
                   <option value="500">500m</option>
                   <option value="1000">1km</option>
@@ -640,59 +640,11 @@
                 </div>
               </div>
 
-              <!-- 목록 -->
-              <div class="space-y-2" id="detailParking">
-                <div class="e-parking-item" data-parking-id="P1">
-                  <span class="e-parking-ico" aria-hidden="true">P</span>
-                  <div class="min-w-0 flex-1">
-                    <p class="e-parking-name">테헤란로 공영주차장</p>
-                    <div class="e-parking-meta">
-                      <span class="e-parking-tag e-parking-tag--paid">유료</span>
-                      <span>도보 <b>2분</b></span>
-                      <span><b>140m</b></span>
-                      <span>총 <b>86</b>면</span>
-                    </div>
-                  </div>
-                  <div class="e-parking-fee">
-                    1,200원
-                    <small>10분당</small>
-                  </div>
-                </div>
-
-                <div class="e-parking-item" data-parking-id="P2">
-                  <span class="e-parking-ico" aria-hidden="true">P</span>
-                  <div class="min-w-0 flex-1">
-                    <p class="e-parking-name">강남역 지하 공영주차장</p>
-                    <div class="e-parking-meta">
-                      <span class="e-parking-tag e-parking-tag--paid">유료</span>
-                      <span>도보 <b>5분</b></span>
-                      <span><b>380m</b></span>
-                      <span>총 <b>240</b>면</span>
-                    </div>
-                  </div>
-                  <div class="e-parking-fee">
-                    900원
-                    <small>10분당</small>
-                  </div>
-                </div>
-
-                <div class="e-parking-item" data-parking-id="P3">
-                  <span class="e-parking-ico" aria-hidden="true">P</span>
-                  <div class="min-w-0 flex-1">
-                    <p class="e-parking-name">역삼근린공원 주차장</p>
-                    <div class="e-parking-meta">
-                      <span class="e-parking-tag e-parking-tag--free">무료</span>
-                      <span>도보 <b>9분</b></span>
-                      <span><b>720m</b></span>
-                      <span>총 <b>32</b>면</span>
-                    </div>
-                  </div>
-                  <div class="e-parking-fee">
-                    무료
-                    <small>주말 한정</small>
-                  </div>
-                </div>
-              </div>
+              <!-- 목록 — 2026-08-12까지 여기 시안용 가짜 주차장 3곳(테헤란로/강남역지하/역삼근린공원)이
+                   그대로 박혀있어서, 페이지가 열릴 때 실제 데이터로 채워지기 전 잠깐 노출됐다가 사라지는
+                   문제가 있었다("실제 데이터 아닌 게 나왔다 사라진다"는 리포트로 발견). JS가 항상 채워
+                   주므로 빈 상태로 둔다. -->
+              <div class="space-y-2" id="detailParking"></div>
 
               <!-- 결과 없음 -->
               <div id="parkingEmpty" hidden>
