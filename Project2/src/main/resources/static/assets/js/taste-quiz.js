@@ -7,6 +7,20 @@
   };
   var AXIS_PAIRS = [["l", "s"], ["f", "n"], ["a", "t"], ["p", "i"]];
 
+  // 성향 축 1개당 퍼센트 막대 1개(2026-08-12 추가) — 기존 앱 전역에서 쓰는 e-progress 컴포넌트 재사용
+  // (business-mypage.js의 태그/별점 분포와 같은 톤).
+  function axisBarRowHtml(label, pct) {
+    return (
+      '<div>' +
+        '<div class="flex items-center justify-between mb-1">' +
+          '<span class="t-xs font-bold text-[var(--ink-700)]">' + label + '</span>' +
+          '<span class="t-xs t-num">' + pct + '%</span>' +
+        '</div>' +
+        '<div class="e-progress e-progress-sm"><div class="e-progress-bar" style="width:' + pct + '%"></div></div>' +
+      '</div>'
+    );
+  }
+
   // 음BTI 추천 메뉴 32종 실제 사진(2026-08-08 추가) — FoodBtiServiceImpl.FOOD_CANDIDATES와 이름이
   // 정확히 같아야 매칭된다. 없는 이름이면 기존처럼 플레이스홀더 아이콘으로 대체(fallback).
   var FOOD_IMAGE = {
@@ -137,20 +151,15 @@
 
     var axisList = document.getElementById("resultAxisList");
     var score = data.score;
+    // 2026-08-12 — 4쌍을 양방향 막대 하나로 합쳐서 보여주던 방식에서, 각 성향을 개별 퍼센트 막대로
+    // 쪼개 8개로 보여주는 방식으로 변경(요청: "4개인데 8개로 해서 %를 보여주는 형식"). 실제 선택
+    // 비율을 그대로 %로 보여준다(예전처럼 55~94%로 눌러 맞추지 않음).
     axisList.innerHTML = AXIS_PAIRS.map(function (pair) {
       var left = score[pair[0]], right = score[pair[1]];
       var total = left + right || 1;
-      // 2026-08-08 — 슬라이더(점) 방식으로 바꿔봤다가 "이전 방식이 더 낫다"는 피드백으로 되돌림.
-      // 우세한 쪽의 비율을 그 쪽에서부터 채운다(2026-08-07 방식).
-      var leftWins = left >= right;
-      var pct = Math.round(((leftWins ? left : right) / total) * 100);
-      pct = Math.max(55, Math.min(94, pct));
-      return '<div class="axis-row">' +
-        '<span class="axis-label ' + (leftWins ? "axis-label--on" : "axis-label--off") + ' text-right">' + AXIS_LABEL[pair[0]] + '</span>' +
-        '<span class="axis-bar"><span class="axis-fill' + (leftWins ? "" : " axis-fill--right") +
-          '" style="width:' + pct + '%"></span></span>' +
-        '<span class="axis-label ' + (leftWins ? "axis-label--off" : "axis-label--on") + '">' + AXIS_LABEL[pair[1]] + '</span>' +
-        '</div>';
+      var leftPct = Math.round((left / total) * 100);
+      var rightPct = 100 - leftPct;
+      return axisBarRowHtml(AXIS_LABEL[pair[0]], leftPct) + axisBarRowHtml(AXIS_LABEL[pair[1]], rightPct);
     }).join("");
 
     var saveStatus = document.getElementById("saveResultStatus");
