@@ -413,6 +413,7 @@
   var draftEmpty = document.getElementById("draftEmpty");
   var draftCountEl = document.getElementById("draftCount");
   var draftClearAllBtn = document.getElementById("draftClearAllBtn");
+  var draftToolbar = document.getElementById("draftToolbar");
   var discardTargetId = null;
 
   function readDrafts() {
@@ -462,6 +463,7 @@
     draftList.hidden = n === 0;
     draftEmpty.hidden = n !== 0;
     draftClearAllBtn.hidden = n === 0;
+    if (draftToolbar) draftToolbar.hidden = n === 0;
   }
   renderDrafts();
 

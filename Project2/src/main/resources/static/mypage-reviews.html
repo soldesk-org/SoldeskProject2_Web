@@ -314,6 +314,18 @@
          #draftClearAllBtn       전체 삭제
          ================================================================ -->
     <div id="tabDraft" data-tab-panel hidden>
+
+      <!-- ==================== 툴바(2026-08-12 추가) — 작성한 리뷰 탭과 같은 자리, 검색/필터는 없이
+           전체 삭제 버튼만 배치 ==================== -->
+      <section class="e-card e-card-pad !py-4 mb-5" id="draftToolbar">
+        <div class="flex items-center justify-end">
+          <button type="button" class="e-chip e-chip-sm" id="draftClearAllBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+            임시저장 전체 삭제
+          </button>
+        </div>
+      </section>
+
       <ul class="space-y-4" id="draftList"></ul>
       <!-- 빈 상태 -->
       <div class="e-card e-card-pad" id="draftEmpty" hidden>
@@ -326,8 +338,6 @@
           <a href="explore" class="btn btn-primary btn-sm mt-5">리뷰 쓰러 가기</a>
         </div>
       </div>
-
-      <button type="button" class="btn btn-ghost btn-sm mt-5" id="draftClearAllBtn">임시저장 전체 삭제</button>
     </div><!-- /#tabDraft -->
   </div>
 </main>
