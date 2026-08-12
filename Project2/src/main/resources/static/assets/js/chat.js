@@ -175,6 +175,10 @@
     var isOwner = room.hostMemberId === myMemberId;
     document.body.setAttribute("data-room-role", isOwner ? "owner" : "member");
     document.getElementById("roomTitle").textContent = room.title;
+    // 2026-08-12 수정 — 방 헤더의 아바타 글자가 시안 고정값("강")인 채로 남아있어서, 방 목록의 아바타
+    // (방 제목 첫 글자, 위 room.title.charAt(0)과 동일한 규칙)와 다르게 표시되고 있었다.
+    var headerAvatar = document.getElementById("roomHeaderAvatar");
+    if (headerAvatar) headerAvatar.textContent = (room.title || "?").charAt(0);
     document.getElementById("roomMemberCount").textContent = room.memberCount + " / " + room.maxMembers;
     document.getElementById("roomCodeBadge").textContent = "코드 " + room.joinCode;
     document.getElementById("memberListTitle").textContent = "참여자 " + room.memberCount + "명";
