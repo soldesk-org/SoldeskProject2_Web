@@ -1330,8 +1330,9 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 .e-modal-icon--brand { background: var(--brand-50); color: var(--brand-500); }
 .e-modal-icon--warning { background: var(--warning-soft); color: var(--warning); }
 
-/* 모바일 바텀시트 변형 */
-@media (max-width: 640px) {
+/* 모바일 바텀시트 변형(2026-08-12 — 태블릿 폭(768px)에서도 풀스크린 팝업으로 뜨도록 기준을
+   640px에서 768px로 확대) */
+@media (max-width: 768px) {
   .e-modal--sheet { place-items: end center; padding: 0; }
   .e-modal--sheet .e-modal-panel {
     /* 2026-08-12 수정 — 기존 max-height(calc(100vh - 40px))는 내용이 짧으면 그만큼만 차지해서 위쪽에
