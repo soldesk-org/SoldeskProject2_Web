@@ -1330,18 +1330,21 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 .e-modal-icon--brand { background: var(--brand-50); color: var(--brand-500); }
 .e-modal-icon--warning { background: var(--warning-soft); color: var(--warning); }
 
-/* 모바일 바텀시트 변형(2026-08-12 — 태블릿 폭(768px)에서도 풀스크린 팝업으로 뜨도록 기준을
-   640px에서 768px로 확대) */
+/* 모바일 바텀시트 변형(2026-08-12 — 태블릿 폭(768px)까지 풀스크린 팝업으로 뜨도록 기준 확대).
+   2026-08-12 재수정 — place-items로 위치 잡고 height:100dvh로 크기를 맞추는 방식이 기기/브라우저에
+   따라(특히 devtools 모바일 에뮬레이션) dvh 계산이 어긋나 바닥/옆에 배경이 살짝 남는 경우가 있어,
+   패널 자체를 position:fixed; inset:0으로 화면에 완전히 고정하는 방식으로 바꿔 확실하게 전체화면을
+   채우도록 했다. */
 @media (max-width: 768px) {
-  .e-modal--sheet { place-items: end center; padding: 0; }
+  .e-modal--sheet { padding: 0; }
+  .e-modal--sheet .e-modal-backdrop { position: fixed; inset: 0; }
   .e-modal--sheet .e-modal-panel {
-    /* 2026-08-12 수정 — 기존 max-height(calc(100vh - 40px))는 내용이 짧으면 그만큼만 차지해서 위쪽에
-       틈이 남아 헤더가 그대로 비쳐 보였다. height를 고정해서 내용과 무관하게 항상 화면 전체를 채우고,
-       본문(e-modal-body)만 내부 스크롤되도록 변경. */
-    max-width: 100%; height: 100dvh; max-height: 100dvh;
+    position: fixed; inset: 0; margin: 0;
+    max-width: 100%; width: 100%; height: 100%; max-height: none;
     display: flex; flex-direction: column; overflow-y: hidden;
-    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    border-radius: 0;
     transform: translateY(100%);
+    transition: transform .26s var(--ease);
     padding-bottom: env(safe-area-inset-bottom);
   }
   .e-modal--sheet.is-open .e-modal-panel { transform: translateY(0); }
