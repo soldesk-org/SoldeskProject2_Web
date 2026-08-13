@@ -51,6 +51,13 @@
       }
       roomListEmpty.hidden = true;
       rooms.forEach(function (room) { roomList.insertBefore(renderRoomItem(room), roomListEmpty); });
+
+      // 알림 벨에서 특정 방으로 딥링크(2026-08-13 추가) — ?room={chatRoomId}로 들어오면 그 방을 바로 연다.
+      var roomIdParam = new URLSearchParams(window.location.search).get("room");
+      if (roomIdParam && !currentRoom) {
+        var target = rooms.filter(function (r) { return String(r.chatRoomId) === roomIdParam; })[0];
+        if (target) enterRoom(target);
+      }
     }).catch(function () {});
   }
   loadMyRooms();

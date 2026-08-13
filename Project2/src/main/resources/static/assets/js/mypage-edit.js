@@ -20,6 +20,42 @@
   var me = null;
   var originalPhone = "";
   var phoneVerified = true;
+  var originalNickname = "";
+  var nicknameChecked = true;
+
+  // ---- 닉네임 중복확인(2026-08-13 추가) — 버튼은 있었는데 뒤에 아무 동작도 없었다. signup-info.js와
+  // 같은 패턴이되, 여기는 "본인 기존 닉네임 그대로 저장"도 허용해야 해서(백엔드 check-nickname은 본인
+  // 제외 없이 그냥 이미 쓰이는 닉네임인지만 보므로) originalNickname과 같으면 검사 없이 통과시킨다.
+  var NICKNAME_PATTERN = /^[가-힣a-zA-Z0-9]{2,12}$/;
+  var checkNicknameBtn = document.getElementById("checkNicknameBtn");
+  var editNicknameInput = document.getElementById("editNickname");
+  if (checkNicknameBtn && editNicknameInput) {
+    checkNicknameBtn.addEventListener("click", function () {
+      var nickname = editNicknameInput.value.trim();
+      if (!nickname) { Eatty.toast("닉네임을 입력해주세요.", "error"); return; }
+      if (nickname === originalNickname) { Eatty.toast("현재 사용 중인 닉네임입니다.", "default"); nicknameChecked = true; return; }
+      if (!NICKNAME_PATTERN.test(nickname)) {
+        Eatty.toast("닉네임은 2~12자, 특수문자를 포함할 수 없습니다.", "error");
+        return;
+      }
+      checkNicknameBtn.disabled = true;
+      Api.request("/api/members/check-nickname?nickname=" + encodeURIComponent(nickname), { method: "GET", auth: false })
+        .then(function (res) {
+          if (res.available) {
+            nicknameChecked = true;
+            Eatty.toast("사용할 수 있는 닉네임입니다.", "success");
+          } else {
+            nicknameChecked = false;
+            Eatty.toast("이미 사용 중인 닉네임입니다.", "error");
+          }
+        })
+        .catch(function (err) { Eatty.toast(err.message || "중복확인에 실패했습니다.", "error"); })
+        .finally(function () { checkNicknameBtn.disabled = false; });
+    });
+    editNicknameInput.addEventListener("input", function () {
+      nicknameChecked = editNicknameInput.value.trim() === originalNickname;
+    });
+  }
 
   Api.request("/api/members/me").then(function (data) {
     me = data;
@@ -59,6 +95,8 @@
 
   function populateEditForm(data) {
     document.getElementById("editNickname").value = data.nickname || "";
+    originalNickname = data.nickname || "";
+    nicknameChecked = true; // 시작값은 이미 본인 닉네임이라 그대로 저장 가능(바꿀 때만 중복확인 필요).
     document.getElementById("editEmail").value = data.email || "";
     // 전화번호는 입력칸에 미리 채워 넣지 않는다(2026-08-04 변경) — 비워두면 "변경 안 함"으로
     // 간주한다(아래 비밀번호 변경란과 동일한 관례). placeholder도 실제 번호가 아니라 형식 예시만
@@ -336,6 +374,10 @@
     var newPasswordConfirm = document.getElementById("newPasswordConfirm") ? document.getElementById("newPasswordConfirm").value : "";
 
     if (!nickname) { Eatty.toast("닉네임을 입력해주세요.", "error"); return; }
+    if (nickname !== originalNickname && !nicknameChecked) {
+      Eatty.toast("닉네임 중복확인을 해주세요.", "error");
+      return;
+    }
     if (phoneChanged && !phoneVerified) { Eatty.toast("전화번호 인증을 완료해주세요.", "error"); return; }
     if (newPassword && newPassword !== newPasswordConfirm) {
       Eatty.toast("비밀번호가 일치하지 않습니다.", "error");

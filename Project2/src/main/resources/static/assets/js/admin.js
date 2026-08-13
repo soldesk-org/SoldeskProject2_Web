@@ -228,10 +228,29 @@
       document.getElementById("memberDetailName").textContent = m.nickname;
       document.getElementById("memberDetailAvatar").textContent = (m.nickname || "?").charAt(0);
       document.getElementById("memberDetailRole").textContent = ROLE_LABEL[m.role] || m.role;
-      document.getElementById("memberDetailStatus").textContent = STATUS_LABEL[m.status] || m.status;
+      // 2026-08-13 수정 — 상태 뱃지 class가 "e-status--on"으로 고정돼 있어서 정지된 회원도 항상
+      // 초록불로 보이던 문제. 목록 행(위 STATUS_KIND 매핑)과 동일한 규칙으로 맞춘다.
+      var statusEl = document.getElementById("memberDetailStatus");
+      statusEl.textContent = STATUS_LABEL[m.status] || m.status;
+      statusEl.classList.remove("e-status--on", "e-status--off", "e-status--idle");
+      statusEl.classList.add(m.status === "ACTIVE" ? "e-status--on" : m.status === "SUSPENDED" ? "e-status--off" : "e-status--idle");
       document.getElementById("memberDetailEmail").textContent = m.email;
       document.getElementById("memberDetailJoined").textContent = fmtDate(m.createdAt);
       document.getElementById("memberDetailId").textContent = m.memberId;
+
+      // 하단 액션 버튼도 항상 "정지 처리"로 고정돼 있어서, 이미 정지된 회원을 봐도 또 정지시키려는
+      // 버튼만 나오고 해제할 방법이 없었다 — 상태에 따라 정지/해제로 전환한다.
+      var actionBtn = document.getElementById("memberDetailActionBtn");
+      if (m.status === "SUSPENDED") {
+        actionBtn.textContent = "정지 해제";
+        actionBtn.removeAttribute("data-modal-open");
+        actionBtn.setAttribute("data-modal-close", "");
+        actionBtn.setAttribute("data-detail-release-member", id);
+      } else {
+        actionBtn.textContent = "정지 처리";
+        actionBtn.setAttribute("data-modal-open", "suspendModal");
+        actionBtn.removeAttribute("data-detail-release-member");
+      }
     } else if (e.target.closest("[data-suspend-member]")) {
       suspendTargetId = id;
       document.getElementById("suspendTargetName").textContent = m.nickname;
@@ -240,6 +259,13 @@
         .then(function () { Eatty.toast("정지를 해제했습니다.", "success"); reloadAll(); })
         .catch(function (err) { Eatty.toast(err.message || "처리에 실패했습니다.", "error"); });
     }
+  });
+  document.getElementById("memberDetailActionBtn").addEventListener("click", function (e) {
+    var releaseId = e.currentTarget.getAttribute("data-detail-release-member");
+    if (!releaseId) return; // "정지 처리" 모드일 땐 data-modal-open이 알아서 suspendModal을 연다.
+    authRequest("/api/admin/members/" + releaseId + "/unsuspend", { method: "PATCH" })
+      .then(function () { Eatty.toast("정지를 해제했습니다.", "success"); reloadAll(); })
+      .catch(function (err) { Eatty.toast(err.message || "처리에 실패했습니다.", "error"); });
   });
   document.getElementById("suspendConfirmBtn").addEventListener("click", function () {
     if (!suspendTargetId) return;

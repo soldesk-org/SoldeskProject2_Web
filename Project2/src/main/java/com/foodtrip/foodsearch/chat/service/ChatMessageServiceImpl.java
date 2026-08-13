@@ -71,7 +71,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         ChatMessage message = chatMessageRepository.save(ChatMessage.create(room.getChatRoomId(), memberId, trimmed));
         String nickname = memberRepository.findById(memberId).map(Member::getNickname).orElse(null);
 
-        notifyOtherMembers(room, memberId, nickname, trimmed);
+        notifyOtherMembers(room, memberId, trimmed);
 
         return new ChatMessageResponseDto(message.getChatMessageId(), message.getChatRoomId(), memberId, nickname,
                 message.getContent(), ChatMessageResponseDto.TYPE_MESSAGE, message.getCreatedAt());
@@ -80,11 +80,15 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     // 오픈채팅 알림(2026-08-06 추가) — 방에 접속해 있지 않은 다른 참가자도 헤더 알림 벨로 새 메시지를
     // 확인할 수 있도록, 발신자를 제외한 활성 참가자 각각에게 알림 행을 하나씩 만든다. 알림 설정에서
     // "오픈채팅 메시지 알림"을 끈 회원에게는 만들지 않는다.
-    private void notifyOtherMembers(ChatRoom room, Long senderId, String senderNickname, String content) {
+    private void notifyOtherMembers(ChatRoom room, Long senderId, String content) {
         List<ChatRoomMember> activeMembers = chatRoomMemberRepository
                 .findByChatRoomIdAndLeftAtIsNullOrderByJoinedAtAsc(room.getChatRoomId());
         String preview = content.length() > 50 ? content.substring(0, 50) + "..." : content;
-        String title = (senderNickname != null ? senderNickname : "잇티챗") + " · " + room.getTitle();
+        // 2026-08-13 수정 — 제목이 "발신자 · 방제목"으로 붙어 나와서 알림창에서 방 이름을 바로 알아보기
+        // 힘들었다("스타벅스신논현 · aaa" 처럼). 방 이름만 보여주고, 발신자는 미리보기(preview)에서
+        // 이미 구분 가능하므로 제목에서는 뺀다. 클릭 시 그 방으로 바로 들어가도록 링크에 room 쿼리도 추가.
+        String title = room.getTitle();
+        String linkUrl = "chat.html?room=" + room.getChatRoomId();
         for (ChatRoomMember roomMember : activeMembers) {
             Long recipientId = roomMember.getMemberId();
             if (recipientId.equals(senderId)) {
@@ -93,7 +97,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             memberRepository.findById(recipientId)
                     .filter(Member::isNotifyChat)
                     .ifPresent(recipient -> notificationService.create(recipientId, Notification.TYPE_CHAT, title,
-                            preview, "chat.html"));
+                            preview, linkUrl));
         }
     }
 }

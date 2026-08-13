@@ -15,9 +15,11 @@ import com.foodtrip.foodsearch.chat.dto.ChatMessageResponseDto;
 import com.foodtrip.foodsearch.chat.dto.ChatRoomMemberResponseDto;
 import com.foodtrip.foodsearch.chat.dto.ChatRoomResponseDto;
 import com.foodtrip.foodsearch.chat.entity.ChatMessage;
+import com.foodtrip.foodsearch.chat.entity.ChatReport;
 import com.foodtrip.foodsearch.chat.entity.ChatRoom;
 import com.foodtrip.foodsearch.chat.entity.ChatRoomMember;
 import com.foodtrip.foodsearch.chat.repository.ChatMessageRepository;
+import com.foodtrip.foodsearch.chat.repository.ChatReportRepository;
 import com.foodtrip.foodsearch.chat.repository.ChatRoomMemberRepository;
 import com.foodtrip.foodsearch.chat.repository.ChatRoomRepository;
 import com.foodtrip.foodsearch.common.exception.CustomException;
@@ -26,6 +28,8 @@ import com.foodtrip.foodsearch.common.security.JwtProvider;
 import com.foodtrip.foodsearch.member.entity.Member;
 import com.foodtrip.foodsearch.member.repository.MemberRepository;
 import com.foodtrip.foodsearch.member.service.AccessTokenSessionService;
+import com.foodtrip.foodsearch.notification.entity.Notification;
+import com.foodtrip.foodsearch.notification.service.NotificationService;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -45,14 +49,19 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     private final SimpMessagingTemplate messagingTemplate;
     private final JwtProvider jwtProvider;
     private final AccessTokenSessionService accessTokenSessionService;
+    private final ChatReportRepository chatReportRepository;
+    private final NotificationService notificationService;
 
     public ChatRoomServiceImpl(ChatRoomRepository chatRoomRepository, ChatRoomMemberRepository chatRoomMemberRepository,
                                 ChatMessageRepository chatMessageRepository, MemberRepository memberRepository,
                                 JoinCodeGenerator joinCodeGenerator, SimpMessagingTemplate messagingTemplate,
-                                JwtProvider jwtProvider, AccessTokenSessionService accessTokenSessionService) {
+                                JwtProvider jwtProvider, AccessTokenSessionService accessTokenSessionService,
+                                ChatReportRepository chatReportRepository, NotificationService notificationService) {
         this.chatRoomRepository = chatRoomRepository;
         this.chatRoomMemberRepository = chatRoomMemberRepository;
         this.chatMessageRepository = chatMessageRepository;
+        this.chatReportRepository = chatReportRepository;
+        this.notificationService = notificationService;
         this.memberRepository = memberRepository;
         this.joinCodeGenerator = joinCodeGenerator;
         this.messagingTemplate = messagingTemplate;
@@ -213,12 +222,31 @@ public class ChatRoomServiceImpl implements ChatRoomService {
 
     private ChatActionResponseDto doExplode(ChatRoom room, String noticeText) {
         Long chatRoomId = room.getChatRoomId();
+        // 접속 여부와 무관하게 방에 있던 회원 전원에게 알림을 남기기 위해, 메시지 삭제 전에 먼저 조회한다.
+        List<ChatRoomMember> members = chatRoomMemberRepository.findByChatRoomIdAndLeftAtIsNullOrderByJoinedAtAsc(chatRoomId);
+
         room.explode();
         chatMessageRepository.deleteByChatRoomId(chatRoomId);
         // ROOM_CLOSED(2026-07-24 3차 후속) - 접속 중인 클라이언트는 이 브로드캐스트를 받으면 안내만 하는
         // 게 아니라 그 방에서 강제로 나가야 한다(001-02 2-12장).
         messagingTemplate.convertAndSend("/topic/rooms/" + chatRoomId,
                 ChatMessageResponseDto.roomClosed(chatRoomId, noticeText));
+
+        // 2026-08-13 추가 — 위 브로드캐스트는 그 순간 접속 중인 사람만 받는다. 접속해 있지 않던 참가자도
+        // 나중에 헤더 알림 벨로 방이 없어졌다는 걸 알 수 있도록 알림 행을 남긴다(링크는 이미 사라진
+        // 방이라 걸지 않음).
+        for (ChatRoomMember member : members) {
+            notificationService.create(member.getMemberId(), Notification.TYPE_CHAT,
+                    room.getTitle(), noticeText, null);
+        }
+
+        // 2026-08-13 추가 — 방이 폭파되면 그 방을 대상으로 한 대기중 신고는 더 이상 관리자가 처리할
+        // 방법이 없다(메시지/방 자체가 이미 없어짐) — 신고 관리 화면에 "대기중"으로 계속 남지 않도록
+        // 자동으로 처리 완료 처리한다.
+        for (ChatReport report : chatReportRepository.findByChatRoomIdAndStatus(chatRoomId, ChatReport.STATUS_PENDING)) {
+            report.resolve();
+        }
+
         return new ChatActionResponseDto(true, "채팅방을 폭파했습니다.");
     }
 
