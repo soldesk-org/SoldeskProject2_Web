@@ -1045,7 +1045,15 @@
     var qp = new URLSearchParams(window.location.search);
     var sharedShopId = qp.get("shopId");
     var initialKeyword = qp.get("q");
-    if (sharedShopId) {
+    var handoff = readRecommendHandoff();
+    if (handoff) {
+      if (researchAreaBtn) researchAreaBtn.parentElement.style.display = "none";
+      renderResults(handoff.items, true);
+      var bounds = new naver.maps.LatLngBounds();
+      handoff.items.forEach(function (it) { bounds.extend(new naver.maps.LatLng(it.latitude, it.longitude)); });
+      map.fitBounds(bounds);
+      updateRadiusBadge();
+    } else if (sharedShopId) {
       openSharedRestaurant(sharedShopId, qp);
     } else if (initialKeyword && initialKeyword.trim()) {
       if (searchInput) searchInput.value = initialKeyword.trim();
@@ -1053,6 +1061,21 @@
     } else {
       searchArea();
     }
+  }
+
+  // AI 추천 결과 "지도에서 모두 보기"(2026-08-13 추가) — recommend.js가 sessionStorage에 남겨둔 결과를
+  // 한 번만 읽어서 쓰고 바로 지운다(단발성, 그 다음 explore 방문부터는 평소처럼 주변 검색).
+  function readRecommendHandoff() {
+    var KEY = "eatty.recommendMapHandoff";
+    var raw = sessionStorage.getItem(KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(KEY);
+    try {
+      var data = JSON.parse(raw);
+      if (!data || !data.items || !data.items.length) return null;
+      if (Date.now() - (data.savedAt || 0) > 10 * 60 * 1000) return null; // 10분 지나면 stale로 간주
+      return data;
+    } catch (e) { return null; }
   }
 
   // 공유 링크(?shopId=...)로 들어온 경우 — 카카오는 place id 단건 재조회가 안 되므로 링크에

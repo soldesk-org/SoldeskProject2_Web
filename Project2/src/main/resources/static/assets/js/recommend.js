@@ -297,9 +297,11 @@
 
     function request(center) {
       var useAuth = document.getElementById("useMyBtiSwitch").checked;
-      // 재검색은 이전에 본 곳들을 걸러내고도 10곳을 채울 수 있도록 후보를 더 넉넉히 요청한다
-      // (Python 쪽에 "제외" 파라미터가 없어 클라이언트에서 겹치는 곳만 걸러내는 방식이라 여유가 필요).
-      var size = isRetry ? Math.min(10 + shownPlaceIds.length, 40) : 10;
+      // 재검색은 이전에 본 곳들을 걸러내고도 채울 수 있도록 후보를 더 넉넉히 요청한다(Python 쪽에
+      // "제외" 파라미터가 없어 클라이언트에서 겹치는 곳만 걸러내는 방식이라 여유가 필요) — 다만 Python
+      // 서버의 size는 최대 15까지만 허용해서(2026-08-13 확인, 초과하면 422) 40으로 잡았던 게 실제로는
+      // 매 재검색마다 요청 자체가 거부되고 있었다. 15로 고정.
+      var size = isRetry ? 15 : 10;
       Api.request("/api/recommendation/query", {
         method: "POST",
         auth: useAuth,
@@ -358,6 +360,37 @@
     runRecommend(false);
   });
   document.getElementById("retryBtn").addEventListener("click", function () { runRecommend(true); });
+
+  // "지도에서 모두 보기"/"크게 보기"(2026-08-13 추가) — 예전엔 그냥 href="explore"라서 지도 탐색의
+  // 기본 검색 화면만 열리고 방금 추천받은 음식점들은 하나도 안 보였다. sessionStorage로 결과 목록을
+  // 통째로 넘겨서 explore.js가 그 목록으로 목록/마커를 그대로 채우게 한다(단발성 — explore.js가 읽고
+  // 나면 지워서, 그 뒤로 explore를 다시 들어가면 평소처럼 주변 검색이 뜬다).
+  var HANDOFF_KEY = "eatty.recommendMapHandoff";
+  function saveMapHandoff() {
+    if (!lastRecommendations.length) return;
+    var items = lastRecommendations
+      .filter(function (p) { return p.y && p.x; })
+      .map(function (p) {
+        return {
+          restaurantId: p.place_id,
+          name: p.place_name,
+          // explore.js의 마커 이미지(CATEGORY_MARKER)는 우리 쪽 분류명(한식/양식/...)을 키로 쓰기 때문에,
+          // 카카오 원본 category_name을 그대로 넘기면 매칭이 안 된다 — exploreShareUrl()과 같은 방식으로
+          // 미리 분류해서 넘긴다.
+          category: extractCategoryName(p.category_name),
+          address: p.address_name,
+          roadAddress: p.road_address_name,
+          latitude: Number(p.y),
+          longitude: Number(p.x),
+        };
+      });
+    if (!items.length) return;
+    try { sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({ items: items, savedAt: Date.now() })); } catch (e) { /* 무시 */ }
+  }
+  ["openInMapBtn", "openInMapMiniBtn"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener("click", saveMapHandoff);
+  });
 
   document.getElementById("saveAllBtn").addEventListener("click", function () {
     if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
