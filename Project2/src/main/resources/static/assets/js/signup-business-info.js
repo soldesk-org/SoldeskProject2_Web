@@ -2,7 +2,7 @@
   // STEP1(signup-business)을 거치지 않고 이 URL로 바로 들어오면 STEP1로 돌려보낸다(2026-08-04 추가) —
   // find-password-sent.js 등과 동일한 패턴. 값의 존재만으로는 예전에 테스트하다 남은 오래된
   // sessionStorage와 구분이 안 되므로, biz_signup_at이 최근(30분 이내)인지도 함께 확인한다.
-  var STEP1_GATE_ENABLED = true;
+  var STEP1_GATE_ENABLED = false; // TODO: 임시로 STEP1 통과 없이 바로 진입 허용 (테스트용, 나중에 true로 복구)
   var STEP1_VALID_MS = 30 * 60 * 1000;
   var bizSignupAt = Number(sessionStorage.getItem("biz_signup_at"));
   var step1Fresh = bizSignupAt && (Date.now() - bizSignupAt) < STEP1_VALID_MS;
