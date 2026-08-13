@@ -33,7 +33,9 @@
     checkNicknameBtn.addEventListener("click", function () {
       var nickname = editNicknameInput.value.trim();
       if (!nickname) { Eatty.toast("닉네임을 입력해주세요.", "error"); return; }
-      if (nickname === originalNickname) { Eatty.toast("현재 사용 중인 닉네임입니다.", "default"); nicknameChecked = true; return; }
+      // "사용 중"이라는 문구 자체가 마치 이미 다른 사람이 쓰고 있어서 안 된다는 것처럼 읽혀서 헷갈린다는
+      // 지적(2026-08-13)으로 문구를 바꿈 — 본인 현재 닉네임이라 그대로 저장 가능하다는 뜻만 남긴다.
+      if (nickname === originalNickname) { Eatty.toast("지금 쓰고 있는 닉네임이라 그대로 저장할 수 있어요.", "default"); nicknameChecked = true; return; }
       if (!NICKNAME_PATTERN.test(nickname)) {
         Eatty.toast("닉네임은 2~12자, 특수문자를 포함할 수 없습니다.", "error");
         return;
@@ -229,38 +231,37 @@
       });
   }
 
-  // ---- 프로필 사진 ----
+  // ---- 프로필 사진(2026-08-13 수정) ----
+  // 예전엔 파일을 고르거나 "기본 이미지로" 버튼을 누르는 즉시 서버에 반영됐다(전체 "저장" 버튼과 무관하게
+  // 따로 확정됨) — 다른 항목들(닉네임/전화번호/비밀번호)은 전부 "저장"을 눌러야 반영되는 것과 다르게
+  // 동작해서 혼란스럽다는 지적으로, 사진도 "저장"을 눌러야 실제로 반영되도록 변경. 그 전까지는 화면
+  // 미리보기만 바뀌고(eatty-ui.js의 공용 드롭존 핸들러가 처리) 서버 호출은 안 한다.
+  var pendingAvatarFile = null;
+  var pendingAvatarRemove = false;
   var avatarInput = document.getElementById("avatarInput");
   avatarInput.addEventListener("change", function () {
     if (!avatarInput.files || !avatarInput.files[0]) return;
-    var formData = new FormData();
-    formData.append("profileImage", avatarInput.files[0]);
-    Api.request("/api/members/me/profile-image", { method: "POST", isForm: true, body: formData })
-      .then(function (res) {
-        Eatty.toast("프로필 사진을 변경했습니다.", "success");
-        me.profileImageUrl = res.profileImageUrl;
-        // eatty-ui.js의 공용 드롭존 핸들러가 미리보기 이미지는 보여주지만, 초기 로드/삭제 때와 달리
-        // 뒤에 깔린 주황 배경(#avatarPlaceholder)은 안 숨겨서 사진 테두리 밖으로 배경색이 비쳐 보였다.
-        var placeholder = document.getElementById("avatarPlaceholder");
-        if (placeholder) placeholder.style.display = "none";
-      })
-      .catch(function (err) { Eatty.toast(err.message || "이미지 업로드에 실패했습니다.", "error"); });
+    pendingAvatarFile = avatarInput.files[0];
+    pendingAvatarRemove = false;
+    // eatty-ui.js의 공용 드롭존 핸들러가 미리보기 이미지는 보여주지만, 초기 로드/삭제 때와 달리
+    // 뒤에 깔린 주황 배경(#avatarPlaceholder)은 안 숨겨서 사진 테두리 밖으로 배경색이 비쳐 보였다.
+    var placeholder = document.getElementById("avatarPlaceholder");
+    if (placeholder) placeholder.style.display = "none";
   });
   var avatarRemoveBtn = document.getElementById("avatarRemoveBtn");
   if (avatarRemoveBtn) {
     avatarRemoveBtn.addEventListener("click", function () {
-      Api.request("/api/members/me/profile-image", { method: "DELETE" })
-        .then(function () {
-          me.profileImageUrl = null;
-          var avatarPreview = document.getElementById("avatarPreview");
-          avatarPreview.hidden = true;
-          var placeholder = document.getElementById("avatarPlaceholder");
-          if (placeholder) placeholder.style.display = "";
-          Eatty.toast("기본 이미지로 변경했습니다.", "success");
-        })
-        .catch(function () {});
+      pendingAvatarFile = null;
+      pendingAvatarRemove = true;
+      avatarInput.value = "";
+      var avatarPreview = document.getElementById("avatarPreview");
+      avatarPreview.hidden = true;
+      var placeholder = document.getElementById("avatarPlaceholder");
+      if (placeholder) placeholder.style.display = "";
     });
   }
+  // "저장"을 누르지 않고 나가면 미리보기만 바뀐 채 아무 것도 반영되지 않아야 하므로, 페이지를 벗어나면
+  // 대기 중이던 변경은 그냥 버려진다(서버 호출 자체가 없었으니 되돌릴 것도 없음) — 별도 처리 불필요.
 
   // ---- 전화번호 변경 인증 ----
   var editPhoneInput = document.getElementById("editPhone");
@@ -384,6 +385,19 @@
     submitBtn.disabled = true;
     Api.request("/api/members/me", { method: "PATCH", body: body })
       .then(function () {
+        // 프로필 사진은 여기서 실제로 반영한다(버튼을 눌렀을 때는 미리보기만 바꿔뒀었다).
+        if (pendingAvatarFile) {
+          var formData = new FormData();
+          formData.append("profileImage", pendingAvatarFile);
+          return Api.request("/api/members/me/profile-image", { method: "POST", isForm: true, body: formData });
+        }
+        if (pendingAvatarRemove) {
+          return Api.request("/api/members/me/profile-image", { method: "DELETE" });
+        }
+      })
+      .then(function () {
+        pendingAvatarFile = null;
+        pendingAvatarRemove = false;
         successAlert.hidden = false;
         setTimeout(function () { window.location.href = "mypage"; }, 900);
       })
