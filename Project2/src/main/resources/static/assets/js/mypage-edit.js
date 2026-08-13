@@ -262,14 +262,6 @@
     });
   }
 
-  // 닉네임 중복확인 — 실제 별도 조회 API가 없어 저장 시 서버가 검증한다는 점만 안내.
-  var checkNicknameBtn = document.getElementById("checkNicknameBtn");
-  if (checkNicknameBtn) {
-    checkNicknameBtn.addEventListener("click", function () {
-      Eatty.toast("저장 시 서버에서 자동으로 중복 여부를 확인합니다.", "default");
-    });
-  }
-
   // ---- 전화번호 변경 인증 ----
   var editPhoneInput = document.getElementById("editPhone");
   var sendPhoneCodeBtn = document.getElementById("sendPhoneCodeBtn");
