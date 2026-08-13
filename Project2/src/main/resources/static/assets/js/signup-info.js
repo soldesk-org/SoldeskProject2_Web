@@ -124,6 +124,12 @@
           });
       })
       .then(function () {
+        // 2026-08-13 수정 — 프로필 사진 업로드(인증 필요 API)를 쓰려고 가입 직후 자동 로그인을 해뒀는데,
+        // 그 세션이 그대로 남아있어서 "가입 완료" 화면의 "로그인하러 가기"를 눌러도 이미 로그인된 상태로
+        // 보였다. 본인이 직접 로그인 화면에서 로그인하는 흐름을 기대하므로, 여기서 로그아웃해서 되돌린다.
+        return Api.logout();
+      })
+      .then(function () {
         sessionStorage.removeItem("signup_email");
         sessionStorage.removeItem("signup_password");
         sessionStorage.removeItem("signup_phone");
