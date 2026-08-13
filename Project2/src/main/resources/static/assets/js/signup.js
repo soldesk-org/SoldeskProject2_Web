@@ -66,14 +66,22 @@
       .catch(function (err) { Eatty.toast(err.message || "인증코드가 올바르지 않습니다.", "error"); });
   });
 
-  // 비밀번호 강도 표시(순수 UI)
+  // 비밀번호 강도 표시(2026-08-13 수정) — 예전엔 "8자 이상/대소문자 혼용/숫자/특수문자" 4개를 각각
+  // 1점씩 매겨서, 특수문자 없이 소문자+숫자만 있어도(예: "abcdefg1") "보통"으로 뜨는 경우가 있었다.
+  // 근데 서버(SignUpRequestDto) 검증은 "영문+숫자+특수문자를 전부 포함한 8~20자"가 필수라, 그 조건을
+  // 못 채우면 강도와 무관하게 무조건 막힌다 — "보통"인데도 다음 단계로 못 넘어가던 원인. 서버가 요구하는
+  // 필수 조건을 통과해야만 최소 "보통"부터 주도록 기준을 맞춰서, "보통"/"양호"면 항상 통과되게 한다.
+  var PASSWORD_REQUIRED_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$/;
   var pw = passwordInput;
   pw.addEventListener("input", function () {
-    var v = pw.value, score = 0;
-    if (v.length >= 8) score++;
-    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
-    if (/\d/.test(v)) score++;
-    if (/[^\w\s]/.test(v)) score++;
+    var v = pw.value;
+    var meetsRequired = PASSWORD_REQUIRED_PATTERN.test(v);
+    var score = 0;
+    if (meetsRequired) {
+      score = 2; // 필수 조건(영문+숫자+특수문자, 8~20자)을 채우면 최소 "보통".
+      if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++; // 대소문자 섞으면 "양호"
+      if (v.length >= 12) score++; // 12자 이상이면 "안전"
+    }
     var labels = ["-", "약함", "보통", "양호", "안전"];
     var bar = document.getElementById("pwStrengthBar");
     var txt = document.getElementById("pwStrengthText");

@@ -403,8 +403,10 @@
     return {
       id: "review-" + r.reviewId, kind: "REVIEW", reviewId: r.reviewId,
       category: reasonLabel(r.latestReasonCode),
-      content: "신고 " + r.reportCount + "건 · 최근 사유: " + reasonLabel(r.latestReasonCode),
-      target: r.content, targetLabel: r.restaurantName, reporter: "-",
+      // 2026-08-13 수정 — "대상"엔 가게 이름이 아니라 신고당한 리뷰를 쓴 사람이 나와야 하고, "신고자"는
+      // "-"가 아니라 실제로 신고한 사람(여러 명이면 가장 최근 신고자 기준)이 나와야 한다.
+      content: "신고 " + r.reportCount + "건 · 최근 사유: " + reasonLabel(r.latestReasonCode) + " · " + r.restaurantName,
+      target: r.authorNickname, targetLabel: r.authorNickname, reporter: r.latestReporterNickname || "-",
       status: r.status, date: r.latestReportedAt,
     };
   }

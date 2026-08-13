@@ -66,14 +66,17 @@ public class AdminReportServiceImpl implements AdminReportService {
             return null; // 리뷰가 이미 삭제된 경우 - 신고 목록에서는 제외(관리자가 볼 대상이 없어짐)
         }
         List<ReviewReport> reports = reviewReportRepository.findByReviewIdAndStatus(summary.getReviewId(), status);
-        String latestReason = reports.stream()
+        ReviewReport latestReport = reports.stream()
                 .max((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()))
-                .map(ReviewReport::getReasonCode)
                 .orElse(null);
+        String latestReason = latestReport != null ? latestReport.getReasonCode() : null;
+        String latestReporterNickname = latestReport != null
+                ? memberRepository.findById(latestReport.getReporterMemberId()).map(Member::getNickname).orElse(null)
+                : null;
 
         return new AdminReportedReviewResponseDto(review.getReviewId(), nicknameByMemberId.get(review.getMemberId()),
                 review.getRestaurantNameSnapshot(), review.getRating(), review.getContent(),
-                summary.getReportCount(), latestReason, summary.getLatestReportedAt(), status);
+                summary.getReportCount(), latestReason, summary.getLatestReportedAt(), status, latestReporterNickname);
     }
 
     @Override

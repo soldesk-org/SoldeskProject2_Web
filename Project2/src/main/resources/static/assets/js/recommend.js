@@ -294,6 +294,10 @@
     var text = buildQueryText();
     if (!text) { Eatty.toast("찾고 있는 조건을 입력해주세요.", "error"); query.focus(); return; }
     show("loading");
+    // 2026-08-13 추가 — "최근 질문" 클릭은 누르자마자 바로 맨 위로 스크롤되는데, 검색은 결과가 올 때까지
+    // (LLM 추론 때문에 몇 초 걸림) 화면이 그대로라 눌렀는지 안 눌렀는지 헷갈렸다. 최근 질문과 대칭으로
+    // 누르자마자 바로 로딩 영역으로 스크롤한다(결과가 오면 기존처럼 resultBox로 한 번 더 스크롤).
+    loadingBox.scrollIntoView({ behavior: "smooth", block: "start" });
 
     function request(center) {
       var useAuth = document.getElementById("useMyBtiSwitch").checked;

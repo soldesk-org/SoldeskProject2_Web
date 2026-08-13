@@ -144,13 +144,20 @@
       .catch(function (err) { Eatty.toast(err.message || "인증코드가 올바르지 않습니다.", "error"); });
   });
 
+  // 비밀번호 강도 표시(2026-08-13 수정) — signup.js와 동일한 이유로 서버 필수 조건(영문+숫자+특수문자,
+  // 8~20자, BusinessSignUpRequestDto와 동일 정규식)을 못 채우면 "약함", 채우면 최소 "보통"부터 주도록
+  // 맞춰서 "보통"/"양호"가 뜨면 항상 다음 단계로 통과되게 한다.
+  var PASSWORD_REQUIRED_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$/;
   var pw = document.getElementById("bizSignupPassword");
   pw.addEventListener("input", function () {
-    var v = pw.value, score = 0;
-    if (v.length >= 8) score++;
-    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
-    if (/\d/.test(v)) score++;
-    if (/[^\w\s]/.test(v)) score++;
+    var v = pw.value;
+    var meetsRequired = PASSWORD_REQUIRED_PATTERN.test(v);
+    var score = 0;
+    if (meetsRequired) {
+      score = 2;
+      if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+      if (v.length >= 12) score++;
+    }
     var labels = ["-", "약함", "보통", "양호", "안전"];
     document.getElementById("bizPwStrengthBar").style.width = (score * 25) + "%";
     document.getElementById("bizPwStrengthText").textContent = v ? labels[score] : "-";
