@@ -309,10 +309,16 @@
         : Promise.resolve();
       return uploadPhotos.then(function () {
         leaveGuardArmed = false;
-        if (currentDraftId) {
-          writeDrafts(readDrafts().filter(function (d) { return d.draftId !== currentDraftId; }));
-          currentDraftId = null;
-        }
+        // 2026-08-13 수정 — currentDraftId(이 페이지 세션에서 "이어서 쓰기"로 들어왔을 때만 채워짐)만
+        // 지우다 보니, 작성 도중 한 번이라도 다른 곳으로 나갔다가(자동 임시저장 생성) 다시 "새 리뷰
+        // 쓰기"로 처음부터 새로 써서 등록을 마친 경우엔 그 예전 임시저장이 안 지워지고 그대로 남아있었다.
+        // 같은 receiptId는 리뷰 하나에만 쓰일 수 있으므로, receiptId가 같은 임시저장은 세션과 무관하게
+        // 전부 정리한다.
+        var thisReceiptId = ocrResult && ocrResult.receiptId;
+        writeDrafts(readDrafts().filter(function (d) {
+          return d.draftId !== currentDraftId && d.receiptId !== thisReceiptId;
+        }));
+        currentDraftId = null;
         document.getElementById("step3Section").hidden = true;
         stepsRoot.parentElement.hidden = true;
         doneSection.hidden = false;
@@ -331,6 +337,12 @@
     if (!restaurant || !ocrResult || !ocrResult.receiptId) return false;
     var score = Number(document.getElementById("reviewScore").value);
     var content = document.getElementById("reviewContent").value.trim();
+    // 2026-08-13 수정 — toISOString()은 항상 UTC라 "마지막 저장" 시각이 한국 시간보다 9시간 느리게
+    // 보였다. 브라우저 로컬 시간(사용자가 보는 시계 기준) 그대로 저장한다.
+    function formatLocalDateTime(d) {
+      var pad = function (n) { return String(n).padStart(2, "0"); };
+      return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+    }
     var draftId = currentDraftId || ("draft-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8));
     var draft = {
       draftId: draftId,
@@ -351,7 +363,7 @@
       negativeTags: Array.prototype.filter.call(
         document.querySelectorAll("#negativeTagList input:checked"), function () { return true; }
       ).map(function (i) { return i.value; }),
-      savedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+      savedAt: formatLocalDateTime(new Date()),
     };
     var list = readDrafts().filter(function (d) { return d.draftId !== draftId; });
     list.unshift(draft);
