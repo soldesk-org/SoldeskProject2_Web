@@ -11,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.foodtrip.foodsearch.common.exception.CustomException;
 import com.foodtrip.foodsearch.common.exception.ErrorCode;
+import com.foodtrip.foodsearch.member.repository.MemberRepository;
+import com.foodtrip.foodsearch.notification.entity.Notification;
+import com.foodtrip.foodsearch.notification.service.NotificationService;
 import com.foodtrip.foodsearch.terms.dto.AdminNoticeResponseDto;
 import com.foodtrip.foodsearch.terms.dto.CreateTermsVersionRequestDto;
 import com.foodtrip.foodsearch.terms.dto.TermsVersionCreateResponseDto;
@@ -20,10 +23,12 @@ import com.foodtrip.foodsearch.terms.entity.TermsDocument;
 import com.foodtrip.foodsearch.terms.repository.TermsChangeNoticeRepository;
 import com.foodtrip.foodsearch.terms.repository.TermsDocumentRepository;
 
-// 관리자 "약관 관리" — 새 버전 등록 + 변경 공지 게시를 한 액션으로 묶는다(요구사항 3번 항목의 지침).
-// "작은 변경(14일 전)/큰 변경(30일 전)" 사전 고지 규칙은 여기, 새 버전을 등록하는 이 시점에 딱 한 곳에서
-// 검증한다 — 이 프로젝트가 다른 도메인(예: 17.리뷰-필터링의 korcen 검사)에서도 그렇듯 "업무 규칙은 그 규칙이
-// 실제로 적용되는 단일 지점에서" 강제하는 패턴을 따른다.
+// 관리자 "약관 관리" — 새 버전 등록 + 변경 공지 게시 + 전체 회원 알림 발송을 한 액션으로 묶는다
+// (요구사항 3번 항목의 지침). "작은 변경(14일 전)/큰 변경(30일 전)" 사전 고지 규칙은 여기, 새 버전을
+// 등록하는 이 시점에 딱 한 곳에서 검증한다 — 이 프로젝트가 다른 도메인(예: 17.리뷰-필터링의 korcen 검사)
+// 에서도 그렇듯 "업무 규칙은 그 규칙이 실제로 적용되는 단일 지점에서" 강제하는 패턴을 따른다.
+// 별도 공지 게시판(목록 페이지)은 두지 않는다(2026-08-14 결정) — 회원 알림 벨(admin.broadcastNotification()
+// 과 동일한 패턴)로만 도달하게 하고, notice-detail 페이지는 그 링크 없이는 들어올 방법이 없다.
 @Service
 @Transactional
 public class AdminTermsServiceImpl implements AdminTermsService {
@@ -32,11 +37,17 @@ public class AdminTermsServiceImpl implements AdminTermsService {
 
     private final TermsDocumentRepository termsDocumentRepository;
     private final TermsChangeNoticeRepository termsChangeNoticeRepository;
+    private final MemberRepository memberRepository;
+    private final NotificationService notificationService;
 
     public AdminTermsServiceImpl(TermsDocumentRepository termsDocumentRepository,
-                                  TermsChangeNoticeRepository termsChangeNoticeRepository) {
+                                  TermsChangeNoticeRepository termsChangeNoticeRepository,
+                                  MemberRepository memberRepository,
+                                  NotificationService notificationService) {
         this.termsDocumentRepository = termsDocumentRepository;
         this.termsChangeNoticeRepository = termsChangeNoticeRepository;
+        this.memberRepository = memberRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -74,11 +85,19 @@ public class AdminTermsServiceImpl implements AdminTermsService {
 
         Long noticeId = null;
         if (previous != null) {
+            String noticeTitle = docTypeLabel(docType) + " 개정 안내 (v" + versionLabel + ")";
             TermsChangeNotice notice = TermsChangeNotice.create(
                     saved.getTermsDocumentId(), previous.getTermsDocumentId(), docType,
-                    docTypeLabel(docType) + " 개정 안내 (v" + versionLabel + ")",
-                    request.getEffectiveDate(), noticeType, resolveCurrentAdminMemberId());
+                    noticeTitle, request.getEffectiveDate(), noticeType, resolveCurrentAdminMemberId());
             noticeId = termsChangeNoticeRepository.save(notice).getTermsChangeNoticeId();
+
+            // 별도 공지 게시판을 두지 않고 회원 알림 벨로만 이 링크를 전달한다(2026-08-14 결정) —
+            // 그 링크(notice-detail?id=...) 없이는 이 공지에 도달할 방법이 없다.
+            String body = "시행일 " + request.getEffectiveDate() + "부터 적용됩니다. 눌러서 변경 전/후를 확인해주세요.";
+            String linkUrl = "notice-detail?id=" + noticeId;
+            for (Long memberId : memberRepository.findMemberIdsByStatus("ACTIVE")) {
+                notificationService.create(memberId, Notification.TYPE_NOTICE, noticeTitle, body, linkUrl);
+            }
         }
 
         return new TermsVersionCreateResponseDto(true,

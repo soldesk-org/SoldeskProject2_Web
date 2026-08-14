@@ -7,3 +7,12 @@
   .toc-link.is-active {
     color: var(--brand-600); background: var(--brand-50); border-left-color: var(--brand-500);
   }
+
+  /* 버전 선택 배지(2026-08-14 추가) — terms-service.css와 동일 */
+  .e-version-select {
+    appearance: none; -webkit-appearance: none; border: none; cursor: pointer;
+    font-weight: 700; padding-right: 26px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fd6d4a' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center; background-size: 13px;
+  }
+  .e-version-select:focus { outline: 2px solid var(--brand-300); outline-offset: 1px; }

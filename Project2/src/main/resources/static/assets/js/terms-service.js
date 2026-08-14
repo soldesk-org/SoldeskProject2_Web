@@ -5,7 +5,6 @@
   var DOC_TYPE = "SERVICE";
   var bodyEl = document.getElementById("termsBody");
   var tocEl = document.getElementById("termsToc");
-  var versionBadge = document.getElementById("termsVersion");
   var effectiveAtEl = document.getElementById("termsEffectiveAt");
   var pickerEl = document.getElementById("versionPicker");
   var tocLabel = tocEl ? tocEl.querySelector("p") : null;
@@ -50,11 +49,12 @@
 
   function renderDoc(detail) {
     bodyEl.innerHTML = detail.content;
-    if (versionBadge) versionBadge.textContent = "v" + detail.versionLabel;
     if (effectiveAtEl) effectiveAtEl.textContent = formatDateKo(detail.effectiveDate);
     buildToc();
   }
 
+  // 버전 select 자체가 배지 역할까지 겸한다(2026-08-14) — 닫혀있을 때는 선택된 option의 텍스트가 그대로
+  // "v2026-08-01" 배지처럼 보이고, 클릭하면 지난 버전 목록이 드롭다운으로 펼쳐진다.
   function loadVersions(selectedId) {
     if (!pickerEl) return;
     Api.request("/api/terms/" + DOC_TYPE + "/versions", { auth: false })
@@ -63,7 +63,7 @@
         list.forEach(function (v) {
           var opt = document.createElement("option");
           opt.value = v.termsDocumentId;
-          opt.textContent = "v" + v.versionLabel + " (시행일 " + v.effectiveDate + ")" + (v.current ? " · 현재" : "");
+          opt.textContent = "v" + v.versionLabel + (v.current ? " (현재)" : "");
           if (selectedId && String(selectedId) === String(v.termsDocumentId)) opt.selected = true;
           pickerEl.appendChild(opt);
         });

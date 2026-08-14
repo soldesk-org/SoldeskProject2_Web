@@ -1,14 +1,11 @@
 package com.foodtrip.foodsearch.terms.service;
 
-import java.util.List;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.foodtrip.foodsearch.common.exception.CustomException;
 import com.foodtrip.foodsearch.common.exception.ErrorCode;
 import com.foodtrip.foodsearch.terms.dto.NoticeDetailResponseDto;
-import com.foodtrip.foodsearch.terms.dto.NoticeSummaryResponseDto;
 import com.foodtrip.foodsearch.terms.dto.TermsDocumentDetailResponseDto;
 import com.foodtrip.foodsearch.terms.entity.TermsChangeNotice;
 import com.foodtrip.foodsearch.terms.entity.TermsDocument;
@@ -26,13 +23,6 @@ public class NoticeServiceImpl implements NoticeService {
                               TermsDocumentRepository termsDocumentRepository) {
         this.termsChangeNoticeRepository = termsChangeNoticeRepository;
         this.termsDocumentRepository = termsDocumentRepository;
-    }
-
-    @Override
-    public List<NoticeSummaryResponseDto> listNotices() {
-        return termsChangeNoticeRepository.findAllByOrderByPostedAtDesc().stream()
-                .map(NoticeSummaryResponseDto::new)
-                .toList();
     }
 
     @Override

@@ -22,7 +22,7 @@
    #termsToc          좌측 스티키 목차 (a[href="#chapterN"])
    #termsBody         본문 (.e-doc)
    #chapter1 ~ #chapter4   각 장 앵커
-   #termsVersion      현재 버전 표시
+   #versionPicker     현재/과거 버전 선택 select (배지 스타일, 2026-08-14 상단으로 이동)
    #termsEffectiveAt  시행일
    #privacyLink       → terms-privacy
 ================================================================================
@@ -64,7 +64,11 @@
       <h1 class="t-h2">Eattyway 서비스 이용약관</h1>
 
       <div class="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5">
-        <span class="e-badge e-badge--brand e-badge-lg" id="termsVersion">v2026-08-01</span>
+        <!-- 2026-08-14 — 버전 배지를 클릭하면 바로 지난 버전을 고를 수 있게(select), 예전엔 페이지 맨
+             아래에 별도 드롭다운이 있었는데 너무 눈에 안 띈다는 피드백으로 상단 배지 자리로 옮겼다. -->
+        <select id="versionPicker" class="e-badge e-badge--brand e-badge-lg e-version-select">
+          <option value="">불러오는 중...</option>
+        </select>
         <p class="t-sm">시행일 <b class="t-strong t-num" id="termsEffectiveAt">2026년 8월 1일</b></p>
       </div>
     </div>
@@ -88,14 +92,6 @@
         <div class="e-doc" id="termsBody">
           <p class="t-sm">불러오는 중...</p>
         </div>
-
-        <!-- 2026-08-14 신규 — 이전 버전 열람용 드롭다운(요구사항: "전버전도 볼 수 있게 하단에 select") -->
-        <div class="mt-8 pt-6 border-t border-[var(--line)] flex flex-wrap items-center gap-3 no-print">
-          <label for="versionPicker" class="t-sm t-strong">지난 버전 보기</label>
-          <select id="versionPicker" class="e-input e-input-sm" style="max-width:320px">
-            <option value="">불러오는 중...</option>
-          </select>
-        </div>
       </article>
     </div>
   </div>
@@ -108,7 +104,6 @@
       <nav class="flex gap-5">
         <a href="terms-service">이용약관</a>
         <a href="terms-privacy">개인정보처리방침</a>
-        <a href="notices">공지사항</a>
         <a href="/">홈</a>
       </nav>
     </div>

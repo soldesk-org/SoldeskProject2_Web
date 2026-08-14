@@ -3,7 +3,6 @@
   var DOC_TYPE = "PRIVACY";
   var bodyEl = document.getElementById("privacyBody");
   var tocEl = document.getElementById("privacyToc");
-  var versionBadge = document.getElementById("privacyVersion");
   var effectiveAtEl = document.getElementById("privacyEffectiveAt");
   var pickerEl = document.getElementById("versionPicker");
   var tocLabel = tocEl ? tocEl.querySelector("p") : null;
@@ -47,11 +46,11 @@
 
   function renderDoc(detail) {
     bodyEl.innerHTML = detail.content;
-    if (versionBadge) versionBadge.textContent = "v" + detail.versionLabel;
     if (effectiveAtEl) effectiveAtEl.textContent = formatDateKo(detail.effectiveDate);
     buildToc();
   }
 
+  // 버전 select 자체가 배지 역할까지 겸한다(2026-08-14) — terms-service.js와 동일 패턴.
   function loadVersions(selectedId) {
     if (!pickerEl) return;
     Api.request("/api/terms/" + DOC_TYPE + "/versions", { auth: false })
@@ -60,7 +59,7 @@
         list.forEach(function (v) {
           var opt = document.createElement("option");
           opt.value = v.termsDocumentId;
-          opt.textContent = "v" + v.versionLabel + " (시행일 " + v.effectiveDate + ")" + (v.current ? " · 현재" : "");
+          opt.textContent = "v" + v.versionLabel + (v.current ? " (현재)" : "");
           if (selectedId && String(selectedId) === String(v.termsDocumentId)) opt.selected = true;
           pickerEl.appendChild(opt);
         });
