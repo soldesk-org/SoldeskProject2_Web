@@ -23,7 +23,7 @@ public class PageRoutingController {
             "signup-business", "signup-business-info", "signup-business-done",
             "find-email", "find-email-verify", "find-email-result",
             "find-password", "find-password-sent", "find-password-reset", "find-password-done",
-            "terms-service", "terms-privacy",
+            "terms-service", "terms-privacy", "notices", "notice-detail",
             "explore", "recommend", "taste-quiz", "receipt-upload", "roulette",
             "mypage", "mypage-edit", "mypage-reviews", "chat", "business-mypage", "admin",
             "support", "admin-test", "store-search-popup"

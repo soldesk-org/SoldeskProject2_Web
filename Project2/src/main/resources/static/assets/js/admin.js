@@ -44,6 +44,8 @@
     reports: document.getElementById("sectionReports"),
     reviews: document.getElementById("sectionReviews"),
     monitor: document.getElementById("sectionMonitor"),
+    // 2026-08-14 신규 — 약관/개인정보처리방침 버전 관리 + 변경 공지 게시.
+    terms: document.getElementById("sectionTerms"),
   };
   function showSection(id) {
     Object.keys(SECTIONS).forEach(function (k) { SECTIONS[k].hidden = k !== id; });
@@ -630,6 +632,146 @@
       reviewSearchInput.focus();
       renderReviews();
     });
+  }
+
+  // ================================================================
+  // 약관 관리 (2026-08-14 신규) — 새 버전 등록 + 변경 공지 게시를 한 폼으로 처리한다(백엔드
+  // POST /api/admin/terms/{docType}/versions가 이미 둘을 한 번에 묶어서 처리함). 다른 섹션들처럼
+  // reloadAll()의 Promise.all에 끼워 넣지 않고, "약관 관리" 탭을 눌렀을 때만 지연 로드한다 — 자주 안 쓰는
+  // 관리 기능까지 매 5초 폴링/새로고침에 묶으면 불필요한 API 호출만 늘어난다.
+  var termsDocTypeSelect = document.getElementById("termsDocTypeSelect");
+  var termsVersionTableBody = document.getElementById("termsVersionTableBody");
+  var termsNoticeTableBody = document.getElementById("termsNoticeTableBody");
+  var termsVersionForm = document.getElementById("termsVersionForm");
+  var termsNoticeTypeField = document.getElementById("termsNoticeTypeField");
+  var termsLeadTimeHint = document.getElementById("termsLeadTimeHint");
+  var termsLoaded = false;
+
+  function termsDocTypeLabel(docType) {
+    return docType === "PRIVACY" ? "개인정보처리방침" : "이용약관";
+  }
+
+  function loadTermsVersions() {
+    if (!termsDocTypeSelect) return;
+    var docType = termsDocTypeSelect.value;
+    authRequest("/api/admin/terms/" + docType + "/versions").then(function (list) {
+      termsVersionTableBody.innerHTML = "";
+      if (!list.length) {
+        termsVersionTableBody.innerHTML = '<tr><td colspan="4" class="t-sm">등록된 버전이 없습니다.</td></tr>';
+        return;
+      }
+      list.forEach(function (v) {
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>v" + escapeHtml(v.versionLabel) + (v.current ? ' <span class="e-badge e-badge--brand">현재</span>' : "") + "</td>" +
+          "<td>" + escapeHtml(v.title) + "</td>" +
+          "<td>" + fmtDate(v.effectiveDate) + "</td>" +
+          "<td>" + (v.termsDocumentId || "-") + "</td>";
+        termsVersionTableBody.appendChild(tr);
+      });
+    });
+  }
+
+  function loadTermsNotices() {
+    if (!termsNoticeTableBody) return;
+    authRequest("/api/admin/notices").then(function (list) {
+      termsNoticeTableBody.innerHTML = "";
+      if (!list.length) {
+        termsNoticeTableBody.innerHTML = '<tr><td colspan="5" class="t-sm">게시된 공지가 없습니다.</td></tr>';
+        return;
+      }
+      list.forEach(function (n) {
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + termsDocTypeLabel(n.docType) + "</td>" +
+          "<td>" + escapeHtml(n.title) + "</td>" +
+          "<td>" + (n.noticeType === "MAJOR" ? "큰 변경" : "작은 변경") + "</td>" +
+          "<td>" + fmtDate(n.effectiveDate) + "</td>" +
+          "<td>" + fmtDateTime(n.postedAt) + "</td>";
+        termsNoticeTableBody.appendChild(tr);
+      });
+    });
+  }
+
+  function loadTermsSection() {
+    loadTermsVersions();
+    loadTermsNotices();
+  }
+
+  if (termsDocTypeSelect) {
+    termsDocTypeSelect.addEventListener("change", loadTermsVersions);
+  }
+
+  // 관리자 화면에서도 14일/30일 규칙을 즉시 안내(실제 검증은 서버가 최종적으로 다시 한다 — 클라이언트
+  // 검증은 사용자 경험을 위한 보조 수단일 뿐, 신뢰의 기준은 항상 서버 쪽 검증이다).
+  if (termsNoticeTypeField) {
+    termsNoticeTypeField.addEventListener("change", updateTermsLeadTimeHint);
+  }
+  var termsEffectiveDateInput = document.getElementById("termsEffectiveDateInput");
+  if (termsEffectiveDateInput) {
+    termsEffectiveDateInput.addEventListener("change", updateTermsLeadTimeHint);
+  }
+  function updateTermsLeadTimeHint() {
+    if (!termsLeadTimeHint) return;
+    var noticeType = termsNoticeTypeField ? termsNoticeTypeField.value : "";
+    var requiredDays = noticeType === "MAJOR" ? 30 : 14;
+    var effectiveDateStr = termsEffectiveDateInput ? termsEffectiveDateInput.value : "";
+    if (!effectiveDateStr) {
+      termsLeadTimeHint.textContent = "시행일 최소 " + requiredDays + "일 전(변경 유형 기준)까지 등록해야 합니다.";
+      return;
+    }
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var effectiveDate = new Date(effectiveDateStr + "T00:00:00");
+    var leadDays = Math.round((effectiveDate - today) / (1000 * 60 * 60 * 24));
+    var ok = leadDays >= requiredDays;
+    termsLeadTimeHint.textContent = (ok ? "✓ " : "⚠ ") + "시행일까지 " + leadDays + "일 남음 (필요: " + requiredDays + "일 이상)";
+    termsLeadTimeHint.style.color = ok ? "var(--success, #16a34a)" : "var(--danger, #dc2626)";
+  }
+
+  if (termsVersionForm) {
+    termsVersionForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var docType = termsDocTypeSelect.value;
+      var body = {
+        title: document.getElementById("termsTitleInput").value.trim(),
+        content: document.getElementById("termsContentInput").value,
+        effectiveDate: document.getElementById("termsEffectiveDateInput").value,
+        changeSummary: document.getElementById("termsChangeSummaryInput").value.trim(),
+        noticeType: termsNoticeTypeField.value || null,
+        versionLabel: document.getElementById("termsVersionLabelInput").value.trim() || null,
+      };
+      if (!body.title || !body.content || !body.effectiveDate) {
+        Eatty.toast("제목, 본문, 시행일자를 모두 입력해주세요.", "error");
+        return;
+      }
+      authRequest("/api/admin/terms/" + docType + "/versions", { method: "POST", body: body })
+        .then(function (res) {
+          Eatty.toast(res.message || "등록되었습니다.", "success");
+          termsVersionForm.reset();
+          updateTermsLeadTimeHint();
+          loadTermsSection();
+        })
+        .catch(function (err) {
+          Eatty.toast((err && err.message) || "등록에 실패했습니다.", "error");
+        });
+    });
+  }
+
+  // "약관 관리" 탭에 처음 들어올 때만 로드(reloadAll()과 별도 경로).
+  var termsNavLinks = document.querySelectorAll('[data-admin-nav="terms"]');
+  termsNavLinks.forEach(function (a) {
+    a.addEventListener("click", function () {
+      if (termsLoaded) return;
+      termsLoaded = true;
+      loadTermsSection();
+      updateTermsLeadTimeHint();
+    });
+  });
+  if (initial === "terms") {
+    termsLoaded = true;
+    loadTermsSection();
+    updateTermsLeadTimeHint();
   }
 
   reloadAll();

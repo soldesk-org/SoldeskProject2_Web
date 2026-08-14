@@ -157,6 +157,13 @@
         </svg>
         서버 모니터링
       </a>
+      <!-- 2026-08-14 신규 — 약관/개인정보처리방침 버전 관리 + 변경 공지 게시 -->
+      <a class="e-admin-side-link" href="#sectionTerms" data-admin-nav="terms">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v5h5"/><path d="M8 13h8M8 17h5"/>
+        </svg>
+        약관 관리
+      </a>
     </nav>
 
   </aside>
@@ -648,6 +655,102 @@
               <tbody id="monitorTableBody"></tbody>
             </table>
           </div>
+        </div>
+
+      </section>
+
+      <!-- ================================================================
+           섹션 6 · 약관 관리 (#sectionTerms, 2026-08-14 신규)
+           - 새 버전 등록 폼 하나가 버전 생성 + (이전 버전이 있으면) 변경 공지 게시까지 한 번에 처리한다
+             (★ POST /api/admin/terms/{docType}/versions).
+           - 목록: GET /api/admin/terms/{docType}/versions, GET /api/admin/notices
+           ================================================================ -->
+      <section class="adm-section" id="sectionTerms" hidden>
+
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 class="e-page-title">약관 관리</h1>
+            <p class="e-page-desc">이용약관 · 개인정보처리방침 버전을 등록하고 변경 공지를 게시합니다.</p>
+          </div>
+          <select id="termsDocTypeSelect" class="e-input e-input-sm" style="max-width:220px">
+            <option value="SERVICE">이용약관</option>
+            <option value="PRIVACY">개인정보처리방침</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6">
+
+          <!-- 새 버전 등록 폼 -->
+          <div class="e-card">
+            <div class="e-card-head">
+              <p class="e-card-title">새 버전 등록</p>
+            </div>
+            <div class="e-card-body">
+              <form id="termsVersionForm" class="space-y-3">
+                <div>
+                  <label class="e-label" for="termsTitleInput">제목</label>
+                  <input type="text" class="e-input" id="termsTitleInput" placeholder="예: Eattyway 서비스 이용약관" required>
+                </div>
+                <div>
+                  <label class="e-label" for="termsVersionLabelInput">버전 라벨 (생략 시 시행일자로 자동 생성)</label>
+                  <input type="text" class="e-input" id="termsVersionLabelInput" placeholder="예: 2026-09-01">
+                </div>
+                <div>
+                  <label class="e-label" for="termsContentInput">본문 (HTML, h2 태그가 목차 항목이 됩니다)</label>
+                  <textarea class="e-input" id="termsContentInput" rows="8" placeholder="&lt;h2 id=&quot;chapter1&quot;&gt;제1장 총칙&lt;/h2&gt; ..." required></textarea>
+                </div>
+                <div>
+                  <label class="e-label" for="termsChangeSummaryInput">변경 요약 (공지에 표시)</label>
+                  <input type="text" class="e-input" id="termsChangeSummaryInput" placeholder="예: 제7조 위치기반서비스 조항 신설">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div id="termsNoticeTypeWrap">
+                    <label class="e-label" for="termsNoticeTypeField">변경 유형 (최초 버전이면 비워두세요)</label>
+                    <select class="e-input" id="termsNoticeTypeField">
+                      <option value="">- 선택 -</option>
+                      <option value="MINOR">작은 변경 (14일 전 고지)</option>
+                      <option value="MAJOR">큰 변경 (30일 전 고지)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="e-label" for="termsEffectiveDateInput">시행일자</label>
+                    <input type="date" class="e-input" id="termsEffectiveDateInput" required>
+                  </div>
+                </div>
+                <p class="t-xs" id="termsLeadTimeHint">시행일 최소 14일 전(변경 유형 기준)까지 등록해야 합니다.</p>
+                <button type="submit" class="btn btn-primary btn-block">등록</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <!-- 버전 목록 -->
+            <div class="e-card">
+              <div class="e-card-head">
+                <p class="e-card-title">버전 목록</p>
+              </div>
+              <div class="e-card-body e-table-wrap">
+                <table class="e-table">
+                  <thead><tr><th>버전</th><th>제목</th><th>시행일</th><th>ID</th></tr></thead>
+                  <tbody id="termsVersionTableBody"><tr><td colspan="4" class="t-sm">불러오는 중...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 게시된 공지 목록 -->
+            <div class="e-card">
+              <div class="e-card-head">
+                <p class="e-card-title">게시된 변경 공지</p>
+              </div>
+              <div class="e-card-body e-table-wrap">
+                <table class="e-table">
+                  <thead><tr><th>구분</th><th>제목</th><th>변경 유형</th><th>시행일</th><th>게시일</th></tr></thead>
+                  <tbody id="termsNoticeTableBody"><tr><td colspan="5" class="t-sm">불러오는 중...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
         </div>
 
       </section>
