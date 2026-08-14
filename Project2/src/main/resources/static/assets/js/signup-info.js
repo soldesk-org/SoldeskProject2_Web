@@ -48,7 +48,7 @@
         return;
       }
       checkNicknameBtn.disabled = true;
-      Api.request("/api/members/check-nickname?nickname=" + encodeURIComponent(nickname), { method: "GET", auth: false })
+      Api.request("/api/members/nickname-availability?nickname=" + encodeURIComponent(nickname), { method: "GET", auth: false })
         .then(function (res) {
           if (res.available) {
             nicknameChecked = true;
@@ -100,7 +100,7 @@
     var notifyChatInput = document.getElementById("notifyChat");
 
     submitBtn.disabled = true;
-    Api.request("/api/members/signup", {
+    Api.request("/api/members", {
       method: "POST",
       auth: false,
       body: {

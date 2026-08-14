@@ -79,7 +79,7 @@ public class ReviewController {
     }
 
     // 리뷰 "도움됨" 토글(2026-08-12 추가) — 눌렀을 때 등록, 다시 누르면 취소.
-    @PostMapping("/api/reviews/{reviewId}/helpful")
+    @PostMapping("/api/reviews/{reviewId}/helpful-votes")
     public ReviewHelpfulResponseDto toggleHelpful(@PathVariable Long reviewId,
                                                     @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         return reviewService.toggleHelpful(reviewId, authorizationHeader);

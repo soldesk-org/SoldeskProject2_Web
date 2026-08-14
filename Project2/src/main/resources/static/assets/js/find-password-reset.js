@@ -37,7 +37,7 @@
     // 원래 탭의 폴링이 감지하고 자동으로 이 화면(같은 token)으로 넘어올 수 있게 한다.
     // 같은 링크를 또 열었으면(firstTime=false) 이미 인증을 마친 것이므로 "일치하지 않는 URL"로
     // 안내하고 메인 페이지로 보낸다(2026-08-04 추가).
-    Api.request("/api/members/password-reset/confirm-click?token=" + encodeURIComponent(token), { method: "POST", auth: false })
+    Api.request("/api/password-reset-tokens/view-events?token=" + encodeURIComponent(token), { method: "POST", auth: false })
       .then(function (res) {
         if (!res.firstTime) {
           Eatty.toast("일치하지 않는 URL입니다.", "error");
@@ -120,8 +120,8 @@
     }
 
     submitBtn.disabled = true;
-    Api.request("/api/members/password-reset/confirm", {
-      method: "POST",
+    Api.request("/api/password-reset-tokens/consumption", {
+      method: "PUT",
       auth: false,
       body: { token: token, newPassword: newPassword, newPasswordConfirm: newPasswordConfirm },
     })

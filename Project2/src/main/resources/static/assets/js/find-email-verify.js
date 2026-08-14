@@ -35,13 +35,13 @@
     if (code.length !== 6) { Eatty.toast("인증번호 6자리를 입력해주세요.", "error"); return; }
 
     submitBtn.disabled = true;
-    Api.request("/api/members/find-email/verify-phone/confirm", {
+    Api.request("/api/members/email-lookups/phone-verification-codes/confirmation", {
       method: "POST",
       auth: false,
       body: { verificationToken: token, phone: phone, code: code },
     })
       .then(function () {
-        return Api.request("/api/members/find-email/reveal", { method: "POST", auth: false, body: { verificationToken: token } });
+        return Api.request("/api/members/email-lookups/reveal-results", { method: "POST", auth: false, body: { verificationToken: token } });
       })
       .then(function (data) {
         sessionStorage.setItem("fe_email", data.email);
@@ -57,7 +57,7 @@
   });
 
   resendBtn.addEventListener("click", function () {
-    Api.request("/api/members/find-email/verify-phone/send-code", { method: "POST", auth: false, body: { verificationToken: token, phone: phone } })
+    Api.request("/api/members/email-lookups/phone-verification-codes", { method: "POST", auth: false, body: { verificationToken: token, phone: phone } })
       .then(function () {
         codeInput.value = "";
         sessionStorage.setItem("fe_verify_started_at", String(Date.now()));

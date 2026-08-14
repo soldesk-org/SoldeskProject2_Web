@@ -40,7 +40,7 @@
     var email = emailInput.value.trim();
     if (!email) { Eatty.toast("이메일을 입력해주세요.", "error"); return; }
     sendEmailBtn.disabled = true;
-    Api.request("/api/mail/send-code", { method: "POST", auth: false, body: { email: email } })
+    Api.request("/api/mail/verification-codes", { method: "POST", auth: false, body: { email: email } })
       .then(function () {
         emailCodeInput.value = "";
         emailCodeRow.hidden = false;
@@ -55,7 +55,7 @@
   verifyEmailBtn.addEventListener("click", function () {
     var email = emailInput.value.trim();
     var code = emailCodeInput.value.trim();
-    Api.request("/api/mail/verify-code", { method: "POST", auth: false, body: { email: email, code: code } })
+    Api.request("/api/mail/verification-codes/confirmation", { method: "POST", auth: false, body: { email: email, code: code } })
       .then(function () {
         emailVerified = true;
         emailCodeRow.hidden = true;
@@ -122,7 +122,7 @@
     var phone = formatPhone(phoneInput.value.trim());
     if (!phone) { Eatty.toast("전화번호를 입력해주세요.", "error"); return; }
     sendPhoneBtn.disabled = true;
-    Api.request("/api/phone/send-code", { method: "POST", auth: false, body: { email: email, phone: phone } })
+    Api.request("/api/phone/verification-codes", { method: "POST", auth: false, body: { email: email, phone: phone } })
       .then(function () {
         phoneCodeInput.value = "";
         phoneCodeRow.hidden = false;
@@ -138,7 +138,7 @@
     var email = emailInput.value.trim();
     var phone = formatPhone(phoneInput.value.trim());
     var code = phoneCodeInput.value.trim();
-    Api.request("/api/phone/verify-code", { method: "POST", auth: false, body: { email: email, phone: phone, code: code } })
+    Api.request("/api/phone/verification-codes/confirmation", { method: "POST", auth: false, body: { email: email, phone: phone, code: code } })
       .then(function () {
         phoneVerified = true;
         phoneCodeRow.hidden = true;

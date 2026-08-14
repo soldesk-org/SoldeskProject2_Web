@@ -291,7 +291,7 @@
         form.appendChild(input);
       }
       hidden("confmKey", JUSO_CONFIRM_KEY);
-      hidden("returnUrl", window.location.origin + "/juso-callback");
+      hidden("returnUrl", window.location.origin + "/api/juso-callbacks");
       hidden("resultType", "4");
 
       document.body.appendChild(form);
@@ -561,7 +561,7 @@
       var detail = document.getElementById("bizReportDetail").value.trim();
       if (!reason) { Eatty.toast("신고 사유를 선택해주세요.", "error"); return; }
       if (!bizReportTargetReviewId) return;
-      Api.request("/api/reviews/" + bizReportTargetReviewId + "/report", { method: "POST", body: { reasonCode: reason, detail: detail } })
+      Api.request("/api/reviews/" + bizReportTargetReviewId + "/reports", { method: "POST", body: { reasonCode: reason, detail: detail } })
         .then(function () { Eatty.closeModal("bizReportModal"); Eatty.toast("신고가 접수되었습니다.", "success"); })
         .catch(function (err) { Eatty.toast((err && err.message) || "신고에 실패했습니다.", "error"); });
     });
@@ -930,7 +930,7 @@
 
     window.eattyStoreSearchCallback = function (item) {
       claimRestaurantBtn.disabled = true;
-      Api.request("/api/business/claim-restaurant", {
+      Api.request("/api/restaurant-claims", {
         method: "POST",
         body: { restaurantId: item.restaurantId, address: item.address, roadAddress: item.roadAddress }
       }).then(function () {

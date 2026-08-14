@@ -120,7 +120,7 @@
 
       var submitBtn = document.getElementById("broadcastSubmitBtn");
       submitBtn.disabled = true;
-      authRequest("/api/admin/notifications/broadcast", {
+      authRequest("/api/admin/notification-broadcasts", {
         method: "POST",
         body: { title: title, body: bodyInput.value.trim() },
       })
@@ -255,7 +255,7 @@
       suspendTargetId = id;
       document.getElementById("suspendTargetName").textContent = m.nickname;
     } else if (e.target.closest("[data-release-member]")) {
-      authRequest("/api/admin/members/" + id + "/unsuspend", { method: "PATCH" })
+      authRequest("/api/admin/members/" + id, { method: "PATCH", body: { status: "ACTIVE" } })
         .then(function () { Eatty.toast("정지를 해제했습니다.", "success"); reloadAll(); })
         .catch(function (err) { Eatty.toast(err.message || "처리에 실패했습니다.", "error"); });
     }
@@ -263,24 +263,24 @@
   document.getElementById("memberDetailActionBtn").addEventListener("click", function (e) {
     var releaseId = e.currentTarget.getAttribute("data-detail-release-member");
     if (!releaseId) return; // "정지 처리" 모드일 땐 data-modal-open이 알아서 suspendModal을 연다.
-    authRequest("/api/admin/members/" + releaseId + "/unsuspend", { method: "PATCH" })
+    authRequest("/api/admin/members/" + releaseId, { method: "PATCH", body: { status: "ACTIVE" } })
       .then(function () { Eatty.toast("정지를 해제했습니다.", "success"); reloadAll(); })
       .catch(function (err) { Eatty.toast(err.message || "처리에 실패했습니다.", "error"); });
   });
   document.getElementById("suspendConfirmBtn").addEventListener("click", function () {
     if (!suspendTargetId) return;
-    authRequest("/api/admin/members/" + suspendTargetId + "/suspend", { method: "PATCH" })
+    authRequest("/api/admin/members/" + suspendTargetId, { method: "PATCH", body: { status: "SUSPENDED" } })
       .then(function () { Eatty.closeModal("suspendModal"); Eatty.toast("정지 처리했습니다.", "success"); reloadAll(); })
       .catch(function (err) { Eatty.toast(err.message || "처리에 실패했습니다.", "error"); });
   });
   document.getElementById("bulkSuspendBtn").addEventListener("click", function () {
     var ids = Array.prototype.map.call(memberTableBody.querySelectorAll('input[name="memberCheck"]:checked'), function (cb) { return cb.value; });
-    Promise.all(ids.map(function (id) { return authRequest("/api/admin/members/" + id + "/suspend", { method: "PATCH" }).catch(function () {}); }))
+    Promise.all(ids.map(function (id) { return authRequest("/api/admin/members/" + id, { method: "PATCH", body: { status: "SUSPENDED" } }).catch(function () {}); }))
       .then(function () { Eatty.toast(ids.length + "명을 정지 처리했습니다.", "success"); reloadAll(); });
   });
   document.getElementById("bulkReleaseBtn").addEventListener("click", function () {
     var ids = Array.prototype.map.call(memberTableBody.querySelectorAll('input[name="memberCheck"]:checked'), function (cb) { return cb.value; });
-    Promise.all(ids.map(function (id) { return authRequest("/api/admin/members/" + id + "/unsuspend", { method: "PATCH" }).catch(function () {}); }))
+    Promise.all(ids.map(function (id) { return authRequest("/api/admin/members/" + id, { method: "PATCH", body: { status: "ACTIVE" } }).catch(function () {}); }))
       .then(function () { Eatty.toast(ids.length + "명의 정지를 해제했습니다.", "success"); reloadAll(); });
   });
 
@@ -501,10 +501,11 @@
     if (!handleReportTarget) return;
     var r = handleReportTarget;
     var path = r.kind === "REVIEW"
-      ? "/api/admin/reports/" + r.reviewId + "/" + action
-      : "/api/admin/chat-reports/" + r.chatReportId + "/" + action;
+      ? "/api/admin/reports/" + r.reviewId
+      : "/api/admin/chat-reports/" + r.chatReportId;
+    var status = action === "resolve" ? "RESOLVED" : "REJECTED";
     var deleteContent = document.getElementById("reportDeleteContentCheck").checked;
-    authRequest(path, { method: "PATCH" }).then(function () {
+    authRequest(path, { method: "PATCH", body: { status: status } }).then(function () {
       if (deleteContent && action === "resolve") {
         var delPath = r.kind === "REVIEW" ? "/api/admin/reviews/" + r.reviewId
           : r.kind === "CHATROOM" ? "/api/admin/chat-rooms/" + r.chatRoomId

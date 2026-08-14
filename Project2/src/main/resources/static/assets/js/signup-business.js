@@ -28,7 +28,7 @@
     var formData = new FormData();
     formData.append("file", file);
 
-    Api.request("/api/business/verify-license", { method: "POST", auth: false, isForm: true, body: formData })
+    Api.request("/api/business-license-verifications", { method: "POST", auth: false, isForm: true, body: formData })
       .then(function (data) {
         var parts = [data.businessNumber.slice(0, 3), data.businessNumber.slice(3, 5), data.businessNumber.slice(5, 10)];
         document.getElementById("bizRegNo1").value = parts[0];
@@ -116,7 +116,7 @@
     var email = emailInput.value.trim();
     if (!email) { Eatty.toast("이메일을 입력해주세요.", "error"); return; }
     sendEmailBtn.disabled = true;
-    Api.request("/api/mail/send-code", { method: "POST", auth: false, body: { email: email } })
+    Api.request("/api/mail/verification-codes", { method: "POST", auth: false, body: { email: email } })
       .then(function () {
         emailCodeInput.value = "";
         emailCodeRow.hidden = false;
@@ -131,7 +131,7 @@
   document.getElementById("bizVerifyEmailCodeBtn").addEventListener("click", function () {
     var email = emailInput.value.trim();
     var code = emailCodeInput.value.trim();
-    Api.request("/api/mail/verify-code", { method: "POST", auth: false, body: { email: email, code: code } })
+    Api.request("/api/mail/verification-codes/confirmation", { method: "POST", auth: false, body: { email: email, code: code } })
       .then(function () {
         emailVerified = true;
         // 이메일/전화번호 모두 인증 완료되면 인증코드 입력 UI는 더 이상 필요 없다(2026-08-04 추가,
@@ -213,7 +213,7 @@
     var email = emailInput.value.trim();
     var phone = formatPhone(phoneInput.value.trim());
     sendPhoneBtn.disabled = true;
-    Api.request("/api/phone/send-code", { method: "POST", auth: false, body: { email: email, phone: phone } })
+    Api.request("/api/phone/verification-codes", { method: "POST", auth: false, body: { email: email, phone: phone } })
       .then(function () {
         phoneCodeInput.value = "";
         phoneCodeRow.hidden = false;
@@ -229,7 +229,7 @@
     var email = emailInput.value.trim();
     var phone = formatPhone(phoneInput.value.trim());
     var code = phoneCodeInput.value.trim();
-    Api.request("/api/phone/verify-code", { method: "POST", auth: false, body: { email: email, phone: phone, code: code } })
+    Api.request("/api/phone/verification-codes/confirmation", { method: "POST", auth: false, body: { email: email, phone: phone, code: code } })
       .then(function () {
         phoneVerified = true;
         phoneCodeRow.hidden = true;
@@ -280,7 +280,7 @@
     formData.append("businessLicenseFile", licenseFile);
 
     submitBtn.disabled = true;
-    Api.request("/api/members/signup/business", { method: "POST", auth: false, isForm: true, body: formData })
+    Api.request("/api/business-members", { method: "POST", auth: false, isForm: true, body: formData })
       .then(function (data) {
         sessionStorage.setItem("biz_signup_email", email);
         // signup-business-info가 "STEP1을 방금 마쳤는지" 판단할 때 쓰는 값(2026-08-04 추가) —

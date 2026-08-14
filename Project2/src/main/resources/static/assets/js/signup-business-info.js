@@ -110,7 +110,7 @@
       // 페이지가 아니라, 그 POST를 받아서 opener.jusoCallBack()을 대신 호출해주는 전용 엔드포인트로
       // 지정해야 한다(같은 origin이라 cross-origin 함수 접근 제한에 걸리지 않는다).
       hidden("confmKey", JUSO_CONFIRM_KEY);
-      hidden("returnUrl", window.location.origin + "/juso-callback");
+      hidden("returnUrl", window.location.origin + "/api/juso-callbacks");
       hidden("resultType", "4");
 
       document.body.appendChild(form);
@@ -262,7 +262,7 @@
         goToDone();
         return;
       }
-      Api.request("/api/business/claim-restaurant", {
+      Api.request("/api/restaurant-claims", {
         method: "POST",
         body: {
           restaurantId: selectedStore.restaurantId,

@@ -19,15 +19,19 @@ import com.foodtrip.foodsearch.admin.dto.AdminMemberResponseDto;
 import com.foodtrip.foodsearch.admin.dto.AdminReviewResponseDto;
 import com.foodtrip.foodsearch.admin.dto.BroadcastNotificationRequestDto;
 import com.foodtrip.foodsearch.admin.dto.SystemStatusItemDto;
+import com.foodtrip.foodsearch.admin.dto.UpdateMemberStatusRequestDto;
 import com.foodtrip.foodsearch.admin.service.AdminService;
 import com.foodtrip.foodsearch.admin.service.SystemStatusService;
 import com.foodtrip.foodsearch.chat.dto.AdminChatReportResponseDto;
 import com.foodtrip.foodsearch.chat.dto.ChatActionResponseDto;
 import com.foodtrip.foodsearch.chat.service.AdminChatService;
+import com.foodtrip.foodsearch.common.exception.CustomException;
+import com.foodtrip.foodsearch.common.exception.ErrorCode;
 import com.foodtrip.foodsearch.parking.dto.ParkingSyncResponseDto;
 import com.foodtrip.foodsearch.parking.service.ParkingSyncService;
 import com.foodtrip.foodsearch.report.dto.AdminReportedReviewResponseDto;
 import com.foodtrip.foodsearch.report.dto.ReportActionResponseDto;
+import com.foodtrip.foodsearch.report.dto.UpdateReportStatusRequestDto;
 import com.foodtrip.foodsearch.report.service.AdminReportService;
 
 // 14(관리자-권한) — 이 컨트롤러의 모든 엔드포인트는 SecurityConfig에서 /api/admin/** 전체에
@@ -69,14 +73,17 @@ public class AdminController {
         return adminService.listMembers(role);
     }
 
-    @PatchMapping("/api/admin/members/{memberId}/suspend")
-    public AdminActionResponseDto suspendMember(@PathVariable Long memberId) {
-        return adminService.suspendMember(memberId);
-    }
-
-    @PatchMapping("/api/admin/members/{memberId}/unsuspend")
-    public AdminActionResponseDto unsuspendMember(@PathVariable Long memberId) {
-        return adminService.unsuspendMember(memberId);
+    // REST 라우팅 전면 개편(2026-08-14) — 기존 PATCH .../suspend + PATCH .../unsuspend 두 엔드포인트를
+    // 병합. body의 status 필드("SUSPENDED"|"ACTIVE")로 동작을 구분(서비스 로직은 그대로 재사용).
+    @PatchMapping("/api/admin/members/{memberId}")
+    public AdminActionResponseDto updateMemberStatus(@PathVariable Long memberId,
+                                                       @Valid @RequestBody UpdateMemberStatusRequestDto request) {
+        String status = request.getStatus() == null ? "" : request.getStatus().trim().toUpperCase();
+        return switch (status) {
+            case "SUSPENDED" -> adminService.suspendMember(memberId);
+            case "ACTIVE" -> adminService.unsuspendMember(memberId);
+            default -> throw new CustomException(ErrorCode.INVALID_INPUT, "status는 SUSPENDED 또는 ACTIVE 여야 합니다.");
+        };
     }
 
     @GetMapping("/api/admin/reviews")
@@ -91,7 +98,7 @@ public class AdminController {
 
     // 15(주차장-정보) — 공공데이터 동기화 수동 트리거(평소엔 자동 실행, 이건 즉시 강제 재동기화용 보조
     // 수단, docs/15.주차장-정보/001-02 2-6장 참고).
-    @PostMapping("/api/admin/parking-lots/sync")
+    @PostMapping("/api/admin/parking-lot-syncs")
     public ParkingSyncResponseDto syncParkingLots(@RequestParam(defaultValue = "5") int maxPages) {
         return parkingSyncService.sync(maxPages);
     }
@@ -104,14 +111,16 @@ public class AdminController {
         return adminReportService.listReportedReviews(status);
     }
 
-    @PatchMapping("/api/admin/reports/{reviewId}/resolve")
-    public ReportActionResponseDto resolveReport(@PathVariable Long reviewId) {
-        return adminReportService.resolve(reviewId);
-    }
-
-    @PatchMapping("/api/admin/reports/{reviewId}/reject")
-    public ReportActionResponseDto rejectReport(@PathVariable Long reviewId) {
-        return adminReportService.reject(reviewId);
+    // 기존 PATCH .../resolve + PATCH .../reject 병합(body의 status 필드로 구분).
+    @PatchMapping("/api/admin/reports/{reviewId}")
+    public ReportActionResponseDto updateReportStatus(@PathVariable Long reviewId,
+                                                        @Valid @RequestBody UpdateReportStatusRequestDto request) {
+        String status = request.getStatus() == null ? "" : request.getStatus().trim().toUpperCase();
+        return switch (status) {
+            case "RESOLVED" -> adminReportService.resolve(reviewId);
+            case "REJECTED" -> adminReportService.reject(reviewId);
+            default -> throw new CustomException(ErrorCode.INVALID_INPUT, "status는 RESOLVED 또는 REJECTED 여야 합니다.");
+        };
     }
 
     // 19(오픈채팅) — "신고 리스트에 저거들도 들어가게 나눠놔야" 요청으로, 리뷰 신고(위)와는 별도 목록으로
@@ -121,14 +130,16 @@ public class AdminController {
         return adminChatService.listChatReports(status);
     }
 
-    @PatchMapping("/api/admin/chat-reports/{chatReportId}/resolve")
-    public ChatActionResponseDto resolveChatReport(@PathVariable Long chatReportId) {
-        return adminChatService.resolveReport(chatReportId);
-    }
-
-    @PatchMapping("/api/admin/chat-reports/{chatReportId}/reject")
-    public ChatActionResponseDto rejectChatReport(@PathVariable Long chatReportId) {
-        return adminChatService.rejectReport(chatReportId);
+    // 기존 PATCH .../resolve + PATCH .../reject 병합(body의 status 필드로 구분).
+    @PatchMapping("/api/admin/chat-reports/{chatReportId}")
+    public ChatActionResponseDto updateChatReportStatus(@PathVariable Long chatReportId,
+                                                          @Valid @RequestBody UpdateReportStatusRequestDto request) {
+        String status = request.getStatus() == null ? "" : request.getStatus().trim().toUpperCase();
+        return switch (status) {
+            case "RESOLVED" -> adminChatService.resolveReport(chatReportId);
+            case "REJECTED" -> adminChatService.rejectReport(chatReportId);
+            default -> throw new CustomException(ErrorCode.INVALID_INPUT, "status는 RESOLVED 또는 REJECTED 여야 합니다.");
+        };
     }
 
     @DeleteMapping("/api/admin/chat-messages/{chatMessageId}")
@@ -142,7 +153,7 @@ public class AdminController {
     }
 
     // 관리자 공지 발송(2026-08-06 추가) — 활성 회원 전체에게 알림 벨로 공지를 뿌린다.
-    @PostMapping("/api/admin/notifications/broadcast")
+    @PostMapping("/api/admin/notification-broadcasts")
     public AdminActionResponseDto broadcastNotification(@Valid @RequestBody BroadcastNotificationRequestDto request) {
         return adminService.broadcastNotification(request.getTitle(), request.getBody());
     }

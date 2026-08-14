@@ -70,7 +70,7 @@
     var refreshToken = getRefreshToken();
     if (!memberId || !refreshToken) return Promise.resolve(false);
 
-    refreshPromise = fetch(API_BASE + "/api/members/refresh", {
+    refreshPromise = fetch(API_BASE + "/api/sessions/refresh-tokens", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ memberId: memberId, refreshToken: refreshToken }),
@@ -126,7 +126,7 @@
   }
 
   function login(email, password, rememberMe, memberType) {
-    return request("/api/members/login", { method: "POST", auth: false,
+    return request("/api/sessions", { method: "POST", auth: false,
       body: { email: email, password: password, rememberMe: !!rememberMe, memberType: memberType } })
       .then(function (data) {
         setSession(data, !!rememberMe);
@@ -137,7 +137,7 @@
   function logout() {
     var token = getAccessToken();
     var done = token
-      ? request("/api/members/logout", { method: "POST", auth: false, body: { accessToken: token } }).catch(function () {})
+      ? request("/api/sessions", { method: "DELETE", auth: false, body: { accessToken: token } }).catch(function () {})
       : Promise.resolve();
     return done.finally(function () { clearSession(); });
   }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.foodtrip.foodsearch.chat.dto.ChatActionResponseDto;
@@ -39,14 +40,17 @@ public class ChatRoomController {
         return chatRoomService.createRoom(authorizationHeader, request.getTitle(), request.getMaxMembers());
     }
 
-    @PostMapping("/join")
+    // REST 라우팅 전면 개편(2026-08-14) — 참가를 "방 멤버십" 리소스 생성으로 모델링 (기존 POST /join).
+    @PostMapping("/memberships")
     public ChatRoomResponseDto joinRoom(@RequestHeader("Authorization") String authorizationHeader,
                                          @Valid @RequestBody JoinChatRoomRequestDto request) {
         return chatRoomService.joinRoom(authorizationHeader, request.getJoinCode());
     }
 
-    @GetMapping("/my")
-    public List<ChatRoomResponseDto> listMyRooms(@RequestHeader("Authorization") String authorizationHeader) {
+    // 기존 GET /my → scope 쿼리 파라미터로 표현(기존 GET /api/chat/rooms/my).
+    @GetMapping
+    public List<ChatRoomResponseDto> listMyRooms(@RequestHeader("Authorization") String authorizationHeader,
+                                                  @RequestParam(defaultValue = "mine") String scope) {
         return chatRoomService.listMyRooms(authorizationHeader);
     }
 
@@ -62,7 +66,7 @@ public class ChatRoomController {
         return chatRoomService.listMembers(authorizationHeader, chatRoomId);
     }
 
-    @PostMapping("/{chatRoomId}/leave")
+    @DeleteMapping("/{chatRoomId}/members/me")
     public ChatActionResponseDto leaveRoom(@RequestHeader("Authorization") String authorizationHeader,
                                             @PathVariable Long chatRoomId) {
         return chatRoomService.leaveRoom(authorizationHeader, chatRoomId);

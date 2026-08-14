@@ -21,7 +21,7 @@ public class ReportController {
         this.reportService = reportService;
     }
 
-    @PostMapping("/api/reviews/{reviewId}/report")
+    @PostMapping("/api/reviews/{reviewId}/reports")
     public ReportActionResponseDto reportReview(@PathVariable Long reviewId,
                                                  @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
                                                  @Valid @RequestBody CreateReportRequestDto request) {

@@ -41,7 +41,7 @@
         return;
       }
       checkNicknameBtn.disabled = true;
-      Api.request("/api/members/check-nickname?nickname=" + encodeURIComponent(nickname), { method: "GET", auth: false })
+      Api.request("/api/members/nickname-availability?nickname=" + encodeURIComponent(nickname), { method: "GET", auth: false })
         .then(function (res) {
           if (res.available) {
             nicknameChecked = true;
@@ -75,7 +75,7 @@
     if (!password) return;
 
     gateSubmitBtn.disabled = true;
-    Api.request("/api/members/me/verify-password", { method: "POST", body: { password: password } })
+    Api.request("/api/members/me/password-confirmations", { method: "POST", body: { password: password } })
       .then(function () { openEditSection(); })
       .catch(function (err) { Eatty.toast(err.message || "비밀번호가 일치하지 않습니다.", "error"); })
       .finally(function () { gateSubmitBtn.disabled = false; });
@@ -85,7 +85,7 @@
   if (gateSocialBtn) {
     gateSocialBtn.addEventListener("click", function () {
       var provider = gateSocialBtn.getAttribute("data-social") || "kakao";
-      window.location.href = "/api/auth/" + provider + "/authorize";
+      window.location.href = "/api/oauth-providers/" + provider + "/authorization";
     });
   }
 
@@ -309,7 +309,7 @@
   if (sendPhoneCodeBtn) {
     sendPhoneCodeBtn.addEventListener("click", function () {
       var phone = formatPhone(editPhoneInput.value.trim());
-      Api.request("/api/members/me/phone/send-code", { method: "POST", body: { phone: phone } })
+      Api.request("/api/members/me/phone/verification-codes", { method: "POST", body: { phone: phone } })
         .then(function () {
           editPhoneCodeInput.value = "";
           phoneCodeRow.hidden = false;
@@ -325,7 +325,7 @@
     verifyPhoneCodeBtn.addEventListener("click", function () {
       var phone = formatPhone(editPhoneInput.value.trim());
       var code = editPhoneCodeInput.value.trim();
-      Api.request("/api/members/me/phone/verify-code", { method: "POST", body: { phone: phone, code: code } })
+      Api.request("/api/members/me/phone/verification-codes/confirmation", { method: "POST", body: { phone: phone, code: code } })
         .then(function () {
           phoneVerified = true;
           phoneCodeRow.hidden = true;

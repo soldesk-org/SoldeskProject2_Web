@@ -22,13 +22,13 @@ public class EmailAuthController {
         this.emailAuthService = emailAuthService;
     }
 
-    @PostMapping("/send-code")
+    @PostMapping("/verification-codes")
     public MailResponseDto sendCode(@Valid @RequestBody SendCodeRequestDto request) {
         emailAuthService.sendVerificationCode(request.getEmail());
         return new MailResponseDto(true, "인증번호가 발송되었습니다.");
     }
 
-    @PostMapping("/verify-code")
+    @PostMapping("/verification-codes/confirmation")
     public MailResponseDto verifyCode(@Valid @RequestBody VerifyCodeRequestDto request) {
         emailAuthService.verifyCode(request.getEmail(), request.getCode());
         return new MailResponseDto(true, "이메일 인증이 완료되었습니다.");

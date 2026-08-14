@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class JusoCallbackController {
 
-    @PostMapping(value = "/juso-callback", produces = MediaType.TEXT_HTML_VALUE)
+    @PostMapping(value = "/api/juso-callbacks", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> callback(@RequestParam(defaultValue = "") String roadFullAddr,
                                             @RequestParam(defaultValue = "") String roadAddrPart1,
                                             @RequestParam(defaultValue = "") String addrDetail,
