@@ -5,6 +5,13 @@ spring:
   application:
     name: Project2
 
+  mvc:
+    # favicon.ico 캐싱(2026-08-14 추가) — Spring Boot가 기본으로 등록하는 파비콘 핸들러가 우리
+    # StaticResourceConfig의 Cache-Control 설정보다 우선 적용돼서 캐싱이 안 먹히고 있었다. 기본 핸들러를
+    # 끄고 우리 핸들러만 쓰게 한다.
+    favicon:
+      enabled: false
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
