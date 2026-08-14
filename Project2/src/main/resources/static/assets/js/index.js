@@ -64,12 +64,14 @@ document.addEventListener('click', function (e) {
       // 좌표가 거의 같은 가게(같은 건물 다른 층 등)가 있으면 마커가 완전히 겹쳐서 하나만 보이는 문제
       // (2026-08-10 발견) — 실제 위치를 임의로 바꾸는 대신, 이미 사용한 좌표와 너무 가까우면 시각적으로만
       // 떨어뜨려서 표시한다. 소개용 미니 지도라 이 정도 오차는 실사용에 영향 없음.
-      // (2026-08-14 재조정) — 45m/한 번의 랜덤 방향으로도 zoom 16에서 여전히 핀이 겹쳐 보인다는 리포트로
-      // 반경을 약 80m로 늘리고, 한 번 밀어낸 위치가 다른 이미 배치된 마커와 또 겹치면 반경을 넓혀가며
-      // 최대 5회까지 다시 시도하도록(기존엔 한 번만 시도하고 끝) 바꿨다 — 마커가 3개 이상 뭉쳐 있어도
-      // 확실히 갈라지게 하기 위함.
+      // (2026-08-14 3차 수정) — 실제 원인은 "겹침으로 판정하는 기준(11m)" 자체가 이 지도의 축소 배율에
+      // 비해 너무 좁았던 것이었다. 이 미니 지도는 검색 범위가 넓어(반경 약 880m) fitBounds가 상당히
+      // 축소된 배율로 맞추는데, 그 배율에서는 11m 떨어진 서로 다른 가게도 화면에서는 마커 핀 하나 너비
+      // (27px) 안쪽으로 겹쳐 보인다 — 그래서 "같은 건물"이 아니라 "같은 블록의 다른 가게"까지도 겹쳐
+      // 보이는데 판정 기준을 통과 못 해 밀어내기가 아예 발동을 안 했다. 판정 기준을 약 65m로 크게 늘리고,
+      // 밀어내는 거리도 그보다 확실히 크게(약 90~200m) 잡아서 실제로 벌어지게 한다.
       var usedPositions = [];
-      var NEAR_THRESHOLD = 0.0001; // 위도/경도 약 11m
+      var NEAR_THRESHOLD = 0.0006; // 위도/경도 약 65m — 이 지도의 축소 배율에서 마커 핀이 겹쳐 보이는 대략적인 거리
       function isNearAny(lat, lng) {
         return usedPositions.some(function (p) {
           return Math.abs(p.lat - lat) < NEAR_THRESHOLD && Math.abs(p.lng - lng) < NEAR_THRESHOLD;
@@ -78,7 +80,7 @@ document.addEventListener('click', function (e) {
       function nudgeIfOverlapping(lat, lng) {
         var attempt = 0;
         while (isNearAny(lat, lng) && attempt < 5) {
-          var radius = 0.0007 + attempt * 0.0003;
+          var radius = 0.0009 + attempt * 0.0004;
           var angle = Math.random() * Math.PI * 2;
           lat += Math.cos(angle) * radius;
           lng += Math.sin(angle) * radius;
