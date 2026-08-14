@@ -1,9 +1,6 @@
 /* notice-detail — 공지 상세, 변경 전/후 비교(신규, 2026-08-14). GET /api/notices/{id}. */
 (function () {
-  var NOTICE_TYPE_LABELS = { MINOR: "작은 변경 (14일 전 고지)", MAJOR: "큰 변경 (30일 전 고지)" };
-
   var titleEl = document.getElementById("noticeTitle");
-  var typeBadge = document.getElementById("noticeTypeBadge");
   var effectiveDateEl = document.getElementById("noticeEffectiveDate");
   var postedAtEl = document.getElementById("noticePostedAt");
   var prevBody = document.getElementById("noticePrevBody");
@@ -37,7 +34,6 @@
   Api.request("/api/notices/" + noticeId, { auth: false })
     .then(function (detail) {
       titleEl.textContent = detail.title;
-      typeBadge.textContent = NOTICE_TYPE_LABELS[detail.noticeType] || detail.noticeType || "변경 안내";
       effectiveDateEl.textContent = detail.effectiveDate;
       postedAtEl.textContent = detail.postedAt ? detail.postedAt.slice(0, 10) : "-";
       renderVersionBlock(prevBody, prevMeta, detail.previousVersion, "이 공지는 최초 버전 게시라 비교할 이전 버전이 없습니다.");

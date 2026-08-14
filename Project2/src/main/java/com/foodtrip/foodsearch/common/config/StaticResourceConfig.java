@@ -70,5 +70,14 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/img/**")
                 .addResourceLocations("classpath:/static/img/")
                 .setCacheControl(BUNDLED_IMAGE_CACHE);
+
+        // favicon/파비콘/프로필 기본 이미지 등도 같은 이유로 캐싱(2026-08-14 후속 추가) — 처음엔 /img/**만
+        // 잡아서 favicon.ico와 assets/images/** 밑의 아이콘들은 여전히 캐싱이 안 되고 있었다.
+        registry.addResourceHandler("/favicon.ico")
+                .addResourceLocations("classpath:/static/favicon.ico")
+                .setCacheControl(BUNDLED_IMAGE_CACHE);
+        registry.addResourceHandler("/assets/images/**")
+                .addResourceLocations("classpath:/static/assets/images/")
+                .setCacheControl(BUNDLED_IMAGE_CACHE);
     }
 }
