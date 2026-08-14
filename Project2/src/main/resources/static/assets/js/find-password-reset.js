@@ -64,22 +64,15 @@
   if (emailInput && savedEmail) emailInput.value = savedEmail;
 
   // signup.js와 동일한 강도 기준(2026-08-04 통일) — 길이 / 대소문자 혼합 / 숫자 / 특수문자.
+  // 조건 체크리스트(ruleLength 등)는 다른 3개 페이지와 디자인을 통일하기 위해 제거하고 e-hint 문구
+  // 하나로 대체했다(2026-08-14).
   var pw = passwordInput;
-  function setRule(id, ok) {
-    var el = document.getElementById(id);
-    if (el) el.classList.toggle("is-ok", ok);
-  }
   pw.addEventListener("input", function () {
     var v = pw.value;
     var hasLen = v.length >= 8;
     var hasMix = /[A-Z]/.test(v) && /[a-z]/.test(v);
     var hasDigit = /\d/.test(v);
     var hasSpecial = /[^\w\s]/.test(v);
-
-    setRule("ruleLength", hasLen);
-    setRule("ruleMix", hasMix);
-    setRule("ruleDigit", hasDigit);
-    setRule("ruleSpecial", hasSpecial);
 
     var score = [hasLen, hasMix, hasDigit, hasSpecial].filter(Boolean).length;
     // 입력은 했는데 4개 기준을 하나도 못 채우면 score가 0으로 남아 "-"가 뜨던 버그(2026-08-14 수정).

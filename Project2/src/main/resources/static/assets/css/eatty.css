@@ -1231,7 +1231,6 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   font-size: 12.5px; font-weight: 600;
 }
 .e-pw-match.is-visible { display: inline-flex; }
-.e-pw-match svg { width: 13px; height: 13px; flex: none; }
 .e-pw-match--error { color: #F04452; }
 .e-pw-match--ok { color: #00A67D; }
 
