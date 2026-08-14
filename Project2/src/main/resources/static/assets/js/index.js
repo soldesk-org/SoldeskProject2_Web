@@ -91,7 +91,11 @@ document.addEventListener('click', function (e) {
         var adjusted = nudgeIfOverlapping(item.latitude, item.longitude);
         var pos = new naver.maps.LatLng(adjusted.lat, adjusted.lng);
         new naver.maps.Marker({ position: pos, map: map, title: item.name, icon: markerIcon(item.category) });
-        bounds.extend(pos);
+        // 지도 범위(bounds)는 밀어낸 위치가 아니라 원래 좌표 기준으로 잡는다(2026-08-14 수정) — 밀어낸
+        // 위치까지 bounds에 포함시키면 fitBounds()가 그만큼 더 축소(zoom out)돼서, 밀어내는 거리를 늘려도
+        // 화면 픽셀상 간격은 그대로인 문제가 있었다. 실제 가게 분포는 그대로 유지하고, 마커만 시각적으로
+        // 떨어뜨려 보이게 하는 게 목적이라 bounds 계산에선 원래 좌표를 써야 맞다.
+        bounds.extend(new naver.maps.LatLng(item.latitude, item.longitude));
       });
       map.fitBounds(bounds);
     })
