@@ -25,9 +25,7 @@
 
   var noticeId = getNoticeId();
   if (!noticeId) {
-    titleEl.textContent = "잘못된 접근입니다.";
-    prevBody.innerHTML = "";
-    newBody.innerHTML = "";
+    window.location.replace("/");
     return;
   }
 
@@ -40,9 +38,10 @@
       renderVersionBlock(newBody, newMeta, detail.newVersion, "-");
     })
     .catch(function () {
-      titleEl.textContent = "공지를 찾을 수 없습니다.";
-      prevBody.innerHTML = "";
-      newBody.innerHTML = "";
-      if (window.Eatty) Eatty.toast("공지를 불러오지 못했습니다.", "error");
+      // 존재하지 않는 noticeId로 들어오면(2026-08-14 수정) 이 페이지에 에러 문구만 띄워두는 대신
+      // 바로 메인으로 돌려보낸다 — 링크가 없으면 못 들어오는 페이지라는 설계 의도에 맞춰, 없는 링크로
+      // 억지로 들어와도 뭔가 볼 게 없게 한다.
+      if (window.Eatty) Eatty.toast("존재하지 않는 공지입니다.", "error");
+      window.location.replace("/");
     });
 })();
