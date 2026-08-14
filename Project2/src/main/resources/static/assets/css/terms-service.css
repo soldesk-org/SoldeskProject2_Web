@@ -17,3 +17,14 @@
     background-repeat: no-repeat; background-position: right 8px center; background-size: 13px;
   }
   .e-version-select:focus { outline: 2px solid var(--brand-300); outline-offset: 1px; }
+
+  /* 공지 상세 변경 전/후 비교(2026-08-14 추가) — 문단(블록) 단위로 diff를 계산해서 바뀐 곳만
+     형광펜처럼 배경색을 칠한다. "변경 후"는 새로 추가된 문단(노란 형광펜), "변경 전"은 이번에
+     빠진 문단(빨간 취소선)으로 구분한다. */
+  .diff-added {
+    background: #fff3b0; border-radius: 6px; padding: 2px 6px; margin: 0 -6px;
+  }
+  .diff-removed {
+    background: #ffe3e3; border-radius: 6px; padding: 2px 6px; margin: 0 -6px;
+    text-decoration: line-through; text-decoration-color: rgba(220,38,38,.5); opacity: .75;
+  }
