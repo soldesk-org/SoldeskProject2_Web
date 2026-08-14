@@ -89,6 +89,25 @@
     if (txt) txt.textContent = v ? labels[score] : "-";
   });
 
+  // 비밀번호 확인 일치 여부 실시간 표시(2026-08-13 추가) — 예전엔 제출을 눌러야만(불일치일 때만)
+  // 에러가 떴다. 입력하는 즉시 일치/불일치를 보여주고, 비밀번호 자체를 나중에 고쳐도 다시 맞춰본다.
+  var confirmErrorEl = document.getElementById("signupPasswordConfirmError");
+  var confirmOkEl = document.getElementById("signupPasswordConfirmOk");
+  function checkPasswordMatch() {
+    if (!confirmErrorEl || !confirmOkEl) return;
+    var confirmVal = passwordConfirmInput.value;
+    if (!confirmVal) {
+      confirmErrorEl.classList.remove("is-visible");
+      confirmOkEl.classList.remove("is-visible");
+      return;
+    }
+    var matches = passwordInput.value === confirmVal;
+    confirmErrorEl.classList.toggle("is-visible", !matches);
+    confirmOkEl.classList.toggle("is-visible", matches);
+  }
+  passwordConfirmInput.addEventListener("input", checkPasswordMatch);
+  pw.addEventListener("input", checkPasswordMatch);
+
   // 전화번호 인증
   var sendPhoneBtn = document.getElementById("sendPhoneCodeBtn");
   var verifyPhoneBtn = document.getElementById("verifyPhoneCodeBtn");

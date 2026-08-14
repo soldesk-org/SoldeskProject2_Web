@@ -163,6 +163,25 @@
     document.getElementById("bizPwStrengthText").textContent = v ? labels[score] : "-";
   });
 
+  // 비밀번호 확인 일치 여부 실시간 표시(2026-08-13 추가) — signup.js와 동일 패턴.
+  var bizPasswordConfirmInput = document.getElementById("bizSignupPasswordConfirm");
+  var bizConfirmErrorEl = document.getElementById("bizSignupPasswordConfirmError");
+  var bizConfirmOkEl = document.getElementById("bizSignupPasswordConfirmOk");
+  function checkBizPasswordMatch() {
+    if (!bizConfirmErrorEl || !bizConfirmOkEl) return;
+    var confirmVal = bizPasswordConfirmInput.value;
+    if (!confirmVal) {
+      bizConfirmErrorEl.classList.remove("is-visible");
+      bizConfirmOkEl.classList.remove("is-visible");
+      return;
+    }
+    var matches = pw.value === confirmVal;
+    bizConfirmErrorEl.classList.toggle("is-visible", !matches);
+    bizConfirmOkEl.classList.toggle("is-visible", matches);
+  }
+  bizPasswordConfirmInput.addEventListener("input", checkBizPasswordMatch);
+  pw.addEventListener("input", checkBizPasswordMatch);
+
   // 전화번호 인증
   var phoneInput = document.getElementById("bizPhone");
   var phoneCodeInput = document.getElementById("bizSignupPhoneCode");

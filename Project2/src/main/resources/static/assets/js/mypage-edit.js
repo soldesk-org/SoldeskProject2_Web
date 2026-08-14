@@ -350,6 +350,26 @@
     });
   }
 
+  // 비밀번호 확인 일치 여부 실시간 표시(2026-08-13 추가) — signup.js와 동일 패턴.
+  var newPasswordConfirmInput = document.getElementById("newPasswordConfirm");
+  var newPwConfirmErrorEl = document.getElementById("newPasswordConfirmError");
+  var newPwConfirmOkEl = document.getElementById("newPasswordConfirmOk");
+  if (newPasswordInput && newPasswordConfirmInput && newPwConfirmErrorEl && newPwConfirmOkEl) {
+    var checkNewPasswordMatch = function () {
+      var confirmVal = newPasswordConfirmInput.value;
+      if (!confirmVal) {
+        newPwConfirmErrorEl.classList.remove("is-visible");
+        newPwConfirmOkEl.classList.remove("is-visible");
+        return;
+      }
+      var matches = newPasswordInput.value === confirmVal;
+      newPwConfirmErrorEl.classList.toggle("is-visible", !matches);
+      newPwConfirmOkEl.classList.toggle("is-visible", matches);
+    };
+    newPasswordConfirmInput.addEventListener("input", checkNewPasswordMatch);
+    newPasswordInput.addEventListener("input", checkNewPasswordMatch);
+  }
+
   // ---- 저장 ----
   var editForm = document.getElementById("editForm");
   editForm.addEventListener("submit", function (e) {

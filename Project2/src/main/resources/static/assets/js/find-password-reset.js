@@ -78,6 +78,24 @@
     document.getElementById("newPwStrengthText").textContent = v ? labels[score] : "-";
   });
 
+  // 비밀번호 확인 일치 여부 실시간 표시(2026-08-13 추가) — signup.js와 동일 패턴.
+  var confirmErrorEl = document.getElementById("newPasswordConfirmError");
+  var confirmOkEl = document.getElementById("newPasswordConfirmOk");
+  function checkPasswordMatch() {
+    if (!confirmErrorEl || !confirmOkEl) return;
+    var confirmVal = passwordConfirmInput.value;
+    if (!confirmVal) {
+      confirmErrorEl.classList.remove("is-visible");
+      confirmOkEl.classList.remove("is-visible");
+      return;
+    }
+    var matches = pw.value === confirmVal;
+    confirmErrorEl.classList.toggle("is-visible", !matches);
+    confirmOkEl.classList.toggle("is-visible", matches);
+  }
+  passwordConfirmInput.addEventListener("input", checkPasswordMatch);
+  pw.addEventListener("input", checkPasswordMatch);
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
 
