@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>잇티웨이</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="assets/images/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
+<meta name="description" content="Eattyway 약관/개인정보처리방침 변경 공지 상세">
+
+<!--
+================================================================================
+ notice-detail — 공지 상세 (신규, 2026-08-14)
+--------------------------------------------------------------------------------
+ URL 쿼리 ?id={noticeId}. 변경 전(previousVersion)/변경 후(newVersion) 본문을 나란히 보여준다.
+ previousVersion이 없으면(그 문서 타입의 최초 버전 공지) "이전 버전 없음" 안내만 표시.
+ ★ GET /api/notices/{noticeId}
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<link rel="stylesheet" href="assets/css/terms-service.css">
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/notice-detail.js"></script>
+</head>
+
+<body class="min-h-screen flex flex-col bg-[var(--bg-soft)]">
+
+<header class="e-header e-header--solid">
+  <div class="e-container e-header-inner">
+    <a href="/" class="e-logo">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text">잇티<em>웨이</em></span>
+    </a>
+    <nav class="e-nav">
+      <a class="e-nav-link" href="terms-service">이용약관</a>
+      <a class="e-nav-link" href="terms-privacy">개인정보처리방침</a>
+      <a class="e-nav-link is-active" href="notices">공지사항</a>
+    </nav>
+    <div class="e-header-actions">
+      <a href="notices" class="btn btn-ghost btn-sm">목록으로</a>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1">
+  <div class="bg-white border-b border-[var(--line)]">
+    <div class="e-container py-10 md:py-14">
+      <span class="e-badge e-badge--brand e-badge-lg" id="noticeTypeBadge">-</span>
+      <h1 class="t-h2 mt-4" id="noticeTitle">불러오는 중...</h1>
+      <p class="t-sm mt-3">
+        시행일 <b class="t-strong t-num" id="noticeEffectiveDate">-</b>
+        · 게시일 <b class="t-num" id="noticePostedAt">-</b>
+      </p>
+    </div>
+  </div>
+
+  <div class="e-container py-10">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="noticeCompareGrid">
+
+      <article class="e-card e-card-pad">
+        <div class="e-card-head !p-0 !mb-4">
+          <p class="e-card-title">변경 전</p>
+          <p class="t-xs mt-1" id="noticePrevMeta">-</p>
+        </div>
+        <div class="e-doc" id="noticePrevBody"><p class="t-sm">불러오는 중...</p></div>
+      </article>
+
+      <article class="e-card e-card-pad">
+        <div class="e-card-head !p-0 !mb-4">
+          <p class="e-card-title">변경 후</p>
+          <p class="t-xs mt-1" id="noticeNewMeta">-</p>
+        </div>
+        <div class="e-doc" id="noticeNewBody"><p class="t-sm">불러오는 중...</p></div>
+      </article>
+
+    </div>
+  </div>
+</main>
+
+<footer class="py-8 border-t border-[var(--line)] bg-white">
+  <div class="e-container flex flex-wrap items-center justify-between gap-3">
+    <p class="t-xs">&copy; 2026 Eatty way.</p>
+    <nav class="flex gap-4 t-xs">
+      <a href="terms-service" class="e-link">이용약관</a>
+      <a href="terms-privacy" class="e-link">개인정보처리방침</a>
+      <a href="notices" class="e-link">공지사항</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

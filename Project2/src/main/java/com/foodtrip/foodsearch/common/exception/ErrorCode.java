@@ -115,7 +115,15 @@ public enum ErrorCode {
     GEOCODE_NOT_FOUND(HttpStatus.NOT_FOUND, "입력한 주소의 좌표를 찾을 수 없습니다."),
     FOOD_BTI_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "저장된 음BTI 결과가 없습니다."),
     SHORT_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않거나 만료된 링크입니다."),
-    SHORT_LINK_INVALID_TARGET(HttpStatus.BAD_REQUEST, "단축할 수 없는 주소입니다.");
+    SHORT_LINK_INVALID_TARGET(HttpStatus.BAD_REQUEST, "단축할 수 없는 주소입니다."),
+    // 약관/개인정보처리방침 버전 관리(2026-08-14 신규) — docType은 SERVICE|PRIVACY만 허용.
+    TERMS_INVALID_DOC_TYPE(HttpStatus.BAD_REQUEST, "약관 종류는 SERVICE 또는 PRIVACY여야 합니다."),
+    TERMS_DOCUMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 약관 버전을 찾을 수 없습니다."),
+    // "작은 변경은 시행 14일 전, 큰 변경은 30일 전까지 고지" 규칙을 신규 버전 등록 시점에 검증한다.
+    TERMS_NOTICE_LEAD_TIME_TOO_SHORT(HttpStatus.BAD_REQUEST,
+            "변경 유형에 따른 사전 고지 기간(작은 변경 14일, 큰 변경 30일)을 충족하지 않는 시행일자입니다."),
+    TERMS_NOTICE_TYPE_REQUIRED(HttpStatus.BAD_REQUEST, "이전 버전이 있는 경우 변경 유형(MINOR/MAJOR)을 선택해야 합니다."),
+    TERMS_NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "공지를 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String defaultMessage;
