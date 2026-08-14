@@ -63,7 +63,9 @@ document.addEventListener('click', function (e) {
       var bounds = new naver.maps.LatLngBounds();
       // 좌표가 거의 같은 가게(같은 건물 다른 층 등)가 있으면 마커가 완전히 겹쳐서 하나만 보이는 문제
       // (2026-08-10 발견) — 실제 위치를 임의로 바꾸는 대신, 이미 사용한 좌표와 너무 가까우면 시각적으로만
-      // 살짝(반경 15m 안팎) 떨어뜨려서 표시한다. 소개용 미니 지도라 이 정도 오차는 실사용에 영향 없음.
+      // 떨어뜨려서 표시한다. 소개용 미니 지도라 이 정도 오차는 실사용에 영향 없음.
+      // (2026-08-14 조정) — 기존 반경 15m 안팎은 zoom 16 화면에서 몇 픽셀 차이밖에 안 나서 여전히
+      // 겹쳐 보인다는 실사용 리포트로 반경을 약 45m로 늘렸다.
       var usedPositions = [];
       var NEAR_THRESHOLD = 0.0001; // 위도/경도 약 11m
       function nudgeIfOverlapping(lat, lng) {
@@ -72,8 +74,8 @@ document.addEventListener('click', function (e) {
         });
         if (isNear) {
           var angle = Math.random() * Math.PI * 2;
-          lat += Math.cos(angle) * 0.00013;
-          lng += Math.sin(angle) * 0.00013;
+          lat += Math.cos(angle) * 0.0004;
+          lng += Math.sin(angle) * 0.0004;
         }
         usedPositions.push({ lat: lat, lng: lng });
         return { lat: lat, lng: lng };

@@ -1227,14 +1227,13 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 .e-pw-strength-text.lv-4 { color: #00C896; }
 
 .e-pw-match {
-  display: none; align-items: center; gap: 6px; margin-top: 8px;
-  padding: 6px 12px; border-radius: var(--r-full);
-  font-size: 12.5px; font-weight: 700; width: fit-content;
+  display: none; align-items: center; gap: 5px; margin-top: 7px;
+  font-size: 12.5px; font-weight: 600;
 }
 .e-pw-match.is-visible { display: inline-flex; }
 .e-pw-match svg { width: 13px; height: 13px; flex: none; }
-.e-pw-match--error { background: rgba(240, 68, 82, .1); color: #F04452; }
-.e-pw-match--ok { background: rgba(0, 166, 125, .1); color: #00A67D; }
+.e-pw-match--error { color: #F04452; }
+.e-pw-match--ok { color: #00A67D; }
 
 /* 진행률 바 */
 .e-progress {

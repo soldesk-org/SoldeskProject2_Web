@@ -344,11 +344,14 @@
       if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
       if (/\d/.test(v)) score++;
       if (/[^\w\s]/.test(v)) score++;
+      // 입력은 했는데 4개 기준을 하나도 못 채우면 score가 0으로 남아 "-"가 뜨던 버그(2026-08-14 수정)
+      // — 입력값이 있으면 최소 "약함"으로 보여준다.
+      if (v && score === 0) score = 1;
       var labels = ["-", "약함", "보통", "양호", "안전"];
       document.getElementById("newPwStrengthBar").className = "e-pw-strength-bars" + (score ? " lv-" + score : "");
       var newPwTxt = document.getElementById("newPwStrengthText");
       newPwTxt.className = "e-pw-strength-text" + (score ? " lv-" + score : "");
-      newPwTxt.textContent = v ? labels[score] : "-";
+      newPwTxt.textContent = labels[score];
     });
   }
 

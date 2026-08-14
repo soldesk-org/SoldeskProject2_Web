@@ -101,6 +101,12 @@ public class SocialLoginServiceImpl implements SocialLoginService {
                     .orElseThrow(() -> new CustomException(ErrorCode.SOCIAL_LOGIN_FAILED, "연동된 회원 정보를 찾을 수 없습니다."));
             checkAccountStatus(member);
             link.updateTokens(tokenResponse.accessToken(), tokenResponse.refreshToken(), tokenExpiredAt);
+            // 이 수정(2026-08-14) 이전에 이미 PENDING 상태로 연동돼버린 기존 계정에 대한 자가치유 —
+            // 아래 else 분기와 동일한 이유로, 재로그인 시점에라도 실제 닉네임/프로필로 채운다.
+            if (member.isPendingSignUp()) {
+                String nickname = resolveUniqueNickname(profile.nickname(), profile.email());
+                member.completeSocialSignUp(nickname, profile.profileImageUrl());
+            }
         } else {
             // 계정 연동(2026-07-22 변경) — 이미 그 이메일로 가입된 회원(일반 계정이든 다른 플랫폼의 소셜
             // 계정이든)이 있으면 예전엔 EMAIL_ALREADY_REGISTERED로 거부했지만(001-02 2-4-1장의 보수적
@@ -119,6 +125,15 @@ public class SocialLoginServiceImpl implements SocialLoginService {
                 }
                 member = existingMemberByEmail.get();
                 checkAccountStatus(member);
+                // 일반 회원가입을 이메일 인증만 하고 끝까지 완료하지 않은 채 이탈한 회원(Member.createPending()
+                // 참고, 닉네임이 "PENDING_"으로 시작)이 나중에 같은 이메일로 소셜로그인을 하면, 그 스텁을
+                // 그대로 로그인시켜서 "PENDING_1234..." 닉네임/빈 프로필 상태가 되던 문제(2026-08-14 수정,
+                // 관리자 회원 목록에서도 이런 pending 행은 애초에 제외 대상이라 회원 자체가 안 보였음) —
+                // 여기서 실제로 가입을 완료시킨다(닉네임/프로필 사진을 소셜 프로필 값으로 채움).
+                if (member.isPendingSignUp()) {
+                    String nickname = resolveUniqueNickname(profile.nickname(), profile.email());
+                    member.completeSocialSignUp(nickname, profile.profileImageUrl());
+                }
             } else {
                 member = createSocialMember(profile);
             }

@@ -77,10 +77,17 @@
     var v = pw.value;
     var meetsRequired = PASSWORD_REQUIRED_PATTERN.test(v);
     var score = 0;
-    if (meetsRequired) {
-      score = 2; // 필수 조건(영문+숫자+특수문자, 8~20자)을 채우면 최소 "보통".
-      if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++; // 대소문자 섞으면 "양호"
-      if (v.length >= 12) score++; // 12자 이상이면 "안전"
+    if (v) {
+      if (meetsRequired) {
+        score = 2; // 필수 조건(영문+숫자+특수문자, 8~20자)을 채우면 최소 "보통".
+        if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++; // 대소문자 섞으면 "양호"
+        if (v.length >= 12) score++; // 12자 이상이면 "안전"
+      } else {
+        // 뭔가 입력은 했는데 필수 조건을 못 채운 경우(20자 초과로 다시 조건을 벗어난 경우 포함,
+        // 2026-08-14 수정) — 예전엔 score가 0으로 떨어지면서 "-"가 떠서 입력 중인데도 마치 아직
+        // 아무것도 안 친 것처럼 보이는 버그가 있었다. 입력값이 있으면 최소 "약함"으로 표시한다.
+        score = 1;
+      }
     }
     var labels = ["-", "약함", "보통", "양호", "안전"];
     var bar = document.getElementById("pwStrengthBar");
@@ -88,7 +95,7 @@
     if (bar) bar.className = "e-pw-strength-bars" + (score ? " lv-" + score : "");
     if (txt) {
       txt.className = "e-pw-strength-text" + (score ? " lv-" + score : "");
-      txt.textContent = v ? labels[score] : "-";
+      txt.textContent = labels[score];
     }
   });
 

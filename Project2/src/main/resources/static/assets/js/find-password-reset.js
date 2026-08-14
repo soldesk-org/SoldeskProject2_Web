@@ -82,11 +82,13 @@
     setRule("ruleSpecial", hasSpecial);
 
     var score = [hasLen, hasMix, hasDigit, hasSpecial].filter(Boolean).length;
+    // 입력은 했는데 4개 기준을 하나도 못 채우면 score가 0으로 남아 "-"가 뜨던 버그(2026-08-14 수정).
+    if (v && score === 0) score = 1;
     var labels = ["-", "약함", "보통", "양호", "안전"];
     document.getElementById("newPwStrengthBar").className = "e-pw-strength-bars" + (score ? " lv-" + score : "");
     var resetPwTxt = document.getElementById("newPwStrengthText");
     resetPwTxt.className = "e-pw-strength-text" + (score ? " lv-" + score : "");
-    resetPwTxt.textContent = v ? labels[score] : "-";
+    resetPwTxt.textContent = labels[score];
   });
 
   // 비밀번호 확인 일치 여부 실시간 표시(2026-08-13 추가) — signup.js와 동일 패턴.
@@ -110,7 +112,7 @@
   form.addEventListener("submit", function (e) {
     e.preventDefault();
 
-    if (!token) { alertBox.hidden = false; return; }
+    if (!token) { Eatty.toast("재설정 링크가 올바르지 않습니다. 비밀번호 찾기를 다시 진행해주세요.", "error"); return; }
 
     var newPassword = passwordInput.value;
     var newPasswordConfirm = passwordConfirmInput.value;
@@ -131,8 +133,12 @@
         window.location.href = "find-password-done";
       })
       .catch(function (err) {
+        // 만료/이미 사용된 토큰 에러도 배너 대신 toast로 통일한다(2026-08-14 수정) — 이 파일 상단
+        // 주석의 "에러는 배너가 아니라 Eatty.toast()로 표시" 원칙과 맞춰, 배너용으로 남아있던
+        // #tokenExpiredAlert 분기를 없애고 find-password로 돌려보낸다.
         if (err.code === "INVALID_RESET_TOKEN") {
-          alertBox.hidden = false;
+          Eatty.toast("재설정 링크가 만료되었거나 이미 사용되었습니다. 비밀번호 찾기를 다시 진행해주세요.", "error");
+          window.location.href = "find-password";
         } else {
           Eatty.toast(err.message || "비밀번호 변경에 실패했습니다.", "error");
         }

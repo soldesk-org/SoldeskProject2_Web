@@ -153,16 +153,20 @@
     var v = pw.value;
     var meetsRequired = PASSWORD_REQUIRED_PATTERN.test(v);
     var score = 0;
-    if (meetsRequired) {
-      score = 2;
-      if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
-      if (v.length >= 12) score++;
+    if (v) {
+      if (meetsRequired) {
+        score = 2;
+        if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+        if (v.length >= 12) score++;
+      } else {
+        score = 1; // 입력은 했지만 조건 미충족(20자 초과 포함) — "-" 대신 "약함"(2026-08-14 수정).
+      }
     }
     var labels = ["-", "약함", "보통", "양호", "안전"];
     document.getElementById("bizPwStrengthBar").className = "e-pw-strength-bars" + (score ? " lv-" + score : "");
     var bizTxt = document.getElementById("bizPwStrengthText");
     bizTxt.className = "e-pw-strength-text" + (score ? " lv-" + score : "");
-    bizTxt.textContent = v ? labels[score] : "-";
+    bizTxt.textContent = labels[score];
   });
 
   // 비밀번호 확인 일치 여부 실시간 표시(2026-08-13 추가) — signup.js와 동일 패턴.

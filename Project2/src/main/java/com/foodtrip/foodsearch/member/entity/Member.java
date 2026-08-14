@@ -136,6 +136,19 @@ public class Member {
         this.phoneHash = phoneHash;
     }
 
+    // 일반 가입을 끝까지 완료하지 않고 이탈한 pending 회원(createPending() 참고, 닉네임이 "PENDING_"으로
+    // 시작)이 같은 이메일로 소셜로그인을 하는 경우(2026-08-14 추가) — SocialLoginServiceImpl이 기존 회원을
+    // 그대로 재사용하기 전에 이 메서드로 실제 닉네임/프로필 사진을 채워 가입을 완료시킨다. profileImageUrl은
+    // createSocial()과 동일하게 최초 1회만 반영한다(값이 null이면 기본 이미지 유지).
+    public boolean isPendingSignUp() {
+        return nickname != null && nickname.startsWith("PENDING_");
+    }
+
+    public void completeSocialSignUp(String nickname, String profileImageUrl) {
+        this.nickname = nickname;
+        this.profileImageUrl = profileImageUrl;
+    }
+
     // 사업자 회원가입(001-02 13장)에서 사업자등록증명원 검증까지 통과한 이후에만 호출한다.
     public void markAsBusiness() {
         this.role = "BUSINESS";
