@@ -4,14 +4,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.foodtrip.foodsearch.common.exception.CustomException;
+import com.foodtrip.foodsearch.common.exception.ErrorCode;
 import com.foodtrip.foodsearch.review.dto.ReviewKeywordRatioRequestDto;
 import com.foodtrip.foodsearch.review.dto.ReviewKeywordRatioResponseDto;
 import com.foodtrip.foodsearch.review.service.ReviewKeywordStatsService;
@@ -46,7 +46,7 @@ public class InternalReviewStatsController {
         if (suppliedToken == null || !MessageDigest.isEqual(
                 internalToken.getBytes(StandardCharsets.UTF_8),
                 suppliedToken.getBytes(StandardCharsets.UTF_8))) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid internal token");
+            throw new CustomException(ErrorCode.INTERNAL_API_UNAUTHORIZED);
         }
     }
 }

@@ -14,7 +14,9 @@ services:
       REVIEW_IMAGE_UPLOAD_DIR: /app/uploads/review-images
       CHAT_LOG_FILE_PATH: /app/logs/support-chat.jsonl
       BUSINESS_VERIFY_BASE_URL: http://ocr-api:8000
+      BUSINESS_VERIFY_INTERNAL_TOKEN: ${BUSINESS_VERIFY_INTERNAL_TOKEN:-}
       RECOMMENDATION_BASE_URL: http://recommendation-api:8000
+      RECOMMENDATION_INTERNAL_TOKEN: ${RECOMMENDATION_INTERNAL_TOKEN:-}
     ports:
       - "8081:8081"
     volumes:

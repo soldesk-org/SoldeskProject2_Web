@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 
 public enum ErrorCode {
 
+    INTERNAL_API_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "허용되지 않은 내부 요청입니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값 형식이 올바르지 않습니다."),
     EMAIL_NOT_FOUND(HttpStatus.BAD_REQUEST, "인증번호 발송 이력이 없는 이메일입니다."),
     EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "이메일 인증이 완료되지 않았습니다."),

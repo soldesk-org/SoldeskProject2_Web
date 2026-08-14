@@ -10,9 +10,9 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.foodtrip.foodsearch.common.exception.CustomException;
+import com.foodtrip.foodsearch.common.exception.ErrorCode;
 import com.foodtrip.foodsearch.review.dto.ReviewKeywordRatioRequestDto;
 import com.foodtrip.foodsearch.review.dto.ReviewKeywordRatioResponseDto;
 import com.foodtrip.foodsearch.review.service.ReviewKeywordStatsService;
@@ -27,10 +27,10 @@ class InternalReviewStatsControllerTest {
         ReviewKeywordStatsService service = mock(ReviewKeywordStatsService.class);
         InternalReviewStatsController controller = new InternalReviewStatsController(service, "shared-secret");
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        CustomException exception = assertThrows(CustomException.class,
                 () -> controller.keywordRatios(null, request));
 
-        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        assertEquals(ErrorCode.INTERNAL_API_UNAUTHORIZED, exception.getErrorCode());
         verifyNoInteractions(service);
     }
 
