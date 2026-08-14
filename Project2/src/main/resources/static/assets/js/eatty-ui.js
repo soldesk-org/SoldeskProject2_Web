@@ -298,12 +298,43 @@
 
   /* ============================================================
      [11] 인증 타이머
-       <span class="e-timer" data-timer="180"></span>
+       <span class="e-timer" data-timer="180" data-timer-target="#codeInput"></span>
        재시작: el.dispatchEvent(new Event('eatty:timer-restart'))
+       data-timer-target(2026-08-14 추가) — 만료되면 그 대상(입력창/버튼)을 비활성화해서
+       "이제 재발송해야만 다시 시도할 수 있다"를 명확히 보여준다. 대상이 input이면 값을 지우고
+       placeholder를 안내 문구로 바꾸고, 그 외(버튼/링크)는 aria-disabled로 클릭을 막는다
+       (.btn.is-disabled/[aria-disabled="true"] 스타일 재사용). 재시작(재발송) 시 원상복구.
      ============================================================ */
   function initTimer(el) {
     var total = parseInt(el.getAttribute('data-timer'), 10) || 180;
     var left = total, iv = null;
+    var targetSel = el.getAttribute('data-timer-target');
+    var target = targetSel ? document.querySelector(targetSel) : null;
+
+    function setTargetDisabled(disabled) {
+      if (!target) return;
+      if ('disabled' in target) target.disabled = disabled;
+      target.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      if (target.tagName === 'INPUT') {
+        if (disabled) {
+          if (target.dataset.origPlaceholder === undefined) {
+            target.dataset.origPlaceholder = target.getAttribute('placeholder') || '';
+          }
+          target.value = '';
+          target.placeholder = '인증번호가 만료되었습니다. 재발송해주세요.';
+        } else if (target.dataset.origPlaceholder !== undefined) {
+          target.placeholder = target.dataset.origPlaceholder;
+        }
+      }
+      if (target.tagName === 'A') {
+        if (disabled) {
+          if (target.dataset.origHref === undefined) target.dataset.origHref = target.getAttribute('href') || '';
+          target.removeAttribute('href');
+        } else if (target.dataset.origHref !== undefined) {
+          target.setAttribute('href', target.dataset.origHref);
+        }
+      }
+    }
 
     function render() {
       var m = Math.floor(left / 60), s = left % 60;
@@ -311,12 +342,14 @@
       if (left <= 0) {
         clearInterval(iv);
         el.textContent = '시간 만료';
+        setTargetDisabled(true);
         el.dispatchEvent(new CustomEvent('eatty:timer-end', { bubbles: true }));
       }
     }
     function start() {
       clearInterval(iv);
       left = total;
+      setTargetDisabled(false);
       render();
       iv = setInterval(function () { left--; render(); }, 1000);
     }

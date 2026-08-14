@@ -98,6 +98,10 @@ pipeline {
                         string(credentialsId: 'soldesk-restaurant-image-base-url', variable: 'RESTAURANT_IMAGE_BASE_URL'),
                         string(credentialsId: 'soldesk-receipt-image-base-url', variable: 'RECEIPT_IMAGE_BASE_URL'),
                         string(credentialsId: 'soldesk-review-image-base-url', variable: 'REVIEW_IMAGE_BASE_URL'),
+                        // 비밀번호 재설정 메일 링크(2026-08-14 추가) — 위 이미지 URL들과 같은 이유로
+                        // 빠져있던 credential. 비어있으면 application.yml 기본값(http://localhost:8081/...)
+                        // 으로 떨어져서 운영 환경에서도 재설정 메일에 localhost 링크가 나가는 문제가 있었다.
+                        string(credentialsId: 'soldesk-password-reset-frontend-url', variable: 'PASSWORD_RESET_FRONTEND_URL'),
                     ]) {
                         sh './mvnw test'
                     }
@@ -184,6 +188,7 @@ pipeline {
                         string(credentialsId: 'soldesk-restaurant-image-base-url', variable: 'RESTAURANT_IMAGE_BASE_URL'),
                         string(credentialsId: 'soldesk-receipt-image-base-url', variable: 'RECEIPT_IMAGE_BASE_URL'),
                         string(credentialsId: 'soldesk-review-image-base-url', variable: 'REVIEW_IMAGE_BASE_URL'),
+                        string(credentialsId: 'soldesk-password-reset-frontend-url', variable: 'PASSWORD_RESET_FRONTEND_URL'),
                     ]) {
                         sh '''
                             cp target/*.war /opt/soldesk-app/soldesk-app.war
@@ -234,6 +239,7 @@ PROFILE_IMAGE_BASE_URL=$PROFILE_IMAGE_BASE_URL
 RESTAURANT_IMAGE_BASE_URL=$RESTAURANT_IMAGE_BASE_URL
 RECEIPT_IMAGE_BASE_URL=$RECEIPT_IMAGE_BASE_URL
 REVIEW_IMAGE_BASE_URL=$REVIEW_IMAGE_BASE_URL
+PASSWORD_RESET_FRONTEND_URL=$PASSWORD_RESET_FRONTEND_URL
 ENVEOF
                             chmod 600 /opt/soldesk-app/.env
                             sudo systemctl restart soldesk-app.service

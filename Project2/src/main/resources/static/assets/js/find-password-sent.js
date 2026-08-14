@@ -66,7 +66,8 @@
   // 이 탭으로 돌아오라고 안내한다(find-password-reset.js 참고).
   var pollKey = sessionStorage.getItem("fp_poll_key");
   if (pollKey) {
-    var pollTimer = setInterval(function () {
+    var pollTimer = null;
+    function poll() {
       Api.request("/api/password-reset-tokens/poll-status?pollKey=" + encodeURIComponent(pollKey), { method: "GET", auth: false })
         .then(function (res) {
           if (res.confirmed && res.token) {
@@ -77,6 +78,14 @@
           }
         })
         .catch(function () {});
-    }, 3000);
+    }
+    pollTimer = setInterval(poll, 3000);
+
+    // 이 PC 탭이 백그라운드에 있는 동안(폰으로 메일 확인하는 사이) 브라우저가 setInterval 자체를
+    // 강하게 늦춰서(특히 5분 이상 백그라운드면 분당 1회 수준으로) 다시 이 탭으로 돌아와도 한참 뒤에야
+    // 확인되는 문제가 있었다(2026-08-14 수정). 탭이 다시 보이는 순간 즉시 한 번 더 확인한다.
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") poll();
+    });
   }
 })();

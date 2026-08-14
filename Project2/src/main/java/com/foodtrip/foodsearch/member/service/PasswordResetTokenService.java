@@ -24,7 +24,11 @@ public class PasswordResetTokenService {
 
     private static final int TOKEN_BYTES = 32;
     private static final Duration TOKEN_TTL = Duration.ofHours(1);
-    private static final Duration POLL_CONFIRM_TTL = Duration.ofMinutes(10);
+    // 2026-08-14 조정 — PC에서 요청하고 모바일에서 링크를 여는 실사용 흐름은 이메일 앱을 열고 찾는
+    // 시간까지 포함해 10분을 넘기기 쉽고, PC 탭이 그동안 백그라운드에 있으면 폴링 타이머 자체도
+    // 브라우저가 강하게 늦춰버려서(아래 find-password-sent.js의 visibilitychange 보강과 함께) 10분
+    // 안에 확인을 못 하는 경우가 실제로 있었다. 토큰 자체의 유효시간(TOKEN_TTL)과 맞춰 1시간으로 늘린다.
+    private static final Duration POLL_CONFIRM_TTL = Duration.ofHours(1);
     private static final String KEY_PREFIX = "pwreset:";
     private static final String POLL_KEY_PREFIX = "pwreset:poll:";
     private static final String TOKEN_TO_POLL_PREFIX = "pwreset:tokenpoll:";
