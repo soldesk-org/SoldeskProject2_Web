@@ -657,7 +657,7 @@
     authRequest("/api/admin/terms/" + docType + "/versions").then(function (list) {
       termsVersionTableBody.innerHTML = "";
       if (!list.length) {
-        termsVersionTableBody.innerHTML = '<tr><td colspan="4" class="t-sm">등록된 버전이 없습니다.</td></tr>';
+        termsVersionTableBody.innerHTML = '<tr><td colspan="4" class="t-sm text-center">등록된 버전이 없습니다.</td></tr>';
         return;
       }
       list.forEach(function (v) {
@@ -677,7 +677,7 @@
     authRequest("/api/admin/notices").then(function (list) {
       termsNoticeTableBody.innerHTML = "";
       if (!list.length) {
-        termsNoticeTableBody.innerHTML = '<tr><td colspan="5" class="t-sm">게시된 공지가 없습니다.</td></tr>';
+        termsNoticeTableBody.innerHTML = '<tr><td colspan="5" class="t-sm text-center">게시된 공지가 없습니다.</td></tr>';
         return;
       }
       list.forEach(function (n) {
