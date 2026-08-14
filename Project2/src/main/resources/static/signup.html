@@ -190,7 +190,7 @@
         <div class="e-field" id="emailCodeRow" hidden>
           <label class="e-label" for="signupEmailCode">
             이메일 인증코드 <span class="req">*</span>
-            <span class="e-label-side"><span class="e-timer" data-timer="300" id="emailCodeTimer">5:00</span></span>
+            <span class="e-label-side"><span class="e-timer" data-timer="300" data-timer-target="#signupEmailCode" id="emailCodeTimer">5:00</span></span>
           </label>
           <div class="e-input-row">
             <input type="text" class="e-input t-num" id="signupEmailCode" name="emailCode"
@@ -272,7 +272,7 @@
         <div class="e-field !mb-0" id="phoneCodeRow" hidden>
           <label class="e-label" for="signupPhoneCode">
             인증번호 <span class="req">*</span>
-            <span class="e-label-side"><span class="e-timer" data-timer="180" id="phoneCodeTimer">3:00</span></span>
+            <span class="e-label-side"><span class="e-timer" data-timer="180" data-timer-target="#signupPhoneCode" id="phoneCodeTimer">3:00</span></span>
           </label>
           <div class="e-input-row">
             <input type="text" class="e-input t-num" id="signupPhoneCode" name="phoneCode"

@@ -286,7 +286,7 @@
         <div class="e-field" id="bizEmailCodeRow" hidden>
           <label class="e-label" for="bizSignupEmailCode">
             이메일 인증코드 <span class="req">*</span>
-            <span class="e-label-side"><span class="e-timer" data-timer="300" id="bizEmailCodeTimer">5:00</span></span>
+            <span class="e-label-side"><span class="e-timer" data-timer="300" data-timer-target="#bizSignupEmailCode" id="bizEmailCodeTimer">5:00</span></span>
           </label>
           <div class="e-input-row">
             <input type="text" class="e-input t-num" id="bizSignupEmailCode" name="emailCode" placeholder="6자리 숫자" inputmode="numeric" maxlength="6">
@@ -362,7 +362,7 @@
         <div class="e-field !mb-0" id="bizPhoneCodeRow" hidden>
           <label class="e-label" for="bizSignupPhoneCode">
             인증번호 <span class="req">*</span>
-            <span class="e-label-side"><span class="e-timer" data-timer="180" id="bizPhoneCodeTimer">3:00</span></span>
+            <span class="e-label-side"><span class="e-timer" data-timer="180" data-timer-target="#bizSignupPhoneCode" id="bizPhoneCodeTimer">3:00</span></span>
           </label>
           <div class="e-input-row">
             <input type="text" class="e-input t-num" id="bizSignupPhoneCode" name="phoneCode" placeholder="6자리 숫자" inputmode="numeric" maxlength="6">
