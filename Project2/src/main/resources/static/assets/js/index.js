@@ -64,18 +64,25 @@ document.addEventListener('click', function (e) {
       // 좌표가 거의 같은 가게(같은 건물 다른 층 등)가 있으면 마커가 완전히 겹쳐서 하나만 보이는 문제
       // (2026-08-10 발견) — 실제 위치를 임의로 바꾸는 대신, 이미 사용한 좌표와 너무 가까우면 시각적으로만
       // 떨어뜨려서 표시한다. 소개용 미니 지도라 이 정도 오차는 실사용에 영향 없음.
-      // (2026-08-14 조정) — 기존 반경 15m 안팎은 zoom 16 화면에서 몇 픽셀 차이밖에 안 나서 여전히
-      // 겹쳐 보인다는 실사용 리포트로 반경을 약 45m로 늘렸다.
+      // (2026-08-14 재조정) — 45m/한 번의 랜덤 방향으로도 zoom 16에서 여전히 핀이 겹쳐 보인다는 리포트로
+      // 반경을 약 80m로 늘리고, 한 번 밀어낸 위치가 다른 이미 배치된 마커와 또 겹치면 반경을 넓혀가며
+      // 최대 5회까지 다시 시도하도록(기존엔 한 번만 시도하고 끝) 바꿨다 — 마커가 3개 이상 뭉쳐 있어도
+      // 확실히 갈라지게 하기 위함.
       var usedPositions = [];
       var NEAR_THRESHOLD = 0.0001; // 위도/경도 약 11m
-      function nudgeIfOverlapping(lat, lng) {
-        var isNear = usedPositions.some(function (p) {
+      function isNearAny(lat, lng) {
+        return usedPositions.some(function (p) {
           return Math.abs(p.lat - lat) < NEAR_THRESHOLD && Math.abs(p.lng - lng) < NEAR_THRESHOLD;
         });
-        if (isNear) {
+      }
+      function nudgeIfOverlapping(lat, lng) {
+        var attempt = 0;
+        while (isNearAny(lat, lng) && attempt < 5) {
+          var radius = 0.0007 + attempt * 0.0003;
           var angle = Math.random() * Math.PI * 2;
-          lat += Math.cos(angle) * 0.0004;
-          lng += Math.sin(angle) * 0.0004;
+          lat += Math.cos(angle) * radius;
+          lng += Math.sin(angle) * radius;
+          attempt++;
         }
         usedPositions.push({ lat: lat, lng: lng });
         return { lat: lat, lng: lng };
