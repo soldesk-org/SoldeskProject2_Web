@@ -18,17 +18,15 @@
   var passwordConfirmInput = document.getElementById("newPasswordConfirm");
   var submitBtn = document.getElementById("resetSubmitBtn");
   var returnToTabNotice = document.getElementById("returnToTabNotice");
-  var continueHereBtn = document.getElementById("continueHereBtn");
 
   if (token) {
     tokenInput.value = token;
   } else {
     alertBox.hidden = false;
-    if (returnToTabNotice) returnToTabNotice.hidden = true;
   }
 
   // 원래 탭(find-password-sent.html)이 폴링으로 감지해서 스스로 이리로 넘어온 경우인지 확인한다
-  // (2026-08-04 추가) — 그 경우엔 "돌아가라" 안내 대신 바로 새 비밀번호 폼을 보여준다.
+  // (2026-08-04 추가).
   var viaPoll = sessionStorage.getItem("fp_via_poll") === "1";
   sessionStorage.removeItem("fp_via_poll");
 
@@ -37,6 +35,10 @@
     // 원래 탭의 폴링이 감지하고 자동으로 이 화면(같은 token)으로 넘어올 수 있게 한다.
     // 같은 링크를 또 열었으면(firstTime=false) 이미 인증을 마친 것이므로 "일치하지 않는 URL"로
     // 안내하고 메인 페이지로 보낸다(2026-08-04 추가).
+    // (2026-08-14 수정) — 예전엔 이 응답을 기다리는 동안 폼 자체를 숨겨두고 "원래 탭으로 돌아가라"는
+    // 안내만 보여줘서, 이메일 링크를 눌러도 곧바로 다음 단계로 못 넘어가는 것처럼 보이는 문제가 있었다.
+    // 이제 폼은 처음부터 바로 보여주고, 이 안내는 "다른 탭도 자동으로 넘어간다"는 보조 문구로만 쓴다.
+    if (returnToTabNotice) returnToTabNotice.hidden = false;
     Api.request("/api/password-reset-tokens/view-events?token=" + encodeURIComponent(token), { method: "POST", auth: false })
       .then(function (res) {
         if (!res.firstTime) {
@@ -45,16 +47,6 @@
         }
       })
       .catch(function () {});
-  } else if (token && viaPoll) {
-    if (returnToTabNotice) returnToTabNotice.hidden = true;
-    if (form) form.hidden = false;
-  }
-
-  if (continueHereBtn) {
-    continueHereBtn.addEventListener("click", function () {
-      if (returnToTabNotice) returnToTabNotice.hidden = true;
-      if (form) form.hidden = false;
-    });
   }
 
   // 토큰만으로는 어느 계정인지 서버에 별도로 물어볼 API가 없다 — 방금 전 화면(find-password)에서
