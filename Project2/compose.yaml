@@ -57,6 +57,7 @@ services:
       - path: ../../SoldeskProject2_Python/keyword-extraction/.env
         required: false
     environment:
+      KAKAO_REST_API_KEY: ${KAKAO_CLIENT_ID:-}
       REVIEW_STATS_URL: http://web:8081/internal/reviews/keyword-ratios
       INTERNAL_API_TOKEN: ${RECOMMENDATION_INTERNAL_TOKEN:-}
     init: true

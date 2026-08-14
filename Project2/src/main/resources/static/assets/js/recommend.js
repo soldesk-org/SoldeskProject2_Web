@@ -82,6 +82,23 @@
   // ---- 지도 ----
   var map = null;
   var markers = [];
+  function hasNaverMaps() {
+    return !!(window.naver && window.naver.maps &&
+      typeof window.naver.maps.Map === "function" &&
+      typeof window.naver.maps.LatLng === "function" &&
+      typeof window.naver.maps.LatLngBounds === "function");
+  }
+  function initRecommendMap(center) {
+    if (!hasNaverMaps()) { map = null; return; }
+    try {
+      map = new window.naver.maps.Map("naverMapRecommend", {
+        center: new window.naver.maps.LatLng(center.lat, center.lng),
+        zoom: 14,
+      });
+    } catch (e) {
+      map = null;
+    }
+  }
   function clearMarkers() { markers.forEach(function (m) { m.setMap(null); }); markers = []; }
   function numberedIcon(n) {
     return {
@@ -92,7 +109,7 @@
     };
   }
   function renderMapMarkers(list) {
-    if (!map) return;
+    if (!map || !hasNaverMaps()) return;
     clearMarkers();
     var bounds = new naver.maps.LatLngBounds();
     list.forEach(function (place, i) {
@@ -111,11 +128,11 @@
   }
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      function (pos) { map = new naver.maps.Map("naverMapRecommend", { center: new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude), zoom: 14 }); },
-      function () { map = new naver.maps.Map("naverMapRecommend", { center: new naver.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng), zoom: 14 }); }
+      function (pos) { initRecommendMap({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
+      function () { initRecommendMap(DEFAULT_CENTER); }
     );
   } else {
-    map = new naver.maps.Map("naverMapRecommend", { center: new naver.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng), zoom: 14 });
+    initRecommendMap(DEFAULT_CENTER);
   }
 
   // RestaurantCategoryMatchingService.KAKAO_CATEGORY_FALLBACK(백엔드)와 동일한 키워드 표(2026-08-08).
