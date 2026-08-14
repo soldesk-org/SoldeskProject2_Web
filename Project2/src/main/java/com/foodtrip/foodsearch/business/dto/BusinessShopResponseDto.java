@@ -25,12 +25,19 @@ public class BusinessShopResponseDto {
     private final String priceRange;
     // 2026-08-10 추가 — 임시 휴업 토글의 실제 저장값. 새로고침해도 토글 상태가 유지되도록 응답에 포함한다.
     private final boolean tempClosed;
+    // 카테고리(2026-08-14 추가) — category는 화면에 보여줄 최종 카테고리명(자동 분류 성공 시 그 값,
+    // 실패 시 사업자가 지정한 categoryOverride). categoryAutoMatched가 true면 프론트가 select를 잠가야
+    // 하고, false면 categoryOverride(코드, 없으면 null)를 select 초기값으로 채워 수정 가능하게 열어둔다.
+    private final String category;
+    private final boolean categoryAutoMatched;
+    private final String categoryOverride;
 
     public BusinessShopResponseDto(String restaurantId, String imageUrl, String businessName,
                                     String businessAddress, String businessRegistrationNumber,
                                     String phone, List<BusinessHourResponseDto> businessHours,
                                     String description, List<String> amenities, String priceRange,
-                                    boolean tempClosed) {
+                                    boolean tempClosed, String category, boolean categoryAutoMatched,
+                                    String categoryOverride) {
         this.restaurantId = restaurantId;
         this.imageUrl = imageUrl;
         this.businessName = businessName;
@@ -42,6 +49,21 @@ public class BusinessShopResponseDto {
         this.amenities = amenities;
         this.priceRange = priceRange;
         this.tempClosed = tempClosed;
+        this.category = category;
+        this.categoryAutoMatched = categoryAutoMatched;
+        this.categoryOverride = categoryOverride;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public boolean isCategoryAutoMatched() {
+        return categoryAutoMatched;
+    }
+
+    public String getCategoryOverride() {
+        return categoryOverride;
     }
 
     public boolean isTempClosed() {

@@ -19,8 +19,10 @@ public interface RestaurantOwnerService {
     RestaurantDetailResponseDto updatePhone(String restaurantId, String authorizationHeader, String phone);
 
     // 매장 소개/편의시설 수정(2026-08-09 추가) — amenities는 콤마 구분 문자열로 저장(Restaurant.amenities).
+    // categoryOverride(2026-08-14 추가): 자동 분류가 안 되는 매장에 한해 사업자가 직접 고른
+    // restaurant_categories.category_code — null/빈 값이면 그대로 지운다.
     RestaurantDetailResponseDto updateExtras(String restaurantId, String authorizationHeader, String description,
-                                              List<String> amenities, String priceRange);
+                                              List<String> amenities, String priceRange, String categoryOverride);
 
     RestaurantDetailResponseDto replaceBusinessHours(String restaurantId, String authorizationHeader,
                                                        List<BusinessHourItemDto> businessHours);

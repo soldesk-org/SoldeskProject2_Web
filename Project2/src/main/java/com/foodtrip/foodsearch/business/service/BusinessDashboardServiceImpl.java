@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -32,11 +33,14 @@ import com.foodtrip.foodsearch.member.service.AccessTokenSessionService;
 import com.foodtrip.foodsearch.restaurant.dto.BusinessHourResponseDto;
 import com.foodtrip.foodsearch.restaurant.entity.Restaurant;
 import com.foodtrip.foodsearch.restaurant.entity.RestaurantBusinessHour;
+import com.foodtrip.foodsearch.restaurant.entity.RestaurantCategory;
 import com.foodtrip.foodsearch.restaurant.entity.RestaurantManager;
 import com.foodtrip.foodsearch.restaurant.repository.FavoriteRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantBusinessHourRepository;
+import com.foodtrip.foodsearch.restaurant.repository.RestaurantCategoryRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantManagerRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantRepository;
+import com.foodtrip.foodsearch.restaurant.service.RestaurantCategoryMatchingService;
 import com.foodtrip.foodsearch.restaurant.service.RestaurantClaimService;
 import com.foodtrip.foodsearch.review.dto.ReviewImageResponseDto;
 import com.foodtrip.foodsearch.review.dto.ReviewKeywordResponseDto;
@@ -70,6 +74,8 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
     private final AccessTokenSessionService accessTokenSessionService;
     private final RestaurantClaimService restaurantClaimService;
     private final ReviewImageRepository reviewImageRepository;
+    private final RestaurantCategoryMatchingService restaurantCategoryMatchingService;
+    private final RestaurantCategoryRepository restaurantCategoryRepository;
 
     public BusinessDashboardServiceImpl(RestaurantManagerRepository restaurantManagerRepository,
                                          RestaurantRepository restaurantRepository,
@@ -82,12 +88,16 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
                                          JwtProvider jwtProvider,
                                          AccessTokenSessionService accessTokenSessionService,
                                          RestaurantClaimService restaurantClaimService,
-                                         ReviewImageRepository reviewImageRepository) {
+                                         ReviewImageRepository reviewImageRepository,
+                                         RestaurantCategoryMatchingService restaurantCategoryMatchingService,
+                                         RestaurantCategoryRepository restaurantCategoryRepository) {
         this.restaurantManagerRepository = restaurantManagerRepository;
         this.restaurantRepository = restaurantRepository;
         this.reviewRepository = reviewRepository;
         this.favoriteRepository = favoriteRepository;
         this.memberRepository = memberRepository;
+        this.restaurantCategoryMatchingService = restaurantCategoryMatchingService;
+        this.restaurantCategoryRepository = restaurantCategoryRepository;
         this.businessProfileRepository = businessProfileRepository;
         this.restaurantBusinessHourRepository = restaurantBusinessHourRepository;
         this.reviewKeywordDao = reviewKeywordDao;
@@ -111,6 +121,8 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
         List<String> amenities = restaurant != null && restaurant.getAmenities() != null && !restaurant.getAmenities().isBlank()
                 ? Arrays.asList(restaurant.getAmenities().split(","))
                 : List.of();
+        CategoryResolution categoryResolution = resolveCategory(restaurant,
+                profile != null ? profile.getBusinessName() : null);
         return new BusinessShopResponseDto(restaurantId, restaurant != null ? restaurant.getImageUrl() : null,
                 profile != null ? profile.getBusinessName() : null,
                 profile != null ? profile.getBusinessAddress() : null,
@@ -120,7 +132,32 @@ public class BusinessDashboardServiceImpl implements BusinessDashboardService {
                 restaurant != null ? restaurant.getDescription() : null,
                 amenities,
                 restaurant != null ? restaurant.getPriceRange() : null,
-                restaurant != null && Restaurant.BUSINESS_STATUS_TEMP_CLOSED.equals(restaurant.getBusinessStatus()));
+                restaurant != null && Restaurant.BUSINESS_STATUS_TEMP_CLOSED.equals(restaurant.getBusinessStatus()),
+                categoryResolution.categoryName(), categoryResolution.autoMatched(), categoryResolution.categoryCode());
+    }
+
+    // 매장 카테고리(2026-08-14 추가) — RestaurantServiceImpl.classifyItem()과 동일한 1차(상호명 키워드
+    // 매칭)/3차(사업자 수동 지정) 폴백을 쓴다. 여기는 Kakao 실시간 조회가 없는 화면이라 2차(카카오 원본
+    // 카테고리 문자열 보조 분류)는 적용할 수 없다 — 그만큼 자동 매칭 커버리지가 검색 화면보다는 낮다.
+    private record CategoryResolution(String categoryName, String categoryCode, boolean autoMatched) {
+    }
+
+    private CategoryResolution resolveCategory(Restaurant restaurant, String businessName) {
+        if (businessName != null) {
+            Optional<RestaurantCategory> auto = restaurantCategoryMatchingService.classify(
+                    businessName, List.of(), restaurantCategoryMatchingService.loadActiveKeywords());
+            if (auto.isPresent()) {
+                return new CategoryResolution(auto.get().getCategoryName(), auto.get().getCategoryCode(), true);
+            }
+        }
+        String overrideCode = restaurant != null ? restaurant.getCategoryOverride() : null;
+        if (overrideCode != null) {
+            Optional<RestaurantCategory> override = restaurantCategoryRepository.findByCategoryCode(overrideCode);
+            if (override.isPresent()) {
+                return new CategoryResolution(override.get().getCategoryName(), overrideCode, false);
+            }
+        }
+        return new CategoryResolution(null, null, false);
     }
 
     @Override

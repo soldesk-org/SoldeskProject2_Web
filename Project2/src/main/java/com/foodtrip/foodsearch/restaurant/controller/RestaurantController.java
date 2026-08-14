@@ -147,7 +147,7 @@ public class RestaurantController {
                                                        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
                                                        @Valid @RequestBody UpdateRestaurantExtrasRequestDto request) {
         return restaurantOwnerService.updateExtras(restaurantId, authorizationHeader, request.getDescription(),
-                request.getAmenities(), request.getPriceRange());
+                request.getAmenities(), request.getPriceRange(), request.getCategoryOverride());
     }
 
     // 임시 휴업 토글(2026-08-10 추가) — 영업시간표와 무관하게 강제로 영업종료 처리.

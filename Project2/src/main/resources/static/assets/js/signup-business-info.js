@@ -195,6 +195,30 @@
   // 고른 매장의 카카오 place 정보 — 제출할 때 매장 귀속(claim)에 그대로 넘긴다(2026-08-07).
   var selectedStore = null;
 
+  // 매장 선택 시 카테고리 자동 입력(2026-08-14 추가) — 이미 카카오 검색 결과(item.category)에
+  // 우리 쪽이 분류해둔 카테고리가 있으므로, 사업자가 다시 고르게 하지 않고 그대로 채우고 잠근다.
+  // select의 옵션 값을 공식 음식점 카테고리 코드(restaurant_categories.category_code)와 동일하게
+  // 맞춰뒀기 때문에(2026-08-14, 예전엔 korean/chicken/meat 같은 별도 문자열이라 1:1로 안 맞았다) 11개
+  // 전부 그대로 매칭된다. 매칭되는 값이 없으면(카카오가 카테고리명을 안 준 경우) 잠그지 않고 직접
+  // 고르게 두고, 그 선택값은 제출 시 categoryOverride로 서버에 저장돼 실제 고객 화면/마커에도 반영된다
+  // (RestaurantServiceImpl.classifyItem() 3차 폴백).
+  var CATEGORY_NAME_TO_VALUE = {
+    "한식": "KOREAN", "양식": "WESTERN", "중식": "CHINESE", "일식": "JAPANESE",
+    "분식": "SNACK", "패스트푸드": "FAST_FOOD", "아시안": "ASIAN", "술집": "BAR",
+    "뷔페": "BUFFET", "카페/디저트": "CAFE_DESSERT", "카페 · 디저트": "CAFE_DESSERT", "그 외": "ETC"
+  };
+  var shopCategorySelect = document.getElementById("shopCategory");
+  function applyAutoCategory(categoryName) {
+    if (!shopCategorySelect) return;
+    var value = categoryName ? CATEGORY_NAME_TO_VALUE[categoryName] : null;
+    if (value) {
+      shopCategorySelect.value = value;
+      shopCategorySelect.disabled = true;
+    } else {
+      shopCategorySelect.disabled = false;
+    }
+  }
+
   (function () {
     var shopNameInput = document.getElementById("shopName");
     if (!shopNameInput) return;
@@ -202,6 +226,7 @@
     window.eattyStoreSearchCallback = function (item) {
       shopNameInput.value = item.name;
       selectedStore = item;
+      applyAutoCategory(item.category);
     };
 
     shopNameInput.addEventListener("click", function () {
@@ -245,6 +270,17 @@
           roadAddress: selectedStore.roadAddress || "",
         },
       })
+        .then(function () {
+          // 자동 분류가 안 돼서 사업자가 직접 고른 카테고리(2026-08-14 추가)는 claim 성공 후 별도로
+          // 저장한다 — extras 저장 API가 description/amenities/priceRange까지 한 번에 덮어쓰는데
+          // 이 화면은 그 값들을 아직 안 받으므로 null로 보내도 안전하다(귀속 직후라 기존 값이 없음).
+          if (shopCategorySelect && !shopCategorySelect.disabled && shopCategorySelect.value) {
+            return Api.request("/api/restaurants/" + encodeURIComponent(selectedStore.restaurantId) + "/extras", {
+              method: "PATCH",
+              body: { categoryOverride: shopCategorySelect.value },
+            }).catch(function () {});
+          }
+        })
         .then(function () { goToDone(); })
         .catch(function (err) {
           Eatty.toast(err.message || "매장 연결에 실패했습니다. 내 매장 화면에서 다시 시도할 수 있어요.", "error");

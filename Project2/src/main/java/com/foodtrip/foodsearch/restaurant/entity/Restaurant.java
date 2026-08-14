@@ -56,6 +56,13 @@ public class Restaurant {
     @Column(name = "phone", length = 20)
     private String phone;
 
+    // 카테고리 수동 지정(2026-08-14 추가) — 상호명/카카오 원본 카테고리로 자동 분류가 안 되는 매장
+    // (RestaurantCategoryMatchingService.classify()/classifyByKakaoCategoryName() 둘 다 실패)을 위해
+    // 사업자가 직접 고른 값. restaurant_categories.category_code(예: "BUFFET")를 그대로 저장하며,
+    // 자동 분류가 성공하면 이 값은 무시된다(RestaurantServiceImpl의 3순위 폴백으로만 쓰임).
+    @Column(name = "category_override", length = 30)
+    private String categoryOverride;
+
     // 음식점 사진(2026-07-20 요구사항 추가) — 사업자가 직접 업로드하기 전까지 null.
     @Column(name = "image_url", length = 500)
     private String imageUrl;
@@ -121,10 +128,11 @@ public class Restaurant {
         this.imageUrl = imageUrl;
     }
 
-    public void updateExtras(String description, String amenities, String priceRange) {
+    public void updateExtras(String description, String amenities, String priceRange, String categoryOverride) {
         this.description = description;
         this.amenities = amenities;
         this.priceRange = priceRange;
+        this.categoryOverride = categoryOverride;
     }
 
     public void updateBusinessStatus(String businessStatus) {
@@ -156,6 +164,10 @@ public class Restaurant {
 
     public String getPhone() {
         return phone;
+    }
+
+    public String getCategoryOverride() {
+        return categoryOverride;
     }
 
     public String getImageUrl() {

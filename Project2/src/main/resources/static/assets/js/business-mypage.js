@@ -330,8 +330,8 @@
   var shopCategoryText = document.getElementById("shopCategoryText");
 
   // 매장 헤더(상호명/주소/사업자등록번호)가 계정과 무관하게 항상 같은 고정 시안 값으로 보이던 문제
-  // (2026-08-06) — business_profiles의 실제 값으로 채운다. 매장 카테고리는 우리 DB에 저장되지 않고
-  // 카카오 검색 결과에서만 실시간으로 나오는 값이라(07 참고) 여기서는 보여줄 실데이터가 없어 숨긴다.
+  // (2026-08-06) — business_profiles의 실제 값으로 채운다. 매장 카테고리는 자동 분류(상호명 키워드
+  // 매칭) 또는 사업자 수동 지정값을 서버가 함께 계산해서 내려준다(2026-08-14, resolveCategory() 참고).
   function updateShopHeader(shop) {
     if (shopNameText) shopNameText.textContent = (shop && shop.businessName) || "연결된 매장이 없습니다";
     if (shopAddressText) shopAddressText.textContent = (shop && shop.businessAddress) || "";
@@ -341,7 +341,11 @@
         ? (digits.length === 10 ? digits.slice(0, 3) + "-" + digits.slice(3, 5) + "-" + digits.slice(5) : digits)
         : "-";
     }
-    if (shopCategoryText) shopCategoryText.hidden = true;
+    if (shopCategoryText) {
+      var categoryLabel = shop && shop.category;
+      shopCategoryText.textContent = categoryLabel || "";
+      shopCategoryText.hidden = !categoryLabel;
+    }
     // 회원가입 시 자동귀속이 모호했던 계정을 위한 수동 연결 버튼(2026-08-07 추가) — 연결된 매장이
     // 없을 때만 보인다.
     var connected = !!(shop && shop.restaurantId);
@@ -804,12 +808,21 @@
   var bizIntroInput = document.getElementById("bizIntro");
   var bizPriceRangeInput = document.getElementById("bizPriceRange");
 
+  var bizCategorySelect = document.getElementById("bizCategory");
+
   function fillShopInfoForm(shop) {
     // 2026-08-09 추가 — 매장명/주소는 저장 API가 없어(카카오 데이터, 07 참고) 읽기 전용으로 실데이터만
     // 보여준다. 헤더에 이미 나온 값과 같아서 "매장 정보" 탭에 고정 시안값이 뜨는 것처럼 보이던 문제 해결.
     if (bizShopNameInput) bizShopNameInput.value = shop.businessName || "";
     if (bizAddress1Input) bizAddress1Input.value = shop.businessAddress || "";
     if (bizShopPhoneInput) bizShopPhoneInput.value = shop.phone || "";
+    // 카테고리(2026-08-14 추가) — 자동 분류(categoryAutoMatched)에 성공했으면 그 값을 그대로 보여주고
+    // 잠근다(사업자가 임의로 바꾸면 고객 화면 분류와 어긋나므로). 실패했으면 이전에 저장해둔 수동 지정값
+    // (categoryOverride)을 채우고 직접 고를 수 있게 연다.
+    if (bizCategorySelect) {
+      bizCategorySelect.value = shop.categoryOverride || "";
+      bizCategorySelect.disabled = !!shop.categoryAutoMatched;
+    }
     // 2026-08-09 추가 — 매장 소개/편의시설도 실제로 저장·조회되게(PATCH /api/restaurants/{id}/extras).
     if (bizIntroInput) {
       bizIntroInput.value = shop.description || "";
@@ -867,13 +880,16 @@
       var amenities = Array.prototype.map.call(
         document.querySelectorAll('input[name="amenity"]:checked'), function (cb) { return cb.value; });
       var priceRange = (bizPriceRangeInput && bizPriceRangeInput.value) || "";
+      // 카테고리(2026-08-14 추가) — select가 열려 있으면(자동 분류 실패) 지금 고른 값을 저장하고,
+      // 잠겨 있으면(자동 분류 성공) 수동 지정값은 어차피 쓰이지 않으므로 null로 정리한다.
+      var categoryOverride = (bizCategorySelect && !bizCategorySelect.disabled) ? (bizCategorySelect.value || null) : null;
       Promise.all([
         Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/phone",
           { method: "PATCH", body: { phone: phone || null } }),
         Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/business-hours",
           { method: "PUT", body: { businessHours: businessHours } }),
         Api.request("/api/restaurants/" + encodeURIComponent(state.restaurantId) + "/extras",
-          { method: "PATCH", body: { description: description, amenities: amenities, priceRange: priceRange || null } })
+          { method: "PATCH", body: { description: description, amenities: amenities, priceRange: priceRange || null, categoryOverride: categoryOverride } })
       ]).then(function () {
         Eatty.toast("매장 정보를 저장했습니다.", "success");
       }).catch(function (err) {

@@ -159,8 +159,10 @@
       if (v.length >= 12) score++;
     }
     var labels = ["-", "약함", "보통", "양호", "안전"];
-    document.getElementById("bizPwStrengthBar").style.width = (score * 25) + "%";
-    document.getElementById("bizPwStrengthText").textContent = v ? labels[score] : "-";
+    document.getElementById("bizPwStrengthBar").className = "e-pw-strength-bars" + (score ? " lv-" + score : "");
+    var bizTxt = document.getElementById("bizPwStrengthText");
+    bizTxt.className = "e-pw-strength-text" + (score ? " lv-" + score : "");
+    bizTxt.textContent = v ? labels[score] : "-";
   });
 
   // 비밀번호 확인 일치 여부 실시간 표시(2026-08-13 추가) — signup.js와 동일 패턴.

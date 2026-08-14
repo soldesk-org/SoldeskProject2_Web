@@ -1,4 +1,13 @@
 (function () {
+  // 뒤로가기(bfcache) 대응(2026-08-14 추가) — 재설정을 이미 완료하고 find-password-done으로 넘어간 뒤
+  // 브라우저 뒤로가기를 누르면, 브라우저가 이 페이지를 스크립트 재실행 없이 캐시된 상태 그대로
+  // 복원해버려서(bfcache) 아래의 "링크가 이미 열렸는지" 서버 확인이 다시 실행되지 않고, 폼이 마치
+  // 아직 쓸 수 있는 것처럼 그대로 보이는 문제가 있었다. persisted=true(캐시 복원)일 때 새로고침해서
+  // 아래 로직이 처음부터 다시 실행되게 하면, "이미 사용된 링크"로 판정되어 자동으로 메인으로 튕긴다.
+  window.addEventListener("pageshow", function (e) {
+    if (e.persisted) window.location.reload();
+  });
+
   var form = document.getElementById("resetPasswordForm");
   if (!form) return;
 
@@ -74,8 +83,10 @@
 
     var score = [hasLen, hasMix, hasDigit, hasSpecial].filter(Boolean).length;
     var labels = ["-", "약함", "보통", "양호", "안전"];
-    document.getElementById("newPwStrengthBar").style.width = (score * 25) + "%";
-    document.getElementById("newPwStrengthText").textContent = v ? labels[score] : "-";
+    document.getElementById("newPwStrengthBar").className = "e-pw-strength-bars" + (score ? " lv-" + score : "");
+    var resetPwTxt = document.getElementById("newPwStrengthText");
+    resetPwTxt.className = "e-pw-strength-text" + (score ? " lv-" + score : "");
+    resetPwTxt.textContent = v ? labels[score] : "-";
   });
 
   // 비밀번호 확인 일치 여부 실시간 표시(2026-08-13 추가) — signup.js와 동일 패턴.

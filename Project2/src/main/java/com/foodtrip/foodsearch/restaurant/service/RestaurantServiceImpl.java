@@ -291,6 +291,10 @@ public class RestaurantServiceImpl implements RestaurantService {
             if (category.isEmpty() && verified.kakaoCategoryName() != null) {
                 category = restaurantCategoryMatchingService.classifyByKakaoCategoryName(verified.kakaoCategoryName());
             }
+            // 3차 폴백: 사업자가 직접 지정한 카테고리(2026-08-14 추가, classifyItem()과 동일한 우선순위).
+            if (category.isEmpty() && restaurant != null && restaurant.getCategoryOverride() != null) {
+                category = restaurantCategoryRepository.findByCategoryCode(restaurant.getCategoryOverride());
+            }
             categories = category.map(c -> List.of(c.getCategoryName())).orElse(List.of());
         }
         String category = categories.isEmpty() ? null : categories.get(0);
@@ -343,7 +347,7 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         List<RestaurantSummaryResponseDto> matched = new ArrayList<>();
         for (KakaoLocalSearchItem item : items) {
-            Optional<RestaurantCategory> category = classifyItem(item, keywords);
+            Optional<RestaurantCategory> category = classifyItem(item, keywords, extrasById.get(item.id()));
             if (categoryId != null && (category.isEmpty() || !categoryId.equals(category.get().getCategoryId()))) {
                 continue;
             }
@@ -382,13 +386,22 @@ public class RestaurantServiceImpl implements RestaurantService {
 
     // 1차: 우리 키워드 마스터(상호명 매칭) → 실패 시 2차: 카카오 원본 카테고리 문자열로 보조 분류
     // (2026-07-23 추가 — RestaurantCategoryMatchingService.classifyByKakaoCategoryName() 참고, "지도 마커
-    // 카테고리별 표시" 요청의 실사용 커버리지를 높이기 위함).
-    private Optional<RestaurantCategory> classifyItem(KakaoLocalSearchItem item, List<MenuKeyword> keywords) {
+    // 카테고리별 표시" 요청의 실사용 커버리지를 높이기 위함) → 그래도 실패하면 3차: 사업자가 매장 정보
+    // 탭에서 직접 지정한 카테고리(Restaurant.categoryOverride, 2026-08-14 추가) — 자동 분류가 성공하면
+    // 이 값은 아예 조회하지 않는다(자동 분류가 항상 우선).
+    private Optional<RestaurantCategory> classifyItem(KakaoLocalSearchItem item, List<MenuKeyword> keywords, Restaurant extras) {
         Optional<RestaurantCategory> primary = restaurantCategoryMatchingService.classify(item.placeName(), List.of(), keywords);
         if (primary.isPresent()) {
             return primary;
         }
-        return restaurantCategoryMatchingService.classifyByKakaoCategoryName(item.categoryName());
+        Optional<RestaurantCategory> fallback = restaurantCategoryMatchingService.classifyByKakaoCategoryName(item.categoryName());
+        if (fallback.isPresent()) {
+            return fallback;
+        }
+        if (extras != null && extras.getCategoryOverride() != null) {
+            return restaurantCategoryRepository.findByCategoryCode(extras.getCategoryOverride());
+        }
+        return Optional.empty();
     }
 
     private Map<String, Restaurant> fetchExtrasByIds(List<String> ids) {
@@ -418,7 +431,7 @@ public class RestaurantServiceImpl implements RestaurantService {
 
     private RestaurantSummaryResponseDto toSummaryDto(KakaoLocalSearchItem item, Restaurant extras,
                                                        List<MenuKeyword> keywords, Set<String> favoritedIds, Double distanceKm) {
-        String categoryName = classifyItem(item, keywords).map(RestaurantCategory::getCategoryName).orElse(null);
+        String categoryName = classifyItem(item, keywords, extras).map(RestaurantCategory::getCategoryName).orElse(null);
         return new RestaurantSummaryResponseDto(
                 item.id(), item.placeName(), categoryName, item.roadAddressName(), item.addressName(),
                 item.latitude(), item.longitude(), item.placeUrl(), resolveImageUrl(extras),

@@ -85,8 +85,11 @@
     var labels = ["-", "약함", "보통", "양호", "안전"];
     var bar = document.getElementById("pwStrengthBar");
     var txt = document.getElementById("pwStrengthText");
-    if (bar) bar.style.width = (score * 25) + "%";
-    if (txt) txt.textContent = v ? labels[score] : "-";
+    if (bar) bar.className = "e-pw-strength-bars" + (score ? " lv-" + score : "");
+    if (txt) {
+      txt.className = "e-pw-strength-text" + (score ? " lv-" + score : "");
+      txt.textContent = v ? labels[score] : "-";
+    }
   });
 
   // 비밀번호 확인 일치 여부 실시간 표시(2026-08-13 추가) — 예전엔 제출을 눌러야만(불일치일 때만)

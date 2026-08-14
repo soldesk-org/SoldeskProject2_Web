@@ -1204,6 +1204,38 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   .e-steps::-webkit-scrollbar { display: none; }
 }
 
+/* 비밀번호 강도 게이지 / 일치여부 표시(토스 스타일, 2026-08-14) — 세그먼트형 게이지 + 알약형 배지.
+   signup / signup-business / mypage-edit / find-password-reset 4개 페이지에서 공유. */
+.e-pw-strength { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.e-pw-strength-bars { display: flex; gap: 4px; flex: 1; }
+.e-pw-strength-bars span {
+  height: 4px; flex: 1; border-radius: var(--r-full);
+  background: var(--bg-muted); transition: background-color .25s var(--ease);
+}
+.e-pw-strength-bars.lv-1 span:nth-child(1) { background: #F04452; }
+.e-pw-strength-bars.lv-2 span:nth-child(-n+2) { background: #FF9800; }
+.e-pw-strength-bars.lv-3 span:nth-child(-n+3) { background: #3182F6; }
+.e-pw-strength-bars.lv-4 span:nth-child(-n+4) { background: #00C896; }
+.e-pw-strength-text {
+  font-size: 12.5px; font-weight: 700; color: var(--ink-400);
+  white-space: nowrap; min-width: 34px; text-align: right;
+  transition: color .25s var(--ease);
+}
+.e-pw-strength-text.lv-1 { color: #F04452; }
+.e-pw-strength-text.lv-2 { color: #FF9800; }
+.e-pw-strength-text.lv-3 { color: #3182F6; }
+.e-pw-strength-text.lv-4 { color: #00C896; }
+
+.e-pw-match {
+  display: none; align-items: center; gap: 6px; margin-top: 8px;
+  padding: 6px 12px; border-radius: var(--r-full);
+  font-size: 12.5px; font-weight: 700; width: fit-content;
+}
+.e-pw-match.is-visible { display: inline-flex; }
+.e-pw-match svg { width: 13px; height: 13px; flex: none; }
+.e-pw-match--error { background: rgba(240, 68, 82, .1); color: #F04452; }
+.e-pw-match--ok { background: rgba(0, 166, 125, .1); color: #00A67D; }
+
 /* 진행률 바 */
 .e-progress {
   height: 8px; border-radius: var(--r-full);

@@ -29,6 +29,7 @@ import com.foodtrip.foodsearch.restaurant.entity.RestaurantManager;
 import com.foodtrip.foodsearch.restaurant.repository.MenuImageRepository;
 import com.foodtrip.foodsearch.restaurant.repository.MenuRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantBusinessHourRepository;
+import com.foodtrip.foodsearch.restaurant.repository.RestaurantCategoryRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantImageRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantManagerRepository;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantRepository;
@@ -46,6 +47,7 @@ public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantManagerRepository restaurantManagerRepository;
     private final RestaurantBusinessHourRepository restaurantBusinessHourRepository;
+    private final RestaurantCategoryRepository restaurantCategoryRepository;
     private final MenuRepository menuRepository;
     private final MenuImageRepository menuImageRepository;
     private final RestaurantImageRepository restaurantImageRepository;
@@ -57,6 +59,7 @@ public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
     public RestaurantOwnerServiceImpl(RestaurantRepository restaurantRepository,
                                        RestaurantManagerRepository restaurantManagerRepository,
                                        RestaurantBusinessHourRepository restaurantBusinessHourRepository,
+                                       RestaurantCategoryRepository restaurantCategoryRepository,
                                        MenuRepository menuRepository,
                                        MenuImageRepository menuImageRepository,
                                        RestaurantImageRepository restaurantImageRepository,
@@ -67,6 +70,7 @@ public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
         this.restaurantRepository = restaurantRepository;
         this.restaurantManagerRepository = restaurantManagerRepository;
         this.restaurantBusinessHourRepository = restaurantBusinessHourRepository;
+        this.restaurantCategoryRepository = restaurantCategoryRepository;
         this.menuRepository = menuRepository;
         this.menuImageRepository = menuImageRepository;
         this.restaurantImageRepository = restaurantImageRepository;
@@ -85,10 +89,18 @@ public class RestaurantOwnerServiceImpl implements RestaurantOwnerService {
 
     @Override
     public RestaurantDetailResponseDto updateExtras(String restaurantId, String authorizationHeader,
-                                                      String description, List<String> amenities, String priceRange) {
+                                                      String description, List<String> amenities, String priceRange,
+                                                      String categoryOverride) {
         Restaurant restaurant = resolveOwnedRestaurant(restaurantId, authorizationHeader);
         String amenitiesCsv = amenities == null || amenities.isEmpty() ? null : String.join(",", amenities);
-        restaurant.updateExtras(description, amenitiesCsv, priceRange);
+        // 실제로 존재하는 카테고리 코드인지 검증(2026-08-14 추가) — 프론트가 임의 문자열을 보내
+        // RestaurantServiceImpl의 폴백 조회가 항상 빈 값으로 조용히 실패하는 걸 막는다.
+        String normalizedCategoryOverride = categoryOverride == null || categoryOverride.isBlank() ? null : categoryOverride;
+        if (normalizedCategoryOverride != null
+                && restaurantCategoryRepository.findByCategoryCode(normalizedCategoryOverride).isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        restaurant.updateExtras(description, amenitiesCsv, priceRange, normalizedCategoryOverride);
         return restaurantService.getDetail(restaurantId, authorizationHeader, null, null, null, null, null);
     }
 

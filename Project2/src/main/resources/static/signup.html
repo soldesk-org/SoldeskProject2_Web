@@ -216,12 +216,12 @@
             </span>
           </div>
 
-          <!-- 비밀번호 강도 -->
-          <div class="flex items-center gap-3 mt-2.5">
-            <div class="e-progress e-progress-sm flex-1">
-              <div class="e-progress-bar" id="pwStrengthBar" style="width:0%"></div>
+          <!-- 비밀번호 강도(토스 스타일 세그먼트 게이지) -->
+          <div class="e-pw-strength">
+            <div class="e-pw-strength-bars" id="pwStrengthBar">
+              <span></span><span></span><span></span><span></span>
             </div>
-            <span class="text-[12px] font-bold text-[var(--ink-400)] w-16 text-right" id="pwStrengthText">-</span>
+            <span class="e-pw-strength-text" id="pwStrengthText">-</span>
           </div>
           <p class="e-hint">영문 대/소문자, 숫자, 특수문자 중 3종류 이상을 조합해주세요.</p>
           <p class="e-error" id="signupPasswordError">
@@ -245,11 +245,11 @@
               </button>
             </span>
           </div>
-          <p class="e-error" id="signupPasswordConfirmError">
+          <p class="e-pw-match e-pw-match--error" id="signupPasswordConfirmError">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
             비밀번호가 일치하지 않습니다.
           </p>
-          <p class="e-ok" id="signupPasswordConfirmOk">
+          <p class="e-pw-match e-pw-match--ok" id="signupPasswordConfirmOk">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
             비밀번호가 일치합니다.
           </p>

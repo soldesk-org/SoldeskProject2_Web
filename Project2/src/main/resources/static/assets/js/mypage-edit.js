@@ -345,8 +345,10 @@
       if (/\d/.test(v)) score++;
       if (/[^\w\s]/.test(v)) score++;
       var labels = ["-", "약함", "보통", "양호", "안전"];
-      document.getElementById("newPwStrengthBar").style.width = (score * 25) + "%";
-      document.getElementById("newPwStrengthText").textContent = v ? labels[score] : "-";
+      document.getElementById("newPwStrengthBar").className = "e-pw-strength-bars" + (score ? " lv-" + score : "");
+      var newPwTxt = document.getElementById("newPwStrengthText");
+      newPwTxt.className = "e-pw-strength-text" + (score ? " lv-" + score : "");
+      newPwTxt.textContent = v ? labels[score] : "-";
     });
   }
 
