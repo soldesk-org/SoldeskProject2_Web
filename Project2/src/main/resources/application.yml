@@ -134,16 +134,17 @@ oauth:
   kakao:
     client-id: ${KAKAO_CLIENT_ID:}
     client-secret: ${KAKAO_CLIENT_SECRET:}
-    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8081/oauth/kakao}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8081/api/oauth-providers/kakao/callback}
   naver:
     client-id: ${NAVER_CLIENT_ID:}
     client-secret: ${NAVER_CLIENT_SECRET:}
-    redirect-uri: ${NAVER_REDIRECT_URI:http://localhost:8081/oauth/naver}
+    redirect-uri: ${NAVER_REDIRECT_URI:http://localhost:8081/api/oauth-providers/naver/callback}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
     client-secret: ${GOOGLE_CLIENT_SECRET:}
-    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8081/oauth/google}
-  # 소셜로그인 콜백(/oauth/{provider}) 처리 완료 후 302로 리다이렉트할 프론트 주소(2026-07-21 추가).
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8081/api/oauth-providers/google/callback}
+  # 소셜로그인 콜백(/api/oauth-providers/{provider}/callback, REST 라우팅 전면개편 2026-08-14로 경로 변경)
+  # 처리 완료 후 302로 리다이렉트할 프론트 주소(2026-07-21 추가).
   # login.js의 handleOAuthRedirectParams()가 쿼리스트링(accessToken/refreshToken/memberId 또는 error)을 처리한다.
   frontend-redirect-url: ${OAUTH_FRONTEND_REDIRECT_URL:http://localhost:8081/login}
 

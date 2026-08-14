@@ -21,14 +21,14 @@ public class ChatReportController {
         this.chatReportService = chatReportService;
     }
 
-    @PostMapping("/api/chat/rooms/{chatRoomId}/report")
+    @PostMapping("/api/chat/rooms/{chatRoomId}/reports")
     public ChatActionResponseDto reportRoom(@RequestHeader("Authorization") String authorizationHeader,
                                              @PathVariable Long chatRoomId,
                                              @Valid @RequestBody CreateReportRequestDto request) {
         return chatReportService.reportRoom(authorizationHeader, chatRoomId, request);
     }
 
-    @PostMapping("/api/chat/messages/{chatMessageId}/report")
+    @PostMapping("/api/chat/messages/{chatMessageId}/reports")
     public ChatActionResponseDto reportMessage(@RequestHeader("Authorization") String authorizationHeader,
                                                 @PathVariable Long chatMessageId,
                                                 @Valid @RequestBody CreateReportRequestDto request) {

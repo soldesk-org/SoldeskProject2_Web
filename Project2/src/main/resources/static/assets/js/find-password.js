@@ -27,7 +27,7 @@
 
     submitBtn.disabled = true;
     // 이 API는 가입 여부와 무관하게 항상 200으로 응답한다(계정 존재 여부 비노출, 의도된 동작).
-    Api.request("/api/members/password-reset/request", { method: "POST", auth: false, body: { email: email, pollKey: pollKey, memberType: memberType } })
+    Api.request("/api/password-reset-tokens", { method: "POST", auth: false, body: { email: email, pollKey: pollKey, memberType: memberType } })
       .then(goToSent)
       .catch(function (err) {
         if (err.code === "INVALID_INPUT") {

@@ -1,0 +1,15 @@
+{
+  "enabledMcpjsonServers": ["figma"],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/daily-journal-check.js 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}

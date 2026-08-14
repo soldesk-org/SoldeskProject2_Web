@@ -24,13 +24,13 @@ public class PhoneAuthController {
         this.phoneAuthService = phoneAuthService;
     }
 
-    @PostMapping("/send-code")
+    @PostMapping("/verification-codes")
     public PhoneResponseDto sendCode(@Valid @RequestBody SendPhoneCodeRequestDto request, HttpServletRequest httpRequest) {
         phoneAuthService.sendSignupVerificationCode(request.getEmail(), request.getPhone(), ClientIpUtil.resolve(httpRequest));
         return new PhoneResponseDto(true, "인증번호가 발송되었습니다.");
     }
 
-    @PostMapping("/verify-code")
+    @PostMapping("/verification-codes/confirmation")
     public PhoneResponseDto verifyCode(@Valid @RequestBody VerifyPhoneCodeRequestDto request) {
         phoneAuthService.verifySignupCode(request.getEmail(), request.getPhone(), request.getCode());
         return new PhoneResponseDto(true, "전화번호 인증이 완료되었습니다.");

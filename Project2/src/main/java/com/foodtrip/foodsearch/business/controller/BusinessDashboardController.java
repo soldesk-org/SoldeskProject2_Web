@@ -49,7 +49,7 @@ public class BusinessDashboardController {
     }
 
     // 매장 자동귀속이 모호했을 때(회원가입 응답의 AMBIGUOUS 후보 목록) 사업자가 직접 골라 수동 귀속(2026-08-07 신규).
-    @PostMapping("/api/business/claim-restaurant")
+    @PostMapping("/api/restaurant-claims")
     public BusinessShopResponseDto claimRestaurant(
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @Valid @RequestBody ClaimRestaurantRequestDto request) {

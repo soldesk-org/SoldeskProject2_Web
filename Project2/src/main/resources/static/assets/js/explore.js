@@ -628,7 +628,7 @@
         if (!Api.isLoggedIn()) { window.location.href = "login"; return; }
         var reviewId = btn.getAttribute("data-toggle-helpful");
         btn.disabled = true;
-        Api.request("/api/reviews/" + reviewId + "/helpful", { method: "POST" })
+        Api.request("/api/reviews/" + reviewId + "/helpful-votes", { method: "POST" })
           .then(function (res) {
             btn.setAttribute("aria-pressed", res.helpfulByMe ? "true" : "false");
             btn.classList.toggle("is-active", res.helpfulByMe);
@@ -649,7 +649,7 @@
       var reason = document.getElementById("reportReasonSelect").value;
       var detail = document.getElementById("reportDetail").value.trim();
       if (!reason) { Eatty.toast("신고 사유를 선택해주세요.", "error"); return; }
-      Api.request("/api/reviews/" + reportTargetReviewId + "/report", { method: "POST", body: { reasonCode: reason, detail: detail } })
+      Api.request("/api/reviews/" + reportTargetReviewId + "/reports", { method: "POST", body: { reasonCode: reason, detail: detail } })
         .then(function () { Eatty.closeModal("reportModal"); Eatty.toast("신고가 접수되었습니다.", "success"); })
         .catch(function (err) { Eatty.toast(err.message || "신고에 실패했습니다.", "error"); });
     });

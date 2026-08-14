@@ -25,7 +25,7 @@ public class SupportChatController {
         this.supportChatService = supportChatService;
     }
 
-    @PostMapping("/ask")
+    @PostMapping("/messages")
     public SupportChatResponseDto ask(@Valid @RequestBody AskSupportChatRequestDto request,
                                        HttpServletRequest httpRequest) {
         return supportChatService.ask(request.getMessage(), request.getSessionId(), ClientIpUtil.resolve(httpRequest));
@@ -33,7 +33,8 @@ public class SupportChatController {
 
     // 2026-07-31 2차 추가 — 상담종료 버튼 클릭, 또는 페이지 닫힘 시 navigator.sendBeacon으로 호출됨.
     // sendBeacon은 응답 본문을 읽지 않으므로 반환값은 의미 없지만, 명시적으로 200을 준다.
-    @PostMapping("/end")
+    // sendBeacon()은 항상 POST만 보낼 수 있어(DELETE 불가) HTTP 메서드는 그대로 두고 경로만 명사로 변경.
+    @PostMapping("/session-terminations")
     public void end(@Valid @RequestBody EndSupportChatRequestDto request) {
         supportChatService.endSession(request.getSessionId(), request.getReason());
     }

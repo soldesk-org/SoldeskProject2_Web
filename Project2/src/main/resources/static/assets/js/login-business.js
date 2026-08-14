@@ -60,7 +60,7 @@
   socialButtons.forEach(function (btn) {
     btn.addEventListener("click", function () {
       var provider = btn.getAttribute("data-social");
-      window.location.href = "/api/auth/" + provider + "/authorize";
+      window.location.href = "/api/oauth-providers/" + provider + "/authorization";
     });
   });
 })();

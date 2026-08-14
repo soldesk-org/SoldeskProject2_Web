@@ -231,7 +231,7 @@
           var kind = btn.getAttribute("data-feedback");
           btn.setAttribute("aria-pressed", "true");
           article.classList.add(kind === "like" ? "is-liked" : "is-disliked");
-          Api.request("/api/recommendation/" + lastHistoryId + "/feedback", { method: "PATCH", body: { wasHelpful: kind === "like" } })
+          Api.request("/api/recommendations/" + lastHistoryId, { method: "PATCH", body: { wasHelpful: kind === "like" } })
             .then(function () { Eatty.toast("피드백 감사합니다."); })
             .catch(function () {});
         });
@@ -306,7 +306,7 @@
       // 서버의 size는 최대 15까지만 허용해서(2026-08-13 확인, 초과하면 422) 40으로 잡았던 게 실제로는
       // 매 재검색마다 요청 자체가 거부되고 있었다. 15로 고정.
       var size = isRetry ? 15 : 10;
-      Api.request("/api/recommendation/query", {
+      Api.request("/api/recommendations", {
         method: "POST",
         auth: useAuth,
         body: { text: text, x: center ? center.lng : undefined, y: center ? center.lat : undefined, radius: 3000, size: size },
@@ -464,7 +464,7 @@
     followupModalBody.innerHTML = followupLoadingHtml();
     Eatty.openModal("followupModal");
 
-    Api.request("/api/recommendation/nearby-course", {
+    Api.request("/api/recommendations/nearby-places", {
       method: "POST", auth: false,
       body: { type: type, anchorName: anchor.place_name, x: Number(anchor.x), y: Number(anchor.y) },
     }).then(function (data) {

@@ -285,7 +285,7 @@
   }).catch(function () {});
 
   // ---- 참여 중인 채팅방 수(19.오픈채팅 — 안읽은 메시지 수 API는 없어 방 개수만 표시) ----
-  Api.request("/api/chat/rooms/my").then(function (rooms) {
+  Api.request("/api/chat/rooms?scope=mine").then(function (rooms) {
     var goChatSub = document.getElementById("goChatSub");
     if (goChatSub) goChatSub.textContent = rooms.length ? rooms.length + "개 참여 중" : "참여 중인 채팅방 없음";
   }).catch(function () {

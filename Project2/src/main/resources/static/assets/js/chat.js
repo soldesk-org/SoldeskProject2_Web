@@ -42,7 +42,7 @@
   }
 
   function loadMyRooms() {
-    Api.request("/api/chat/rooms/my").then(function (rooms) {
+    Api.request("/api/chat/rooms?scope=mine").then(function (rooms) {
       roomList.querySelectorAll(".e-chat-item").forEach(function (el) { el.remove(); });
       document.getElementById("myRoomCountBadge").textContent = (rooms || []).length + "개 방";
       if (!rooms || !rooms.length) {
@@ -219,7 +219,7 @@
     var input = document.getElementById("joinCodeInput");
     var code = input.value.trim();
     if (!code) return;
-    Api.request("/api/chat/rooms/join", { method: "POST", body: { joinCode: code } })
+    Api.request("/api/chat/rooms/memberships", { method: "POST", body: { joinCode: code } })
       .then(function (room) {
         Eatty.closeModal("joinCodeModal");
         input.value = "";
@@ -330,7 +330,7 @@
   // ---- 방 나가기 ----
   document.getElementById("leaveRoomConfirmBtn").addEventListener("click", function () {
     if (!currentRoom) { Eatty.closeModal("leaveRoomModal"); return; }
-    Api.request("/api/chat/rooms/" + currentRoom.chatRoomId + "/leave", { method: "POST" })
+    Api.request("/api/chat/rooms/" + currentRoom.chatRoomId + "/members/me", { method: "DELETE" })
       .catch(function () {})
       .finally(function () {
         Eatty.closeModal("leaveRoomModal");
@@ -378,8 +378,8 @@
     var detail = document.getElementById("reportMsgDetail").value.trim() || null;
     if (!reason) { Eatty.toast("신고 사유를 선택해주세요.", "error"); return; }
     var path = reportTarget.type === "ROOM"
-      ? "/api/chat/rooms/" + reportTarget.id + "/report"
-      : "/api/chat/messages/" + reportTarget.id + "/report";
+      ? "/api/chat/rooms/" + reportTarget.id + "/reports"
+      : "/api/chat/messages/" + reportTarget.id + "/reports";
     Api.request(path, { method: "POST", body: { reasonCode: reason, detail: detail } })
       .then(function () {
         Eatty.closeModal("reportMsgModal");

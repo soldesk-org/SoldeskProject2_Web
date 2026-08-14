@@ -61,7 +61,7 @@
       // 선택할 방법이 없었고, 서버도 항상 14일 유지로 고정 발급하고 있었다. 같은 화면의 rememberMe
       // 체크박스 값을 그대로 실어 보낸다(/api/auth/{provider}/authorize?rememberMe=true|false).
       var remember = !!(rememberInput && rememberInput.checked);
-      window.location.href = "/api/auth/" + provider + "/authorize?rememberMe=" + remember;
+      window.location.href = "/api/oauth-providers/" + provider + "/authorization?rememberMe=" + remember;
     });
   });
 

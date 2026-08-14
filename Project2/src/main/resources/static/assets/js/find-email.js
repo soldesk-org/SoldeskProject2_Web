@@ -38,11 +38,11 @@
     var memberType = memberTypeEl ? memberTypeEl.value : "normal";
 
     submitBtn.disabled = true;
-    Api.request("/api/members/find-email", { method: "POST", auth: false, body: { nickname: nickname, phone: phone, memberType: memberType } })
+    Api.request("/api/members/email-lookups", { method: "POST", auth: false, body: { nickname: nickname, phone: phone, memberType: memberType } })
       .then(function (data) {
         sessionStorage.setItem("fe_verification_token", data.verificationToken);
         sessionStorage.setItem("fe_phone", phone);
-        return Api.request("/api/members/find-email/verify-phone/send-code", {
+        return Api.request("/api/members/email-lookups/phone-verification-codes", {
           method: "POST",
           auth: false,
           body: { verificationToken: data.verificationToken, phone: phone },

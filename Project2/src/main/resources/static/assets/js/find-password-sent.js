@@ -49,7 +49,7 @@
       if (!email) { window.location.href = "find-password"; return; }
       resendBtn.disabled = true;
       var pollKey = sessionStorage.getItem("fp_poll_key");
-      Api.request("/api/members/password-reset/request", { method: "POST", auth: false, body: { email: email, pollKey: pollKey } })
+      Api.request("/api/password-reset-tokens", { method: "POST", auth: false, body: { email: email, pollKey: pollKey } })
         .then(function () {
           sessionStorage.setItem("fp_sent_at", String(Date.now()));
           var t = document.getElementById("linkExpireTimer");
@@ -67,7 +67,7 @@
   var pollKey = sessionStorage.getItem("fp_poll_key");
   if (pollKey) {
     var pollTimer = setInterval(function () {
-      Api.request("/api/members/password-reset/poll?pollKey=" + encodeURIComponent(pollKey), { method: "GET", auth: false })
+      Api.request("/api/password-reset-tokens/poll-status?pollKey=" + encodeURIComponent(pollKey), { method: "GET", auth: false })
         .then(function (res) {
           if (res.confirmed && res.token) {
             clearInterval(pollTimer);

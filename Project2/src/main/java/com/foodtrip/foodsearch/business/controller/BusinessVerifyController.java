@@ -28,7 +28,7 @@ public class BusinessVerifyController {
         this.businessProfileRepository = businessProfileRepository;
     }
 
-    @PostMapping("/api/business/verify-license")
+    @PostMapping("/api/business-license-verifications")
     public BusinessVerifyResponseDto verifyLicense(@RequestParam("file") MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "사업자등록증명원 파일은 필수입니다.");

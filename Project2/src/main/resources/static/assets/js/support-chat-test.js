@@ -28,7 +28,7 @@ const log = document.getElementById("log");
     ended = true;
     const payload = JSON.stringify({ sessionId, reason });
     // 페이지가 닫히는 중일 수도 있어 fetch 대신 sendBeacon으로 신뢰성 있게 전송
-    navigator.sendBeacon("/api/support-chat/end", new Blob([payload], { type: "application/json" }));
+    navigator.sendBeacon("/api/support-chat/session-terminations", new Blob([payload], { type: "application/json" }));
   }
 
   function endSessionFromButton() {
@@ -95,7 +95,7 @@ const log = document.getElementById("log");
     const typingEl = addTypingIndicator();
 
     try {
-      const res = await fetch("/api/support-chat/ask", {
+      const res = await fetch("/api/support-chat/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, sessionId }),

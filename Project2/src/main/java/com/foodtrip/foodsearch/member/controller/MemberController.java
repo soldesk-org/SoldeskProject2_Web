@@ -3,7 +3,6 @@ package com.foodtrip.foodsearch.member.controller;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,26 +16,13 @@ import com.foodtrip.foodsearch.common.web.ClientIpUtil;
 import com.foodtrip.foodsearch.mail.dto.MailResponseDto;
 import com.foodtrip.foodsearch.mail.dto.SendCodeRequestDto;
 import com.foodtrip.foodsearch.mail.dto.VerifyCodeRequestDto;
-import com.foodtrip.foodsearch.member.dto.BusinessSignUpRequestDto;
 import com.foodtrip.foodsearch.member.dto.FindEmailRequestDto;
 import com.foodtrip.foodsearch.member.dto.FindEmailResponseDto;
-import com.foodtrip.foodsearch.member.dto.LoginRequestDto;
-import com.foodtrip.foodsearch.member.dto.LoginResponseDto;
-import com.foodtrip.foodsearch.member.dto.LogoutRequestDto;
-import com.foodtrip.foodsearch.member.dto.LogoutResponseDto;
 import com.foodtrip.foodsearch.member.dto.MyProfileResponseDto;
 import com.foodtrip.foodsearch.member.dto.NicknameAvailabilityResponseDto;
 import com.foodtrip.foodsearch.member.dto.NotificationSettingsResponseDto;
 import com.foodtrip.foodsearch.member.dto.UpdateNotificationSettingsRequestDto;
-import com.foodtrip.foodsearch.member.dto.PasswordResetLinkOpenedResponseDto;
-import com.foodtrip.foodsearch.member.dto.PasswordResetPollResponseDto;
 import com.foodtrip.foodsearch.member.dto.ProfileImageResponseDto;
-import com.foodtrip.foodsearch.member.dto.PasswordResetConfirmRequestDto;
-import com.foodtrip.foodsearch.member.dto.PasswordResetConfirmResponseDto;
-import com.foodtrip.foodsearch.member.dto.PasswordResetRequestDto;
-import com.foodtrip.foodsearch.member.dto.PasswordResetResponseDto;
-import com.foodtrip.foodsearch.member.dto.RefreshRequestDto;
-import com.foodtrip.foodsearch.member.dto.RefreshResponseDto;
 import com.foodtrip.foodsearch.member.dto.RevealEmailRequestDto;
 import com.foodtrip.foodsearch.member.dto.RevealEmailResponseDto;
 import com.foodtrip.foodsearch.member.dto.SendFindEmailPhoneCodeRequestDto;
@@ -67,77 +53,34 @@ public class MemberController {
         this.memberService = memberService;
     }
 
-    @PostMapping("/signup")
+    @PostMapping
     public SignUpResponseDto signUp(@Valid @RequestBody SignUpRequestDto request) {
         return memberService.signUp(request);
     }
 
     // 닉네임 중복확인(회원가입 STEP2, 2026-08-04 신규) — 형식 검증은 최종 가입 제출 시 다시 하므로
     // 여기서는 중복 여부만 확인한다.
-    @GetMapping("/check-nickname")
+    @GetMapping("/nickname-availability")
     public NicknameAvailabilityResponseDto checkNicknameAvailable(@RequestParam String nickname) {
         return memberService.checkNicknameAvailable(nickname);
     }
 
-    @PostMapping(value = "/signup/business", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public SignUpResponseDto signUpBusiness(@Valid @ModelAttribute BusinessSignUpRequestDto request,
-                                             @RequestParam("businessLicenseFile") MultipartFile businessLicenseFile) {
-        return memberService.signUpBusiness(request, businessLicenseFile);
-    }
-
-    @PostMapping("/login")
-    public LoginResponseDto login(@Valid @RequestBody LoginRequestDto request) {
-        return memberService.login(request);
-    }
-
-    @PostMapping("/refresh")
-    public RefreshResponseDto refresh(@Valid @RequestBody RefreshRequestDto request) {
-        return memberService.refresh(request);
-    }
-
-    @PostMapping("/logout")
-    public LogoutResponseDto logout(@Valid @RequestBody LogoutRequestDto request) {
-        return memberService.logout(request);
-    }
-
-    @PostMapping("/find-email")
+    @PostMapping("/email-lookups")
     public FindEmailResponseDto findEmail(@Valid @RequestBody FindEmailRequestDto request) {
         return memberService.findEmail(request);
     }
 
-    @PostMapping("/password-reset/request")
-    public PasswordResetResponseDto requestPasswordReset(@Valid @RequestBody PasswordResetRequestDto request) {
-        return memberService.requestPasswordReset(request);
-    }
-
-    // 다른 탭(이메일 링크)에서 인증이 확인됐는지 폴링(2026-08-04 신규) — find-password-sent.html 전용.
-    @GetMapping("/password-reset/poll")
-    public PasswordResetPollResponseDto pollPasswordReset(@RequestParam String pollKey) {
-        return memberService.pollPasswordReset(pollKey);
-    }
-
-    // 이메일 링크(find-password-reset.html?token=...)가 열렸을 때 호출 — 실제 토큰은 소비하지 않는다.
-    @PostMapping("/password-reset/confirm-click")
-    public PasswordResetLinkOpenedResponseDto confirmPasswordResetLinkOpened(@RequestParam String token) {
-        return memberService.confirmPasswordResetLinkOpened(token);
-    }
-
-    @PostMapping("/password-reset/confirm")
-    public PasswordResetConfirmResponseDto confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequestDto request) {
-        return memberService.confirmPasswordReset(request);
-    }
-
-    @PostMapping("/find-email/verify-phone/send-code")
+    @PostMapping("/email-lookups/phone-verification-codes")
     public PhoneResponseDto sendFindEmailPhoneCode(@Valid @RequestBody SendFindEmailPhoneCodeRequestDto request, HttpServletRequest httpRequest) {
         return memberService.sendFindEmailPhoneCode(request, ClientIpUtil.resolve(httpRequest));
     }
 
-    @PostMapping("/find-email/verify-phone/confirm")
+    @PostMapping("/email-lookups/phone-verification-codes/confirmation")
     public PhoneResponseDto verifyFindEmailPhoneCode(@Valid @RequestBody VerifyFindEmailPhoneCodeRequestDto request) {
         return memberService.verifyFindEmailPhoneCode(request);
     }
 
-    @PostMapping("/find-email/reveal")
+    @PostMapping("/email-lookups/reveal-results")
     public RevealEmailResponseDto revealEmail(@Valid @RequestBody RevealEmailRequestDto request) {
         return memberService.revealEmail(request);
     }
@@ -147,26 +90,26 @@ public class MemberController {
         return memberService.getMyProfile(authorizationHeader);
     }
 
-    @PostMapping("/me/email/send-code")
+    @PostMapping("/me/email/verification-codes")
     public MailResponseDto sendProfileEmailCode(@RequestHeader(value = "Authorization", required = false) String authorizationHeader,
                                                  @Valid @RequestBody SendCodeRequestDto request) {
         return memberService.sendProfileEmailCode(authorizationHeader, request);
     }
 
-    @PostMapping("/me/email/verify-code")
+    @PostMapping("/me/email/verification-codes/confirmation")
     public MailResponseDto verifyProfileEmailCode(@RequestHeader(value = "Authorization", required = false) String authorizationHeader,
                                                    @Valid @RequestBody VerifyCodeRequestDto request) {
         return memberService.verifyProfileEmailCode(authorizationHeader, request);
     }
 
-    @PostMapping("/me/phone/send-code")
+    @PostMapping("/me/phone/verification-codes")
     public PhoneResponseDto sendProfilePhoneCode(@RequestHeader(value = "Authorization", required = false) String authorizationHeader,
                                                   @Valid @RequestBody SendProfilePhoneCodeRequestDto request,
                                                   HttpServletRequest httpRequest) {
         return memberService.sendProfilePhoneCode(authorizationHeader, request, ClientIpUtil.resolve(httpRequest));
     }
 
-    @PostMapping("/me/phone/verify-code")
+    @PostMapping("/me/phone/verification-codes/confirmation")
     public PhoneResponseDto verifyProfilePhoneCode(@RequestHeader(value = "Authorization", required = false) String authorizationHeader,
                                                     @Valid @RequestBody VerifyProfilePhoneCodeRequestDto request) {
         return memberService.verifyProfilePhoneCode(authorizationHeader, request);
@@ -179,7 +122,7 @@ public class MemberController {
     }
 
     // 마이페이지(11) "프로필 수정 진입 시 비밀번호 재확인" 게이트(2026-07-22 추가).
-    @PostMapping("/me/verify-password")
+    @PostMapping("/me/password-confirmations")
     public VerifyPasswordResponseDto verifyPassword(@RequestHeader(value = "Authorization", required = false) String authorizationHeader,
                                                       @Valid @RequestBody VerifyPasswordRequestDto request) {
         return memberService.verifyPassword(authorizationHeader, request);

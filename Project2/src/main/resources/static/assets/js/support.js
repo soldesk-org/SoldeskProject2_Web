@@ -282,7 +282,7 @@
 
     showThinking();
 
-    fetch('/api/support-chat/ask', {
+    fetch('/api/support-chat/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: text, sessionId: state.sessionId })
@@ -379,14 +379,14 @@
     Eatty.closeModal('idleWarnModal');
   }
 
-  /* 종료 알림 — POST /api/support-chat/end
+  /* 종료 알림 — POST /api/support-chat/session-terminations
      페이지가 닫히는 중일 수도 있어 fetch 대신 sendBeacon 으로 보냅니다. */
   function beaconEnd(reason) {
     if (state.ended || !state.sessionId) return;
     var payload = JSON.stringify({ sessionId: state.sessionId, reason: reason });
     try {
       if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/support-chat/end',
+        navigator.sendBeacon('/api/support-chat/session-terminations',
           new Blob([payload], { type: 'application/json' }));
       }
     } catch (e) { /* 무시 */ }

@@ -21,8 +21,9 @@ import com.foodtrip.foodsearch.social.dto.UnlinkResponseDto;
 import com.foodtrip.foodsearch.social.service.SocialLoginService;
 
 /**
- * 소셜로그인(001-02(소셜로그인) 5장). 콜백 경로(/oauth/{provider})는 각 플랫폼 개발자 콘솔에 등록된
- * 값(요청사항 원문)을 그대로 써야 해서 /api 프리픽스를 붙이지 않았다.
+ * 소셜로그인(001-02(소셜로그인) 5장). REST 라우팅 전면 개편(2026-08-14)으로 콜백 경로가
+ * /oauth/{provider} → /api/oauth-providers/{provider}/callback 으로 바뀌었다 — 카카오/네이버/구글
+ * 개발자 콘솔에 등록된 Redirect URI도 반드시 함께 갱신해야 한다(docs/00.공통/REST-라우팅-전면개편-2026-08-14.md 참고).
  */
 @RestController
 public class AuthController {
@@ -41,7 +42,7 @@ public class AuthController {
         this.socialLoginService = socialLoginService;
     }
 
-    @GetMapping("/api/auth/{provider}/authorize")
+    @GetMapping("/api/oauth-providers/{provider}/authorization")
     public ResponseEntity<Void> authorize(@PathVariable String provider,
                                            @RequestParam(defaultValue = "false") boolean rememberMe) {
         String authorizeUrl = socialLoginService.buildAuthorizeUrl(provider, rememberMe);
@@ -52,7 +53,7 @@ public class AuthController {
     // (001-03/001-04 문서에 "미완성"으로 남겨뒀던 부분). 이제 성공/실패 모두 프론트 주소로 302 리다이렉트
     // 하면서 결과를 쿼리 파라미터로 실어 보낸다 — 회원가입 이메일 인증 등에서 이미 쓰던
     // "{프론트주소}?token=..." 패턴과 동일한 방식(001-04 문서 2장 4번에서 제안했던 그대로).
-    @GetMapping("/oauth/{provider}")
+    @GetMapping("/api/oauth-providers/{provider}/callback")
     public ResponseEntity<Void> callback(@PathVariable String provider,
                                           @RequestParam(required = false) String code,
                                           @RequestParam(required = false) String state) {
@@ -81,13 +82,13 @@ public class AuthController {
         }
     }
 
-    @DeleteMapping("/api/auth/{provider}/unlink")
+    @DeleteMapping("/api/oauth-providers/{provider}/link")
     public UnlinkResponseDto unlink(@PathVariable String provider,
                                      @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         return socialLoginService.unlink(authorizationHeader, provider);
     }
 
-    @GetMapping("/api/auth/naver/unlink-callback")
+    @GetMapping("/api/oauth-providers/naver/unlink-callback")
     public ResponseEntity<Void> naverUnlinkCallback(@RequestParam Map<String, String> params) {
         socialLoginService.handleNaverUnlinkCallback(params);
         return ResponseEntity.ok().build();
