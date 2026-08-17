@@ -3,6 +3,8 @@ package com.foodtrip.foodsearch.review.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.foodtrip.foodsearch.receipt.dto.ReceiptItemResponseDto;
+
 public class ReviewResponseDto {
 
     private final Long reviewId;
@@ -25,11 +27,15 @@ public class ReviewResponseDto {
     // (비로그인이면 항상 false).
     private final long helpfulCount;
     private final boolean helpfulByMe;
+    // OCR 인식 메뉴(2026-08-18 추가) — Review.menuVisible이 true이고 receiptId가 있을 때만 채워짐
+    // (receipt_items를 조회 시점에 조인, 리뷰에 메뉴 데이터를 따로 복제 저장하지 않음). 비공개거나
+    // receiptId가 없으면 빈 리스트.
+    private final List<ReceiptItemResponseDto> menuItems;
 
     public ReviewResponseDto(Long reviewId, String nickname, String profileImageUrl, int rating, String content,
                               boolean receiptVerified, LocalDateTime createdAt, LocalDateTime updatedAt,
                               List<ReviewKeywordResponseDto> keywords, List<ReviewImageResponseDto> images,
-                              long helpfulCount, boolean helpfulByMe) {
+                              long helpfulCount, boolean helpfulByMe, List<ReceiptItemResponseDto> menuItems) {
         this.reviewId = reviewId;
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
@@ -42,6 +48,7 @@ public class ReviewResponseDto {
         this.images = images;
         this.helpfulCount = helpfulCount;
         this.helpfulByMe = helpfulByMe;
+        this.menuItems = menuItems;
     }
 
     public Long getReviewId() {
@@ -90,5 +97,9 @@ public class ReviewResponseDto {
 
     public boolean isHelpfulByMe() {
         return helpfulByMe;
+    }
+
+    public List<ReceiptItemResponseDto> getMenuItems() {
+        return menuItems;
     }
 }

@@ -49,6 +49,13 @@ public class Review {
     @Column(name = "receipt_verified", nullable = false)
     private boolean receiptVerified;
 
+    // 영수증 OCR로 읽은 메뉴 공개 여부(2026-08-18 추가) — 리뷰 작성(step2)에서 사용자가 "공개하기/공개하지
+    // 않기" 중 골라 저장. true면 다른 이용자에게 이 리뷰의 receiptId로 인식된 메뉴 목록(receipt_items)이
+    // 함께 노출된다(리뷰 자체에 메뉴 데이터를 복제 저장하지 않고 조회 시점에 receiptId로 조인). 기존 행이
+    // 있는 상태에서 컬럼을 추가하므로(ddl-auto=update) NOT NULL 위반을 피하려 기본값을 명시한다.
+    @Column(name = "menu_visible", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    private boolean menuVisible;
+
     // 마이페이지(11) "내 리뷰"/"방문기록" 목록에 음식점 이름/위치를 보여주기 위한 스냅샷(2026-07-22 추가).
     // restaurants 테이블엔 카카오 데이터를 저장하지 않으므로(07 001-07 2-1장), 프론트가 리뷰 작성 시점에
     // 이미 화면에 갖고 있던 값을 그대로 함께 보내 이 리뷰 행에만 저장한다 — 카카오 검색 결과를 벌크로
@@ -86,7 +93,8 @@ public class Review {
     }
 
     public static Review create(Long memberId, String restaurantId, Long receiptId, int rating, String content,
-                                 LocalDate visitDate, boolean receiptVerified, String restaurantNameSnapshot,
+                                 LocalDate visitDate, boolean receiptVerified, boolean menuVisible,
+                                 String restaurantNameSnapshot,
                                  String addressSnapshot, String roadAddressSnapshot, BigDecimal latitudeSnapshot,
                                  BigDecimal longitudeSnapshot) {
         Review review = new Review();
@@ -97,6 +105,7 @@ public class Review {
         review.content = content;
         review.visitDate = visitDate;
         review.receiptVerified = receiptVerified;
+        review.menuVisible = menuVisible;
         review.status = STATUS_NORMAL;
         review.restaurantNameSnapshot = restaurantNameSnapshot;
         review.addressSnapshot = addressSnapshot;
@@ -158,6 +167,10 @@ public class Review {
 
     public boolean isReceiptVerified() {
         return receiptVerified;
+    }
+
+    public boolean isMenuVisible() {
+        return menuVisible;
     }
 
     public LocalDateTime getCreatedAt() {

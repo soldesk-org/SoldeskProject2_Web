@@ -87,9 +87,10 @@
         '<div class="flex flex-wrap gap-1.5 mt-4">' + tagsHtml(r.keywords) + '</div>' +
         '<p class="t-body mt-3 leading-relaxed">' + escapeHtml(r.content) + '</p>' +
         // 2026-08-10 추가 — 리뷰 작성 시 첨부한 사진을 "내가 쓴 리뷰" 목록에도 노출.
+        // 클릭 시 크게 보기(2026-08-18 추가, eatty-ui.js 공용 라이트박스 재사용).
         ((r.images && r.images.length)
           ? '<div class="flex gap-2 mt-3 overflow-x-auto">' + r.images.map(function (img) {
-              return '<img src="' + escapeHtml(img.imageUrl) + '" class="w-20 h-20 rounded-[var(--r-md)] object-cover flex-none" alt="리뷰 첨부 사진">';
+              return '<img src="' + escapeHtml(img.imageUrl) + '" class="w-20 h-20 rounded-[var(--r-md)] object-cover flex-none cursor-pointer" alt="리뷰 첨부 사진" data-lightbox="' + escapeHtml(img.imageUrl) + '">';
             }).join("") + '</div>'
           : "") +
         '<div class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-[var(--line-soft)]">' +

@@ -576,9 +576,14 @@
         var keywords = (r.keywords || []).map(function (k) {
           return '<span class="e-tag ' + (k.sentiment === "NEGATIVE" ? "e-tag--neg" : "e-tag--pos") + '">' + escapeHtml(k.keyword) + '</span>';
         }).join("");
-        // 리뷰 사진(2026-08-10 추가) — 최대 3장, 등록 순서대로.
+        // 리뷰 사진(2026-08-10 추가) — 최대 3장, 등록 순서대로. 클릭 시 크게 보기(2026-08-18 추가,
+        // eatty-ui.js의 공용 라이트박스 재사용) — data-lightbox 속성만 붙이면 클릭 위임이 처리한다.
         var photos = (r.images || []).map(function (img) {
-          return '<img src="' + escapeHtml(img.imageUrl) + '" class="w-16 h-16 rounded-[var(--r-md)] object-cover flex-none" alt="리뷰 사진">';
+          return '<img src="' + escapeHtml(img.imageUrl) + '" class="w-16 h-16 rounded-[var(--r-md)] object-cover flex-none cursor-pointer" alt="리뷰 사진" data-lightbox="' + escapeHtml(img.imageUrl) + '">';
+        }).join("");
+        // OCR 인식 메뉴(2026-08-18 추가) — 작성자가 "공개"로 설정한 경우에만 menuItems가 채워져서 옴.
+        var menuItems = (r.menuItems || []).map(function (m) {
+          return '<span class="e-tag">' + escapeHtml(m.name) + (m.price != null ? ' · ' + Number(m.price).toLocaleString() + '원' : '') + '</span>';
         }).join("");
         // 작성자 프로필 사진(2026-08-10 추가) — 미설정이면 닉네임 첫 글자 이니셜 아바타로 대체.
         var avatarHtml = r.profileImageUrl
@@ -596,6 +601,7 @@
           '</div>' +
           (keywords ? '<div class="flex flex-wrap gap-1 mt-2">' + keywords + '</div>' : "") +
           '<p class="t-sm mt-2.5 leading-relaxed">' + escapeHtml(r.content) + '</p>' +
+          (menuItems ? '<div class="flex flex-wrap gap-1 mt-2">' + menuItems + '</div>' : "") +
           (photos ? '<div class="flex flex-wrap gap-2 mt-2.5">' + photos + '</div>' : "") +
           '<div class="flex items-center gap-1 mt-2">' +
           // "도움됨"(2026-08-12 추가) — 본인 리뷰인지는 이 응답만으로는 알 수 없어(작성자 memberId를

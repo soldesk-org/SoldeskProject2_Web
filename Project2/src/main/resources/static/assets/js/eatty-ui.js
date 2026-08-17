@@ -21,10 +21,12 @@
     [13] textarea 자동 높이    data-autogrow
     [14] 아코디언              data-accordion-toggle
     [15] 개발용 상태 전환바    data-devbar (실배포 시 삭제)
+    [17] 이미지 라이트박스     data-lightbox="이미지URL"
 
    전역 API
      Eatty.toast(message, type)      type: default | success | error | brand
      Eatty.openModal(id) / closeModal(id)
+     Eatty.openImageLightbox(url)    이미지 크게 보기(2026-08-18 추가)
      Eatty.setAuth(state)            state: guest | user | business | admin
      Eatty.getAuth()
      Eatty.formatNumber(n)
@@ -388,6 +390,10 @@
     var dBack = t.closest('[data-drawer-backdrop]');
     if (dBack) { closeDrawer(dBack.getAttribute('data-drawer-backdrop')); return; }
 
+    /* 이미지 라이트박스 */
+    var lb = t.closest('[data-lightbox]');
+    if (lb) { Eatty.openImageLightbox(lb.getAttribute('data-lightbox')); return; }
+
     /* 모달 */
     var mOpen = t.closest('[data-modal-open]');
     if (mOpen) { e.preventDefault(); openModal(mOpen.getAttribute('data-modal-open')); return; }
@@ -506,6 +512,45 @@
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
+
+  /* ============================================================
+     [17] 이미지 라이트박스(2026-08-18 추가)
+     ------------------------------------------------------------
+     리뷰 사진처럼 여기저기 흩어진 썸네일을 클릭했을 때 크게 보여주는 용도.
+     매번 모달 마크업을 페이지마다 만들지 않도록, 이 모듈이 싱글턴 모달을
+     처음 열릴 때 한 번만 body에 만들어두고 재사용한다(기존 [5] 모달과 같은
+     .e-modal 클래스를 그대로 써서 ESC/바깥 클릭 닫기, z-index 등이 자동으로 동일하게 동작).
+
+       <img src="..." data-lightbox="원본이미지URL">   (클릭하면 열림, 위임 처리)
+       Eatty.openImageLightbox(url)                     (직접 호출도 가능)
+     ============================================================ */
+  var LIGHTBOX_ID = 'eattyImageLightboxModal';
+  function ensureLightboxModal() {
+    var m = document.getElementById(LIGHTBOX_ID);
+    if (m) return m;
+    m = document.createElement('div');
+    m.id = LIGHTBOX_ID;
+    m.className = 'e-modal';
+    m.setAttribute('role', 'dialog');
+    m.setAttribute('aria-modal', 'true');
+    m.setAttribute('aria-hidden', 'true');
+    m.innerHTML =
+      '<div class="e-modal-backdrop" data-modal-close></div>' +
+      '<div class="e-modal-panel e-modal-panel--sm" style="background:transparent;box-shadow:none;padding:0">' +
+        '<button type="button" class="e-modal-close" data-modal-close aria-label="닫기" style="position:absolute;right:8px;top:8px;z-index:1;background:rgba(0,0,0,.5);color:#fff">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>' +
+        '<img id="eattyImageLightboxImg" src="" alt="이미지 크게 보기" style="width:100%;max-height:80vh;object-fit:contain;border-radius:var(--r-md, 12px)">' +
+      '</div>';
+    document.body.appendChild(m);
+    return m;
+  }
+  Eatty.openImageLightbox = function (url) {
+    if (!url) return;
+    ensureLightboxModal();
+    document.getElementById('eattyImageLightboxImg').src = url;
+    openModal(LIGHTBOX_ID);
+  };
 
   /* ============================================================
      [16] 알림 (헤더 벨 → 드롭다운 패널)

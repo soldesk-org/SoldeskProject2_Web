@@ -180,6 +180,16 @@
     document.getElementById("ocrConfirmBtn").disabled = !data.verified;
   }
 
+  // ---- 메뉴 공개 토글(2026-08-18 추가) — 항목별이 아니라 목록 전체를 한 번에 공개/비공개하는
+  // 단일 토글. 기본값은 공개(true), 사용자가 끄면 리뷰 등록 시 서버에 menuVisible: false로 전달된다.
+  var menuVisibleToggle = document.getElementById("menuVisibleToggle");
+  var menuVisibleLabel = document.getElementById("menuVisibleLabel");
+  if (menuVisibleToggle) {
+    menuVisibleToggle.addEventListener("change", function () {
+      menuVisibleLabel.textContent = menuVisibleToggle.checked ? "공개하기" : "공개하지 않기";
+    });
+  }
+
   document.getElementById("ocrRetryBtn").addEventListener("click", function () { goStep(1); });
   document.getElementById("ocrConfirmBtn").addEventListener("click", function () {
     if (!ocrResult || !ocrResult.verified) return;
@@ -295,6 +305,7 @@
         content: content || null,
         keywords: keywords,
         receiptId: ocrResult.receiptId,
+        menuVisible: menuVisibleToggle ? menuVisibleToggle.checked : true,
       },
     }).then(function (review) {
       // 리뷰 사진(2026-08-10 추가) — 리뷰 자체는 이미 등록됐으니, 사진 업로드가 실패해도 리뷰 등록
@@ -452,6 +463,10 @@
     document.getElementById("ocrVisitDatetime").textContent = "-";
     document.getElementById("ocrMenuList").innerHTML = "";
     document.getElementById("ocrDuplicateAlert").hidden = true;
+    if (menuVisibleToggle) {
+      menuVisibleToggle.checked = true;
+      menuVisibleLabel.textContent = "공개하기";
+    }
 
     goStep(1);
   });
