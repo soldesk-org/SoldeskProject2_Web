@@ -30,8 +30,10 @@
    #receiptFileName       선택 파일명 출력 (data-dropzone-filename)
    #receiptPreview        미리보기 래퍼 (data-dropzone-preview)
    #receiptRemoveBtn      파일 제거
-   ※ 모바일에서도 카메라 촬영 대신 항상 파일 업로드(드롭존)만 사용합니다(2026-08-07 카메라 버튼 제거
-     — change 핸들러가 없어 실제로는 선택한 사진이 OCR로 안 넘어가던 죽은 기능이었음).
+   ※ 2026-08-18 변경 — 영수증 인증 무결성 때문에(갤러리의 오래된/재사용 사진을 첨부하지 못하게)
+     input에 capture="environment"를 넣어 모바일에서 항상 실시간 카메라 촬영이 바로 열리도록 함
+     (2026-08-07엔 "change 핸들러 없는 죽은 카메라 버튼"이라 아예 제거했었는데, 이번엔 표준 file
+     input 자체에 capture 속성만 추가하는 방식이라 change 핸들러(드롭존 공통 로직)가 그대로 재사용됨).
    #runOcrBtn             영수증 업로드+OCR 실행 ★ POST /api/receipts (multipart)
 
  [STEP 2 · OCR 결과 확인] — 전부 읽기 전용(서버 값 그대로 표시, 수정 API 없음)
@@ -208,7 +210,7 @@
         <!-- 드롭존 -->
         <div class="e-dropzone" id="receiptDrop" data-dropzone
              data-dropzone-preview="receiptPreview" data-dropzone-filename="receiptFileName">
-          <input type="file" id="receiptFileInput" name="receiptImage" accept="image/png,image/jpeg,image/webp" aria-label="영수증 사진 업로드">
+          <input type="file" id="receiptFileInput" name="receiptImage" accept="image/png,image/jpeg,image/webp" capture="environment" aria-label="영수증 사진 업로드">
           <div class="e-dropzone-icon">
             <svg viewBox="0 0 384 512" fill="currentColor"><path d="M14 2.2C22.5-1.7 32.5-.3 39.6 5.8L80 40.4 120.4 5.8c9-7.7 22.3-7.7 31.2 0L192 40.4 232.4 5.8c9-7.7 22.3-7.7 31.2 0L304 40.4 344.4 5.8c7.1-6.1 17.1-7.5 25.6-3.6s14 12.4 14 21.8l0 464c0 9.4-5.5 17.9-14 21.8s-18.5 2.5-25.6-3.6L304 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L192 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L80 471.6 39.6 506.2c-7.1 6.1-17.1 7.5-25.6 3.6S0 497.4 0 488L0 24C0 14.6 5.5 6.1 14 2.2zM96 144c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 144zM80 352c0 8.8 7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 336c-8.8 0-16 7.2-16 16zM96 240c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 240z"/></svg>
           </div>
@@ -313,8 +315,18 @@
 
         <!-- 인식된 메뉴 -->
         <div class="e-field mt-6">
-          <span class="e-label">인식된 메뉴 <span class="e-label-side">리뷰에 참고 정보로 표시됩니다</span></span>
-          <div class="border border-[var(--line)] rounded-[var(--r-md)] divide-y divide-[var(--line-soft)]" id="ocrMenuList"></div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="e-label !mb-0">인식된 메뉴</span>
+            <!-- 메뉴 공개 토글(2026-08-18 추가) — 다른 이용자에게 이 영수증에서 읽은 메뉴 목록을 보여줄지
+                 선택. 항목별이 아니라 목록 전체를 한 번에 공개/비공개하는 단일 토글로 둔다(요청 원문이
+                 "공개하기/공개하지 않기" 이진 선택 하나였음, 항목별 토글은 과한 세분화로 판단). -->
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+              <span class="t-xs font-semibold" id="menuVisibleLabel">공개하기</span>
+              <input type="checkbox" id="menuVisibleToggle" class="e-switch" checked>
+            </label>
+          </div>
+          <p class="t-xs mt-1" style="color:var(--ink-400)">공개하면 다른 이용자도 이 리뷰에서 어떤 메뉴를 드셨는지 볼 수 있어요.</p>
+          <div class="border border-[var(--line)] rounded-[var(--r-md)] divide-y divide-[var(--line-soft)] mt-2" id="ocrMenuList"></div>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-3 mt-7">
@@ -450,7 +462,7 @@
               음식 사진
               <span class="e-label-side"><span id="reviewPhotoCount">0</span> / 3</span>
             </label>
-            <input type="file" id="reviewPhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
+            <input type="file" id="reviewPhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" capture="environment" multiple hidden>
             <div class="flex flex-wrap gap-2.5" id="reviewPhotoList">
               <button type="button"
                       class="w-20 h-20 rounded-[var(--r-md)] border-2 border-dashed border-[var(--line)] flex flex-col items-center justify-center gap-1 text-[var(--ink-400)] flex-none"

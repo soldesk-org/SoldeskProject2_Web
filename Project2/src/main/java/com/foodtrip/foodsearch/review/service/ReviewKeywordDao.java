@@ -3,8 +3,11 @@ package com.foodtrip.foodsearch.review.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -74,5 +77,59 @@ public class ReviewKeywordDao {
             result.computeIfAbsent(reviewId, k -> new ArrayList<>()).add(rs.getString("keyword"));
         }, reviewIds.toArray());
         return result;
+    }
+
+    public Map<String, Long> countNormalReviewsByRestaurantIds(List<String> restaurantIds) {
+        if (restaurantIds.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = restaurantIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String sql = "SELECT restaurant_id, COUNT(*) AS cnt FROM reviews "
+                + "WHERE restaurant_id IN (" + placeholders + ") "
+                + "AND status = 'NORMAL' AND deleted_at IS NULL GROUP BY restaurant_id";
+        Map<String, Long> result = new HashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            result.put(rs.getString("restaurant_id"), rs.getLong("cnt"));
+        }, restaurantIds.toArray());
+        return result;
+    }
+
+    public Map<String, KeywordMatchStats> findPositiveKeywordMatches(List<String> restaurantIds,
+                                                                      List<String> keywords) {
+        if (restaurantIds.isEmpty() || keywords.isEmpty()) {
+            return Map.of();
+        }
+        String restaurantPlaceholders = restaurantIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String keywordPlaceholders = keywords.stream().map(keyword -> "?").collect(Collectors.joining(","));
+        String sql = "SELECT r.restaurant_id, r.review_id, rk.keyword "
+                + "FROM reviews r JOIN review_keywords rk ON rk.review_id = r.review_id "
+                + "WHERE r.restaurant_id IN (" + restaurantPlaceholders + ") "
+                + "AND rk.keyword IN (" + keywordPlaceholders + ") "
+                + "AND rk.sentiment = 'POSITIVE' "
+                + "AND r.status = 'NORMAL' AND r.deleted_at IS NULL "
+                + "ORDER BY r.restaurant_id, r.review_id, rk.review_keyword_id";
+
+        List<Object> parameters = new ArrayList<>(restaurantIds);
+        parameters.addAll(keywords);
+        Map<String, Set<Long>> reviewIdsByRestaurant = new LinkedHashMap<>();
+        Map<String, Set<String>> keywordsByRestaurant = new LinkedHashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            String restaurantId = rs.getString("restaurant_id");
+            reviewIdsByRestaurant.computeIfAbsent(restaurantId, ignored -> new LinkedHashSet<>())
+                    .add(rs.getLong("review_id"));
+            keywordsByRestaurant.computeIfAbsent(restaurantId, ignored -> new LinkedHashSet<>())
+                    .add(rs.getString("keyword"));
+        }, parameters.toArray());
+
+        Map<String, KeywordMatchStats> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Set<Long>> entry : reviewIdsByRestaurant.entrySet()) {
+            List<String> matchedKeywords = List.copyOf(
+                    keywordsByRestaurant.getOrDefault(entry.getKey(), Set.of()));
+            result.put(entry.getKey(), new KeywordMatchStats(entry.getValue().size(), matchedKeywords));
+        }
+        return result;
+    }
+
+    public record KeywordMatchStats(long matchedReviewCount, List<String> matchedKeywords) {
     }
 }

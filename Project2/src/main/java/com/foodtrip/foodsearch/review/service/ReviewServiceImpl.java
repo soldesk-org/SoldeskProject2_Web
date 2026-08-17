@@ -18,7 +18,10 @@ import com.foodtrip.foodsearch.common.storage.ReviewImageStorageService;
 import com.foodtrip.foodsearch.member.entity.Member;
 import com.foodtrip.foodsearch.member.repository.MemberRepository;
 import com.foodtrip.foodsearch.member.service.AccessTokenSessionService;
+import com.foodtrip.foodsearch.receipt.dto.ReceiptItemResponseDto;
 import com.foodtrip.foodsearch.receipt.entity.Receipt;
+import com.foodtrip.foodsearch.receipt.entity.ReceiptItem;
+import com.foodtrip.foodsearch.receipt.repository.ReceiptItemRepository;
 import com.foodtrip.foodsearch.receipt.repository.ReceiptRepository;
 import com.foodtrip.foodsearch.restaurant.entity.Restaurant;
 import com.foodtrip.foodsearch.restaurant.repository.RestaurantRepository;
@@ -51,6 +54,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
     private final RestaurantRepository restaurantRepository;
     private final ReceiptRepository receiptRepository;
+    private final ReceiptItemRepository receiptItemRepository;
     private final MemberRepository memberRepository;
     private final ReviewKeywordDao reviewKeywordDao;
     private final JwtProvider jwtProvider;
@@ -63,6 +67,7 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewServiceImpl(ReviewRepository reviewRepository,
                               RestaurantRepository restaurantRepository,
                               ReceiptRepository receiptRepository,
+                              ReceiptItemRepository receiptItemRepository,
                               MemberRepository memberRepository,
                               ReviewKeywordDao reviewKeywordDao,
                               JwtProvider jwtProvider,
@@ -74,6 +79,7 @@ public class ReviewServiceImpl implements ReviewService {
         this.reviewRepository = reviewRepository;
         this.restaurantRepository = restaurantRepository;
         this.receiptRepository = receiptRepository;
+        this.receiptItemRepository = receiptItemRepository;
         this.memberRepository = memberRepository;
         this.reviewKeywordDao = reviewKeywordDao;
         this.jwtProvider = jwtProvider;
@@ -130,8 +136,11 @@ public class ReviewServiceImpl implements ReviewService {
             throw new CustomException(ErrorCode.REVIEW_RECEIPT_NOT_VERIFIED);
         }
 
+        // 메뉴 공개 여부(2026-08-18 추가) — 값을 안 보내면(구버전 프론트 등) 기본 공개(true)로 처리.
+        boolean menuVisible = request.getMenuVisible() == null || request.getMenuVisible();
+
         Review review = reviewRepository.save(Review.create(memberId, request.getRestaurantId(), request.getReceiptId(),
-                request.getRating(), request.getContent(), null, receiptVerified, request.getRestaurantName(),
+                request.getRating(), request.getContent(), null, receiptVerified, menuVisible, request.getRestaurantName(),
                 request.getAddress(), request.getRoadAddress(), request.getLatitude(), request.getLongitude()));
 
         reviewKeywordDao.insertAll(review.getReviewId(), keywords);
@@ -141,7 +150,8 @@ public class ReviewServiceImpl implements ReviewService {
         return new ReviewResponseDto(review.getReviewId(), member != null ? member.getNickname() : null,
                 member != null ? member.getProfileImageUrl() : null,
                 review.getRating(), review.getContent(), review.isReceiptVerified(), review.getCreatedAt(),
-                review.getUpdatedAt(), toKeywordDtos(keywords), List.of(), 0, false);
+                review.getUpdatedAt(), toKeywordDtos(keywords), List.of(), 0, false,
+                menuVisible ? toMenuItemDtos(receiptItemRepository.findByReceiptId(review.getReceiptId())) : List.of());
     }
 
     @Override
@@ -176,6 +186,20 @@ public class ReviewServiceImpl implements ReviewService {
                 : reviewHelpfulVoteRepository.findByMemberIdAndReviewIdIn(viewerId, reviewIds).stream()
                         .map(ReviewHelpfulVote::getReviewId).collect(Collectors.toSet());
 
+        // 메뉴 공개(2026-08-18 추가) — menuVisible인 리뷰들의 receiptId만 모아 한 번에 조회(리뷰마다
+        // 따로 쿼리하지 않도록 배치 조회).
+        List<Long> visibleMenuReceiptIds = reviews.stream()
+                .filter(Review::isMenuVisible)
+                .map(Review::getReceiptId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, List<ReceiptItemResponseDto>> menuItemsByReceiptId = visibleMenuReceiptIds.isEmpty()
+                ? Map.of()
+                : receiptItemRepository.findByReceiptIdIn(visibleMenuReceiptIds).stream()
+                        .collect(Collectors.groupingBy(ReceiptItem::getReceiptId,
+                                Collectors.mapping(this::toMenuItemDto, Collectors.toList())));
+
         return reviews.stream()
                 .map(r -> new ReviewResponseDto(r.getReviewId(), nicknameByMemberId.get(r.getMemberId()),
                         profileImageByMemberId.get(r.getMemberId()),
@@ -183,7 +207,8 @@ public class ReviewServiceImpl implements ReviewService {
                         toKeywordDtos(keywordsByReviewId.getOrDefault(r.getReviewId(), List.of())),
                         imagesByReviewId.getOrDefault(r.getReviewId(), List.of()),
                         helpfulCountByReviewId.getOrDefault(r.getReviewId(), 0L),
-                        helpfulByMeReviewIds.contains(r.getReviewId())))
+                        helpfulByMeReviewIds.contains(r.getReviewId()),
+                        r.isMenuVisible() ? menuItemsByReceiptId.getOrDefault(r.getReceiptId(), List.of()) : List.of()))
                 .collect(Collectors.toList());
     }
 
@@ -215,10 +240,15 @@ public class ReviewServiceImpl implements ReviewService {
 
         Member member = memberRepository.findById(memberId).orElse(null);
         long helpfulCount = reviewHelpfulVoteRepository.countByReviewId(reviewId);
+        // 메뉴 공개 여부는 수정 화면에서 바꿀 수 있는 값이 아니라(작성 때 receiptId와 함께 확정),
+        // 리뷰에 이미 저장된 값을 그대로 반영한다.
+        List<ReceiptItemResponseDto> menuItems = review.isMenuVisible() && review.getReceiptId() != null
+                ? toMenuItemDtos(receiptItemRepository.findByReceiptId(review.getReceiptId()))
+                : List.of();
         return new ReviewResponseDto(review.getReviewId(), member != null ? member.getNickname() : null,
                 member != null ? member.getProfileImageUrl() : null,
                 review.getRating(), review.getContent(), review.isReceiptVerified(), review.getCreatedAt(),
-                review.getUpdatedAt(), toKeywordDtos(keywords), toImageDtos(reviewId), helpfulCount, false);
+                review.getUpdatedAt(), toKeywordDtos(keywords), toImageDtos(reviewId), helpfulCount, false, menuItems);
     }
 
     @Override
@@ -326,6 +356,14 @@ public class ReviewServiceImpl implements ReviewService {
 
     private ReviewImageResponseDto toImageDto(ReviewImage image) {
         return new ReviewImageResponseDto(image.getReviewImageId(), image.getImageUrl());
+    }
+
+    private ReceiptItemResponseDto toMenuItemDto(ReceiptItem item) {
+        return new ReceiptItemResponseDto(item.getItemName(), item.getUnitPrice());
+    }
+
+    private List<ReceiptItemResponseDto> toMenuItemDtos(List<ReceiptItem> items) {
+        return items.stream().map(this::toMenuItemDto).collect(Collectors.toList());
     }
 
     private List<ReviewImageResponseDto> toImageDtos(Long reviewId) {

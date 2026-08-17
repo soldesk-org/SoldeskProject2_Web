@@ -32,6 +32,10 @@ public class CreateReviewRequestDto {
     @NotNull(message = "영수증 인증 후에만 리뷰를 작성할 수 있습니다.")
     private Long receiptId;
 
+    // OCR로 읽은 메뉴 공개 여부(2026-08-18 추가) — step2에서 사용자가 고른 값. 안 보내면(구버전 프론트 등)
+    // 기본값 공개(true)로 처리한다(서비스 레이어에서 null 처리, ReviewServiceImpl.create() 참고).
+    private Boolean menuVisible;
+
     // 마이페이지(11) "내 리뷰"/"방문기록" 목록 표시용 스냅샷(2026-07-22 추가, Review 엔티티 주석 참고).
     // restaurantName은 필수 — 08(영수증OCR)의 restaurantName 파라미터와 같은 이유(카카오 데이터 미저장 원칙).
     @NotBlank(message = "restaurantName은 필수입니다.")
@@ -63,6 +67,10 @@ public class CreateReviewRequestDto {
 
     public Long getReceiptId() {
         return receiptId;
+    }
+
+    public Boolean getMenuVisible() {
+        return menuVisible;
     }
 
     public String getRestaurantName() {
