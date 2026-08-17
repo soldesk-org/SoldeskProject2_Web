@@ -498,7 +498,11 @@
     <!-- ==================================================================
          완료
          ================================================================== -->
-    <section id="doneSection" hidden>
+    <!-- 2026-08-18 수정 — 완료 화면이 다른 단계(긴 폼)와 같은 위→아래 흐름 레이아웃을 그대로 써서,
+         화면이 짧은 모바일에서 카드가 화면 상단에 붙어 보이고 세로 중앙이 아니었다("등록 후 저 박스가
+         모바일에서 중앙이 아니라 약간 위로 올라와있다" 리포트). 이 단계만 뷰포트 세로 중앙에 오도록
+         min-h+flex로 감싼다(dvh는 모바일 브라우저 주소창 높이 변화까지 반영되는 단위). -->
+    <section id="doneSection" hidden class="min-h-[65dvh] flex flex-col justify-center">
       <div class="e-card e-card-pad text-center py-12 e-anim-up">
         <span class="w-20 h-20 rounded-full grid place-items-center mx-auto mb-7 text-white" style="background:var(--brand-grad);box-shadow:var(--sh-brand)">
           <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
