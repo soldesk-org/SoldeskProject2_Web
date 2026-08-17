@@ -220,9 +220,12 @@
         </div>
 
         <!-- 미리보기 -->
+        <!-- 2026-08-18 수정 — 썸네일이 고정 높이(h-24)라 옆의 텍스트+버튼 묶음 실제 높이와 안 맞아서
+             썸네일 하단이 "OCR 인식" 버튼 하단보다 아래로 삐져나와 보였다("끝이 안 맞다" 리포트).
+             고정 높이 대신 self-stretch로 부모 행의 실제 높이에 맞춰 늘어나게 한다. -->
         <div class="mt-4" id="receiptPreview" hidden>
-          <div class="e-file-item !items-start">
-            <span class="w-20 h-24 rounded-[10px] overflow-hidden flex-none e-img-ph e-img-ph--gray">
+          <div class="e-file-item items-stretch">
+            <span class="w-20 self-stretch rounded-[10px] overflow-hidden flex-none e-img-ph e-img-ph--gray">
               <img alt="영수증 미리보기" data-dropzone-img class="w-full h-full object-cover" style="display:none">
             </span>
             <div class="min-w-0 flex-1">
