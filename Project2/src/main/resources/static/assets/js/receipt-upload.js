@@ -147,6 +147,13 @@
 
     Api.request("/api/receipts", { method: "POST", isForm: true, body: formData })
       .then(function (data) {
+        // 2026-08-18 수정 — 예전엔 인증 실패(다른 매장 영수증 등)여도 일단 2단계로 넘어가서 박스 형태
+        // 경고문을 보여주고 "정보 확인 완료" 버튼만 비활성화했다. 그러면 사용자가 못 쓰는 화면을 한 번
+        // 더 거쳐야 했다 — 인증 실패는 그 자리(1단계)에서 토스트로 바로 알리고 다시 올리게 한다.
+        if (!data.verified) {
+          Eatty.toast("이 매장의 영수증으로 인증되지 않았어요. 영수증 상의 가게명이 선택한 매장과 다르면 리뷰를 작성할 수 없습니다. 다시 업로드해주세요.", "error");
+          return;
+        }
         ocrResult = data;
         renderStep2(data);
         goStep(2);
@@ -159,8 +166,8 @@
 
   function renderStep2(data) {
     var badge = document.getElementById("ocrVerifiedBadge");
-    badge.textContent = data.verified ? "인증 성공" : "인증 실패";
-    badge.className = "e-badge e-badge-lg flex-none " + (data.verified ? "e-badge--success" : "e-badge--danger");
+    badge.textContent = "인증 성공";
+    badge.className = "e-badge e-badge-lg flex-none e-badge--success";
 
     document.getElementById("ocrShopName").textContent = data.storeName || "-";
     document.getElementById("ocrTotalAmount").textContent = data.totalPrice != null ? Number(data.totalPrice).toLocaleString() + "원" : "-";
@@ -175,9 +182,6 @@
     } else {
       menuList.innerHTML = '<p class="p-3.5 t-sm">인식된 메뉴가 없습니다.</p>';
     }
-
-    document.getElementById("ocrDuplicateAlert").hidden = !!data.verified;
-    document.getElementById("ocrConfirmBtn").disabled = !data.verified;
   }
 
   // ---- 메뉴 공개 토글(2026-08-18 추가) — 항목별이 아니라 목록 전체를 한 번에 공개/비공개하는

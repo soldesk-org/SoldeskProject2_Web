@@ -42,8 +42,9 @@
    #ocrShopName / #ocrTotalAmount / #ocrVisitDatetime
    #ocrMenuList           인식된 메뉴 목록
    #ocrRetryBtn           다시 업로드 (step1 로 복귀)
-   #ocrConfirmBtn         정보 확인 완료 → step3 (인증 실패 시 비활성화)
-   #ocrDuplicateAlert     미인증 경고 배너
+   #ocrConfirmBtn         정보 확인 완료 → step3
+   (2026-08-18 수정 — 인증 실패(다른 매장 영수증 등)는 이제 2단계로 넘어가지 않고 1단계에서
+    Eatty.toast()로 바로 안내하고 재업로드를 유도한다. 이 섹션은 인증 성공일 때만 보인다.)
 
  [STEP 3 · 리뷰 작성]
    #step3Section          섹션 루트 (기본 hidden)
@@ -289,15 +290,6 @@
             <p class="e-form-section-desc !mb-0">영수증에서 읽은 정보입니다.</p>
           </div>
           <span class="e-badge e-badge-lg flex-none" id="ocrVerifiedBadge">확인 중</span>
-        </div>
-
-        <!-- 미인증(다른 매장 영수증 등) 경고 -->
-        <div class="e-alert e-alert--warning mb-5" id="ocrDuplicateAlert" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.6 2.7h15.8A1.8 1.8 0 0 0 21.5 18L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
-          <div>
-            <p class="e-alert-title">이 매장의 영수증으로 인증되지 않았어요</p>
-            <p>영수증 상의 가게명이 선택한 매장과 다르면 리뷰를 작성할 수 없습니다. 다시 업로드해주세요.</p>
-          </div>
         </div>
 
         <!-- OCR 필드 (읽기 전용) -->
