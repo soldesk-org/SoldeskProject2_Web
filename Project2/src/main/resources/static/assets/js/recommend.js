@@ -213,7 +213,7 @@
       (place.reason ? '<p class="rc-reason"><b class="text-[var(--brand-700)]">추천 이유</b> · ' + escapeHtml(place.reason) + '</p>' : '') +
       '<div class="flex flex-wrap items-center gap-2 mt-3.5">' +
       '<a href="' + escapeHtml(exploreShareUrl(place)) + '" class="btn btn-primary btn-sm">지도에서 보기</a>' +
-      '<button type="button" class="btn btn-outline btn-sm" data-fav="' + escapeHtml(place.place_id) + '"><span class="e-heart-icon" style="color:var(--ink-300)">♡</span> 즐겨찾기</button>' +
+      '<button type="button" class="btn btn-outline btn-sm" data-fav="' + escapeHtml(place.place_id) + '"><span class="e-heart-icon" style="color:var(--ink-300)">♡</span> 저장</button>' +
       '<div class="flex items-center gap-1.5 ml-auto" data-feedback-group>' +
       '<button type="button" class="fb-btn" data-feedback="like" aria-pressed="false" aria-label="좋아요">' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V10l4-8h1.5a2 2 0 0 1 2 2.3L14 8h5a2 2 0 0 1 2 2.4l-1.6 8A2 2 0 0 1 17.4 20H7Z"/><path d="M7 10H4v12h3"/></svg>좋아요</button>' +
@@ -230,8 +230,8 @@
         body: { name: place.place_name, address: place.address_name, roadAddress: place.road_address_name, latitude: Number(place.y), longitude: Number(place.x) },
       }).then(function (res) {
         btn.innerHTML = res.favorite
-          ? '<span class="e-heart-icon is-active">♥</span> 즐겨찾기됨'
-          : '<span class="e-heart-icon" style="color:var(--ink-300)">♡</span> 즐겨찾기';
+          ? '<span class="e-heart-icon is-active">♥</span> 저장됨'
+          : '<span class="e-heart-icon" style="color:var(--ink-300)">♡</span> 저장';
       }).catch(function (err) { Eatty.toast(err.message || "즐겨찾기 처리에 실패했습니다.", "error"); });
     });
 
@@ -422,8 +422,8 @@
       }).catch(function () {});
     });
     Promise.all(tasks).then(function () {
-      Eatty.toast("추천 " + lastRecommendations.length + "곳을 즐겨찾기에 저장했습니다.", "brand");
-      cardList.querySelectorAll("[data-fav]").forEach(function (btn) { btn.innerHTML = '<span class="e-heart-icon is-active">♥</span> 즐겨찾기됨'; });
+      Eatty.toast("추천 " + lastRecommendations.length + "곳을 저장했습니다.", "brand");
+      cardList.querySelectorAll("[data-fav]").forEach(function (btn) { btn.innerHTML = '<span class="e-heart-icon is-active">♥</span> 저장됨'; });
     });
   });
 
