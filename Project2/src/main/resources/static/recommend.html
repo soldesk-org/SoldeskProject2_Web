@@ -258,22 +258,20 @@
       <div class="flex-1 min-h-0 lg:relative">
        <div class="e-scroll-hidden lg:absolute lg:inset-0 lg:overflow-y-auto">
 
-        <!-- 최초 진입 안내(2026-08-18 재디자인 — 아이콘+문구 두 줄만 있던 밋밋한 화면 대신, 클릭하면
-             바로 질문칸을 채워주는 예시 질문 칩을 추가해서 빈 화면도 실제로 쓸모 있게 만듦.
+        <!-- 최초 진입 안내(2026-08-18 재디자인, 2차 — 그라디언트 박스 아이콘이 과하다는 피드백으로 배경
+             없는 단색 아이콘으로 교체. 예시 칩 4개는 한 줄로 고정(nowrap)해서 두 줄로 안 밀리게 함.
              data-example 클릭 처리는 recommend.js에 이미 있는 공용 핸들러(최근 질문과 동일) 재사용. -->
         <div id="recommendEmpty" class="min-h-full flex flex-col">
           <div class="e-card e-card-pad flex-1 flex flex-col items-center justify-center text-center py-16">
-            <div class="rc-state-icon rc-state-icon--lg rc-state-icon--float">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
-            </div>
-            <p class="rc-state-title mt-7">잇티 AI에게 물어보세요</p>
+            <svg class="w-10 h-10" style="color:var(--brand-500)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+            <p class="rc-state-title mt-5">잇티 AI에게 물어보세요</p>
             <p class="rc-state-desc">어떤 상황인지, 몇 명인지, 예산은 얼마인지 편하게 적어주시면<br class="sm:hidden"> AI가 딱 맞는 곳을 찾아드려요</p>
 
-            <div class="flex flex-wrap items-center justify-center gap-2 mt-6 max-w-lg">
-              <button type="button" class="e-chip e-chip-sm" data-example="강남역 근처 조용한 파스타집 추천해줘. 2명이서 갈 거고 예산은 1인 3만원 정도야.">강남역 파스타집 · 2명</button>
-              <button type="button" class="e-chip e-chip-sm" data-example="혼밥하기 좋은 국밥집 알려줘. 빨리 먹고 나올 수 있는 곳으로.">혼밥하기 좋은 국밥집</button>
-              <button type="button" class="e-chip e-chip-sm" data-example="회식하기 좋은 고깃집 추천해줘. 6명이고 룸 있는 곳이면 좋겠어.">회식용 고깃집 · 6명</button>
-              <button type="button" class="e-chip e-chip-sm" data-example="데이트하기 좋은 분위기 있는 이탈리안 레스토랑 찾아줘.">데이트용 이탈리안</button>
+            <div class="rc-example-row mt-6">
+              <button type="button" class="e-chip rc-example-chip" data-example="강남역 근처 조용한 파스타집 추천해줘. 2명이서 갈 거고 예산은 1인 3만원 정도야.">강남 파스타 · 2명</button>
+              <button type="button" class="e-chip rc-example-chip" data-example="혼밥하기 좋은 국밥집 알려줘. 빨리 먹고 나올 수 있는 곳으로.">혼밥 국밥집</button>
+              <button type="button" class="e-chip rc-example-chip" data-example="회식하기 좋은 고깃집 추천해줘. 6명이고 룸 있는 곳이면 좋겠어.">회식 고깃집 · 6명</button>
+              <button type="button" class="e-chip rc-example-chip" data-example="데이트하기 좋은 분위기 있는 이탈리안 레스토랑 찾아줘.">데이트 이탈리안</button>
             </div>
           </div>
         </div>

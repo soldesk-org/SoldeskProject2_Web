@@ -41,28 +41,6 @@
   .e-scroll-hidden::-webkit-scrollbar { display: none; }
 
   /* 결과 없음 / 로딩 상태 — 절제된 톤의 대기 화면 */
-  .rc-state-icon {
-    width: 60px; height: 60px; border-radius: 20px;
-    display: grid; place-items: center;
-    background: linear-gradient(160deg, var(--brand-50), #fff);
-    border: 1px solid var(--brand-100);
-    color: var(--brand-500);
-    box-shadow: 0 8px 24px -12px rgba(253, 109, 74, .28);
-  }
-  .rc-state-icon svg { width: 25px; height: 25px; }
-  .rc-state-icon--float { animation: rc-float 3.2s ease-in-out infinite; }
-  /* 2026-08-18 추가 — 최초 진입 안내(recommendEmpty)를 좀 더 눈에 띄게 키운 버전. 브랜드 그라디언트를
-     배경 전체에 채워서(기존 옅은 톤 대신) 존재감을 준다. */
-  .rc-state-icon--lg {
-    width: 84px; height: 84px; border-radius: 26px;
-    background: var(--brand-grad); border: none; color: #fff;
-    box-shadow: var(--sh-brand);
-  }
-  .rc-state-icon--lg svg { width: 36px; height: 36px; }
-  @keyframes rc-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-  }
   .rc-state-title {
     margin-top: 20px;
     font-size: 17px; font-weight: 700; letter-spacing: -.02em;
@@ -73,6 +51,19 @@
     font-size: 13.5px; line-height: 1.65; color: var(--ink-500);
   }
   #recommendEmpty .rc-state-desc { max-width: 440px; }
+
+  /* 2026-08-18 추가 — 최초 진입 안내의 예시 질문 칩 4개를 한 줄로 고정. 화면이 좁아지면 칩 자체가
+     줄어들도록(패딩/글자 축소) 해서 두 줄로 밀리지 않게 한다(min-width:0으로 flex 기본 축소 제한 해제). */
+  .rc-example-row {
+    display: flex; flex-wrap: nowrap; justify-content: center; gap: 8px;
+    width: 100%; max-width: 640px;
+  }
+  .rc-example-chip {
+    height: 34px; padding: 0 clamp(8px, 2vw, 15px);
+    font-size: clamp(11px, 1.6vw, 13px);
+    min-width: 0; flex: 1 1 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
 
   /* 로딩 스피너 */
   .rc-spinner {
