@@ -132,14 +132,15 @@
   }
   // 마커 겹침 방지(2026-08-18 추가, index.js 홈페이지 지도의 아이디어를 가져오되 기준은 다르게 조정) —
   // 같은 건물에 여러 매장이 입점한 경우 좌표가 같거나 거의 동일해서 마커 핀이 완전히 겹쳐 하나만 보이는
-  // 문제가 있었다. 처음엔 index.js(추천 결과 몇 개만 보여주는 홈페이지 지도)와 같은 65m 기준을 그대로
-  // 썼는데, 여기 explore.js는 한 번에 최대 50곳까지 뜨는 밀집 리스트라 강남처럼 매장이 촘촘한 지역에서는
-  // "65m 이내에 있는 서로 다른(진짜 다른 위치의) 매장"까지 전부 겹침으로 오판해서 연쇄적으로 밀어내는
-  // 바람에 화면 전체 마커가 흩어져버렸다(2026-08-18 실사용 리포트로 발견). 실제로 "같은 건물"인 경우만
-  // 잡아내도록 기준을 훨씬 좁게(약 8m)로 줄인다 — 카카오 API가 주는 좌표가 완전히 동일하거나 소수점
-  // 몇 자리 차이 수준일 때만 겹침으로 본다.
+  // 문제가 있었다. 처음엔 index.js와 같은 65m 기준을 그대로 썼는데, 밀집 지역에서 서로 다른 매장까지
+  // 겹침으로 오판해 전체가 흩어지는 문제가 있었다(1차 수정, 8m로 축소). 그런데 8m도 여전히 "진짜 같은
+  // 건물"이 아니라 그냥 도보 몇 걸음 거리인 별개 매장까지 밀어내서, 최대 줌으로 확대하면 실제로는
+  // 안 겹치는 마커까지 원래 좌표에서 벗어나 보이는 문제가 재발했다(2026-08-18 2차 리포트). 카카오
+  // API가 내려주는 좌표가 완전히 같거나 소수점 4자리까지 같은 수준(같은 건물 주소를 그대로 쓰는
+  // 경우)일 때만 겹침으로 보도록 기준을 다시 한번 좁힌다 — 실제로 화면에서 핀이 완전히 겹쳐 하나만
+  // 보이는 경우만 잡아내는 게 목적이지, "가까운 다른 가게"까지 건드리면 안 된다.
   var usedMarkerPositions = [];
-  var MARKER_NEAR_THRESHOLD = 0.00007; // 위도/경도 약 8m — 같은 건물 좌표 중복만 잡아냄
+  var MARKER_NEAR_THRESHOLD = 0.00002; // 위도/경도 약 2m — 좌표가 사실상 동일한 경우만 잡아냄
   function isNearUsedPosition(lat, lng) {
     return usedMarkerPositions.some(function (p) {
       return Math.abs(p.lat - lat) < MARKER_NEAR_THRESHOLD && Math.abs(p.lng - lng) < MARKER_NEAR_THRESHOLD;
@@ -148,7 +149,7 @@
   function nudgeMarkerIfOverlapping(lat, lng) {
     var attempt = 0;
     while (isNearUsedPosition(lat, lng) && attempt < 5) {
-      var radius = 0.00012 + attempt * 0.00006;
+      var radius = 0.00003 + attempt * 0.00002;
       var angle = Math.random() * Math.PI * 2;
       lat += Math.cos(angle) * radius;
       lng += Math.sin(angle) * radius;
