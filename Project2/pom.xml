@@ -127,6 +127,15 @@
 			<artifactId>azure-storage-blob</artifactId>
 			<version>12.27.1</version>
 		</dependency>
+		<!-- 2026-08-18 2차 수정 — 이 Azure 구독(크레딧/스폰서)에 "로컬 인증(연결 문자열/계정 키) 금지,
+		     Azure AD만 허용" 정책이 걸려있어(스토리지 계정 자체의 "키 액세스 허용" 토글은 켜져 있어도
+		     실제 요청은 전부 AuthorizationFailure로 거부됨을 실측 확인) 연결 문자열 방식을 포기하고
+		     VM의 시스템 관리 ID(Managed Identity) + Azure AD 인증으로 전환. -->
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-identity</artifactId>
+			<version>1.15.4</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

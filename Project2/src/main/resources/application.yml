@@ -121,18 +121,22 @@ sms:
 # 저장할지를 여기 image-storage.backend 하나로 전부 결정한다(값: local 또는 azure-blob). 기본값은 local —
 # 운영 VM에 이미 로컬 파일이 쌓여 있고, 팀이 실제로 전환하기로 확정하기 전까지는 기존 배포도 이 워크트리도
 # 지금까지와 완전히 같게 동작해야 하기 때문(안전한 기본값을 먼저 두고, 필요할 때만 opt-in — 이 프로젝트가
-# 계속 지켜온 원칙). azure-blob으로 켜도 azure-storage.connection-string이 비어있으면 서버는 정상 기동하고,
+# 계속 지켜온 원칙). azure-blob으로 켜도 azure-storage.account-url이 비어있으면 서버는 정상 기동하고,
 # 실제로 이미지 업로드/삭제가 호출되는 순간에만 AZURE_STORAGE_NOT_CONFIGURED로 명확하게 실패한다(다른
 # 선택적 외부 연동과 동일한 원칙 — business-verify.internal-token, PARKING_DATA_SERVICE_KEY 등 참고).
 image-storage:
   backend: ${IMAGE_STORAGE_BACKEND:local}
 
 azure-storage:
-  # Azure Portal의 스토리지 계정 > 액세스 키에서 확인 가능한 연결 문자열. 컨테이너 이름(profile-images/
-  # restaurant-images/receipt-images/review-images)은 4개 *ImageStorageService에 고정값으로 두었다 —
-  # 기존 로컬 upload-dir 폴더 이름과 1:1로 대응시켜 헷갈리지 않게 함. 비어있으면(기본값) azure-blob
-  # backend를 실제로 쓰려는 시점에만 에러가 난다 — 위 image-storage.backend 설명 참고.
-  connection-string: ${AZURE_STORAGE_CONNECTION_STRING:}
+  # 2026-08-18 2차 수정 — 원래는 연결 문자열(계정 키) 방식이었는데, 이 구독에 "로컬 인증(키) 금지,
+  # Azure AD만 허용" 정책이 걸려있어 실제로는 전부 거부됐다(docs/00.공통/인프라/
+  # Azure-Blob-Storage-이미지저장-가이드.md 참고). VM의 관리 ID(Managed Identity)로 인증하는 방식으로
+  # 바꿔서, 계정 키 대신 그냥 스토리지 계정의 엔드포인트 URL만 있으면 된다(형식:
+  # https://{계정명}.blob.core.windows.net). 컨테이너 이름(profile-images/restaurant-images/
+  # receipt-images/review-images)은 4개 *ImageStorageService에 고정값으로 두었다 — 기존 로컬
+  # upload-dir 폴더 이름과 1:1로 대응시켜 헷갈리지 않게 함. 비어있으면(기본값) azure-blob backend를
+  # 실제로 쓰려는 시점에만 에러가 난다 — 위 image-storage.backend 설명 참고.
+  account-url: ${AZURE_STORAGE_ACCOUNT_URL:}
 
 profile-image:
   # backend가 local일 때만 실제로 쓰이는 로컬 디스크 저장 설정(과거 업로드 파일의 삭제 판별에도 항상 쓰임 —

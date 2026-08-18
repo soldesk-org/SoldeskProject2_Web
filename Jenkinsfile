@@ -106,7 +106,7 @@ pipeline {
                         // Azure-Blob-Storage-이미지저장-가이드.md 참고) — image-storage.backend은 기본값이
                         // local이라 이 Credential이 비어있어도 안전하지만, 실제로 azure-blob 전환을
                         // 확정하면서 함께 값을 채움.
-                        string(credentialsId: 'soldesk-azure-storage-connection-string', variable: 'AZURE_STORAGE_CONNECTION_STRING'),
+                        string(credentialsId: 'soldesk-azure-storage-account-url', variable: 'AZURE_STORAGE_ACCOUNT_URL'),
                         string(credentialsId: 'soldesk-image-storage-backend', variable: 'IMAGE_STORAGE_BACKEND'),
                     ]) {
                         sh './mvnw test'
@@ -195,7 +195,7 @@ pipeline {
                         string(credentialsId: 'soldesk-receipt-image-base-url', variable: 'RECEIPT_IMAGE_BASE_URL'),
                         string(credentialsId: 'soldesk-review-image-base-url', variable: 'REVIEW_IMAGE_BASE_URL'),
                         string(credentialsId: 'soldesk-password-reset-frontend-url', variable: 'PASSWORD_RESET_FRONTEND_URL'),
-                        string(credentialsId: 'soldesk-azure-storage-connection-string', variable: 'AZURE_STORAGE_CONNECTION_STRING'),
+                        string(credentialsId: 'soldesk-azure-storage-account-url', variable: 'AZURE_STORAGE_ACCOUNT_URL'),
                         string(credentialsId: 'soldesk-image-storage-backend', variable: 'IMAGE_STORAGE_BACKEND'),
                     ]) {
                         sh '''
@@ -248,7 +248,7 @@ RESTAURANT_IMAGE_BASE_URL=$RESTAURANT_IMAGE_BASE_URL
 RECEIPT_IMAGE_BASE_URL=$RECEIPT_IMAGE_BASE_URL
 REVIEW_IMAGE_BASE_URL=$REVIEW_IMAGE_BASE_URL
 PASSWORD_RESET_FRONTEND_URL=$PASSWORD_RESET_FRONTEND_URL
-AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING
+AZURE_STORAGE_ACCOUNT_URL=$AZURE_STORAGE_ACCOUNT_URL
 IMAGE_STORAGE_BACKEND=$IMAGE_STORAGE_BACKEND
 ENVEOF
                             chmod 600 /opt/soldesk-app/.env

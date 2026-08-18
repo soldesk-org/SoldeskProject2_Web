@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
@@ -23,24 +25,35 @@ import com.foodtrip.foodsearch.common.exception.ErrorCode;
  * 4번 복붙하지 않고 이 클래스 하나로 공유한다. 각 *ImageStorageService는 여전히 자기 컨테이너 이름을
  * 알고 있는 얇은 래퍼로 남고, 실제 SDK 호출은 전부 여기로 위임한다.
  *
- * AZURE_STORAGE_CONNECTION_STRING이 비어있어도(이 워크트리처럼 아직 실제 Azure 계정이 없는 경우 포함)
- * 서버가 정상 기동해야 한다는 이 프로젝트의 원칙(business-verify.internal-token, PARKING_DATA_SERVICE_KEY
- * 등과 동일) 때문에, BlobServiceClient를 생성자에서 즉시 만들지 않는다 — 연결 문자열이 있어도 실제로
- * 처음 store()/delete()가 호출되는 시점에 지연 생성(lazy init)하고, 없으면 AZURE_STORAGE_NOT_CONFIGURED로
- * 명확하게 실패시킨다(기동 시점이 아니라 실제 호출 시점에만).
+ * 2026-08-18 2차 수정 — 처음엔 연결 문자열(계정 키) 방식으로 만들었는데, 실제 배포해서 업로드해보니
+ * 계정 자체의 "키 액세스 허용" 토글은 켜져 있어도 모든 요청이 AuthorizationFailure(403)로 거부됐다.
+ * 원인은 이 Azure 구독(크레딧/스폰서)에 걸려있는 "로컬 인증(계정 키/SAS) 금지, Azure AD만 허용" 정책 —
+ * Azure Portal(Entra ID 세션 인증)로는 컨테이너가 정상 생성되는데 계정 키로는 안 되는 것으로 실측 확인.
+ * 그래서 인증 방식을 VM의 시스템 관리 ID(Managed Identity)를 통한 Azure AD 인증으로 전환했다 — VM에
+ * 관리 ID를 켜고 스토리지 계정에 "Storage Blob Data Contributor" 역할을 그 ID에 할당해둬야 동작한다
+ * (docs/00.공통/인프라/Azure-Blob-Storage-이미지저장-가이드.md 참고). 이 방식은 계정 키 자체가 아예
+ * 필요 없어져서(유출 위험 원천 차단) 오히려 더 안전하다.
+ *
+ * AZURE_STORAGE_ACCOUNT_URL이 비어있어도(이 워크트리처럼 아직 실제 Azure 계정이 없는 경우 포함) 서버가
+ * 정상 기동해야 한다는 이 프로젝트의 원칙(business-verify.internal-token, PARKING_DATA_SERVICE_KEY 등과
+ * 동일) 때문에, BlobServiceClient를 생성자에서 즉시 만들지 않는다 — 값이 있어도 실제로 처음
+ * store()/delete()가 호출되는 시점에 지연 생성(lazy init)하고, 없으면 AZURE_STORAGE_NOT_CONFIGURED로
+ * 명확하게 실패시킨다(기동 시점이 아니라 실제 호출 시점에만). ManagedIdentityCredential 자체도 실제로는
+ * VM 위에서만 동작하므로(로컬 개발 PC에는 관리 ID가 없음), 로컬 개발 환경에서는 이 기능을 그냥 안 쓰면
+ * 된다(backend=local이 기본값).
  */
 @Component
 public class AzureBlobStorage {
 
-    private final String connectionString;
+    private final String accountUrl;
     private volatile BlobServiceClient serviceClient;
 
-    public AzureBlobStorage(@Value("${azure-storage.connection-string:}") String connectionString) {
-        this.connectionString = connectionString;
+    public AzureBlobStorage(@Value("${azure-storage.account-url:}") String accountUrl) {
+        this.accountUrl = accountUrl;
     }
 
     public boolean isConfigured() {
-        return connectionString != null && !connectionString.isBlank();
+        return accountUrl != null && !accountUrl.isBlank();
     }
 
     private BlobServiceClient client() {
@@ -52,7 +65,8 @@ public class AzureBlobStorage {
             synchronized (this) {
                 client = serviceClient;
                 if (client == null) {
-                    client = new BlobServiceClientBuilder().connectionString(connectionString).buildClient();
+                    ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder().build();
+                    client = new BlobServiceClientBuilder().endpoint(accountUrl).credential(credential).buildClient();
                     serviceClient = client;
                 }
             }
