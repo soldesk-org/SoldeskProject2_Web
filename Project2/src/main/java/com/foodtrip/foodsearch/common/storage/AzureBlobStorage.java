@@ -11,6 +11,8 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.models.PublicAccessType;
+import com.azure.storage.blob.options.BlobContainerCreateOptions;
 import com.foodtrip.foodsearch.common.exception.CustomException;
 import com.foodtrip.foodsearch.common.exception.ErrorCode;
 
@@ -62,11 +64,15 @@ public class AzureBlobStorage {
      * containerName 컨테이너에 file을 filename으로 업로드하고, 업로드된 blob의 URL을 반환한다.
      * 컨테이너가 아직 없으면 자동으로 만든다(사업자가 Azure Portal에서 미리 만들어둘 필요 없이,
      * 컨테이너 이름당 한 번씩만 이 분기를 타고 이후엔 exists() 체크만 함).
+     * createIfNotExists()를 인자 없이 호출하면 Azure SDK 기본값(비공개 컨테이너)으로 만들어져서,
+     * 스토리지 계정에서 "Blob 익명 액세스"를 켜도 실제로는 이미지가 403으로 막힌다 — 반드시
+     * PublicAccessType.BLOB(익명 Blob 읽기만 허용, 컨테이너 목록 나열은 막힘)을 명시해야 한다.
      */
     public String upload(String containerName, String filename, MultipartFile file, ErrorCode failureErrorCode) {
         BlobContainerClient container = client().getBlobContainerClient(containerName);
         if (!container.exists()) {
-            container.createIfNotExists();
+            container.createIfNotExistsWithResponse(
+                    new BlobContainerCreateOptions().setPublicAccessType(PublicAccessType.BLOB), null, null);
         }
         BlobClient blob = container.getBlobClient(filename);
         try {
