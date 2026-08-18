@@ -102,6 +102,12 @@ pipeline {
                         // 빠져있던 credential. 비어있으면 application.yml 기본값(http://localhost:8081/...)
                         // 으로 떨어져서 운영 환경에서도 재설정 메일에 localhost 링크가 나가는 문제가 있었다.
                         string(credentialsId: 'soldesk-password-reset-frontend-url', variable: 'PASSWORD_RESET_FRONTEND_URL'),
+                        // Azure Blob Storage 이미지 저장 마이그레이션(2026-08-18 추가, docs/00.공통/인프라/
+                        // Azure-Blob-Storage-이미지저장-가이드.md 참고) — image-storage.backend은 기본값이
+                        // local이라 이 Credential이 비어있어도 안전하지만, 실제로 azure-blob 전환을
+                        // 확정하면서 함께 값을 채움.
+                        string(credentialsId: 'soldesk-azure-storage-connection-string', variable: 'AZURE_STORAGE_CONNECTION_STRING'),
+                        string(credentialsId: 'soldesk-image-storage-backend', variable: 'IMAGE_STORAGE_BACKEND'),
                     ]) {
                         sh './mvnw test'
                     }
@@ -189,6 +195,8 @@ pipeline {
                         string(credentialsId: 'soldesk-receipt-image-base-url', variable: 'RECEIPT_IMAGE_BASE_URL'),
                         string(credentialsId: 'soldesk-review-image-base-url', variable: 'REVIEW_IMAGE_BASE_URL'),
                         string(credentialsId: 'soldesk-password-reset-frontend-url', variable: 'PASSWORD_RESET_FRONTEND_URL'),
+                        string(credentialsId: 'soldesk-azure-storage-connection-string', variable: 'AZURE_STORAGE_CONNECTION_STRING'),
+                        string(credentialsId: 'soldesk-image-storage-backend', variable: 'IMAGE_STORAGE_BACKEND'),
                     ]) {
                         sh '''
                             cp target/*.war /opt/soldesk-app/soldesk-app.war
@@ -240,6 +248,8 @@ RESTAURANT_IMAGE_BASE_URL=$RESTAURANT_IMAGE_BASE_URL
 RECEIPT_IMAGE_BASE_URL=$RECEIPT_IMAGE_BASE_URL
 REVIEW_IMAGE_BASE_URL=$REVIEW_IMAGE_BASE_URL
 PASSWORD_RESET_FRONTEND_URL=$PASSWORD_RESET_FRONTEND_URL
+AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING
+IMAGE_STORAGE_BACKEND=$IMAGE_STORAGE_BACKEND
 ENVEOF
                             chmod 600 /opt/soldesk-app/.env
                             sudo systemctl restart soldesk-app.service
