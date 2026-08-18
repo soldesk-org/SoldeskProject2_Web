@@ -129,19 +129,6 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
-		<!-- Prometheus/Grafana 모니터링(2026-08-18 추가, docs/00.공통/인프라 참고). 관리 전용
-		     엔드포인트(/actuator/prometheus)만 노출하고, management.server.port를 메인 포트(8081)와
-		     분리해서 127.0.0.1에만 바인딩한다 — 그러면 스프링 시큐리티 메인 필터체인(14.관리자-권한)도
-		     안 타고 nginx로도 외부에 노출되지 않아, VM에 함께 뜨는 Prometheus 컨테이너만 스크래핑할 수 있다. -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-actuator</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-registry-prometheus</artifactId>
-		</dependency>
 	</dependencies>
 
 	<build>
