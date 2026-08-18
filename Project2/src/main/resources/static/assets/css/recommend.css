@@ -43,7 +43,7 @@
   /* 결과 없음 / 로딩 상태 — 절제된 톤의 대기 화면 */
   .rc-state-title {
     margin-top: 20px;
-    font-size: 17px; font-weight: 700; letter-spacing: -.02em;
+    font-size: 26px; font-weight: 700; letter-spacing: -.02em;
     color: var(--ink-900);
   }
   .rc-state-desc {
@@ -61,7 +61,6 @@
   .rc-example-chip {
     height: 34px; padding: 0 clamp(8px, 2vw, 15px);
     font-size: clamp(11px, 1.6vw, 13px);
-    min-width: 0; flex: 1 1 0;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
