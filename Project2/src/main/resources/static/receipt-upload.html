@@ -281,11 +281,17 @@
 
         <!-- 미리보기 -->
         <!-- 2026-08-18 수정 — 썸네일이 고정 높이(h-24)라 옆의 텍스트+버튼 묶음 실제 높이와 안 맞아서
-             썸네일 하단이 "OCR 인식" 버튼 하단보다 아래로 삐져나와 보였다("끝이 안 맞다" 리포트).
-             고정 높이 대신 self-stretch로 부모 행의 실제 높이에 맞춰 늘어나게 한다. -->
+             썸네일 하단이 "OCR 인식" 버튼 하단보다 아래로 삐져나와 보였다("끝이 안 맞다" 리포트). 그래서
+             고정 높이 대신 self-stretch(부모 행 높이에 맞춰 늘어남)로 바꿨었는데, 그 방식은
+             align-items:stretch가 실제로 적용될 때만 안전하다 — 이 프로젝트는 Tailwind CDN 런타임이라
+             유틸리티 클래스가 뒤늦게 <style>로 주입되고, eatty.css의 .e-file-item{align-items:center}와
+             동일 우선순위로 경쟁하면서 stretch가 안 먹히는 경우가 실제로 발생(2026-08-19 실측 — 세로로
+             긴 사진이 원본 비율 그대로 카드 밖까지 넘쳐 보임). 캐스케이드 순서에 기대지 않도록 다시
+             고정 정사각형(w-20 h-20)으로 되돌린다 — 옆 텍스트 블록과 살짝 안 맞는 정도는 사진이 통째로
+             넘치는 것보다 훨씬 낫다. -->
         <div class="mt-4" id="receiptPreview" hidden>
-          <div class="e-file-item items-stretch">
-            <span class="w-20 self-stretch rounded-[10px] overflow-hidden flex-none e-img-ph e-img-ph--gray">
+          <div class="e-file-item">
+            <span class="w-20 h-20 rounded-[10px] overflow-hidden flex-none e-img-ph e-img-ph--gray">
               <img alt="영수증 미리보기" data-dropzone-img class="w-full h-full object-cover" style="display:none">
             </span>
             <div class="min-w-0 flex-1">
