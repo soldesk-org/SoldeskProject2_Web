@@ -137,6 +137,7 @@
     var guideOverlay = document.getElementById("receiptCameraGuideOverlay");
     var guideCloseBtn = document.getElementById("receiptCameraGuideCloseBtn");
     var thumbSlot = document.getElementById("receiptCameraThumbSlot");
+    var galleryInput = document.getElementById("receiptGalleryInput");
     var stream = null;
     var bypass = false; // 폴백으로 원래 input.click()을 트리거할 때 재차 가로채지 않기 위한 플래그
     var facingMode = "environment"; // 카메라 전환 버튼으로 "user"와 토글
@@ -212,6 +213,21 @@
     });
 
     cancelBtn.addEventListener("click", closeModal);
+
+    // 하단 왼쪽 썸네일 = 사진첩에서 선택(참고 앱과 동일 동작). capture 속성이 없는 별도 input이라
+    // 모바일에서 고르면 "카메라로 촬영/사진 보관함" 중 사진 보관함을 선택할 수 있고, 그 시점에
+    // OS가 사진 라이브러리 접근 권한을 요청한다(코드에서 별도로 요청할 필요 없음).
+    thumbSlot.addEventListener("click", function () { galleryInput.click(); });
+    galleryInput.addEventListener("change", function () {
+      var picked = galleryInput.files && galleryInput.files[0];
+      if (!picked) return;
+      var dt = new DataTransfer();
+      dt.items.add(picked);
+      fileInput.files = dt.files;
+      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+      galleryInput.value = "";
+      closeModal();
+    });
 
     helpBtn.addEventListener("click", function () { guideOverlay.hidden = false; });
     guideCloseBtn.addEventListener("click", function () { guideOverlay.hidden = true; });

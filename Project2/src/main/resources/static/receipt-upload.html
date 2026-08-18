@@ -226,13 +226,17 @@
 
               <div class="e-camera-topbar">
                 <button type="button" class="e-camera-round-btn" id="receiptCameraHelpBtn" aria-label="촬영 가이드 보기">?</button>
-                <button type="button" class="e-camera-round-btn" id="receiptCameraCancelBtn" aria-label="닫기">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                <button type="button" class="e-camera-plain-btn" id="receiptCameraCancelBtn" aria-label="닫기">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
               </div>
 
               <div class="e-camera-modal-actions">
-                <span class="e-camera-thumb-slot" id="receiptCameraThumbSlot" aria-hidden="true"></span>
+                <!-- 2026-08-19 추가 — 이 썸네일을 누르면 카메라가 아니라 사진첩에서 선택(참고 앱과 동일
+                     동작). accept만 있고 capture는 없는 별도 input이라 모바일에서 "카메라로 촬영/사진
+                     보관함" 중 사진 보관함을 고르면 그 시점에 OS가 사진 접근 권한을 요청한다. -->
+                <button type="button" class="e-camera-thumb-slot" id="receiptCameraThumbSlot" aria-label="사진첩에서 선택"></button>
+                <input type="file" id="receiptGalleryInput" accept="image/png,image/jpeg,image/webp" hidden>
                 <button type="button" class="e-camera-shutter-btn" id="receiptCameraShutterBtn" aria-label="촬영"></button>
                 <button type="button" class="e-camera-round-btn" id="receiptCameraFlipBtn" aria-label="카메라 전환">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1 21 6l-4 3.9M3 11V9a4 4 0 0 1 4-4h14M7 21.9 3 18l4-3.9M21 13v2a4 4 0 0 1-4 4H3"/></svg>
