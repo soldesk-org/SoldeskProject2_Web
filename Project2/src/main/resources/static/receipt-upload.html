@@ -55,7 +55,7 @@
    #ratingError           별점 미선택 에러
    #positiveTagList       긍정 태그 10종 (ReviewKeywordCatalog.POSITIVE 값 그대로)
    #negativeTagList       부정 태그 10종 (ReviewKeywordCatalog.NEGATIVE 값 그대로)
-   #tagSelectedCount      선택한 태그 수
+   #tagSelectedCount      선택한 태그 수 (2026-08-18 — 긍정+부정 합산 최대 5개로 제한)
    #reviewPhotoInput #reviewPhotoAddBtn #reviewPhotoList   리뷰 사진(2026-08-10 추가, 최대 3장, 선택)
      ★ 리뷰 등록(POST /api/reviews) 성공 직후 POST /api/reviews/{reviewId}/images로 이어서 업로드
    #reviewContent         자유 텍스트 (name="content", maxlength=1000, 선택)
@@ -402,9 +402,9 @@
         <div class="e-card e-card-pad mb-5">
           <div class="flex items-center gap-2 mb-1">
             <h2 class="e-form-section-title !mb-0">어떤 점이 좋았나요?</h2>
-            <span class="e-badge e-badge--gray ml-auto"><span id="tagSelectedCount">0</span>개 선택</span>
+            <span class="e-badge e-badge--gray ml-auto"><span id="tagSelectedCount">0</span>/5개 선택</span>
           </div>
-          <p class="e-form-section-desc">해당하는 항목을 모두 골라주세요. 다른 이용자에게 큰 도움이 됩니다.</p>
+          <p class="e-form-section-desc">해당하는 항목을 모두 골라주세요. (최대 5개) 다른 이용자에게 큰 도움이 됩니다.</p>
 
           <!-- 긍정 태그 10종 -->
           <div class="e-field">
@@ -495,9 +495,13 @@
          ================================================================== -->
     <!-- 2026-08-18 수정 — 완료 화면이 다른 단계(긴 폼)와 같은 위→아래 흐름 레이아웃을 그대로 써서,
          화면이 짧은 모바일에서 카드가 화면 상단에 붙어 보이고 세로 중앙이 아니었다("등록 후 저 박스가
-         모바일에서 중앙이 아니라 약간 위로 올라와있다" 리포트). 이 단계만 뷰포트 세로 중앙에 오도록
-         min-h+flex로 감싼다(dvh는 모바일 브라우저 주소창 높이 변화까지 반영되는 단위). -->
-    <section id="doneSection" hidden class="min-h-[65dvh] flex flex-col justify-center">
+         모바일에서 중앙이 아니라 약간 위로 올라와있다" 리포트). min-h-[65dvh]만으로는 header(고정
+         --header-h)와 모바일 하단 탭바(고정 72px, .has-tabbar padding-bottom)가 계산에서 빠져서
+         여전히 화면 중앙보다 위로 치우쳐 보였다(2026-08-18 재수정) — 실제 보이는 영역(전체 뷰포트에서
+         header/탭바를 뺀 나머지)을 기준으로 계산하고, main의 상하 padding(py-8/md:py-12)은 음수
+         margin으로 상쇄해서 이 섹션이 그 남은 영역 전체를 기준으로 정확히 세로 중앙에 오게 한다. -->
+    <section id="doneSection" hidden
+             class="-mx-0 -mt-8 md:-mt-12 -mb-8 md:-mb-12 min-h-[calc(100dvh-var(--header-h)-72px)] md:min-h-[calc(100dvh-var(--header-h))] flex flex-col justify-center">
       <div class="e-card e-card-pad text-center py-12 e-anim-up">
         <span class="w-20 h-20 rounded-full grid place-items-center mx-auto mb-7 text-white" style="background:var(--brand-grad);box-shadow:var(--sh-brand)">
           <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>

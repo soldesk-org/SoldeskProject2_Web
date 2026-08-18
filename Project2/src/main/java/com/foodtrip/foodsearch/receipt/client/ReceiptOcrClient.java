@@ -136,10 +136,22 @@ public class ReceiptOcrClient {
             for (Object itemRaw : list) {
                 Map<String, Object> item = (Map<String, Object>) itemRaw;
                 String name = (String) item.get("name");
+                if (isTotalsLineNoise(name)) continue;
                 Integer price = item.get("price") != null ? ((Number) item.get("price")).intValue() : null;
                 menuItems.add(new ReceiptOcrResult.MenuItemResult(name, price));
             }
         }
         return new ReceiptOcrResult(storeName, orderDatetime, menuItems, totalPrice, transactionId);
+    }
+
+    // Python OCR 서버가 영수증 하단 합계 표(공급가액/부가세/합계 등)를 메뉴 항목과 구분하지 않고 그대로
+    // menu_items에 섞어 보내는 경우가 있어(2026-08-18 실측), 이름이 합계 표에서만 쓰이는 고정 단어와
+    // 정확히 일치하면 메뉴 목록에서 제외한다.
+    private static final java.util.Set<String> TOTALS_LINE_NAMES = java.util.Set.of(
+            "공급가액", "부가세", "부가가치세", "합계", "합 계", "총액", "총 금액", "결제금액", "결제 금액", "받을금액", "받을 금액", "봉사료");
+
+    private boolean isTotalsLineNoise(String name) {
+        if (name == null) return false;
+        return TOTALS_LINE_NAMES.contains(name.trim());
     }
 }

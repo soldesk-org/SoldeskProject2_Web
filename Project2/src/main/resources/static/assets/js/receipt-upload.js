@@ -198,8 +198,7 @@
   document.getElementById("ocrConfirmBtn").addEventListener("click", function () {
     if (!ocrResult || !ocrResult.verified) return;
     document.getElementById("step3RestaurantName").textContent = restaurant.name;
-    document.getElementById("step3VisitSummary").textContent =
-      (ocrResult.orderDatetime || "-") + " 방문 · " + (ocrResult.totalPrice != null ? Number(ocrResult.totalPrice).toLocaleString() + "원" : "-");
+    document.getElementById("step3VisitSummary").textContent = ocrResult.orderDatetime || "-";
     goStep(3);
   });
   document.getElementById("reviewBackBtn").addEventListener("click", function () { goStep(2); });
@@ -219,12 +218,18 @@
     leaveGuardArmed = true;
   });
 
-  // ---- 태그 선택 개수 ----
+  // ---- 태그 선택 개수(2026-08-18 — 최대 5개로 제한) ----
+  var TAG_SELECT_LIMIT = 5;
   var tagInputs = document.querySelectorAll("#positiveTagList input, #negativeTagList input");
   tagInputs.forEach(function (i) {
     i.addEventListener("change", function () {
-      var n = Array.prototype.filter.call(tagInputs, function (x) { return x.checked; }).length;
-      document.getElementById("tagSelectedCount").textContent = n;
+      var checked = Array.prototype.filter.call(tagInputs, function (x) { return x.checked; });
+      if (checked.length > TAG_SELECT_LIMIT) {
+        this.checked = false;
+        Eatty.toast("태그는 최대 " + TAG_SELECT_LIMIT + "개까지 선택할 수 있어요.", "error");
+        checked = Array.prototype.filter.call(tagInputs, function (x) { return x.checked; });
+      }
+      document.getElementById("tagSelectedCount").textContent = checked.length;
       leaveGuardArmed = true;
     });
   });
@@ -419,8 +424,7 @@
   // ---- 임시저장 이어서 쓰기 복원(2026-08-12 추가) — 별점/태그/내용을 그대로 되돌려서 3단계로 바로 진입.
   if (resumedDraft && restaurant && ocrResult) {
     document.getElementById("step3RestaurantName").textContent = restaurant.name;
-    document.getElementById("step3VisitSummary").textContent =
-      (ocrResult.orderDatetime || "-") + " 방문 · " + (ocrResult.totalPrice != null ? Number(ocrResult.totalPrice).toLocaleString() + "원" : "-");
+    document.getElementById("step3VisitSummary").textContent = ocrResult.orderDatetime || "-";
 
     var resumeRating = Number(resumedDraft.rating) || 0;
     document.getElementById("reviewScore").value = resumeRating;
