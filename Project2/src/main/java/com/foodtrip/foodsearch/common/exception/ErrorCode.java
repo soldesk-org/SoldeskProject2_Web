@@ -96,6 +96,10 @@ public enum ErrorCode {
     PARKING_DATA_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "주차장 정보 서버와 통신할 수 없습니다."),
     PARKING_DATA_SYNC_ALREADY_RUNNING(HttpStatus.CONFLICT, "주차장 정보 동기화가 이미 진행 중입니다. 잠시 후 다시 시도해주세요."),
     DIRECTIONS_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "길찾기 서버와 통신할 수 없습니다."),
+    // Azure Blob Storage 마이그레이션(2026-08-18 추가) — image-storage.backend=azure-blob인데
+    // AZURE_STORAGE_CONNECTION_STRING이 비어있는 상태에서 실제로 업로드/삭제가 호출된 경우에만 던진다.
+    // 설정이 없다고 서버 기동 자체를 막지는 않는다(다른 선택적 외부 연동과 동일한 원칙).
+    AZURE_STORAGE_NOT_CONFIGURED(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 저장소(Azure Blob Storage)가 설정되지 않았습니다."),
     SUPPORT_CHAT_SERVICE_UNAVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "AI 고객센터 챗봇과 통신할 수 없습니다. 잠시 후 다시 시도해주세요."),
     SUPPORT_CHAT_DAILY_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "오늘 문의 가능한 횟수를 초과했습니다. 내일 다시 시도해주세요."),
     REPORT_REASON_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "허용되지 않은 신고 사유입니다."),

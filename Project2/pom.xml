@@ -119,6 +119,15 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- Azure Blob Storage 마이그레이션(2026-08-18 추가) — 프로필/영수증/리뷰/음식점 이미지를 VM 로컬
+		     디스크 대신 Azure Blob Storage에 저장하는 옵션(image-storage.backend=azure-blob, 기본값은
+		     여전히 local). Spring Boot 4용 BOM이 별도로 없어 안정 버전을 직접 고정한다. -->
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-storage-blob</artifactId>
+			<version>12.27.1</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-tomcat</artifactId>
