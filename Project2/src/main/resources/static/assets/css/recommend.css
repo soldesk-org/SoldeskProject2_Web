@@ -51,6 +51,14 @@
   }
   .rc-state-icon svg { width: 25px; height: 25px; }
   .rc-state-icon--float { animation: rc-float 3.2s ease-in-out infinite; }
+  /* 2026-08-18 추가 — 최초 진입 안내(recommendEmpty)를 좀 더 눈에 띄게 키운 버전. 브랜드 그라디언트를
+     배경 전체에 채워서(기존 옅은 톤 대신) 존재감을 준다. */
+  .rc-state-icon--lg {
+    width: 84px; height: 84px; border-radius: 26px;
+    background: var(--brand-grad); border: none; color: #fff;
+    box-shadow: var(--sh-brand);
+  }
+  .rc-state-icon--lg svg { width: 36px; height: 36px; }
   @keyframes rc-float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-5px); }
@@ -64,6 +72,7 @@
     margin-top: 7px; max-width: 340px;
     font-size: 13.5px; line-height: 1.65; color: var(--ink-500);
   }
+  #recommendEmpty .rc-state-desc { max-width: 440px; }
 
   /* 로딩 스피너 */
   .rc-spinner {
