@@ -264,3 +264,19 @@ server:
   # nginx가 X-Forwarded-Proto로 원래 스킴(https)을 넘겨주는데, 이 설정이 없으면 Spring이 그걸 무시하고
   # "redirect:" 응답을 항상 http://로 내려버린다("/index" → "/" 리다이렉트에서 2026-08-08 실제로 발견).
   forward-headers-strategy: framework
+
+# Prometheus 모니터링(2026-08-18 추가) — 관리용 엔드포인트를 메인 포트(8081)와 분리된 별도 내장
+# 서버(127.0.0.1:8091)로 띄운다. 포트가 다르면 스프링 시큐리티 메인 필터체인을 안 타서 14(관리자-권한)의
+# JWT 인가 로직과 충돌하지 않고, 127.0.0.1에만 바인딩되어 nginx/외부에서는 접근 자체가 불가능하다 —
+# VM에 같이 뜨는 Prometheus 컨테이너만 이 포트를 스크래핑할 수 있다.
+management:
+  server:
+    port: 8091
+    address: 127.0.0.1
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
