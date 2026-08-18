@@ -293,7 +293,7 @@
   var categoryFilterList = document.getElementById("categoryFilterList");
   if (categoryFilterList) {
     var allBtn = categoryFilterList.querySelector('[data-category="all"]');
-    Api.request("/api/restaurants/categories").then(function (categories) {
+    function renderCategoryChips(categories) {
       (categories || []).filter(function (c) { return c.categoryName !== "그 외"; }).forEach(function (c) {
         var btn = document.createElement("button");
         btn.type = "button";
@@ -305,7 +305,22 @@
         btn.textContent = c.categoryName;
         categoryFilterList.appendChild(btn);
       });
-    }).catch(function () {});
+    }
+    // 카테고리 목록(2026-08-18 캐시 추가) — 우리 DB가 갖고 있는 고정 마스터 데이터라(카카오 실시간
+    // 데이터와 달리 캐시 금지 제약 없음, 07 문서 참고) 매번 새로 불러올 필요가 없다. sessionStorage에
+    // 담아 같은 탭에서 재방문할 때는 네트워크 왕복 없이 즉시 칩을 그린다(브라우저/탭을 닫으면 자연히
+    // 비워져서 카테고리가 실제로 바뀌어도 오래 안 남는다).
+    var CATEGORY_CACHE_KEY = "eatty.restaurantCategories";
+    var cached = null;
+    try { cached = JSON.parse(sessionStorage.getItem(CATEGORY_CACHE_KEY) || "null"); } catch (e) { cached = null; }
+    if (cached) {
+      renderCategoryChips(cached);
+    } else {
+      Api.request("/api/restaurants/categories").then(function (categories) {
+        renderCategoryChips(categories);
+        try { sessionStorage.setItem(CATEGORY_CACHE_KEY, JSON.stringify(categories)); } catch (e) { /* 용량 초과 무시 */ }
+      }).catch(function () {});
+    }
 
     categoryFilterList.addEventListener("click", function (e) {
       var btn = e.target.closest("[data-category-id], [data-category='all']");
@@ -1050,6 +1065,8 @@
   // ---- 지도 초기화 ----
   function initMap(center) {
     map = new naver.maps.Map("naverMap", { center: new naver.maps.LatLng(center.lat, center.lng), zoom: 15 });
+    var mapLoadingOverlay = document.getElementById("mapLoadingOverlay");
+    if (mapLoadingOverlay) mapLoadingOverlay.hidden = true;
     naver.maps.Event.addListener(map, "dragend", function () { if (researchAreaBtn) researchAreaBtn.parentElement.style.display = ""; updateRadiusBadge(); });
     naver.maps.Event.addListener(map, "zoom_changed", function () { if (researchAreaBtn) researchAreaBtn.parentElement.style.display = ""; updateRadiusBadge(); });
 

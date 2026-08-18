@@ -346,8 +346,9 @@
 
       <div class="e-scroll flex-1 p-3.5 space-y-2.5" id="resultList">
 
-        <!-- 로딩 스켈레톤 -->
-        <div id="resultLoading" class="space-y-2.5" hidden>
+        <!-- 로딩 스켈레톤(2026-08-18 — 기본값을 hidden→표시로 변경. 예전엔 JS의 showLoading()이
+             호출되기 전(지도 스크립트 로드/위치 권한 확인 중)에는 빈 화면만 보였다.) -->
+        <div id="resultLoading" class="space-y-2.5">
           <div class="e-shop-card !cursor-default">
             <span class="e-skeleton w-[84px] h-[84px] rounded-[var(--r)] flex-none"></span>
             <span class="flex-1 space-y-2">
@@ -407,6 +408,12 @@
 
       <!-- 네이버 지도 삽입 영역 -->
       <div class="w-full h-full" id="naverMap" style="background:#eceff3"></div>
+
+      <!-- 지도 로딩 스켈레톤(2026-08-18 추가) — 네이버 지도 스크립트 로드 + 위치 권한 확인이 끝날
+           때까지 빈 회색 화면만 보이던 걸 스켈레톤으로 대체(explore.js initMap()에서 hidden 처리). -->
+      <div class="absolute inset-0 z-[3] grid place-items-center" id="mapLoadingOverlay">
+        <span class="e-skeleton w-full h-full !rounded-none"></span>
+      </div>
 
       <!-- 현재 영역 재검색 -->
       <div class="absolute left-1/2 -translate-x-1/2 top-4 z-10">
