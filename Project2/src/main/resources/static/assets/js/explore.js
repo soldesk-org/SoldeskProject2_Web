@@ -130,16 +130,40 @@
     markers.forEach(function (m) { m.setMap(null); });
     markers = [];
   }
+  // 마커 겹침 방지(2026-08-18 추가, index.js 홈페이지 지도와 동일한 방식) — 같은 건물에 여러 매장이
+  // 입점한 경우 좌표가 같거나 아주 가까워서 마커 핀이 완전히 겹쳐 하나만 보이는 문제가 있었다.
+  // 이미 쓰인 좌표 근처(약 65m 이내)면 살짝 밀어내서 각 마커가 클릭 가능하게 따로 보이게 한다.
+  var usedMarkerPositions = [];
+  var MARKER_NEAR_THRESHOLD = 0.0006; // 위도/경도 약 65m
+  function isNearUsedPosition(lat, lng) {
+    return usedMarkerPositions.some(function (p) {
+      return Math.abs(p.lat - lat) < MARKER_NEAR_THRESHOLD && Math.abs(p.lng - lng) < MARKER_NEAR_THRESHOLD;
+    });
+  }
+  function nudgeMarkerIfOverlapping(lat, lng) {
+    var attempt = 0;
+    while (isNearUsedPosition(lat, lng) && attempt < 5) {
+      var radius = 0.0009 + attempt * 0.0004;
+      var angle = Math.random() * Math.PI * 2;
+      lat += Math.cos(angle) * radius;
+      lng += Math.sin(angle) * radius;
+      attempt++;
+    }
+    usedMarkerPositions.push({ lat: lat, lng: lng });
+    return { lat: lat, lng: lng };
+  }
   function renderMarkers(list, alwaysShow) {
     clearMarkers();
+    usedMarkerPositions = [];
     list.forEach(function (item) {
       if (item.latitude == null || item.longitude == null) return;
       var classified = !!CATEGORY_MARKER[item.category];
       // 카테고리 분류가 안 된 매장은 지도 전체 브라우징 중엔 기본 마커 대신 생략하지만(마커 바다 방지),
       // alwaysShow(공유 링크로 들어와 그 가게 하나만 보여줄 때)는 미분류라도 네이버 기본 마커로 보여준다.
       if (!classified && !alwaysShow) return;
+      var adjusted = nudgeMarkerIfOverlapping(item.latitude, item.longitude);
       var marker = new naver.maps.Marker({
-        position: new naver.maps.LatLng(item.latitude, item.longitude),
+        position: new naver.maps.LatLng(adjusted.lat, adjusted.lng),
         map: map, title: item.name,
       });
       if (classified) marker.setIcon(markerIcon(item.category));
