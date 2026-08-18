@@ -160,6 +160,9 @@
       // 2026-08-19 추가 — 해상도 제약이 없으면 기기가 낮은 해상도를 골라 흐릿하게 나올 수 있어 ideal
       // 해상도를 명시. focusMode: continuous는 초점이 한 번 잡힌 뒤 안 바뀌던 문제(영수증처럼 가까운
       // 거리를 다시 겨눌 때) 대응 — 지원 안 하는 브라우저에선 무시되므로 안전하다.
+      // (2026-08-19 수정 — 스트림을 받은 직후 track.applyConstraints()로 focusMode를 다시 한번 적용하는
+      // 후처리를 넣었었는데, 그게 카메라 파이프라인을 재협상시켜서 프리뷰가 한 번씩 끊기는 원인으로
+      // 보고됨. getUserMedia 호출 시점의 constraints만으로 충분하므로 후처리 호출은 제거한다.)
       navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
@@ -173,27 +176,12 @@
         .then(function (s) {
           stream = s;
           video.srcObject = s;
-          applyContinuousFocus(s);
         })
         .catch(function () {
           // 권한 거부/카메라 없음 등 — 모달 닫고 원래 방식(OS 카메라 앱/파일선택)으로 폴백
           modal.hidden = true;
           fallbackToNativePicker();
         });
-    }
-
-    // 일부 브라우저는 getUserMedia 제약조건의 focusMode를 무시하고, 트랙의 applyConstraints로만
-    // 받아들인다(ImageCapture API 지원 시 capabilities로 실제 지원 여부 확인 가능). 지원 안 하면
-    // 조용히 실패하도록 try/catch로 감싼다.
-    function applyContinuousFocus(s) {
-      var track = s.getVideoTracks()[0];
-      if (!track || !track.getCapabilities) return;
-      try {
-        var caps = track.getCapabilities();
-        if (caps.focusMode && caps.focusMode.indexOf("continuous") !== -1) {
-          track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(function () {});
-        }
-      } catch (e) { /* 미지원 브라우저 - 무시 */ }
     }
 
     shutterBtn.addEventListener("click", function () {
