@@ -1,7 +1,10 @@
 package com.foodtrip.foodsearch.recommendation.service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,6 +21,7 @@ import com.foodtrip.foodsearch.recommendation.client.RecommendationClient;
 import com.foodtrip.foodsearch.restaurant.entity.Favorite;
 import com.foodtrip.foodsearch.restaurant.repository.FavoriteRepository;
 import com.foodtrip.foodsearch.recommendation.dto.RecommendResponseDto;
+import com.foodtrip.foodsearch.recommendation.dto.RecommendedPlaceDto;
 import com.foodtrip.foodsearch.recommendation.dto.RecommendationFeedbackResponseDto;
 import com.foodtrip.foodsearch.recommendation.dto.RecommendationSearchAnalysisDto;
 import com.foodtrip.foodsearch.recommendation.entity.RecommendationHistory;
@@ -72,6 +76,13 @@ public class RecommendationServiceImpl implements RecommendationService {
         String augmentedText = augmentWithFoodBti(authorizationHeader, memberId, text);
         augmentedText = augmentWithFavorites(memberId, augmentedText);
         RecommendResponseDto response = recommendationClient.recommend(augmentedText, x, y, radius, size);
+        // 팀원 Python 서버(recommendation_api.py)가 같은 장소를 place_id 중복으로 여러 번 돌려주는 경우가
+        // 실사용 중 발견됨("회식의달인 신논현점"이 추천 10곳 중 10곳 전부로 나옴, 2026-08-18) — 그쪽
+        // 서버는 우리 소관이 아니라 수정할 수 없으므로, 응답을 프록시하는 우리 쪽에서 place_id 기준으로
+        // 방어적으로 중복 제거한다(처음 등장한 것만 남기고 순서 유지).
+        response = new RecommendResponseDto(response.analysis(), response.recommendationRule(),
+                response.dataNotice(), response.totalCandidates(), dedupeByPlaceId(response.recommendations()),
+                response.historyId());
 
         if (memberId == null) {
             return response; // 비로그인 - 이력 저장 안 함, historyId도 null인 채로 그대로 반환
@@ -86,6 +97,19 @@ public class RecommendationServiceImpl implements RecommendationService {
 
         return new RecommendResponseDto(response.analysis(), response.recommendationRule(), response.dataNotice(),
                 response.totalCandidates(), response.recommendations(), history.getRecommendationHistoryId());
+    }
+
+    private List<RecommendedPlaceDto> dedupeByPlaceId(List<RecommendedPlaceDto> places) {
+        if (places == null || places.isEmpty()) {
+            return places;
+        }
+        Map<String, RecommendedPlaceDto> seen = new LinkedHashMap<>();
+        for (RecommendedPlaceDto place : places) {
+            // place_id가 없는 이상 케이스는 (이름+주소)로 대체 키를 만들어 중복 제거 대상에서 빠지지 않게 한다.
+            String key = place.placeId() != null ? place.placeId() : place.placeName() + "|" + place.addressName();
+            seen.putIfAbsent(key, place);
+        }
+        return new ArrayList<>(seen.values());
     }
 
     @Override
