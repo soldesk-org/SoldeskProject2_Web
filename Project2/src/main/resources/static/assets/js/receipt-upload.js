@@ -132,8 +132,14 @@
     var canvas = document.getElementById("receiptCameraCanvas");
     var shutterBtn = document.getElementById("receiptCameraShutterBtn");
     var cancelBtn = document.getElementById("receiptCameraCancelBtn");
+    var flipBtn = document.getElementById("receiptCameraFlipBtn");
+    var helpBtn = document.getElementById("receiptCameraHelpBtn");
+    var guideOverlay = document.getElementById("receiptCameraGuideOverlay");
+    var guideCloseBtn = document.getElementById("receiptCameraGuideCloseBtn");
+    var thumbSlot = document.getElementById("receiptCameraThumbSlot");
     var stream = null;
     var bypass = false; // 폴백으로 원래 input.click()을 트리거할 때 재차 가로채지 않기 위한 플래그
+    var facingMode = "environment"; // 카메라 전환 버튼으로 "user"와 토글
 
     var supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
@@ -147,6 +153,7 @@
 
     function closeModal() {
       modal.hidden = true;
+      guideOverlay.hidden = true;
       stopStream();
     }
 
@@ -163,9 +170,10 @@
       // (2026-08-19 수정 — 스트림을 받은 직후 track.applyConstraints()로 focusMode를 다시 한번 적용하는
       // 후처리를 넣었었는데, 그게 카메라 파이프라인을 재협상시켜서 프리뷰가 한 번씩 끊기는 원인으로
       // 보고됨. getUserMedia 호출 시점의 constraints만으로 충분하므로 후처리 호출은 제거한다.)
+      stopStream();
       navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: "environment" },
+          facingMode: { ideal: facingMode },
           width: { ideal: 1920 },
           height: { ideal: 1080 },
           focusMode: "continuous",
@@ -191,6 +199,7 @@
       canvas.width = w;
       canvas.height = h;
       canvas.getContext("2d").drawImage(video, 0, 0, w, h);
+      thumbSlot.style.backgroundImage = "url(" + canvas.toDataURL("image/jpeg", 0.7) + ")";
       canvas.toBlob(function (blob) {
         if (!blob) return;
         var file = new File([blob], "receipt-" + Date.now() + ".jpg", { type: "image/jpeg" });
@@ -203,6 +212,17 @@
     });
 
     cancelBtn.addEventListener("click", closeModal);
+
+    helpBtn.addEventListener("click", function () { guideOverlay.hidden = false; });
+    guideCloseBtn.addEventListener("click", function () { guideOverlay.hidden = true; });
+    guideOverlay.addEventListener("click", function (e) {
+      if (e.target === guideOverlay) guideOverlay.hidden = true; // 바깥 영역 클릭으로도 닫힘
+    });
+
+    flipBtn.addEventListener("click", function () {
+      facingMode = facingMode === "environment" ? "user" : "environment";
+      openCamera();
+    });
 
     if (supported) {
       fileInput.addEventListener("click", function (e) {

@@ -216,15 +216,54 @@
                나던 문제를 해결하기 위한 커스텀 카메라 모달. receipt-upload.js가 input 클릭을 가로채서
                이 모달을 대신 띄우고, getUserMedia로 찍은 프레임을 위 input.files에 채워넣는다
                (getUserMedia를 못 쓰는 환경이면 원래 input 클릭으로 자동 폴백). -->
+          <!-- 2026-08-19 수정 — 참고 이미지(사업자 영수증 인증 앱)와 동일한 레이아웃으로 전면 교체:
+               좌상단 "?" 가이드 버튼(누르면 촬영 가이드 카드 오버레이), 우상단 닫기, 하단 왼쪽 마지막
+               촬영 썸네일 슬롯 / 가운데 셔터 / 오른쪽 전후면 전환. -->
           <div class="e-camera-modal" id="receiptCameraModal" hidden>
             <div class="e-camera-modal-inner">
-              <p class="e-camera-modal-hint">가게명·방문일시·결제금액이 잘 보이도록 촬영해주세요</p>
               <video id="receiptCameraVideo" autoplay playsinline muted></video>
               <canvas id="receiptCameraCanvas" hidden></canvas>
+
+              <div class="e-camera-topbar">
+                <button type="button" class="e-camera-round-btn" id="receiptCameraHelpBtn" aria-label="촬영 가이드 보기">?</button>
+                <button type="button" class="e-camera-round-btn" id="receiptCameraCancelBtn" aria-label="닫기">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+
               <div class="e-camera-modal-actions">
-                <button type="button" class="e-camera-cancel-btn" id="receiptCameraCancelBtn">취소</button>
+                <span class="e-camera-thumb-slot" id="receiptCameraThumbSlot" aria-hidden="true"></span>
                 <button type="button" class="e-camera-shutter-btn" id="receiptCameraShutterBtn" aria-label="촬영"></button>
-                <span style="width:40px"></span>
+                <button type="button" class="e-camera-round-btn" id="receiptCameraFlipBtn" aria-label="카메라 전환">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1 21 6l-4 3.9M3 11V9a4 4 0 0 1 4-4h14M7 21.9 3 18l4-3.9M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                </button>
+              </div>
+
+              <!-- 촬영 가이드 오버레이(? 버튼) -->
+              <div class="e-camera-guide-overlay" id="receiptCameraGuideOverlay" hidden>
+                <div class="e-camera-guide-card">
+                  <button type="button" class="e-camera-guide-close" id="receiptCameraGuideCloseBtn" aria-label="가이드 닫기">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </button>
+                  <p class="e-camera-guide-title">영수증을 찍고<br>방문한 장소를 인증해보세요</p>
+                  <p class="e-camera-guide-desc">사업자 정보 및 결제 정보가<br>잘 보이게 찍어주세요.</p>
+                  <div class="e-camera-guide-mock">
+                    <span class="e-camera-guide-corner tl"></span>
+                    <span class="e-camera-guide-corner tr"></span>
+                    <span class="e-camera-guide-corner bl"></span>
+                    <span class="e-camera-guide-corner br"></span>
+                    <div class="e-camera-guide-receipt">
+                      <p class="e-camera-guide-receipt-title">○○식당 영수증</p>
+                      <div class="e-camera-guide-receipt-row"><span>매장명</span><span>OO식당</span></div>
+                      <div class="e-camera-guide-receipt-row"><span>전화번호</span><span>010-XXX-XXXX</span></div>
+                      <div class="e-camera-guide-receipt-row"><span>주소</span><span>OO시 OO구 OO로</span></div>
+                      <div class="e-camera-guide-receipt-table-head"><span>상품명</span><span>수량</span><span>금액</span></div>
+                      <div class="e-camera-guide-receipt-bar"></div>
+                      <div class="e-camera-guide-receipt-bar"></div>
+                      <div class="e-camera-guide-receipt-row"><span>합계</span><span class="bar"></span></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
