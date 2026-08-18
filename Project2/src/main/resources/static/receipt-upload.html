@@ -473,7 +473,10 @@
               음식 사진
               <span class="e-label-side"><span id="reviewPhotoCount">0</span> / 3</span>
             </label>
-            <input type="file" id="reviewPhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" capture="environment" multiple hidden>
+            <!-- 2026-08-19 수정 — capture="environment"는 카메라만 강제로 열려서 사진첩에서 고르지
+               못했다. 음식 사진은 영수증과 달리 실시간 촬영을 강제할 이유가 없어서 제거 — 모바일에서
+               "카메라로 촬영"/"사진 보관함" 둘 다 고를 수 있는 표준 선택창이 뜬다. -->
+          <input type="file" id="reviewPhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
             <div class="flex flex-wrap gap-2.5" id="reviewPhotoList">
               <button type="button"
                       class="w-20 h-20 rounded-[var(--r-md)] border-2 border-dashed border-[var(--line)] flex flex-col items-center justify-center gap-1 text-[var(--ink-400)] flex-none"
