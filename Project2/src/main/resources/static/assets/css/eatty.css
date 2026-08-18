@@ -677,6 +677,12 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background var(--dur);
   appearance: none;
 }
+/* 2026-08-19 추가 — iOS Safari는 포커스하는 입력 요소의 폰트가 16px 미만이면 화면을 자동으로 확대한다
+   (탐색 검색창 등에 포커스할 때마다 화면이 확대되고 다시 축소해야 했던 문제). 데스크톱 디자인은
+   그대로 두고 모바일 폭에서만 16px로 올려서 확대 자체가 안 일어나게 한다. */
+@media (max-width: 768px) {
+  .e-input, .e-textarea, .e-select { font-size: 16px; }
+}
 .e-input::placeholder, .e-textarea::placeholder { color: var(--ink-400); }
 /* type="search" 기본 취소(X) 아이콘은 브라우저마다 색/모양이 제각각이라 항상 숨기고,
    대신 마크업에서 .e-eye 버튼으로 커스텀 X를 직접 붙인다(explore.html 검색창과 동일한 패턴). */
@@ -941,11 +947,13 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 }
 .e-camera-plain-btn svg { width: 22px; height: 22px; }
 
-/* 하단 촬영 바 — 왼쪽 여백(셔터 중앙 정렬용) / 가운데 셔터 / 오른쪽 카메라 전환 */
+/* 하단 촬영 바 — 왼쪽 여백(셔터 중앙 정렬용) / 가운데 셔터 / 오른쪽 카메라 전환.
+   2026-08-19 수정 — 카메라 전환 버튼이 너무 작다는 지적으로 40px→52px, 아이콘도 같이 키움. */
 .e-camera-modal-actions .e-camera-round-btn {
-  width: 40px; height: 40px;
+  width: 52px; height: 52px;
+  background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.4);
 }
-.e-camera-modal-actions .e-camera-round-btn { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.4); }
+.e-camera-modal-actions .e-camera-round-btn svg { width: 24px; height: 24px; }
 
 /* 촬영 가이드 오버레이(? 버튼) — 참고 이미지의 2번째 화면.
    2026-08-19 수정 — 그냥 hidden 속성으로 즉시 나타나고 사라지던 걸, 이 프로젝트의 일반 모달(.e-modal/
