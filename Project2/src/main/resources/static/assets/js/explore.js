@@ -582,9 +582,14 @@
           return '<img src="' + escapeHtml(img.imageUrl) + '" class="w-16 h-16 rounded-[var(--r-md)] object-cover flex-none cursor-pointer" alt="리뷰 사진" data-lightbox="' + escapeHtml(img.imageUrl) + '">';
         }).join("");
         // OCR 인식 메뉴(2026-08-18 추가) — 작성자가 "공개"로 설정한 경우에만 menuItems가 채워져서 옴.
-        var menuItems = (r.menuItems || []).map(function (m) {
-          return '<span class="e-tag">' + escapeHtml(m.name) + (m.price != null ? ' · ' + Number(m.price).toLocaleString() + '원' : '') + '</span>';
-        }).join("");
+        // 2026-08-18 수정 — 전체를 태그로 나열하면 메뉴가 많을 때 리뷰 카드가 너무 길어져서, 첫 번째
+        // 메뉴명 하나만 대표로 보여주고 나머지는 "외 N개"로 축약한다.
+        var menuItems = "";
+        if (r.menuItems && r.menuItems.length) {
+          var firstMenuName = escapeHtml(r.menuItems[0].name);
+          var restMenuCount = r.menuItems.length - 1;
+          menuItems = '<span class="e-tag">' + firstMenuName + (restMenuCount > 0 ? ' 외 ' + restMenuCount + '개' : '') + '</span>';
+        }
         // 작성자 프로필 사진(2026-08-10 추가) — 미설정이면 닉네임 첫 글자 이니셜 아바타로 대체.
         var avatarHtml = r.profileImageUrl
           ? '<img src="' + escapeHtml(r.profileImageUrl) + '" class="e-avatar e-avatar-sm" alt="' + escapeHtml(r.nickname) + '">'
