@@ -952,19 +952,28 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 }
 .e-camera-modal-actions .e-camera-round-btn { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.4); }
 
-/* 촬영 가이드 오버레이(? 버튼) — 참고 이미지의 2번째 화면 */
+/* 촬영 가이드 오버레이(? 버튼) — 참고 이미지의 2번째 화면.
+   2026-08-19 수정 — 그냥 hidden 속성으로 즉시 나타나고 사라지던 걸, 이 프로젝트의 일반 모달(.e-modal/
+   .is-open, eatty.css 11번 섹션)과 동일한 열림/닫힘 애니메이션(배경 opacity 페이드 + 카드
+   translateY+scale)으로 통일한다. [hidden] 대신 항상 DOM에 있고 opacity/visibility로 감춘다 —
+   display:none은 트랜지션이 안 걸리기 때문. */
 .e-camera-guide-overlay {
   position: absolute; inset: 0; z-index: 1;
-  background: rgba(0,0,0,.72);
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
+  background: rgba(0,0,0,.72);
+  opacity: 0; visibility: hidden;
+  transition: opacity var(--dur) var(--ease), visibility var(--dur);
 }
-.e-camera-guide-overlay[hidden] { display: none; }
+.e-camera-guide-overlay.is-open { opacity: 1; visibility: visible; }
 .e-camera-guide-card {
   position: relative; width: 100%; max-width: 340px;
   background: #fff; border-radius: 20px; padding: 28px 24px 24px;
   text-align: center;
+  transform: translateY(14px) scale(.98);
+  transition: transform .26s var(--ease);
 }
+.e-camera-guide-overlay.is-open .e-camera-guide-card { transform: translateY(0) scale(1); }
 .e-camera-guide-close {
   position: absolute; top: 14px; right: 14px;
   width: 28px; height: 28px; border-radius: 999px; border: none; background: none;

@@ -154,7 +154,7 @@
 
     function closeModal() {
       modal.hidden = true;
-      guideOverlay.hidden = true;
+      guideOverlay.classList.remove("is-open");
       stopStream();
     }
 
@@ -229,10 +229,10 @@
       closeModal();
     });
 
-    helpBtn.addEventListener("click", function () { guideOverlay.hidden = false; });
-    guideCloseBtn.addEventListener("click", function () { guideOverlay.hidden = true; });
+    helpBtn.addEventListener("click", function () { guideOverlay.classList.add("is-open"); });
+    guideCloseBtn.addEventListener("click", function () { guideOverlay.classList.remove("is-open"); });
     guideOverlay.addEventListener("click", function (e) {
-      if (e.target === guideOverlay) guideOverlay.hidden = true; // 바깥 영역 클릭으로도 닫힘
+      if (e.target === guideOverlay) guideOverlay.classList.remove("is-open"); // 바깥 영역 클릭으로도 닫힘
     });
 
     flipBtn.addEventListener("click", function () {
