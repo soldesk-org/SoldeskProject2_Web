@@ -446,11 +446,18 @@
   var followupModalDesc = document.getElementById("followupModalDesc");
   var followupModalBody = document.getElementById("followupModalBody");
 
+  // 2026-08-18 수정 — 스피너 대신 실제 결과 행(.rc-follow-row)과 같은 모양의 스켈레톤으로 교체.
   function followupLoadingHtml() {
-    return '<div class="flex flex-col items-center justify-center py-14 text-center">' +
-      '<div class="rc-spinner" style="width:40px;height:40px"><span></span></div>' +
-      '<p class="text-[13.5px] text-[var(--ink-500)] mt-4">주변을 살펴보고 있어요</p>' +
+    var row =
+      '<div class="rc-follow-row">' +
+      '<span class="e-skeleton w-[38px] h-[38px] rounded-[12px] flex-none"></span>' +
+      '<span class="min-w-0 flex-1 space-y-1.5">' +
+      '<span class="e-skeleton block h-3.5 w-2/5 rounded"></span>' +
+      '<span class="e-skeleton block h-3 w-3/5 rounded"></span>' +
+      '</span>' +
+      '<span class="e-skeleton block h-3 w-8 rounded flex-none"></span>' +
       '</div>';
+    return row + row + row;
   }
 
   function followupPlaceRow(p, type) {

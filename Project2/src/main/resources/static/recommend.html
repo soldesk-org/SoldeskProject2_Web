@@ -269,12 +269,41 @@
           </div>
         </div>
 
-        <!-- 로딩 -->
+        <!-- 로딩(2026-08-18 수정 — 스피너 대신 실제 결과 카드(.rc-card)와 같은 모양의 스켈레톤으로
+             교체. AI 추론이 30~40초까지 걸릴 수 있어(recommendation.base-url 타임아웃 60초) 그 시간 동안
+             빙글빙글 도는 스피너 하나만 보는 것보다 "카드 자리에 곧 채워질 내용"이 보이는 쪽이 대기감을
+             줄여준다. -->
         <div id="recommendLoading" class="min-h-full flex flex-col" hidden>
-          <div class="e-card e-card-pad flex-1 flex flex-col items-center justify-center text-center">
-            <div class="rc-spinner" aria-hidden="true"><span></span></div>
-            <p class="rc-state-title mt-6" id="recommendLoadingText">잇티 AI가 후보를 고르고 있어요</p>
-            <p class="rc-state-desc">리뷰 태그와 방문 인증 데이터를 함께 살펴보는 중이에요</p>
+          <p class="rc-state-title text-center" id="recommendLoadingText">잇티 AI가 후보를 고르고 있어요</p>
+          <p class="rc-state-desc text-center mx-auto">리뷰 태그와 방문 인증 데이터를 함께 살펴보는 중이에요</p>
+          <div class="space-y-4 mt-6">
+            <div class="rc-card">
+              <span class="e-skeleton w-7 h-7 rounded-full flex-none"></span>
+              <div class="min-w-0 flex-1 space-y-2.5">
+                <span class="e-skeleton block h-4.5 w-2/5 rounded"></span>
+                <span class="e-skeleton block h-3 w-3/5 rounded"></span>
+                <span class="e-skeleton block h-3 w-4/5 rounded"></span>
+                <span class="e-skeleton block h-8 w-32 rounded mt-1"></span>
+              </div>
+            </div>
+            <div class="rc-card">
+              <span class="e-skeleton w-7 h-7 rounded-full flex-none"></span>
+              <div class="min-w-0 flex-1 space-y-2.5">
+                <span class="e-skeleton block h-4.5 w-2/5 rounded"></span>
+                <span class="e-skeleton block h-3 w-3/5 rounded"></span>
+                <span class="e-skeleton block h-3 w-4/5 rounded"></span>
+                <span class="e-skeleton block h-8 w-32 rounded mt-1"></span>
+              </div>
+            </div>
+            <div class="rc-card">
+              <span class="e-skeleton w-7 h-7 rounded-full flex-none"></span>
+              <div class="min-w-0 flex-1 space-y-2.5">
+                <span class="e-skeleton block h-4.5 w-2/5 rounded"></span>
+                <span class="e-skeleton block h-3 w-3/5 rounded"></span>
+                <span class="e-skeleton block h-3 w-4/5 rounded"></span>
+                <span class="e-skeleton block h-8 w-32 rounded mt-1"></span>
+              </div>
+            </div>
           </div>
         </div>
 
