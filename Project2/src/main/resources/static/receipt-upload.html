@@ -212,6 +212,22 @@
         <div class="e-dropzone" id="receiptDrop" data-dropzone
              data-dropzone-preview="receiptPreview" data-dropzone-filename="receiptFileName">
           <input type="file" id="receiptFileInput" name="receiptImage" accept="image/png,image/jpeg,image/webp" capture="environment" aria-label="영수증 사진 업로드">
+          <!-- 2026-08-19 추가 — 위 input의 capture="environment"가 OS 기본 카메라 앱을 열어서 셔터음이
+               나던 문제를 해결하기 위한 커스텀 카메라 모달. receipt-upload.js가 input 클릭을 가로채서
+               이 모달을 대신 띄우고, getUserMedia로 찍은 프레임을 위 input.files에 채워넣는다
+               (getUserMedia를 못 쓰는 환경이면 원래 input 클릭으로 자동 폴백). -->
+          <div class="e-camera-modal" id="receiptCameraModal" hidden>
+            <div class="e-camera-modal-inner">
+              <p class="e-camera-modal-hint">가게명·방문일시·결제금액이 잘 보이도록 촬영해주세요</p>
+              <video id="receiptCameraVideo" autoplay playsinline muted></video>
+              <canvas id="receiptCameraCanvas" hidden></canvas>
+              <div class="e-camera-modal-actions">
+                <button type="button" class="e-camera-cancel-btn" id="receiptCameraCancelBtn">취소</button>
+                <button type="button" class="e-camera-shutter-btn" id="receiptCameraShutterBtn" aria-label="촬영"></button>
+                <span style="width:40px"></span>
+              </div>
+            </div>
+          </div>
           <div class="e-dropzone-icon">
             <svg viewBox="0 0 384 512" fill="currentColor"><path d="M14 2.2C22.5-1.7 32.5-.3 39.6 5.8L80 40.4 120.4 5.8c9-7.7 22.3-7.7 31.2 0L192 40.4 232.4 5.8c9-7.7 22.3-7.7 31.2 0L304 40.4 344.4 5.8c7.1-6.1 17.1-7.5 25.6-3.6s14 12.4 14 21.8l0 464c0 9.4-5.5 17.9-14 21.8s-18.5 2.5-25.6-3.6L304 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L192 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L80 471.6 39.6 506.2c-7.1 6.1-17.1 7.5-25.6 3.6S0 497.4 0 488L0 24C0 14.6 5.5 6.1 14 2.2zM96 144c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 144zM80 352c0 8.8 7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 336c-8.8 0-16 7.2-16 16zM96 240c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 240z"/></svg>
           </div>

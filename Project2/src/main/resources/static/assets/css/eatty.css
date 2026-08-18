@@ -892,6 +892,39 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 }
 .e-dropzone-icon svg { width: 27px; height: 27px; color: var(--brand-500); }
 
+/* 커스텀 카메라 모달(2026-08-19 추가) — <input capture="environment">가 여는 OS 기본 카메라 앱의
+   셔터음을 웹에서 끌 방법이 없어서, getUserMedia로 카메라 스트림을 직접 받아 캡처하는 화면.
+   OS/브라우저 셔터음이 아예 재생되지 않는다. */
+.e-camera-modal {
+  position: fixed; inset: 0; z-index: 200;
+  background: #000; display: flex; align-items: center; justify-content: center;
+}
+.e-camera-modal-inner { position: relative; width: 100%; height: 100%; }
+.e-camera-modal video {
+  width: 100%; height: 100%; object-fit: cover; background: #000;
+}
+.e-camera-modal-actions {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 28px calc(28px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(0,0,0,.55), transparent);
+}
+.e-camera-cancel-btn {
+  color: #fff; font-weight: 700; font-size: 15px; background: none; border: none; cursor: pointer;
+  padding: 8px 4px;
+}
+.e-camera-shutter-btn {
+  width: 64px; height: 64px; border-radius: 999px;
+  background: #fff; border: 4px solid rgba(255,255,255,.4);
+  cursor: pointer; transition: transform var(--dur) var(--ease);
+}
+.e-camera-shutter-btn:active { transform: scale(0.92); }
+.e-camera-modal-hint {
+  position: absolute; top: calc(16px + env(safe-area-inset-top)); left: 0; right: 0;
+  text-align: center; color: #fff; font-size: 13px; font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+
 /* 파일 목록 아이템 */
 .e-file-item {
   display: flex; align-items: center; gap: 12px;

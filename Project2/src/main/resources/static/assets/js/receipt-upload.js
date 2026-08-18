@@ -120,6 +120,84 @@
   receiptDrop.addEventListener("eatty:filepicked", function () {
     receiptDrop.hidden = true;
   });
+  // ---- 커스텀 카메라(2026-08-19 추가) ----
+  // input의 capture="environment"만 쓰면 OS 기본 카메라 앱이 열려서 셔터음을 끌 수 없다. getUserMedia로
+  // 카메라 스트림을 직접 받아 캡처하면 OS/브라우저 셔터음이 아예 재생되지 않는다. 카메라 접근이
+  // 안 되는 환경(권한 거부, 미지원 브라우저, PC 등)에서는 원래 input 클릭(OS 파일선택/카메라)으로
+  // 자동 폴백한다.
+  (function () {
+    var fileInput = document.getElementById("receiptFileInput");
+    var modal = document.getElementById("receiptCameraModal");
+    var video = document.getElementById("receiptCameraVideo");
+    var canvas = document.getElementById("receiptCameraCanvas");
+    var shutterBtn = document.getElementById("receiptCameraShutterBtn");
+    var cancelBtn = document.getElementById("receiptCameraCancelBtn");
+    var stream = null;
+    var bypass = false; // 폴백으로 원래 input.click()을 트리거할 때 재차 가로채지 않기 위한 플래그
+
+    var supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+    function stopStream() {
+      if (stream) {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        stream = null;
+      }
+      video.srcObject = null;
+    }
+
+    function closeModal() {
+      modal.hidden = true;
+      stopStream();
+    }
+
+    function fallbackToNativePicker() {
+      bypass = true;
+      fileInput.click();
+    }
+
+    function openCamera() {
+      modal.hidden = false;
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false })
+        .then(function (s) {
+          stream = s;
+          video.srcObject = s;
+        })
+        .catch(function () {
+          // 권한 거부/카메라 없음 등 — 모달 닫고 원래 방식(OS 카메라 앱/파일선택)으로 폴백
+          modal.hidden = true;
+          fallbackToNativePicker();
+        });
+    }
+
+    shutterBtn.addEventListener("click", function () {
+      if (!stream) return;
+      var w = video.videoWidth, h = video.videoHeight;
+      if (!w || !h) return;
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d").drawImage(video, 0, 0, w, h);
+      canvas.toBlob(function (blob) {
+        if (!blob) return;
+        var file = new File([blob], "receipt-" + Date.now() + ".jpg", { type: "image/jpeg" });
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+        closeModal();
+      }, "image/jpeg", 0.92);
+    });
+
+    cancelBtn.addEventListener("click", closeModal);
+
+    if (supported) {
+      fileInput.addEventListener("click", function (e) {
+        if (bypass) { bypass = false; return; } // 폴백 클릭은 그대로 통과
+        e.preventDefault();
+        openCamera();
+      });
+    }
+  })();
+
   document.getElementById("receiptRemoveBtn").addEventListener("click", function () {
     document.getElementById("receiptFileInput").value = "";
     document.getElementById("receiptPreview").hidden = true;
