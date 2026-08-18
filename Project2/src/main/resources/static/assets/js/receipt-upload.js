@@ -119,7 +119,22 @@
   // (2026-08-05 추가). 파일을 지우면 다시 보여준다.
   receiptDrop.addEventListener("eatty:filepicked", function () {
     receiptDrop.hidden = true;
+    syncReceiptPreviewThumbHeight();
   });
+
+  // 2026-08-19 추가 — 썸네일을 옆 텍스트("업로드된 영수증"+OCR 버튼) 블록과 같은 높이로 맞추는 작업을
+  // CSS(align-items:stretch + 퍼센트 높이)로 시도했으나 실제 모바일 Safari에서 카드 밖으로 넘치는
+  // 문제가 재현됨(데스크톱에서는 재현 안 됨). 브라우저별 차이에 기대지 않도록, 텍스트 블록의 실제 렌더
+  // 높이를 JS로 측정해서 썸네일에 픽셀 값으로 직접 지정한다.
+  function syncReceiptPreviewThumbHeight() {
+    var thumb = document.getElementById("receiptPreviewThumb");
+    var textBlock = document.getElementById("receiptPreviewTextBlock");
+    if (!thumb || !textBlock) return;
+    requestAnimationFrame(function () {
+      var h = textBlock.getBoundingClientRect().height;
+      if (h > 0) thumb.style.height = h + "px";
+    });
+  }
   // ---- 커스텀 카메라(2026-08-19 추가) ----
   // input의 capture="environment"만 쓰면 OS 기본 카메라 앱이 열려서 셔터음을 끌 수 없다. getUserMedia로
   // 카메라 스트림을 직접 받아 캡처하면 OS/브라우저 셔터음이 아예 재생되지 않는다. 카메라 접근이
@@ -136,12 +151,15 @@
     var helpBtn = document.getElementById("receiptCameraHelpBtn");
     var guideOverlay = document.getElementById("receiptCameraGuideOverlay");
     var guideCloseBtn = document.getElementById("receiptCameraGuideCloseBtn");
-    var thumbSlot = document.getElementById("receiptCameraThumbSlot");
     var stream = null;
     var bypass = false; // 폴백으로 원래 input.click()을 트리거할 때 재차 가로채지 않기 위한 플래그
     var facingMode = "environment"; // 카메라 전환 버튼으로 "user"와 토글
 
-    var supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    // 2026-08-19 수정 — getUserMedia 지원 여부만 보고 가로챘더니, 웹캠이 달린 PC에서도 파일 선택창
+    // 대신 커스텀 카메라가 강제로 열려버렸다. capture="environment"는 원래 데스크톱 브라우저가 무시하고
+    // 파일 선택창을 그대로 보여주는 속성이라, 그 원래 동작을 지켜야 한다 — 모바일 기기에서만 가로챈다.
+    var isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    var supported = isMobile && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
     function stopStream() {
       if (stream) {
@@ -199,7 +217,6 @@
       canvas.width = w;
       canvas.height = h;
       canvas.getContext("2d").drawImage(video, 0, 0, w, h);
-      thumbSlot.style.backgroundImage = "url(" + canvas.toDataURL("image/jpeg", 0.7) + ")";
       canvas.toBlob(function (blob) {
         if (!blob) return;
         var file = new File([blob], "receipt-" + Date.now() + ".jpg", { type: "image/jpeg" });

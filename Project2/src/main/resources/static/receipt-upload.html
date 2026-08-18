@@ -232,11 +232,10 @@
               </div>
 
               <div class="e-camera-modal-actions">
-                <!-- 2026-08-19 수정 — 사진첩에서 선택하는 기능을 넣었다가 제거함. 영수증은 실시간 촬영으로
-                     인증 무결성을 지켜야 하는 사진이라(갤러리의 오래된/재사용 사진 첨부 금지, 위 STEP 1
-                     주석 참고) 여기서도 갤러리 접근을 열어두면 안 된다는 판단 — 이 슬롯은 클릭 불가능한
-                     마지막 촬영 미리보기 표시 용도로만 남긴다. -->
-                <span class="e-camera-thumb-slot" id="receiptCameraThumbSlot" aria-hidden="true"></span>
+                <!-- 2026-08-19 수정 — 사진첩 선택 기능을 넣었다가 제거하면서 마지막 촬영 미리보기 표시용
+                     네모 박스만 남겨뒀었는데, 요청으로 그 요소 자체를 완전히 없앤다. 오른쪽 카메라 전환
+                     버튼과 폭을 맞춘 빈 여백만 남겨서 셔터 버튼이 계속 가운데 오도록 유지. -->
+                <span style="width:40px" aria-hidden="true"></span>
                 <button type="button" class="e-camera-shutter-btn" id="receiptCameraShutterBtn" aria-label="촬영"></button>
                 <button type="button" class="e-camera-round-btn" id="receiptCameraFlipBtn" aria-label="카메라 전환">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1 21 6l-4 3.9M3 11V9a4 4 0 0 1 4-4h14M7 21.9 3 18l4-3.9M21 13v2a4 4 0 0 1-4 4H3"/></svg>
@@ -281,16 +280,17 @@
 
         <!-- 미리보기 -->
         <!-- 2026-08-19 수정 — 썸네일을 "업로드된 영수증" 텍스트+OCR 버튼 묶음과 같은 높이로 꽉 채워야
-             한다는 요청. self-stretch 유틸리티 클래스는 Tailwind CDN이 늦게 주입하는 <style>과
-             eatty.css의 .e-file-item{align-items:center}가 우선순위 경쟁을 해서 실제로 안 먹혔던
-             전례가 있다(위 2026-08-18 이력) — 그 캐스케이드 문제를 피하려고 이번엔 클래스가 아니라
-             인라인 style로 align-items/height를 직접 지정한다(인라인 스타일은 항상 최우선 적용). -->
+             한다는 요청. flex align-items:stretch + 퍼센트 높이 조합으로 시도했으나 실제 모바일 Safari에서
+             카드 위아래로 넘치는 문제가 재현됨(데스크톱 시뮬레이션에서는 재현 안 됨 — 브라우저별 퍼센트
+             높이 계산 차이로 추정). CSS 캐스케이드/브라우저 차이에 기대지 않도록, receipt-upload.js가
+             옆 텍스트 블록(#receiptPreviewTextBlock)의 실제 렌더 높이를 측정해서 썸네일에 픽셀 값으로
+             직접 지정한다. -->
         <div class="mt-4" id="receiptPreview" hidden>
-          <div class="e-file-item" style="align-items:stretch">
-            <span class="w-20 rounded-[10px] overflow-hidden flex-none e-img-ph e-img-ph--gray" style="height:auto">
-              <img alt="영수증 미리보기" data-dropzone-img class="w-full object-cover" style="display:none;height:100%">
+          <div class="e-file-item" style="align-items:flex-start">
+            <span id="receiptPreviewThumb" class="w-20 rounded-[10px] overflow-hidden flex-none e-img-ph e-img-ph--gray">
+              <img alt="영수증 미리보기" data-dropzone-img class="w-full h-full object-cover" style="display:none">
             </span>
-            <div class="min-w-0 flex-1">
+            <div class="min-w-0 flex-1" id="receiptPreviewTextBlock">
               <p class="text-sm font-bold text-[var(--ink-900)]">업로드된 영수증</p>
               <p class="t-xs mt-1 leading-relaxed">사진이 선명한지 확인한 뒤 OCR 인식을 실행해주세요.</p>
               <button type="button" class="btn btn-primary btn-sm mt-3" id="runOcrBtn">

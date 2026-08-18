@@ -941,14 +941,9 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 }
 .e-camera-plain-btn svg { width: 22px; height: 22px; }
 
-/* 하단 촬영 바 — 왼쪽 마지막 촬영 썸네일(=사진첩에서 선택) / 가운데 셔터 / 오른쪽 카메라 전환 */
-.e-camera-thumb-slot, .e-camera-modal-actions .e-camera-round-btn {
+/* 하단 촬영 바 — 왼쪽 여백(셔터 중앙 정렬용) / 가운데 셔터 / 오른쪽 카메라 전환 */
+.e-camera-modal-actions .e-camera-round-btn {
   width: 40px; height: 40px;
-}
-.e-camera-thumb-slot {
-  display: block; border-radius: 10px; overflow: hidden; flex: none;
-  background-color: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.35);
-  background-size: cover; background-position: center;
 }
 .e-camera-modal-actions .e-camera-round-btn { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.4); }
 
