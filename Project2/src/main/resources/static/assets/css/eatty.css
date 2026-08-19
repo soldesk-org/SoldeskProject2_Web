@@ -150,14 +150,19 @@ html { background-color: var(--bg-soft); scroll-behavior: smooth; }
    그리는데, 그 트랙 색이 항상 흰색/회색 계열 OS 기본값이라 페이지 배경(--bg-soft, 살짝 라벤더 톤)과
    미묘하게 달라서 "화면 오른쪽 끝이 배경이 덜 채워진 것처럼" 보이는 원인이었다(실측 확인 — 실기기
    Safari의 오버스크롤 문제와는 별개). 트랙을 페이지 배경과 같은 색으로 맞춘다.
-   #resultList 등 내부 콘텐츠 전용 스크롤(.e-scroll)은 이미 자기 색이 있어 영향 없음. */
-html { scrollbar-width: thin; scrollbar-color: var(--ink-200) var(--bg-soft); }
+   #resultList 등 내부 콘텐츠 전용 스크롤(.e-scroll)은 이미 자기 색이 있어 영향 없음.
+   2026-08-19 — 썸(--ink-200)이 페이지가 짧아 트랙 전체 높이를 거의 다 채우는 페이지(예: AI 추천
+   초기 화면)에서는 오른쪽 끝 전체가 은은하게 어두운 세로줄로 보인다는 지적(PC 데스크탑 폭)으로
+   --ink-100(배경과 훨씬 가까운 톤)으로 낮춤 + hover 시에만 --ink-200으로 살짝 진해지게 해서 평소엔
+   거의 안 보이다가 실제로 스크롤 조작할 때만 잡기 쉽게 했다. */
+html { scrollbar-width: thin; scrollbar-color: var(--ink-100) var(--bg-soft); }
 html::-webkit-scrollbar { width: 10px; }
 html::-webkit-scrollbar-track { background: var(--bg-soft); }
 html::-webkit-scrollbar-thumb {
-  background: var(--ink-200); border-radius: var(--r-full);
+  background: var(--ink-100); border-radius: var(--r-full);
   border: 2px solid var(--bg-soft); background-clip: padding-box;
 }
+html::-webkit-scrollbar-thumb:hover { background: var(--ink-200); }
 html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-clip: padding-box; }
 
 *, *::before, *::after { -webkit-tap-highlight-color: transparent; }
