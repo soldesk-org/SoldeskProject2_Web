@@ -44,8 +44,21 @@
     onScroll();
   }
 
+  // 2026-08-19 추가 — terms-service.js와 동일한 이유(시행 전 개정본을 select로 미리보면 이미 시행된
+  // 것처럼 보이던 문제)로 같은 방식을 적용.
+  function todayStr() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+
   function renderDoc(detail) {
-    bodyEl.innerHTML = detail.content;
+    var isUpcoming = !!detail.effectiveDate && detail.effectiveDate > todayStr();
+    bodyEl.innerHTML = (isUpcoming
+      ? '<div class="e-alert e-alert--warning mb-6"><div><p class="e-alert-title">시행 전 개정본입니다</p>' +
+        "<p>" + formatDateKo(detail.effectiveDate) + "부터 적용될 예정이며, 그 전까지는 현재 시행 중인 방침이 유효합니다.</p></div></div>"
+      : "") + detail.content;
     if (effectiveAtEl) effectiveAtEl.textContent = formatDateKo(detail.effectiveDate);
     buildToc();
   }
@@ -56,10 +69,12 @@
     Api.request("/api/terms/" + DOC_TYPE + "/versions", { auth: false })
       .then(function (list) {
         pickerEl.innerHTML = "";
+        var today = todayStr();
         list.forEach(function (v) {
           var opt = document.createElement("option");
           opt.value = v.termsDocumentId;
-          opt.textContent = "v" + v.versionLabel + (v.current ? " (현재)" : "");
+          var suffix = v.current ? " (현재)" : (v.effectiveDate && v.effectiveDate > today ? " (예정)" : "");
+          opt.textContent = "v" + v.versionLabel + suffix;
           if (selectedId && String(selectedId) === String(v.termsDocumentId)) opt.selected = true;
           pickerEl.appendChild(opt);
         });
