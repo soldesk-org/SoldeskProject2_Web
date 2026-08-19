@@ -107,11 +107,28 @@
 
   // ---- 드롭존/미리보기는 eatty-ui.js가 처리, 여기서는 실행 버튼만 담당 ----
   var receiptDrop = document.getElementById("receiptDrop");
-  // 파일을 고르면 미리보기가 바로 아래에 나오니, 클릭해서 선택하는 드롭존 박스는 중복이라 숨긴다
-  // (2026-08-05 추가). 파일을 지우면 다시 보여준다.
-  receiptDrop.addEventListener("eatty:filepicked", function () {
+  var successOverlay = document.getElementById("receiptCameraSuccessOverlay");
+  var successImg = document.getElementById("receiptCameraSuccessImg");
+
+  // 2026-08-19 재작업 — 사진이 어떤 경로로 선택됐든(우리가 만든 카메라의 셔터 / 카메라 권한이 막혀
+  // OS 기본 카메라로 폴백한 경우 / PC 파일 선택) 이 이벤트 하나로 전부 모인다(eatty-ui.js가 file
+  // input의 change를 처리한 뒤 항상 이걸 쏴줌). 그래서 "수동 OCR 인식 버튼을 눌러야만 다음으로
+  // 넘어간다"는 문제를 경로에 상관없이 근본적으로 없애려면, 자동 OCR 실행을 여기 한 곳에서만
+  // 처리하면 된다(예전엔 카메라 셔터 핸들러 안에서만 처리해서, 카메라가 못 열리고 OS 기본 카메라로
+  // 폴백된 경우엔 여전히 수동 버튼이 필요했다).
+  receiptDrop.addEventListener("eatty:filepicked", function (e) {
     receiptDrop.hidden = true;
     syncReceiptPreviewThumbHeight();
+
+    var file = e.detail && e.detail.file;
+    if (!file || !restaurant) return;
+    successImg.src = URL.createObjectURL(file);
+    successOverlay.hidden = false;
+    runOcr(file).then(function (ok) {
+      window.setTimeout(function () {
+        successOverlay.hidden = true;
+      }, ok ? 3000 : 0);
+    });
   });
 
   // 2026-08-19 추가 — 썸네일을 옆 텍스트("업로드된 영수증"+OCR 버튼) 블록과 같은 높이로 맞추는 작업을
@@ -216,9 +233,6 @@
       cameraStartBtn.addEventListener("click", function () { openCamera(false); });
     }
 
-    var successOverlay = document.getElementById("receiptCameraSuccessOverlay");
-    var successImg = document.getElementById("receiptCameraSuccessImg");
-
     shutterBtn.addEventListener("click", function () {
       if (!stream) return;
       var w = video.videoWidth, h = video.videoHeight;
@@ -232,25 +246,12 @@
         var dt = new DataTransfer();
         dt.items.add(file);
         fileInput.files = dt.files;
+        // 2026-08-19 재작업 — 촬영 즉시 OCR 자동 실행 + 인식완료 애니메이션은 이제 페이지 최상위의
+        // eatty:filepicked 핸들러(위쪽, 카메라/OS폴백/PC선택 공통) 하나가 전담한다. 여기서는 파일만
+        // 넘기고 모달을 바로 닫으면, 그 애니메이션이 카메라 모달보다 더 위(z-index 250)에서 이어서
+        // 보이므로 시각적 끊김이 없다.
         fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-
-        // 2026-08-19 재작업 — 예전엔 모달을 바로 닫고 step1의 "OCR 인식" 버튼을 따로 눌러야 했는데,
-        // 촬영 직후 곧바로 OCR을 실행해서 카메라 모달 안에서 결과를 보여준다(보류했던 초록 인식
-        // 애니메이션 포함). 실패 시엔 모달을 닫고 기존처럼 1단계에서 토스트로 안내한다.
-        successImg.src = URL.createObjectURL(blob);
-        stopStream();
-        successOverlay.hidden = false;
-        runOcr(file).then(function (ok) {
-          if (ok) {
-            window.setTimeout(function () {
-              successOverlay.hidden = true;
-              closeModal();
-            }, 3000);
-          } else {
-            successOverlay.hidden = true;
-            closeModal();
-          }
-        });
+        closeModal();
       }, "image/jpeg", 0.92);
     });
 
