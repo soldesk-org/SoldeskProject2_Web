@@ -279,8 +279,11 @@
                 <p class="t-xs mt-1">리뷰 · 채팅 신고 처리</p>
               </a>
               <a href="#sectionMembers" class="e-card e-card-flat border border-[var(--line)] p-4 e-card-hover" data-admin-nav="members">
+                <!-- 2026-08-19 수정 — 위 nav용 "두 사람" 아이콘(line 136-138)에서 한 명분만 잘라 쓰면서
+                     좌표가 24x24 뷰박스 중앙(12,12)이 아니라 원본의 왼쪽 자리(9,8)에 남아있어, 박스
+                     안에서 아이콘이 중앙 정렬 안 된 것처럼 보였다 — 뷰박스 중앙에 맞춘 1인 아이콘으로 교체. -->
                 <span class="e-stat-ico e-stat-ico--info mb-3">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2 20c0-3.2 3.1-5 7-5s7 1.8 7 5"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg>
                 </span>
                 <p class="text-sm font-extrabold text-[var(--ink-900)]">회원 관리</p>
                 <p class="t-xs mt-1">정지 · 해제 처리</p>
