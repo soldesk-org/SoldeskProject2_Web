@@ -56,6 +56,15 @@
     0% { top: 8%; }
     100% { top: 90%; }
   }
+  /* 인식 중 안내 문구(2026-08-20 추가) — 스캔 라인이 도는 동안만 보이고, 결과 배지가 뜨면 JS가
+     hidden 처리한다. */
+  .e-camera-scanning-caption {
+    position: absolute; left: 0; right: 0; bottom: 6%;
+    text-align: center; color: #fff; font-size: 14.5px; font-weight: 700;
+    text-shadow: 0 1px 4px rgba(0,0,0,.5);
+  }
+  .e-camera-scanning-caption[hidden] { display: none; }
+
   /* 실제 인식된 단어 박스(2026-08-19 추가) — 픽셀 위치는 JS가 이미지 contain-fit 계산 후 직접
      inline style로 지정한다(letterbox 여백 때문에 CSS만으로는 정확한 위치를 잡을 수 없음). */
   #receiptCameraWordBoxes { position: absolute; inset: 0; pointer-events: none; }

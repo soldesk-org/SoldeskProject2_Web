@@ -98,6 +98,8 @@
   <!-- 실제 인식된 단어 박스(2026-08-19 추가) — Python OCR이 돌려준 좌표(ocr_lines)를 그대로 표시.
        실제로 안 읽은 부분에 박스를 그리는 과장이 아니라, 진짜 인식 위치 그대로다. -->
   <div id="receiptCameraWordBoxes"></div>
+  <!-- 인식 중 안내 문구(2026-08-20 추가) — 스캔 라인이 도는 동안 아래에 표시, 결과 배지가 뜨면 사라진다. -->
+  <p class="e-camera-scanning-caption" id="receiptCameraScanningCaption">영수증 정보를 인식 중입니다.</p>
   <div class="e-camera-result-badge" id="receiptCameraResultBadge">
     <span class="e-camera-result-check" id="receiptCameraResultIcon"></span>
     <p id="receiptCameraResultText"></p>
@@ -391,10 +393,19 @@
           <span class="e-chip-static ml-2" id="visitConfirmTime">-</span>
           <button type="button" class="e-link-brand text-[12.5px]" id="visitConfirmTimeEditBtn">수정</button>
         </div>
-        <div class="flex items-center justify-center gap-2 mt-3" id="visitConfirmEditRow" hidden>
-          <input type="date" class="e-input !w-auto !py-2 !text-sm" id="visitConfirmDateInput">
-          <input type="time" class="e-input !w-auto !py-2 !text-sm" id="visitConfirmTimeInput">
-          <button type="button" class="btn btn-primary btn-sm" id="visitConfirmEditApplyBtn">적용</button>
+        <!-- 2026-08-20 재작업 — 좁은 화면에서 날짜/시간 입력+적용 버튼이 한 줄에 다 들어가지 못하고
+             찌그러져 보이던 문제. 카드 안에 세로로 쌓고 각 입력에 라벨을 붙여 네이티브 휠 피커(OS가
+             그리는 부분이라 우리가 스타일링할 수 없음)를 열기 전 배경 레이아웃 자체를 정돈했다. -->
+        <div class="e-card e-card-soft e-card-pad mt-4 text-left mx-auto" style="max-width:320px" id="visitConfirmEditRow" hidden>
+          <div class="e-field !mb-3">
+            <span class="e-label">날짜</span>
+            <input type="date" class="e-input" id="visitConfirmDateInput">
+          </div>
+          <div class="e-field !mb-4">
+            <span class="e-label">시간</span>
+            <input type="time" class="e-input" id="visitConfirmTimeInput">
+          </div>
+          <button type="button" class="btn btn-primary btn-sm w-full" id="visitConfirmEditApplyBtn">적용</button>
         </div>
 
         <div class="e-card e-card-soft e-card-pad mt-6 text-left flex items-center gap-3.5">
@@ -420,33 +431,15 @@
         </div>
       </div>
 
-      <!-- 결제/메뉴 정보 + 메뉴 공개 토글은 그대로 유지(리뷰 작성에 실제로 쓰이는 값들) -->
-      <div class="e-card e-card-pad mt-5">
-        <div class="e-form-grid e-form-grid-2">
-          <div class="e-field !mb-0">
-            <span class="e-label">결제 금액</span>
-            <p class="text-sm font-semibold text-[var(--ink-800)] t-num" id="ocrTotalAmount">-</p>
-          </div>
-          <div class="e-field !mb-0">
-            <span class="e-label">방문 일시</span>
-            <p class="text-sm font-semibold text-[var(--ink-800)] t-num" id="ocrVisitDatetime">-</p>
-          </div>
-        </div>
-
-        <div class="e-field mt-6 !mb-0">
-          <div class="flex items-center justify-between gap-2">
-            <span class="e-label !mb-0">인식된 메뉴</span>
-            <!-- 메뉴 공개 토글(2026-08-18 추가) — 다른 이용자에게 이 영수증에서 읽은 메뉴 목록을 보여줄지
-                 선택. 항목별이 아니라 목록 전체를 한 번에 공개/비공개하는 단일 토글로 둔다(요청 원문이
-                 "공개하기/공개하지 않기" 이진 선택 하나였음, 항목별 토글은 과한 세분화로 판단). -->
-            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-              <span class="t-xs font-semibold" id="menuVisibleLabel">공개하기</span>
-              <input type="checkbox" id="menuVisibleToggle" class="e-switch" checked>
-            </label>
-          </div>
-          <p class="t-xs mt-1" style="color:var(--ink-400)">공개하면 다른 이용자도 이 리뷰에서 어떤 메뉴를 드셨는지 볼 수 있어요.</p>
-          <div class="border border-[var(--line)] rounded-[var(--r-md)] divide-y divide-[var(--line-soft)] mt-2" id="ocrMenuList"></div>
-        </div>
+      <!-- 결제/메뉴 정보 카드 제거(2026-08-20 요청) — 방문확인 화면에는 더 이상 표시하지 않는다.
+           다만 이 값들은 JS(renderStep2)가 여전히 채워 넣고, 메뉴는 기본 공개 상태로 리뷰 등록 때
+           그대로 쓰이므로 요소 자체는 화면에서만 숨기고 유지한다. -->
+      <div hidden>
+        <p id="ocrTotalAmount">-</p>
+        <p id="ocrVisitDatetime">-</p>
+        <span id="menuVisibleLabel">공개하기</span>
+        <input type="checkbox" id="menuVisibleToggle" checked>
+        <div id="ocrMenuList"></div>
       </div>
     </section>
 

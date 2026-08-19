@@ -112,6 +112,7 @@
   var successImg = document.getElementById("receiptCameraSuccessImg");
   var bandsContainer = document.getElementById("receiptCameraBands");
   var wordBoxesContainer = document.getElementById("receiptCameraWordBoxes");
+  var scanningCaption = document.getElementById("receiptCameraScanningCaption");
   var resultBadge = document.getElementById("receiptCameraResultBadge");
   var resultIcon = document.getElementById("receiptCameraResultIcon");
   var resultText = document.getElementById("receiptCameraResultText");
@@ -199,6 +200,7 @@
     successImg.src = URL.createObjectURL(file);
     resultBadge.className = "e-camera-result-badge";
     wordBoxesContainer.innerHTML = "";
+    scanningCaption.hidden = false;
     playBands(); // 결과가 올 때까지 계속 반복 재생(아래에서 결과가 오면 멈춘다)
     successOverlay.hidden = false;
 
@@ -207,6 +209,7 @@
     // 짧게 걸리면 짧게) 배지를 보여주고, 그 전까지는 줄 하이라이트가 계속 반복된다.
     runOcr(file, { silent: true }).then(function (ok) {
       bandsContainer.innerHTML = ""; // 반복 애니메이션 정지
+      scanningCaption.hidden = true;
       showResultBadge(ok);
       if (ok && ocrResult) {
         // successImg가 이미 로드돼 있어야 clientWidth/naturalWidth를 정확히 잴 수 있다 — 캡처
@@ -261,6 +264,7 @@
     var guideCloseBtn = document.getElementById("receiptCameraGuideCloseBtn");
     var stream = null;
     var bypass = false; // 폴백으로 원래 input.click()을 트리거할 때 재차 가로채지 않기 위한 플래그
+    var guideShownOnce = false; // 카메라 첫 오픈 시 가이드 자동 표시(2026-08-20 추가) 여부
     var facingMode = "environment"; // 카메라 전환 버튼으로 "user"와 토글
 
     // 2026-08-19 수정 — getUserMedia 지원 여부만 보고 가로챘더니, 웹캠이 달린 PC에서도 파일 선택창
@@ -314,6 +318,13 @@
           stream = s;
           video.srcObject = s;
           cameraStartPrompt.hidden = true;
+          // 2026-08-20 추가 — 카메라를 처음 여는 순간 촬영 가이드를 1.5초 정도 자동으로 보여주고
+          // 사라지게 한다(그동안은 "?" 버튼을 눌러야만 보였음). 세션당 한 번만.
+          if (!guideShownOnce) {
+            guideShownOnce = true;
+            guideOverlay.classList.add("is-open");
+            window.setTimeout(function () { guideOverlay.classList.remove("is-open"); }, 1500);
+          }
         })
         .catch(function () {
           modal.hidden = true;
@@ -575,7 +586,11 @@
     });
   }
 
-  document.getElementById("ocrRetryBtn").addEventListener("click", function () { goStep(1); });
+  // 2026-08-20 수정 — "이 장소가 아니에요"를 누르면 1단계(업로드) 화면으로 되돌아갔는데, 지금 구조는
+  // 그 화면 자체를 안 쓰기로 했으므로(1/2/3 스테퍼 제거와 같은 맥락) 아예 매장 상세 페이지로 돌려보낸다.
+  document.getElementById("ocrRetryBtn").addEventListener("click", function () {
+    window.location.href = buildShopDetailUrl();
+  });
   document.getElementById("ocrConfirmBtn").addEventListener("click", function () {
     if (!ocrResult || !ocrResult.verified) return;
     document.getElementById("step3RestaurantName").textContent = restaurant.name;
