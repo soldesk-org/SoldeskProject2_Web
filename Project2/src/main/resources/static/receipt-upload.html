@@ -83,20 +83,20 @@
 
 <body class="has-tabbar bg-[var(--bg-soft)]">
 
-<!-- 인식 성공 오버레이(2026-08-19, 페이지 최상위로 이동) — 영수증 사진이 어떤 경로로 선택됐든
-     (우리가 만든 카메라 / 카메라 권한이 막혀 OS 기본 카메라로 폴백 / PC 파일 선택) 전부 여기서 공통으로
-     처리한다(receiptDrop의 eatty:filepicked 이벤트 하나로 통일). 그 즉시 OCR을 자동 실행하고, 인증
-     성공 시 방금 고른 사진 위에 스캔라인+초록 체크 "인식완료!" 애니메이션을 ~3초 보여준 뒤 다음
-     단계로 넘어간다. 실제 OCR이 어느 글자를 읽었는지 좌표 단위로 표시할 방법은 없어서(서버가 좌표를
-     안 줌), 특정 문구를 박스로 감싸는 대신 스캔 라인으로 "지금 읽고 있다"는 느낌만 준다. -->
+<!-- 인식 결과 오버레이(2026-08-19, 페이지 최상위로 이동, 같은 날 성공/실패 분기 추가) — 영수증
+     사진이 어떤 경로로 선택됐든(우리가 만든 카메라 / 카메라 권한이 막혀 OS 기본 카메라로 폴백 / PC
+     파일 선택) 전부 여기서 공통으로 처리한다(receiptDrop의 eatty:filepicked 이벤트 하나로 통일).
+     그 즉시 OCR을 자동 실행하고, 사진 위에 줄 단위 초록 하이라이트 애니메이션이 순서대로 지나간 뒤
+     결과 배지(성공: 초록 체크 / 실패: 빨간 X)를 보여준다. 실제 OCR이 어느 글자를 읽었는지 좌표
+     단위로는 알 수 없어서(서버가 좌표를 안 줌) 특정 단어를 정확히 짚는 대신 줄 단위 하이라이트로
+     "읽고 있다"는 느낌만 준다. 실패 시엔 결과 배지를 보여준 뒤 매장 상세 페이지로 돌아간다
+     (receipt-upload.js의 eatty:filepicked 핸들러 참고). -->
 <div class="e-camera-success-overlay" id="receiptCameraSuccessOverlay" hidden>
   <img id="receiptCameraSuccessImg" alt="촬영한 영수증">
-  <div class="e-camera-scanline"></div>
-  <div class="e-camera-success-badge">
-    <span class="e-camera-success-check">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    </span>
-    <p>인식완료!</p>
+  <div id="receiptCameraBands"></div>
+  <div class="e-camera-result-badge" id="receiptCameraResultBadge">
+    <span class="e-camera-result-check" id="receiptCameraResultIcon"></span>
+    <p id="receiptCameraResultText"></p>
   </div>
 </div>
 

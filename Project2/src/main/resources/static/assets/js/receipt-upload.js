@@ -109,6 +109,46 @@
   var receiptDrop = document.getElementById("receiptDrop");
   var successOverlay = document.getElementById("receiptCameraSuccessOverlay");
   var successImg = document.getElementById("receiptCameraSuccessImg");
+  var bandsContainer = document.getElementById("receiptCameraBands");
+  var resultBadge = document.getElementById("receiptCameraResultBadge");
+  var resultIcon = document.getElementById("receiptCameraResultIcon");
+  var resultText = document.getElementById("receiptCameraResultText");
+
+  var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  var BAND_COUNT = 5;
+
+  function playBands() {
+    bandsContainer.innerHTML = "";
+    for (var i = 0; i < BAND_COUNT; i++) {
+      var band = document.createElement("div");
+      band.className = "e-camera-highlight-band";
+      band.style.top = (14 + i * 16) + "%";
+      band.style.animationDelay = (i * 150) + "ms";
+      bandsContainer.appendChild(band);
+    }
+  }
+
+  function showResultBadge(ok) {
+    resultBadge.className = "e-camera-result-badge is-shown " + (ok ? "is-success" : "is-fail");
+    resultIcon.innerHTML = ok ? CHECK_SVG : X_SVG;
+    resultText.textContent = ok ? "인식 성공" : "인식 실패";
+  }
+
+  // 매장명/주소를 URL에 그대로 신뢰하지 않는 이 페이지의 원칙과 달리, 여기서는 "우리가 직접 갖고
+  // 있던 restaurant 스냅샷"을 그대로 매장 상세 페이지로 되돌려 보내는 것뿐이라 안전하다.
+  function buildShopDetailUrl() {
+    if (!restaurant) return "explore";
+    var params = new URLSearchParams({
+      shopId: restaurant.restaurantId,
+      name: restaurant.name || "",
+      address: restaurant.address || "",
+      roadAddress: restaurant.roadAddress || "",
+      latitude: restaurant.latitude != null ? restaurant.latitude : "",
+      longitude: restaurant.longitude != null ? restaurant.longitude : "",
+    });
+    return "explore?" + params.toString();
+  }
 
   // 2026-08-19 재작업 — 사진이 어떤 경로로 선택됐든(우리가 만든 카메라의 셔터 / 카메라 권한이 막혀
   // OS 기본 카메라로 폴백한 경우 / PC 파일 선택) 이 이벤트 하나로 전부 모인다(eatty-ui.js가 file
@@ -116,6 +156,9 @@
   // 넘어간다"는 문제를 경로에 상관없이 근본적으로 없애려면, 자동 OCR 실행을 여기 한 곳에서만
   // 처리하면 된다(예전엔 카메라 셔터 핸들러 안에서만 처리해서, 카메라가 못 열리고 OS 기본 카메라로
   // 폴백된 경우엔 여전히 수동 버튼이 필요했다).
+  // 2026-08-19 후속 — 성공/실패 배지 추가. 실패 시엔 토스트 대신 빨간 X 배지를 보여준 뒤 매장 상세
+  // 페이지로 돌려보낸다(이 페이지는 특정 매장 전용이라, 인증에 실패했으면 여기 계속 남아있을 이유가
+  // 없다는 판단 — "OCR 버튼 있는 페이지로 가버린다"는 지적에 대한 근본 대응).
   receiptDrop.addEventListener("eatty:filepicked", function (e) {
     receiptDrop.hidden = true;
     syncReceiptPreviewThumbHeight();
@@ -123,11 +166,21 @@
     var file = e.detail && e.detail.file;
     if (!file || !restaurant) return;
     successImg.src = URL.createObjectURL(file);
+    resultBadge.className = "e-camera-result-badge";
+    playBands();
     successOverlay.hidden = false;
-    runOcr(file).then(function (ok) {
+
+    var minBandsTime = new Promise(function (resolve) { window.setTimeout(resolve, 1450); });
+    Promise.all([runOcr(file, { silent: true }), minBandsTime]).then(function (results) {
+      var ok = results[0];
+      showResultBadge(ok);
       window.setTimeout(function () {
-        successOverlay.hidden = true;
-      }, ok ? 3000 : 0);
+        if (ok) {
+          successOverlay.hidden = true;
+        } else {
+          window.location.href = buildShopDetailUrl();
+        }
+      }, 1800);
     });
   });
 
@@ -298,7 +351,8 @@
   // ---- OCR 실행(2026-08-19 리팩터링) — step1의 수동 "OCR 인식" 버튼과 카메라 촬영 직후 자동 실행
   // 두 곳에서 같은 로직을 쓰도록 공용 함수로 뺐다. 성공 시 true, 실패(인증 실패/에러) 시 false로
   // resolve하는 Promise를 돌려준다(호출자가 UI 후처리를 알아서 하도록).
-  function runOcr(file) {
+  function runOcr(file, opts) {
+    var silent = opts && opts.silent;
     if (!restaurant || !file) return Promise.resolve(false);
     var formData = new FormData();
     formData.append("image", file);
@@ -310,8 +364,12 @@
         // 2026-08-18 수정 — 예전엔 인증 실패(다른 매장 영수증 등)여도 일단 2단계로 넘어가서 박스 형태
         // 경고문을 보여주고 "정보 확인 완료" 버튼만 비활성화했다. 그러면 사용자가 못 쓰는 화면을 한 번
         // 더 거쳐야 했다 — 인증 실패는 그 자리(1단계)에서 토스트로 바로 알리고 다시 올리게 한다.
+        // 2026-08-19 추가 — silent(자동 촬영 흐름)면 토스트 대신 결과 오버레이의 빨간 X 배지로
+        // 실패를 알리므로 여기서는 토스트를 띄우지 않는다(수동 "OCR 인식" 버튼 경로는 계속 토스트).
         if (!data.verified) {
-          Eatty.toast("이 매장의 영수증으로 인증되지 않았어요. 영수증 상의 가게명이 선택한 매장과 다르면 리뷰를 작성할 수 없습니다. 다시 업로드해주세요.", "error");
+          if (!silent) {
+            Eatty.toast("이 매장의 영수증으로 인증되지 않았어요. 영수증 상의 가게명이 선택한 매장과 다르면 리뷰를 작성할 수 없습니다. 다시 업로드해주세요.", "error");
+          }
           return false;
         }
         ocrResult = data;
@@ -320,7 +378,7 @@
         return true;
       })
       .catch(function (err) {
-        Eatty.toast(err.message || "영수증 인식에 실패했습니다.", "error");
+        if (!silent) Eatty.toast(err.message || "영수증 인식에 실패했습니다.", "error");
         return false;
       });
   }
