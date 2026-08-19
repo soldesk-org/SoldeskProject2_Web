@@ -1526,7 +1526,8 @@ body.is-modal-open { overflow: hidden; }
   position: absolute; right: 0; top: calc(100% + 8px);
   min-width: 230px; z-index: 70;
   background: var(--bg); border: 1px solid var(--line);
-  border-radius: var(--r-md); box-shadow: var(--sh-md);
+  /* 2026-08-19 수정 — sh-md(0 12px 32px)는 작은 팝오버 메뉴엔 그림자가 과하게 커서 sh-sm으로 축소. */
+  border-radius: var(--r-md); box-shadow: var(--sh-sm);
   padding: 7px;
   opacity: 0; visibility: hidden; transform: translateY(-6px);
   transition: all .18s var(--ease);
@@ -1888,20 +1889,21 @@ body.is-modal-open { overflow: hidden; }
   animation: none;
 }
 
-/* 아바타 원 안의 "잇" 글자도 같은 이유로 잠깐 보였다 사라진다 — 글자만 투명하게 감추고 그 위에
-   shimmer를 겹쳐서(기존 배경색은 그대로 유지) 로딩 표시. background-image만 쓰는 이유: 일부 페이지는
-   인라인 style="background:..."로 아바타 배경색을 지정하는데, background 축약 속성 전체를 외부
-   CSS로 덮어쓰면 그 인라인 배경색까지 없어져 버리기 때문. */
-#headerAvatar, #drawerAvatar, #profileAvatar {
-  color: transparent;
-  background-image: linear-gradient(90deg, var(--ink-100) 25%, var(--bg-muted) 37%, var(--ink-100) 63%);
+/* 아바타 원 안의 "잇" 글자도 같은 이유로 잠깐 보였다 사라진다. 처음엔 background-image를 shimmer로
+   덮어씌우는 방식으로 했는데, .e-avatar의 기본 배경색(var(--brand-grad))이 실제로는 background-image
+   값(그라디언트)이라 로딩 완료 시 원래 색이 같이 사라지는 버그가 생겼다(2026-08-19 실측) — 그래서
+   background 속성 자체는 전혀 건드리지 않고, ::before로 shimmer를 위에 얇게 덮었다 걷어내는 방식으로
+   바꿨다. 이러면 원래 배경(그라디언트든 페이지별 인라인 style 색이든)이 전혀 안 바뀐다. */
+#headerAvatar, #drawerAvatar, #profileAvatar { position: relative; color: transparent; }
+#headerAvatar::before, #drawerAvatar::before, #profileAvatar::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(90deg, var(--ink-100) 25%, var(--bg-muted) 37%, var(--ink-100) 63%);
   background-size: 400% 100%;
   animation: e-shimmer 1.4s ease-in-out infinite;
 }
-#headerAvatar.e-auth-loaded, #drawerAvatar.e-auth-loaded, #profileAvatar.e-auth-loaded {
-  color: inherit;
-  background-image: none;
-  animation: none;
+#headerAvatar.e-auth-loaded, #drawerAvatar.e-auth-loaded, #profileAvatar.e-auth-loaded { color: inherit; }
+#headerAvatar.e-auth-loaded::before, #drawerAvatar.e-auth-loaded::before, #profileAvatar.e-auth-loaded::before {
+  content: none;
 }
 
 .e-scroll { overflow-y: auto; }
