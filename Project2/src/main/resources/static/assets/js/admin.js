@@ -469,6 +469,11 @@
     pending.forEach(function (r) { pendingBody.appendChild(renderReportRow(r, "pending")); });
     done.forEach(function (r) { doneBody.appendChild(renderReportRow(r)); });
     rejected.forEach(function (r) { rejectedBody.appendChild(renderReportRow(r)); });
+    // 2026-08-19 추가 — 목록이 0건일 때 빈 테이블(헤더만 있고 내용 없음)로 방치되던 걸, 다른 관리자
+    // 테이블(약관 버전/공지 목록)과 같은 패턴으로 "없습니다" 안내 행을 넣어준다.
+    if (!pending.length) pendingBody.innerHTML = '<tr><td colspan="6" class="t-sm text-center">대기중인 신고가 없습니다.</td></tr>';
+    if (!done.length) doneBody.innerHTML = '<tr><td colspan="5" class="t-sm text-center">처리완료된 신고가 없습니다.</td></tr>';
+    if (!rejected.length) rejectedBody.innerHTML = '<tr><td colspan="5" class="t-sm text-center">반려된 신고가 없습니다.</td></tr>';
 
     document.getElementById("reportCountPending").textContent = "대기 " + pending.length;
     document.getElementById("reportCountDone").textContent = "완료 " + done.length;
