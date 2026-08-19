@@ -128,13 +128,18 @@ pipeline {
         }
 
         // ---------------------------------------------------------------
-        // Deploy 단계 (2026-07-30 확정)
-        // Jenkins가 이 VM(SoldeskProject1) 위에서 직접 실행되고 있어(agent any = 이 VM 자체),
-        // 별도 서버로 scp/ssh 할 필요 없이 로컬 파일 복사 + systemd 재시작으로 배포한다.
-        // 사전 준비(VM에서 1회 수동 설정, 참고: docs/00.공통/CI-CD-Jenkins-구축-가이드.md 5장):
-        //   - /opt/soldesk-app 디렉터리 (jenkins 계정 소유)
-        //   - /etc/systemd/system/soldesk-app.service (User=jenkins, java -jar 실행)
-        //   - /etc/sudoers.d/jenkins-deploy (jenkins 계정이 systemctl restart soldesk-app만 비밀번호 없이 가능)
+        // Deploy 단계 (2026-08-19 Docker Compose 방식으로 전환)
+        // 예전엔 war를 /opt/soldesk-app에 복사해 systemd(soldesk-app.service)로 직접 실행했다. 이번에
+        // Docker Compose(Project2/compose.yaml + compose.prod.yaml)로 전환 — web 컨테이너만 Jenkins가
+        // 관리하고(이 저장소 범위), ocr-api는 별도 저장소(SoldeskProject2_Python)라 그대로 수동 배포
+        // 관행을 유지한다(이 Jenkins Job이 그 저장소를 체크아웃하지 않음). 기존 soldesk-app.service는
+        // 삭제하지 않고 stop 상태로 남겨둠 — 문제 생기면 `docker compose down` + 그 서비스 재시작으로
+        // 되돌릴 수 있다.
+        // 사전 준비(VM에서 1회 수동 설정, 2026-08-19):
+        //   - jenkins 계정을 docker 그룹에 추가(sudo usermod -aG docker jenkins) — 이래야 sudo 없이
+        //     docker/docker compose 명령을 그대로 쓸 수 있다.
+        //   - Project2/.env는 이 스테이지가 매번 새로 써서 컨테이너에 env_file로 주입한다(예전과 동일한
+        //     값 구성, 저장 위치만 /opt/soldesk-app/.env에서 Jenkins 워크스페이스 안 Project2/.env로 바뀜).
         // ---------------------------------------------------------------
         stage('Deploy') {
             // 참고: 이 Job은 Multibranch Pipeline이 아니라 Branch Specifier(*/main)로 고정된
@@ -199,8 +204,7 @@ pipeline {
                         string(credentialsId: 'soldesk-image-storage-backend', variable: 'IMAGE_STORAGE_BACKEND'),
                     ]) {
                         sh '''
-                            cp target/*.war /opt/soldesk-app/soldesk-app.war
-                            cat > /opt/soldesk-app/.env << ENVEOF
+                            cat > .env << ENVEOF
 DB_URL=$DB_URL
 DB_USERNAME=$DB_USERNAME
 DB_PASSWORD=$DB_PASSWORD
@@ -251,8 +255,9 @@ PASSWORD_RESET_FRONTEND_URL=$PASSWORD_RESET_FRONTEND_URL
 AZURE_STORAGE_ACCOUNT_URL=$AZURE_STORAGE_ACCOUNT_URL
 IMAGE_STORAGE_BACKEND=$IMAGE_STORAGE_BACKEND
 ENVEOF
-                            chmod 600 /opt/soldesk-app/.env
-                            sudo systemctl restart soldesk-app.service
+                            chmod 600 .env
+                            docker compose -f compose.yaml -f compose.prod.yaml build web
+                            docker compose -f compose.yaml -f compose.prod.yaml up -d web
                         '''
                     }
                 }
