@@ -53,6 +53,9 @@
     Object.keys(sections).forEach(function (k) { sections[k].hidden = Number(k) !== n; });
     doneSection.hidden = true;
     stepsRoot.parentElement.hidden = true;
+    // 2026-08-20 추가 — 방문확인 화면(2단계)은 참고 이미지처럼 헤더/하단 탭바 없이 카드만 꽉 차게
+    // 몰입형으로 보여준다(eatty.css 참고).
+    document.body.classList.toggle("e-immersive-step2", n === 2);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -589,6 +592,9 @@
   // 2026-08-20 수정 — "이 장소가 아니에요"를 누르면 1단계(업로드) 화면으로 되돌아갔는데, 지금 구조는
   // 그 화면 자체를 안 쓰기로 했으므로(1/2/3 스테퍼 제거와 같은 맥락) 아예 매장 상세 페이지로 돌려보낸다.
   document.getElementById("ocrRetryBtn").addEventListener("click", function () {
+    window.location.href = buildShopDetailUrl();
+  });
+  document.getElementById("visitConfirmCloseBtn").addEventListener("click", function () {
     window.location.href = buildShopDetailUrl();
   });
   document.getElementById("ocrConfirmBtn").addEventListener("click", function () {

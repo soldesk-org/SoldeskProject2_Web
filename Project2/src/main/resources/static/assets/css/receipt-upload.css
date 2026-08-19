@@ -26,6 +26,30 @@
     font-size: 13.5px; font-weight: 700;
   }
 
+  /* 방문확인 화면 몰입형 레이아웃(2026-08-20 재작업, 참고 이미지 구성대로) — 헤더/하단 탭바를 없애고
+     카드가 화면을 꽉 채우게 한다. goStep()이 이 클래스를 body에 붙였다 뗀다. */
+  body.e-immersive-step2 .e-header,
+  body.e-immersive-step2 .e-tabbar { display: none !important; }
+  body.e-immersive-step2 { padding-bottom: 0 !important; }
+  body.e-immersive-step2 #mainContent { padding: 0 !important; }
+  body.e-immersive-step2 #step2Section .e-container { max-width: none !important; padding: 0 !important; }
+  body.e-immersive-step2 #step2Section > .e-card {
+    border-radius: 0; box-shadow: none; border: 0;
+    min-height: 100dvh; padding-top: calc(20px + env(safe-area-inset-top));
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  }
+  .e-visit-close-btn {
+    position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px;
+    width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--ink-700);
+  }
+  .e-visit-close-btn svg { width: 22px; height: 22px; }
+
+  /* 매장 카드/버튼을 참고 이미지 톤에 맞춤(2026-08-20) — 브랜드 배경색 카드 + 필 모양 버튼. */
+  #step2Section .e-card-soft { background: var(--brand-50); border-color: transparent; }
+  #step2Section #ocrRetryBtn,
+  #step2Section #ocrConfirmBtn { border-radius: var(--r-full); }
+
   /* 촬영 성공 오버레이(2026-08-19 재작업, 같은 날 페이지 최상위로 이동) — 사진이 어떤 경로로
      선택됐든(우리 카메라/OS 기본 카메라 폴백/PC 파일선택) OCR을 자동 실행하고, 인증에 성공하면
      방금 고른 사진 위에 스캔 라인 + 초록 체크 애니메이션을 ~3초 보여준 뒤 방문 확인 단계로 넘어간다.
