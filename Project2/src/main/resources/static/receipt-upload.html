@@ -38,7 +38,6 @@
 
  [STEP 2 · OCR 결과 확인] — 전부 읽기 전용(서버 값 그대로 표시, 수정 API 없음)
    #step2Section          섹션 루트 (기본 hidden)
-   #ocrVerifiedBadge      인증 성공/실패 배지
    #ocrShopName / #ocrTotalAmount / #ocrVisitDatetime
    #ocrMenuList           인식된 메뉴 목록
    #ocrRetryBtn           다시 업로드 (step1 로 복귀)
@@ -74,6 +73,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
+<!-- 방문확인 카드의 고정 미니맵용(2026-08-19 추가, explore.html과 동일 키) -->
+<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
 <script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/receipt-upload.js"></script>
@@ -376,12 +377,21 @@
            디자인처럼 "방문을 확인해주세요" 흐름으로 교체. 실제 데이터(가게명/방문일시/결제금액/메뉴)는
            전부 OCR 결과 그대로이고, 표시 방식만 바꿨다. -->
       <div class="e-card e-card-pad text-center">
-        <span class="e-badge e-badge-lg e-badge--success mb-4" id="ocrVerifiedBadge">인증 성공</span>
         <h2 class="t-h3 leading-snug" id="visitConfirmTitle">방문을 확인해주세요</h2>
 
+        <!-- 날짜/시간 수정(2026-08-19 추가) — 영수증에서 읽은 값이 기본이지만, 화면 표시용으로만
+             수정 가능(리뷰의 "방문 일시" 요약 문구에만 반영, 실제 인증에 쓰인 영수증 원본 데이터는
+             바뀌지 않는다 — 수정 API가 없어 서버에는 전달되지 않음). -->
         <div class="flex items-center justify-center gap-2 mt-5">
           <span class="e-chip-static" id="visitConfirmDate">-</span>
-          <span class="e-chip-static" id="visitConfirmTime">-</span>
+          <button type="button" class="e-link-brand text-[12.5px]" id="visitConfirmDateEditBtn">수정</button>
+          <span class="e-chip-static ml-2" id="visitConfirmTime">-</span>
+          <button type="button" class="e-link-brand text-[12.5px]" id="visitConfirmTimeEditBtn">수정</button>
+        </div>
+        <div class="flex items-center justify-center gap-2 mt-3" id="visitConfirmEditRow" hidden>
+          <input type="date" class="e-input !w-auto !py-2 !text-sm" id="visitConfirmDateInput">
+          <input type="time" class="e-input !w-auto !py-2 !text-sm" id="visitConfirmTimeInput">
+          <button type="button" class="btn btn-primary btn-sm" id="visitConfirmEditApplyBtn">적용</button>
         </div>
 
         <div class="e-card e-card-soft e-card-pad mt-6 text-left flex items-center gap-3.5">
@@ -393,6 +403,10 @@
             <p class="t-xs mt-1 leading-relaxed" id="visitConfirmAddress">-</p>
           </div>
         </div>
+
+        <!-- 매장 위치 미니맵(2026-08-19 추가) — 카테고리에 맞는 마커 이미지(explore.html과 동일)를
+             해당 좌표에 고정 표시만 한다. 드래그/줌/더블클릭 확대 전부 꺼서 조작 불가(움직이지 않게). -->
+        <div class="rounded-[var(--r-md)] overflow-hidden mt-3" style="height:180px" id="visitConfirmMap"></div>
 
         <div class="flex flex-col sm:flex-row gap-3 mt-7">
           <button type="button" class="btn btn-outline btn-lg sm:w-44" id="ocrRetryBtn">이 장소가 아니에요</button>

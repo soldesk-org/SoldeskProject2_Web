@@ -838,6 +838,7 @@
           roadAddress: item.roadAddress || "",
           latitude: item.latitude != null ? item.latitude : null,
           longitude: item.longitude != null ? item.longitude : null,
+          category: item.category || null,
         }));
         sessionStorage.setItem("ru_entry_at", String(Date.now()));
       };

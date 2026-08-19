@@ -89,6 +89,7 @@
     roadAddress: entrySnapshot.roadAddress || "",
     latitude: entrySnapshot.latitude != null ? Number(entrySnapshot.latitude) : null,
     longitude: entrySnapshot.longitude != null ? Number(entrySnapshot.longitude) : null,
+    category: entrySnapshot.category || null,
   } : null;
 
   if (restaurant) {
@@ -167,12 +168,14 @@
     if (!file || !restaurant) return;
     successImg.src = URL.createObjectURL(file);
     resultBadge.className = "e-camera-result-badge";
-    playBands();
+    playBands(); // 결과가 올 때까지 계속 반복 재생(아래에서 결과가 오면 멈춘다)
     successOverlay.hidden = false;
 
-    var minBandsTime = new Promise(function (resolve) { window.setTimeout(resolve, 1450); });
-    Promise.all([runOcr(file, { silent: true }), minBandsTime]).then(function (results) {
-      var ok = results[0];
+    // 2026-08-19 수정 — 최소 대기시간을 인위적으로 두지 않는다. 실제 OCR 결과가 오기 전까지는
+    // "인식 성공/실패" 배지가 절대 먼저 뜨면 안 된다는 지적 — 결과가 오는 즉시(길게 걸리면 길게,
+    // 짧게 걸리면 짧게) 배지를 보여주고, 그 전까지는 줄 하이라이트가 계속 반복된다.
+    runOcr(file, { silent: true }).then(function (ok) {
+      bandsContainer.innerHTML = ""; // 반복 애니메이션 정지
       showResultBadge(ok);
       window.setTimeout(function () {
         if (ok) {
@@ -409,24 +412,54 @@
     return d;
   }
 
-  function renderStep2(data) {
-    var badge = document.getElementById("ocrVerifiedBadge");
-    badge.textContent = "인증 성공";
-    badge.className = "e-badge e-badge-lg e-badge--success mb-4";
+  // ---- 방문확인 미니맵(2026-08-19 추가) — explore.js와 동일한 카테고리별 마커 이미지를 재사용한다
+  // (파일이 달라 공유는 안 하고 값만 복제 — CLAUDE.md 2장에서 이미 굳어진 이 프로젝트의 패턴).
+  // 드래그/줌/더블클릭 확대를 전부 꺼서 위치 확인용으로만 고정 표시한다.
+  var CATEGORY_MARKER = {
+    "한식": "img/markers/marker-korean.png",
+    "양식": "img/markers/marker-western.png",
+    "중식": "img/markers/marker-chinese.png",
+    "일식": "img/markers/marker-japanese.png",
+    "분식": "img/markers/marker-snack.png",
+    "패스트푸드": "img/markers/marker-fastfood.png",
+    "아시안": "img/markers/marker-asian.png",
+    "술집": "img/markers/marker-bar.png",
+    "뷔페": "img/markers/marker-buffet.png",
+    "카페\디저트": "img/markers/marker-cafe.png",
+  };
+  var visitConfirmMap = null;
+  function renderVisitConfirmMap() {
+    var mapEl = document.getElementById("visitConfirmMap");
+    if (!mapEl || !restaurant || restaurant.latitude == null || restaurant.longitude == null) return;
+    if (!window.naver || !window.naver.maps) return;
+    var center = new naver.maps.LatLng(restaurant.latitude, restaurant.longitude);
+    if (!visitConfirmMap) {
+      visitConfirmMap = new naver.maps.Map(mapEl, {
+        center: center, zoom: 16,
+        draggable: false, scrollWheel: false, pinchZoom: false,
+        disableDoubleClickZoom: true, disableDoubleTapZoom: true, disableTwoFingerTapZoom: true,
+        keyboardShortcuts: false, scaleControl: false, zoomControl: false, mapDataControl: false,
+      });
+      var iconUrl = CATEGORY_MARKER[restaurant.category];
+      new naver.maps.Marker({
+        position: center, map: visitConfirmMap, title: restaurant.name,
+        icon: iconUrl ? { url: iconUrl, size: new naver.maps.Size(27, 35), scaledSize: new naver.maps.Size(27, 35), anchor: new naver.maps.Point(13.5, 35) } : undefined,
+      });
+    } else {
+      visitConfirmMap.setCenter(center);
+    }
+  }
 
-    document.getElementById("ocrShopName").textContent = data.storeName || restaurant.name || "-";
-    document.getElementById("ocrTotalAmount").textContent = data.totalPrice != null ? Number(data.totalPrice).toLocaleString() + "원" : "-";
-    document.getElementById("ocrVisitDatetime").textContent = data.orderDatetime || "-";
+  var visitShopLabel = "";
+  var visitDate = null; // 화면 표시용(수정 가능) Date — 실제 인증에 쓰인 영수증 원본과는 별개
 
-    // "다녀오셨네요" 방문 확인 카드
-    var visitDate = parseOrderDatetime(data.orderDatetime);
-    var shopLabel = (data.storeName || restaurant.name || "").length > 10
-      ? (data.storeName || restaurant.name).slice(0, 10) + "..."
-      : (data.storeName || restaurant.name || "");
+  // 방문확인 카드의 제목/날짜칩/시간칩을 다시 그린다 — 최초 렌더와, 사용자가 "수정"으로 날짜/시간을
+  // 직접 바꿨을 때 둘 다 이 함수 하나로 처리한다.
+  function renderVisitDateUI() {
     if (visitDate) {
       document.getElementById("visitConfirmTitle").innerHTML =
         (visitDate.getMonth() + 1) + "월 " + visitDate.getDate() + "일 " + WEEKDAY_KR[visitDate.getDay()] + "요일에<br>" +
-        escapeHtml(shopLabel) + " 다녀오셨네요!";
+        escapeHtml(visitShopLabel) + " 다녀오셨네요!";
       document.getElementById("visitConfirmDate").textContent =
         (visitDate.getMonth() + 1) + "월 " + visitDate.getDate() + "일 " + WEEKDAY_KR[visitDate.getDay()];
       var hour24 = visitDate.getHours();
@@ -435,11 +468,48 @@
       document.getElementById("visitConfirmTime").textContent =
         ampm + " " + hour12 + ":" + String(visitDate.getMinutes()).padStart(2, "0");
     } else {
-      document.getElementById("visitConfirmTitle").textContent = escapeHtml(shopLabel) + " 다녀오셨네요!";
+      document.getElementById("visitConfirmTitle").textContent = escapeHtml(visitShopLabel) + " 다녀오셨네요!";
       document.getElementById("visitConfirmDate").textContent = "-";
       document.getElementById("visitConfirmTime").textContent = "-";
     }
+  }
+
+  function pad2(n) { return String(n).padStart(2, "0"); }
+
+  // ---- 날짜/시간 수정(2026-08-19 추가) — 화면 표시용으로만 수정한다(서버에 반영하는 API가 없음).
+  var visitConfirmEditRow = document.getElementById("visitConfirmEditRow");
+  var visitConfirmDateInput = document.getElementById("visitConfirmDateInput");
+  var visitConfirmTimeInput = document.getElementById("visitConfirmTimeInput");
+  function openVisitDateEditor() {
+    var base = visitDate || new Date();
+    visitConfirmDateInput.value = base.getFullYear() + "-" + pad2(base.getMonth() + 1) + "-" + pad2(base.getDate());
+    visitConfirmTimeInput.value = pad2(base.getHours()) + ":" + pad2(base.getMinutes());
+    visitConfirmEditRow.hidden = false;
+  }
+  document.getElementById("visitConfirmDateEditBtn").addEventListener("click", openVisitDateEditor);
+  document.getElementById("visitConfirmTimeEditBtn").addEventListener("click", openVisitDateEditor);
+  document.getElementById("visitConfirmEditApplyBtn").addEventListener("click", function () {
+    if (!visitConfirmDateInput.value || !visitConfirmTimeInput.value) return;
+    var d = new Date(visitConfirmDateInput.value + "T" + visitConfirmTimeInput.value + ":00");
+    if (isNaN(d.getTime())) return;
+    visitDate = d;
+    renderVisitDateUI();
+    visitConfirmEditRow.hidden = true;
+  });
+
+  function renderStep2(data) {
+    document.getElementById("ocrShopName").textContent = data.storeName || restaurant.name || "-";
+    document.getElementById("ocrTotalAmount").textContent = data.totalPrice != null ? Number(data.totalPrice).toLocaleString() + "원" : "-";
+    document.getElementById("ocrVisitDatetime").textContent = data.orderDatetime || "-";
+
+    // "다녀오셨네요" 방문 확인 카드
+    visitDate = parseOrderDatetime(data.orderDatetime);
+    visitShopLabel = (data.storeName || restaurant.name || "").length > 10
+      ? (data.storeName || restaurant.name).slice(0, 10) + "..."
+      : (data.storeName || restaurant.name || "");
+    renderVisitDateUI();
     document.getElementById("visitConfirmAddress").textContent = restaurant.roadAddress || restaurant.address || "-";
+    renderVisitConfirmMap();
 
     var menuList = document.getElementById("ocrMenuList");
     if (data.menuItems && data.menuItems.length) {
