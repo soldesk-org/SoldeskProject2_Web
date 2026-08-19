@@ -117,17 +117,14 @@
 
   var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   var X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-  var BAND_COUNT = 5;
 
+  // 2026-08-19 3차 수정 — 박스 여러 개가 한꺼번에 뜨는 대신, 바코드 스캐너처럼 얇은 선 하나만
+  // 위아래로 훑도록 단순화(요청: "바코드 스캐너처럼 엄청 얇은 한 줄로").
   function playBands() {
     bandsContainer.innerHTML = "";
-    for (var i = 0; i < BAND_COUNT; i++) {
-      var band = document.createElement("div");
-      band.className = "e-camera-highlight-band";
-      band.style.top = (14 + i * 16) + "%";
-      band.style.animationDelay = (i * 150) + "ms";
-      bandsContainer.appendChild(band);
-    }
+    var line = document.createElement("div");
+    line.className = "e-camera-highlight-band";
+    bandsContainer.appendChild(line);
   }
 
   function showResultBadge(ok) {
