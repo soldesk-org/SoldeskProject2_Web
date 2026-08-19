@@ -8,3 +8,5 @@ Disallow: /mypage-edit
 Disallow: /mypage-reviews
 Disallow: /business-mypage
 Disallow: /*-test.html$
+
+Sitemap: https://eattyway.com/sitemap.xml
