@@ -60,7 +60,7 @@
      hidden 처리한다. */
   .e-camera-scanning-caption {
     position: absolute; left: 0; right: 0; bottom: 6%;
-    text-align: center; color: #fff; font-size: 14.5px; font-weight: 700;
+    text-align: center; color: #fff; font-size: 19px; font-weight: 800;
     text-shadow: 0 1px 4px rgba(0,0,0,.5);
   }
   .e-camera-scanning-caption[hidden] { display: none; }
