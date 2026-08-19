@@ -89,12 +89,14 @@
       typeof window.naver.maps.LatLngBounds === "function");
   }
   function initRecommendMap(center) {
+    var mapEl = document.getElementById("naverMapRecommend");
     if (!hasNaverMaps()) { map = null; return; }
     try {
       map = new window.naver.maps.Map("naverMapRecommend", {
         center: new window.naver.maps.LatLng(center.lat, center.lng),
         zoom: 14,
       });
+      if (mapEl) mapEl.classList.remove("e-skeleton");
     } catch (e) {
       map = null;
     }
