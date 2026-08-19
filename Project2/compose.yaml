@@ -15,7 +15,6 @@ services:
       CHAT_LOG_FILE_PATH: /app/logs/support-chat.jsonl
       BUSINESS_VERIFY_BASE_URL: http://ocr-api:8000
       BUSINESS_VERIFY_INTERNAL_TOKEN: ${BUSINESS_VERIFY_INTERNAL_TOKEN:-}
-      RECOMMENDATION_BASE_URL: http://recommendation-api:8000
       RECOMMENDATION_INTERNAL_TOKEN: ${RECOMMENDATION_INTERNAL_TOKEN:-}
     ports:
       - "8081:8081"
@@ -47,28 +46,7 @@ services:
       - "127.0.0.1:8000:8000"
     restart: unless-stopped
 
-  recommendation-api:
-    build:
-      context: ../../SoldeskProject2_Python/keyword-extraction
-      dockerfile: Dockerfile
-    image: soldesk-recommendation:local
-    container_name: soldesk-recommendation
-    env_file:
-      - path: ../../SoldeskProject2_Python/keyword-extraction/.env
-        required: false
-    environment:
-      KAKAO_REST_API_KEY: ${KAKAO_CLIENT_ID:-}
-      REVIEW_STATS_URL: http://web:8081/internal/reviews/keyword-ratios
-      INTERNAL_API_TOKEN: ${RECOMMENDATION_INTERNAL_TOKEN:-}
-    init: true
-    gpus: all
-    ports:
-      - "127.0.0.1:8001:8000"
-    volumes:
-      - recommendation-models:/models/huggingface
-    restart: unless-stopped
-
-volumes:
-  recommendation-models:
-    name: soldesk-recommendation-models
-    external: true
+# recommendation-api(AI 추천, GPU 필요)는 의도적으로 Docker화하지 않는다 — 팀원 로컬 PC 한 대에서만
+# 돌아가는 프로세스라 컨테이너화 이득이 크지 않고, Cloudflare Tunnel(ai.eattyway.com)로 그대로 노출한다.
+# web 서비스는 .env의 RECOMMENDATION_BASE_URL(Jenkins 크리덴셜, ai.eattyway.com)을 그대로 쓴다.
+# 상세: docs/28.인프라-개선-후보/001-02.AI-추천-서버-Docker-미적용-이유.md
