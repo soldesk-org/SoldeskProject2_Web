@@ -172,7 +172,10 @@
       fileInput.click();
     }
 
-    function openCamera() {
+    var cameraStartPrompt = document.getElementById("cameraStartPrompt");
+    var cameraStartBtn = document.getElementById("cameraStartBtn");
+
+    function openCamera(isAutoAttempt) {
       modal.hidden = false;
       // 2026-08-19 추가 — 해상도 제약이 없으면 기기가 낮은 해상도를 골라 흐릿하게 나올 수 있어 ideal
       // 해상도를 명시. focusMode: continuous는 초점이 한 번 잡힌 뒤 안 바뀌던 문제(영수증처럼 가까운
@@ -194,12 +197,23 @@
         .then(function (s) {
           stream = s;
           video.srcObject = s;
+          cameraStartPrompt.hidden = true;
         })
         .catch(function () {
-          // 권한 거부/카메라 없음 등 — 모달 닫고 원래 방식(OS 카메라 앱/파일선택)으로 폴백
           modal.hidden = true;
-          fallbackToNativePicker();
+          if (isAutoAttempt) {
+            // 페이지 진입 자동 시도가 실패한 경우(주로 iOS의 "실제 탭 필요" 정책) — 조용히 OS 기본
+            // 카메라로 넘어가는 대신, 한 번 더 탭하면 우리 카메라가 확실히 열리도록 버튼을 보여준다.
+            cameraStartPrompt.hidden = false;
+          } else {
+            // 사용자가 직접 탭했는데도 실패(권한 거부/카메라 없음 등) — 원래 방식(OS 카메라 앱/파일선택)으로 폴백
+            fallbackToNativePicker();
+          }
         });
+    }
+
+    if (cameraStartBtn) {
+      cameraStartBtn.addEventListener("click", function () { openCamera(false); });
     }
 
     var successOverlay = document.getElementById("receiptCameraSuccessOverlay");
@@ -253,21 +267,22 @@
 
     flipBtn.addEventListener("click", function () {
       facingMode = facingMode === "environment" ? "user" : "environment";
-      openCamera();
+      openCamera(false);
     });
 
     if (supported) {
       fileInput.addEventListener("click", function (e) {
         if (bypass) { bypass = false; return; } // 폴백 클릭은 그대로 통과
         e.preventDefault();
-        openCamera();
+        openCamera(false);
       });
 
       // 2026-08-19 추가 — "가게 상세 → 영수증으로 리뷰 작성하기" 버튼을 누르면 1단계 업로드 화면
       // (드롭존을 다시 클릭해야 카메라가 열리던 방식) 없이 카메라가 곧바로 뜨도록 한다. 임시저장을
       // 이어서 쓰는 진입(resumedDraft)은 이미 영수증 인증이 끝난 상태라 카메라가 필요 없으므로 제외.
+      // isAutoAttempt=true — 실제 탭 없이 자동 실행이라 iOS 등에서 막히면 cameraStartPrompt로 안내한다.
       if (restaurant && !resumedDraft) {
-        openCamera();
+        openCamera(true);
       }
     }
   })();
