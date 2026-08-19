@@ -13,8 +13,12 @@
   // ---- 프로필 ----
   // 이메일/전화번호는 마이페이지 요약 카드에는 노출하지 않는다(2026-08-04 변경 — 필요하면 프로필 수정
   // 화면에서 확인). data.email/data.phone 자체는 이 API 응답에 계속 포함되지만 이 페이지에서는 안 쓴다.
+  // 2026-08-19 추가 — #profileNickname도 헤더/드로어와 같은 이유로 eatty.css에서 기본 스켈레톤 처리됨
+  // (응답 받은 뒤에만 .e-auth-loaded를 추가해서 실제 값으로 되돌린다).
   Api.request("/api/members/me").then(function (data) {
-    document.getElementById("profileNickname").textContent = data.nickname || "";
+    var profileNicknameEl = document.getElementById("profileNickname");
+    profileNicknameEl.textContent = data.nickname || "";
+    profileNicknameEl.classList.add("e-auth-loaded");
     var avatar = document.getElementById("profileAvatar");
     if (data.profileImageUrl) {
       avatar.innerHTML = '<img src="' + data.profileImageUrl + '" class="size-full object-cover rounded-full" alt="프로필 사진">';
@@ -32,7 +36,10 @@
       btiBadge.hidden = true;
       if (btiEmptyBox) btiEmptyBox.hidden = false;
     }
-  }).catch(function () {});
+  }).catch(function () {
+    var profileNicknameEl = document.getElementById("profileNickname");
+    if (profileNicknameEl) profileNicknameEl.classList.add("e-auth-loaded");
+  });
 
   // ---- 즐겨찾기 ----
   var favoriteList = document.getElementById("favoriteList");

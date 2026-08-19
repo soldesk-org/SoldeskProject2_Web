@@ -249,6 +249,15 @@
       var drawerFoodBtiBadge = document.getElementById("drawerFoodBtiBadge");
       if (headerNickname || headerNicknameHead || headerEmail || headerAvatar || drawerNickname || drawerEmail || drawerAvatar
           || headerFoodBtiBadge || drawerFoodBtiBadge) {
+        // 2026-08-19 추가 — eatty.css의 #headerNickname 등 ID 선택자가 기본으로 스켈레톤(회색 shimmer
+        // 바)을 보여주고 있다. 응답을 실제로 받은 뒤(성공/실패 무관)에만 .e-auth-loaded를 추가해서
+        // 원래 스타일로 되돌린다 — 응답 오기 전에 미리 켜버리면 로딩 중에도 옛 자리표시자 텍스트가
+        // 그대로 보이는 원래 문제가 재현되므로, 반드시 .then/.catch 안에서만 처리한다.
+        var revealAuthText = function () {
+          [headerNickname, headerEmail, drawerNickname, drawerEmail].forEach(function (el) {
+            if (el) el.classList.add("e-auth-loaded");
+          });
+        };
         request("/api/members/me").then(function (data) {
           if (headerNickname && data.nickname) headerNickname.textContent = data.nickname;
           if (headerNicknameHead && data.nickname) headerNicknameHead.textContent = data.nickname;
@@ -268,7 +277,8 @@
               if (el) { el.textContent = data.foodBti; el.hidden = false; }
             });
           }
-        }).catch(function () {});
+          revealAuthText();
+        }).catch(revealAuthText);
       }
     }
   }
