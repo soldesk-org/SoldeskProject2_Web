@@ -1,15 +1,19 @@
 # VM 운영 배포 전용 오버라이드(2026-08-19 추가) — `docker compose -f compose.yaml -f compose.prod.yaml up`로
 # 함께 사용한다. compose.yaml 자체(팀원 로컬 개발용, Windows/Mac Docker Desktop 대상)는 건드리지 않는다.
 #
-# 왜 필요한가: 이 VM에서는 MariaDB(공인 IP로 접속이라 문제 없음)/Redis가 컨테이너 밖(호스트)에 있고,
-# 기존 운영 .env가 REDIS_HOST=127.0.0.1처럼 "호스트 자신의 루프백"을 가리키는 값을 그대로 쓴다. 기본
-# 브리지 네트워크에서는 컨테이너의 127.0.0.1이 호스트가 아니라 컨테이너 자신을 가리켜서 이 값이 깨진다.
+# 왜 필요한가: 이 VM에서는 MariaDB/Redis가 컨테이너 밖(호스트)에 있고, 기존 운영 .env가
+# REDIS_HOST=127.0.0.1, DB_URL=jdbc:mariadb://4.230.10.253:3306/... 처럼 "호스트 자신"을 가리키는
+# 값을 그대로 쓴다. 기본 브리지 네트워크에서는 컨테이너 안에서 호스트의 127.0.0.1도, 호스트 자신의
+# 공인 IP(hairpin NAT)도 안정적으로 안 열려서 둘 다 깨진다 — MariaDB는 "공인 IP라 문제없다"고 생각했지만
+# 2026-08-19 실제 배포에서 컨테이너 안 Java가 "Network is unreachable"로 계속 실패하는 걸 확인(호스트
+# 자체에서는 같은 포트가 정상 연결됨 — 컨테이너 네트워크 네임스페이스만의 문제).
 # network_mode: host도 검토했지만, 그러면 컴포즈의 서비스명 DNS(ocr-api 등)가 깨지고 다른 서비스 URL도
 # 전부 다시 써야 해서 더 복잡해진다 — 대신 host.docker.internal(Docker가 제공하는 호스트 접근용 특수
-# 호스트명)로 REDIS_HOST만 바꿔치기하는 쪽이 훨씬 단순하고, 서비스명 DNS도 그대로 유지된다.
+# 호스트명)로 REDIS_HOST/DB_URL만 바꿔치기하는 쪽이 훨씬 단순하고, 서비스명 DNS도 그대로 유지된다.
 services:
   web:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       REDIS_HOST: host.docker.internal
+      DB_URL: jdbc:mariadb://host.docker.internal:3306/soldesk_project
