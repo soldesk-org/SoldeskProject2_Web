@@ -1888,6 +1888,22 @@ body.is-modal-open { overflow: hidden; }
   animation: none;
 }
 
+/* 아바타 원 안의 "잇" 글자도 같은 이유로 잠깐 보였다 사라진다 — 글자만 투명하게 감추고 그 위에
+   shimmer를 겹쳐서(기존 배경색은 그대로 유지) 로딩 표시. background-image만 쓰는 이유: 일부 페이지는
+   인라인 style="background:..."로 아바타 배경색을 지정하는데, background 축약 속성 전체를 외부
+   CSS로 덮어쓰면 그 인라인 배경색까지 없어져 버리기 때문. */
+#headerAvatar, #drawerAvatar, #profileAvatar {
+  color: transparent;
+  background-image: linear-gradient(90deg, var(--ink-100) 25%, var(--bg-muted) 37%, var(--ink-100) 63%);
+  background-size: 400% 100%;
+  animation: e-shimmer 1.4s ease-in-out infinite;
+}
+#headerAvatar.e-auth-loaded, #drawerAvatar.e-auth-loaded, #profileAvatar.e-auth-loaded {
+  color: inherit;
+  background-image: none;
+  animation: none;
+}
+
 .e-scroll { overflow-y: auto; }
 .e-scroll::-webkit-scrollbar { width: 9px; height: 9px; }
 .e-scroll::-webkit-scrollbar-track { background: transparent; }

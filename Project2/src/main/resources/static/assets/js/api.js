@@ -254,7 +254,7 @@
         // 원래 스타일로 되돌린다 — 응답 오기 전에 미리 켜버리면 로딩 중에도 옛 자리표시자 텍스트가
         // 그대로 보이는 원래 문제가 재현되므로, 반드시 .then/.catch 안에서만 처리한다.
         var revealAuthText = function () {
-          [headerNickname, headerEmail, drawerNickname, drawerEmail].forEach(function (el) {
+          [headerNickname, headerEmail, drawerNickname, drawerEmail, headerAvatar, drawerAvatar].forEach(function (el) {
             if (el) el.classList.add("e-auth-loaded");
           });
         };

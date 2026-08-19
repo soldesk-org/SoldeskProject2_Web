@@ -25,6 +25,7 @@
     } else if (data.nickname) {
       avatar.textContent = data.nickname.charAt(0);
     }
+    avatar.classList.add("e-auth-loaded");
 
     var btiBadge = document.getElementById("profileBtiBadge");
     var btiEmptyBox = document.getElementById("profileBtiEmptyBox");
@@ -39,6 +40,8 @@
   }).catch(function () {
     var profileNicknameEl = document.getElementById("profileNickname");
     if (profileNicknameEl) profileNicknameEl.classList.add("e-auth-loaded");
+    var avatarEl = document.getElementById("profileAvatar");
+    if (avatarEl) avatarEl.classList.add("e-auth-loaded");
   });
 
   // ---- 즐겨찾기 ----
