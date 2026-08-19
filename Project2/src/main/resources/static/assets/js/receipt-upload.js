@@ -95,11 +95,8 @@
     category: entrySnapshot.category || null,
   } : null;
 
-  if (restaurant) {
-    document.getElementById("targetRestaurantName").textContent = restaurant.name;
-  } else {
+  if (!restaurant) {
     document.getElementById("noRestaurantAlert").hidden = false;
-    document.getElementById("runOcrBtn") && (document.getElementById("runOcrBtn").disabled = true);
   }
 
   var ocrResult = resumedDraft && resumedDraft.receiptId ? {
@@ -195,9 +192,6 @@
   // 페이지로 돌려보낸다(이 페이지는 특정 매장 전용이라, 인증에 실패했으면 여기 계속 남아있을 이유가
   // 없다는 판단 — "OCR 버튼 있는 페이지로 가버린다"는 지적에 대한 근본 대응).
   receiptDrop.addEventListener("eatty:filepicked", function (e) {
-    receiptDrop.hidden = true;
-    syncReceiptPreviewThumbHeight();
-
     var file = e.detail && e.detail.file;
     if (!file || !restaurant) return;
     successImg.src = URL.createObjectURL(file);
@@ -236,19 +230,6 @@
     });
   });
 
-  // 2026-08-19 추가 — 썸네일을 옆 텍스트("업로드된 영수증"+OCR 버튼) 블록과 같은 높이로 맞추는 작업을
-  // CSS(align-items:stretch + 퍼센트 높이)로 시도했으나 실제 모바일 Safari에서 카드 밖으로 넘치는
-  // 문제가 재현됨(데스크톱에서는 재현 안 됨). 브라우저별 차이에 기대지 않도록, 텍스트 블록의 실제 렌더
-  // 높이를 JS로 측정해서 썸네일에 픽셀 값으로 직접 지정한다.
-  function syncReceiptPreviewThumbHeight() {
-    var thumb = document.getElementById("receiptPreviewThumb");
-    var textBlock = document.getElementById("receiptPreviewTextBlock");
-    if (!thumb || !textBlock) return;
-    requestAnimationFrame(function () {
-      var h = textBlock.getBoundingClientRect().height;
-      if (h > 0) thumb.style.height = h + "px";
-    });
-  }
   // ---- 커스텀 카메라(2026-08-19 추가) ----
   // input의 capture="environment"만 쓰면 OS 기본 카메라 앱이 열려서 셔터음을 끌 수 없다. getUserMedia로
   // 카메라 스트림을 직접 받아 캡처하면 OS/브라우저 셔터음이 아예 재생되지 않는다. 카메라 접근이
@@ -368,7 +349,12 @@
       }, "image/jpeg", 0.92);
     });
 
-    cancelBtn.addEventListener("click", closeModal);
+    // 2026-08-20 수정 — 카메라 취소(X)를 누르면 예전엔 모달만 닫혀서 뒤에 있던 옛날 업로드 화면이
+    // 보였다. 그 화면 자체를 없앤 지금 구조에서는 취소 = "리뷰 작성을 그만둔다"는 뜻이므로 매장
+    // 상세 페이지로 바로 돌려보낸다.
+    cancelBtn.addEventListener("click", function () {
+      window.location.href = buildShopDetailUrl();
+    });
 
     // 2026-08-19 수정 — 썸네일로 사진첩 선택하는 기능을 넣었다가 제거함(영수증 인증 무결성 때문에
     // 실시간 촬영만 허용해야 한다는 판단). thumbSlot은 이제 클릭 불가, 마지막 촬영 미리보기만 표시.
@@ -401,15 +387,10 @@
     }
   })();
 
-  document.getElementById("receiptRemoveBtn").addEventListener("click", function () {
-    document.getElementById("receiptFileInput").value = "";
-    document.getElementById("receiptPreview").hidden = true;
-    document.getElementById("receiptFileName").textContent = "선택된 파일이 없습니다";
-    receiptDrop.hidden = false;
-  });
-
-  // ---- OCR 실행(2026-08-19 리팩터링) — step1의 수동 "OCR 인식" 버튼과 카메라 촬영 직후 자동 실행
-  // 두 곳에서 같은 로직을 쓰도록 공용 함수로 뺐다. 성공 시 true, 실패(인증 실패/에러) 시 false로
+  // ---- OCR 실행(2026-08-19 리팩터링, 2026-08-20 수동 버튼 제거) — 예전엔 수동 "OCR 인식" 버튼과
+  // 카메라 촬영 직후 자동 실행 두 곳에서 썼는데, 수동 버튼이 있던 화면 자체를 없애면서 이제 호출부는
+  // eatty:filepicked 핸들러 하나뿐이다(공용 함수 구조는 그대로 유지). 성공 시 true, 실패(인증
+  // 실패/에러) 시 false로
   // resolve하는 Promise를 돌려준다(호출자가 UI 후처리를 알아서 하도록).
   function runOcr(file, opts) {
     var silent = opts && opts.silent;
@@ -443,19 +424,6 @@
       });
   }
 
-  document.getElementById("runOcrBtn").addEventListener("click", function () {
-    var fileInput = document.getElementById("receiptFileInput");
-    var file = fileInput.files && fileInput.files[0];
-    if (!file) { Eatty.toast("영수증 사진을 선택해주세요.", "error"); return; }
-
-    // 사업자등록증 OCR(signup-business.js runBusinessVerify)과 동일하게 버튼 문구만 "확인 중..."으로
-    // 바꾸는 방식으로 통일한다(2026-08-06 - 서로 다른 로딩 애니메이션을 쓰던 걸 맞춤).
-    var btn = this;
-    var originalHtml = btn.innerHTML;
-    btn.disabled = true;
-    btn.textContent = "확인 중...";
-    runOcr(file).finally(function () { btn.disabled = false; btn.innerHTML = originalHtml; });
-  });
 
   var WEEKDAY_KR = ["일", "월", "화", "수", "목", "금", "토"];
   // "YYYY-MM-DD HH:mm[:ss]" 형태(서버가 그대로 내려주는 orderDatetime)를 파싱한다. 형식이 다르면
@@ -533,26 +501,108 @@
 
   function pad2(n) { return String(n).padStart(2, "0"); }
 
-  // ---- 날짜/시간 수정(2026-08-19 추가) — 화면 표시용으로만 수정한다(서버에 반영하는 API가 없음).
-  var visitConfirmEditRow = document.getElementById("visitConfirmEditRow");
-  var visitConfirmDateInput = document.getElementById("visitConfirmDateInput");
-  var visitConfirmTimeInput = document.getElementById("visitConfirmTimeInput");
-  function openVisitDateEditor() {
-    var base = visitDate || new Date();
-    visitConfirmDateInput.value = base.getFullYear() + "-" + pad2(base.getMonth() + 1) + "-" + pad2(base.getDate());
-    visitConfirmTimeInput.value = pad2(base.getHours()) + ":" + pad2(base.getMinutes());
-    visitConfirmEditRow.hidden = false;
+  // ---- 날짜/시간 수정용 iOS 스타일 휠 피커(2026-08-20 재작업) — 네이티브 input[type=date/time]은
+  // OS가 그리는 부분이라 우리가 모양을 못 바꾼다("100% 동일하게 만들어달라"는 요청에 대응하려면
+  // 직접 만든 스크롤 휠 컴포넌트가 필요했다). 화면 표시용으로만 수정한다(서버에 반영하는 API가
+  // 없어 영수증 인증 원본 데이터는 그대로다).
+  var ROW_H = 40;
+  var wheelBackdrop = document.getElementById("wheelBackdrop");
+  var wheelSheet = document.getElementById("wheelSheet");
+  var wheelCols = document.getElementById("wheelCols");
+  var wheelConfirmBtn = document.getElementById("wheelConfirmBtn");
+  var wheelOnConfirm = null;
+  var wheelColEls = [];
+
+  function buildWheelColumn(values, selectedIndex) {
+    var col = document.createElement("div");
+    col.className = "e-wheel-col";
+    values.forEach(function (v) {
+      var item = document.createElement("div");
+      item.className = "e-wheel-col-item";
+      item.textContent = v.label;
+      col.appendChild(item);
+    });
+    wheelCols.appendChild(col);
+    // 최초 위치를 선택값으로 스크롤(애니메이션 없이 즉시) — 시트가 열리는 트랜지션과 겹치지 않게
+    // 다음 프레임에 설정한다.
+    requestAnimationFrame(function () { col.scrollTop = selectedIndex * ROW_H; });
+    return col;
   }
-  document.getElementById("visitConfirmDateEditBtn").addEventListener("click", openVisitDateEditor);
-  document.getElementById("visitConfirmTimeEditBtn").addEventListener("click", openVisitDateEditor);
-  document.getElementById("visitConfirmEditApplyBtn").addEventListener("click", function () {
-    if (!visitConfirmDateInput.value || !visitConfirmTimeInput.value) return;
-    var d = new Date(visitConfirmDateInput.value + "T" + visitConfirmTimeInput.value + ":00");
-    if (isNaN(d.getTime())) return;
-    visitDate = d;
-    renderVisitDateUI();
-    visitConfirmEditRow.hidden = true;
+
+  // columns: [{ values: [{label}], selectedIndex }, ...]. onConfirm(selectedIndexes)에서 각 열의
+  // 최종 선택 인덱스 배열을 받는다.
+  function openWheelPicker(columns, onConfirm) {
+    wheelCols.innerHTML = "";
+    wheelColEls = columns.map(function (c) { return buildWheelColumn(c.values, c.selectedIndex); });
+    wheelOnConfirm = onConfirm;
+    wheelBackdrop.hidden = false;
+    wheelSheet.hidden = false;
+    requestAnimationFrame(function () {
+      wheelBackdrop.classList.add("is-open");
+      wheelSheet.classList.add("is-open");
+    });
+  }
+  function closeWheelPicker() {
+    wheelBackdrop.classList.remove("is-open");
+    wheelSheet.classList.remove("is-open");
+    window.setTimeout(function () { wheelBackdrop.hidden = true; wheelSheet.hidden = true; }, 260);
+  }
+  wheelBackdrop.addEventListener("click", closeWheelPicker);
+  wheelConfirmBtn.addEventListener("click", function () {
+    var indexes = wheelColEls.map(function (col) {
+      var idx = Math.round(col.scrollTop / ROW_H);
+      return Math.max(0, Math.min(idx, col.children.length - 1));
+    });
+    if (wheelOnConfirm) wheelOnConfirm(indexes);
+    closeWheelPicker();
   });
+
+  var YEAR_RANGE = []; // 현재 연도 기준 -5 ~ +2
+  (function () {
+    var y0 = new Date().getFullYear() - 5;
+    for (var i = 0; i < 8; i++) YEAR_RANGE.push(y0 + i);
+  })();
+  function daysInMonth(year, month1to12) { return new Date(year, month1to12, 0).getDate(); }
+
+  function openDateWheel() {
+    var base = visitDate || new Date();
+    var yIdx = Math.max(0, YEAR_RANGE.indexOf(base.getFullYear()));
+    var mIdx = base.getMonth(); // 0-11
+    var dCount = daysInMonth(base.getFullYear(), mIdx + 1);
+    var dIdx = Math.min(base.getDate(), dCount) - 1;
+    openWheelPicker([
+      { values: YEAR_RANGE.map(function (y) { return { label: y + "년" }; }), selectedIndex: yIdx },
+      { values: Array.from({ length: 12 }, function (_, i) { return { label: (i + 1) + "월" }; }), selectedIndex: mIdx },
+      { values: Array.from({ length: dCount }, function (_, i) { return { label: (i + 1) + "일" }; }), selectedIndex: dIdx },
+    ], function (idx) {
+      var y = YEAR_RANGE[idx[0]], m = idx[1] + 1, dMax = daysInMonth(y, m), d = Math.min(idx[2] + 1, dMax);
+      var d2 = visitDate || new Date();
+      visitDate = new Date(y, m - 1, d, d2.getHours(), d2.getMinutes());
+      renderVisitDateUI();
+    });
+  }
+
+  function openTimeWheel() {
+    var base = visitDate || new Date();
+    var hour24 = base.getHours();
+    var ampmIdx = hour24 < 12 ? 0 : 1;
+    var hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    openWheelPicker([
+      { values: [{ label: "오전" }, { label: "오후" }], selectedIndex: ampmIdx },
+      { values: Array.from({ length: 12 }, function (_, i) { return { label: String(i + 1) }; }), selectedIndex: hour12 - 1 },
+      { values: Array.from({ length: 60 }, function (_, i) { return { label: pad2(i) }; }), selectedIndex: base.getMinutes() },
+    ], function (idx) {
+      var isPm = idx[0] === 1;
+      var h12 = idx[1] + 1;
+      var h24 = isPm ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+      var d2 = visitDate || new Date();
+      visitDate = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate(), h24, idx[2]);
+      renderVisitDateUI();
+    });
+  }
+
+  document.getElementById("visitConfirmDateEditBtn").addEventListener("click", openDateWheel);
+  document.getElementById("visitConfirmTimeEditBtn").addEventListener("click", openTimeWheel);
 
   function renderStep2(data) {
     document.getElementById("ocrShopName").textContent = data.storeName || restaurant.name || "-";
@@ -851,32 +901,10 @@
     goStep(3);
   }
 
+  // 2026-08-20 수정 — 카메라가 자동으로 뜨는 지금 구조에서는 이 페이지 안에서 다시 처음(1단계)으로
+  // 되돌아가도 카메라가 다시 열리지 않는다(자동 오픈은 페이지 로드 시 한 번뿐). "또 작성하기"는
+  // 매장 상세로 돌아가서 "리뷰 작성"을 다시 누르는 걸로 대체한다 — 완전히 새로 시작하는 게 더 확실하다.
   document.getElementById("writeAnotherBtn").addEventListener("click", function () {
-    document.getElementById("reviewForm").reset();
-    document.getElementById("reviewScore").value = "0";
-    document.querySelectorAll("#reviewRatingInput [data-rating-value]").forEach(function (b) { b.classList.remove("is-on"); });
-    document.getElementById("reviewScoreText").textContent = "-";
-    document.getElementById("reviewScoreLabel").textContent = "별점을 선택해주세요";
-    document.getElementById("tagSelectedCount").textContent = "0";
-    ocrResult = null;
-    reviewPhotoFiles = [];
-    renderReviewPhotos();
-
-    // 2026-08-06 추가 - "또 작성하기"를 눌러도 처음 올렸던 영수증 사진/OCR 결과가 그대로 남아있던
-    // 문제. step1의 파일 입력·미리보기·드롭존, step2의 OCR 표시 필드까지 처음 접속한 상태로 되돌린다.
-    document.getElementById("receiptFileInput").value = "";
-    document.getElementById("receiptPreview").hidden = true;
-    document.getElementById("receiptFileName").textContent = "선택된 파일이 없습니다";
-    receiptDrop.hidden = false;
-    document.getElementById("ocrShopName").textContent = "-";
-    document.getElementById("ocrTotalAmount").textContent = "-";
-    document.getElementById("ocrVisitDatetime").textContent = "-";
-    document.getElementById("ocrMenuList").innerHTML = "";
-    if (menuVisibleToggle) {
-      menuVisibleToggle.checked = true;
-      menuVisibleLabel.textContent = "공개하기";
-    }
-
-    goStep(1);
+    window.location.href = buildShopDetailUrl();
   });
 })();

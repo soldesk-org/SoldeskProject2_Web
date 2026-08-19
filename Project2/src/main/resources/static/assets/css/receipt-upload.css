@@ -13,6 +13,52 @@
     }
   }
 
+  /* iOS 스타일 날짜/시간 휠 피커(2026-08-20 추가) — 네이티브 input을 대체하는 커스텀 컴포넌트.
+     scroll-snap으로 각 열이 세로로 스크롤되고, 가운데 고정된 회색 밴드가 "선택된 값" 위치를
+     표시한다(실제로는 그 밴드가 움직이는 게 아니라 열 콘텐츠가 그 밴드 아래로 지나간다). */
+  .e-wheel-backdrop {
+    position: fixed; inset: 0; z-index: 260;
+    background: rgba(24, 21, 25, .45);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity .2s var(--ease), visibility .2s;
+  }
+  .e-wheel-backdrop.is-open { opacity: 1; visibility: visible; pointer-events: auto; }
+  .e-wheel-backdrop[hidden] { display: block; } /* opacity/visibility로 감추므로 hidden이 display:none이면 안 됨 */
+  .e-wheel-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 261;
+    background: var(--bg); border-radius: 20px 20px 0 0;
+    padding: 8px 0 calc(14px + env(safe-area-inset-bottom));
+    transform: translateY(100%); transition: transform .26s var(--ease);
+    box-shadow: 0 -8px 30px rgba(0,0,0,.12);
+  }
+  .e-wheel-sheet.is-open { transform: translateY(0); }
+  .e-wheel-sheet[hidden] { display: block; }
+  .e-wheel-cols {
+    display: flex; justify-content: center; position: relative;
+    height: 216px; /* 44px(행 높이) * 4.9열 정도, 가운데 행이 정확히 중앙에 오도록 */
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent);
+            mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent);
+  }
+  .e-wheel-cols::before {
+    /* 가운데 선택 밴드 */
+    content: ""; position: absolute; left: 12px; right: 12px; top: 50%;
+    height: 40px; transform: translateY(-50%);
+    background: var(--bg-muted); border-radius: var(--r-md);
+    pointer-events: none; z-index: 0;
+  }
+  .e-wheel-col {
+    flex: 1; max-width: 140px; height: 100%; overflow-y: auto; scroll-snap-type: y mandatory;
+    scrollbar-width: none; -ms-overflow-style: none; position: relative; z-index: 1;
+    padding: 88px 0; /* (216px - 40px행)/2 위아래 여백 -> 첫/끝 항목도 중앙까지 스크롤 가능 */
+  }
+  .e-wheel-col::-webkit-scrollbar { display: none; }
+  .e-wheel-col-item {
+    height: 40px; display: flex; align-items: center; justify-content: center;
+    scroll-snap-align: center;
+    font-size: 20px; font-weight: 700; color: var(--ink-800);
+    font-variant-numeric: tabular-nums;
+  }
+
   /* 별점 입력 - 이 페이지에서만 더 크게(다른 페이지의 공용 .e-rating-input에는 영향 없음) */
   #reviewRatingInput { gap: 8px; }
   #reviewRatingInput svg { width: 48px; height: 48px; }
@@ -71,7 +117,7 @@
      시작하는 대신, 왔던 길을 그대로 위로 되돌아간다(핑퐁, alternate). 결과가 올 때까지 계속
      반복하다가(infinite), JS가 결과 수신 즉시 bandsContainer를 비워서 멈춘다. */
   .e-camera-highlight-band {
-    position: absolute; left: 6%; right: 6%; height: 2px;
+    position: absolute; left: 0; right: 0; height: 2px;
     background: #22c55e;
     box-shadow: 0 0 8px 1px rgba(34, 197, 94, .9), 0 0 2px rgba(34, 197, 94, 1);
     animation: e-camera-scanline-sweep 1.6s ease-in-out infinite alternate;
@@ -83,7 +129,7 @@
   /* 인식 중 안내 문구(2026-08-20 추가) — 스캔 라인이 도는 동안만 보이고, 결과 배지가 뜨면 JS가
      hidden 처리한다. */
   .e-camera-scanning-caption {
-    position: absolute; left: 0; right: 0; bottom: 6%;
+    position: absolute; left: 0; right: 0; bottom: 2%;
     text-align: center; color: #fff; font-size: 19px; font-weight: 800;
     text-shadow: 0 1px 4px rgba(0,0,0,.5);
   }
