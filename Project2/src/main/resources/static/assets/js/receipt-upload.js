@@ -45,22 +45,14 @@
   var doneSection = document.getElementById("doneSection");
   var stepsRoot = document.getElementById("receiptSteps");
 
+  // 2026-08-19 재작업 — 촬영 즉시 자동 인식 + 인식완료 애니메이션 → 방문확인 카드로 넘어가는 흐름으로
+  // 바뀌면서, "1 업로드 / 2 인식확인 / 3 리뷰작성" 숫자 스테퍼는 더 이상 안 쓴다(카메라가 곧바로 뜨는
+  // 지금 구조에서는 "업로드 단계"라는 개념 자체가 없어져서 스테퍼가 오히려 혼란을 줌). 마크업/CSS는
+  // 그대로 두고 항상 숨김 처리만 한다 — 다른 곳에서 다시 필요해지면 되돌리기 쉽게.
   function goStep(n) {
     Object.keys(sections).forEach(function (k) { sections[k].hidden = Number(k) !== n; });
     doneSection.hidden = true;
-    stepsRoot.parentElement.hidden = false;
-    stepsRoot.querySelectorAll(".e-step").forEach(function (s) {
-      var v = Number(s.getAttribute("data-step"));
-      s.classList.toggle("is-current", v === n);
-      s.classList.toggle("is-done", v < n);
-      var dot = s.querySelector(".e-step-dot");
-      dot.innerHTML = v < n
-        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
-        : String(v);
-    });
-    stepsRoot.querySelectorAll(".e-step-line").forEach(function (l) {
-      l.style.background = Number(l.getAttribute("data-line")) < n ? "var(--brand-300)" : "";
-    });
+    stepsRoot.parentElement.hidden = true;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
