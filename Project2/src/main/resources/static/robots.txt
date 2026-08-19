@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /api/
+Disallow: /internal/
+Disallow: /admin
+Disallow: /admin-test
+Disallow: /mypage
+Disallow: /mypage-edit
+Disallow: /mypage-reviews
+Disallow: /business-mypage
+Disallow: /*-test.html$
