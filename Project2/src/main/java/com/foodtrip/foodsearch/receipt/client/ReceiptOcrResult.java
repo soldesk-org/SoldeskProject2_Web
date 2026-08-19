@@ -8,7 +8,14 @@ public record ReceiptOcrResult(
         String orderDatetime,
         List<MenuItemResult> menuItems,
         Integer totalPrice,
-        String transactionId) {
+        String transactionId,
+        // 2026-08-19 추가 — RapidOCR이 인식한 각 줄의 위치(0~1 정규화 좌표). 촬영 직후 인식 성공
+        // 애니메이션에서 실제로 읽은 글자 위에 초록 박스를 그리는 용도(receipt-upload.js 참고).
+        // 값이 없어도(구버전 Python 응답 등) 기본값 빈 리스트로 안전하게 처리.
+        List<OcrLineResult> ocrLines) {
+
+    public record OcrLineResult(String text, double x, double y, double w, double h) {
+    }
 
     public record MenuItemResult(String name, Integer price) {
 

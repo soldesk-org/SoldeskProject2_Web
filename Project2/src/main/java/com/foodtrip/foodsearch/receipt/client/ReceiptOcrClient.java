@@ -141,7 +141,20 @@ public class ReceiptOcrClient {
                 menuItems.add(new ReceiptOcrResult.MenuItemResult(name, price));
             }
         }
-        return new ReceiptOcrResult(storeName, orderDatetime, menuItems, totalPrice, transactionId);
+        List<ReceiptOcrResult.OcrLineResult> ocrLines = new ArrayList<>();
+        Object ocrLinesRaw = body.get("ocr_lines");
+        if (ocrLinesRaw instanceof List<?> list) {
+            for (Object lineRaw : list) {
+                Map<String, Object> line = (Map<String, Object>) lineRaw;
+                String text = (String) line.get("text");
+                double x = ((Number) line.get("x")).doubleValue();
+                double y = ((Number) line.get("y")).doubleValue();
+                double w = ((Number) line.get("w")).doubleValue();
+                double h = ((Number) line.get("h")).doubleValue();
+                ocrLines.add(new ReceiptOcrResult.OcrLineResult(text, x, y, w, h));
+            }
+        }
+        return new ReceiptOcrResult(storeName, orderDatetime, menuItems, totalPrice, transactionId, ocrLines);
     }
 
     // Python OCR 서버가 영수증 하단 합계 표(공급가액/부가세/합계 등)를 메뉴 항목과 구분하지 않고 그대로

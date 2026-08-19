@@ -14,9 +14,11 @@ public class ReceiptUploadResponseDto {
     private final List<ReceiptItemResponseDto> menuItems;
     private final boolean verified;
     private final String restaurantId;
+    private final List<OcrLineResponseDto> ocrLines;
 
     public ReceiptUploadResponseDto(Long receiptId, String storeName, String orderDatetime, Integer totalPrice,
-                                     List<ReceiptItemResponseDto> menuItems, boolean verified, String restaurantId) {
+                                     List<ReceiptItemResponseDto> menuItems, boolean verified, String restaurantId,
+                                     List<OcrLineResponseDto> ocrLines) {
         this.receiptId = receiptId;
         this.storeName = storeName;
         this.orderDatetime = orderDatetime;
@@ -24,6 +26,7 @@ public class ReceiptUploadResponseDto {
         this.menuItems = menuItems;
         this.verified = verified;
         this.restaurantId = restaurantId;
+        this.ocrLines = ocrLines;
     }
 
     public boolean isSuccess() {
@@ -56,5 +59,9 @@ public class ReceiptUploadResponseDto {
 
     public String getRestaurantId() {
         return restaurantId;
+    }
+
+    public List<OcrLineResponseDto> getOcrLines() {
+        return ocrLines;
     }
 }

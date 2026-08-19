@@ -95,6 +95,9 @@
 <div class="e-camera-success-overlay" id="receiptCameraSuccessOverlay" hidden>
   <img id="receiptCameraSuccessImg" alt="촬영한 영수증">
   <div id="receiptCameraBands"></div>
+  <!-- 실제 인식된 단어 박스(2026-08-19 추가) — Python OCR이 돌려준 좌표(ocr_lines)를 그대로 표시.
+       실제로 안 읽은 부분에 박스를 그리는 과장이 아니라, 진짜 인식 위치 그대로다. -->
+  <div id="receiptCameraWordBoxes"></div>
   <div class="e-camera-result-badge" id="receiptCameraResultBadge">
     <span class="e-camera-result-check" id="receiptCameraResultIcon"></span>
     <p id="receiptCameraResultText"></p>

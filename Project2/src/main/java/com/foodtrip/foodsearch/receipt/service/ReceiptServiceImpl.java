@@ -20,6 +20,7 @@ import com.foodtrip.foodsearch.common.storage.ReceiptImageStorageService;
 import com.foodtrip.foodsearch.member.service.AccessTokenSessionService;
 import com.foodtrip.foodsearch.receipt.client.ReceiptOcrClient;
 import com.foodtrip.foodsearch.receipt.client.ReceiptOcrResult;
+import com.foodtrip.foodsearch.receipt.dto.OcrLineResponseDto;
 import com.foodtrip.foodsearch.receipt.dto.ReceiptItemResponseDto;
 import com.foodtrip.foodsearch.receipt.dto.ReceiptUploadResponseDto;
 import com.foodtrip.foodsearch.receipt.entity.Receipt;
@@ -142,8 +143,13 @@ public class ReceiptServiceImpl implements ReceiptService {
                 .map(item -> new ReceiptItemResponseDto(item.name(), item.price()))
                 .collect(Collectors.toList());
 
+        List<OcrLineResponseDto> ocrLines = result.ocrLines() == null ? List.of()
+                : result.ocrLines().stream()
+                        .map(l -> new OcrLineResponseDto(l.text(), l.x(), l.y(), l.w(), l.h()))
+                        .collect(Collectors.toList());
+
         return new ReceiptUploadResponseDto(receipt.getReceiptId(), result.storeName(), result.orderDatetime(),
-                result.totalPrice(), menuItems, verified, verified ? restaurantId : null);
+                result.totalPrice(), menuItems, verified, verified ? restaurantId : null, ocrLines);
     }
 
     // 후보 영수증들(같은 이미지 해시 또는 같은 transaction_id) 중 실제로 리뷰까지 완료된 게 하나라도

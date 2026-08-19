@@ -111,6 +111,7 @@
   var successOverlay = document.getElementById("receiptCameraSuccessOverlay");
   var successImg = document.getElementById("receiptCameraSuccessImg");
   var bandsContainer = document.getElementById("receiptCameraBands");
+  var wordBoxesContainer = document.getElementById("receiptCameraWordBoxes");
   var resultBadge = document.getElementById("receiptCameraResultBadge");
   var resultIcon = document.getElementById("receiptCameraResultIcon");
   var resultText = document.getElementById("receiptCameraResultText");
@@ -131,6 +132,38 @@
     resultBadge.className = "e-camera-result-badge is-shown " + (ok ? "is-success" : "is-fail");
     resultIcon.innerHTML = ok ? CHECK_SVG : X_SVG;
     resultText.textContent = ok ? "인식 성공" : "인식 실패";
+  }
+
+  // 2026-08-19 추가 — object-fit:contain인 <img>는 실제 그려지는 이미지가 박스 전체를 안 채우고
+  // 위아래(또는 좌우)에 여백(letterbox)이 생길 수 있어서, 단순히 "이미지 박스의 N%" 위치로 계산하면
+  // 어긋난다. naturalWidth/Height와 실제 렌더 크기를 비교해서 진짜 그려지는 영역만 계산한다.
+  function containedImageRect(img) {
+    var boxW = img.clientWidth, boxH = img.clientHeight;
+    var natW = img.naturalWidth, natH = img.naturalHeight;
+    if (!boxW || !boxH || !natW || !natH) return null;
+    var scale = Math.min(boxW / natW, boxH / natH);
+    var drawW = natW * scale, drawH = natH * scale;
+    return { offsetX: (boxW - drawW) / 2, offsetY: (boxH - drawH) / 2, drawW: drawW, drawH: drawH };
+  }
+
+  // 실제 OCR이 인식한 줄 위치(ocr_lines, 0~1 정규화 좌표)를 촬영 사진 위에 그대로 초록 박스로
+  // 표시한다(과장 없이 진짜 인식 위치 그대로 — 네이버 영수증 리뷰 참고 화면의 하이라이트와 동일한
+  // 효과). 인식 성공 배지가 뜰 때 함께 순서대로(살짝 스태거) 나타난다.
+  function renderWordBoxes(ocrLines) {
+    wordBoxesContainer.innerHTML = "";
+    if (!ocrLines || !ocrLines.length) return;
+    var rect = containedImageRect(successImg);
+    if (!rect) return;
+    ocrLines.forEach(function (line, i) {
+      var box = document.createElement("div");
+      box.className = "e-camera-word-box";
+      box.style.left = (rect.offsetX + line.x * rect.drawW) + "px";
+      box.style.top = (rect.offsetY + line.y * rect.drawH) + "px";
+      box.style.width = Math.max(line.w * rect.drawW, 4) + "px";
+      box.style.height = Math.max(line.h * rect.drawH, 4) + "px";
+      box.style.animationDelay = (i * 25) + "ms";
+      wordBoxesContainer.appendChild(box);
+    });
   }
 
   // 매장명/주소를 URL에 그대로 신뢰하지 않는 이 페이지의 원칙과 달리, 여기서는 "우리가 직접 갖고
@@ -165,6 +198,7 @@
     if (!file || !restaurant) return;
     successImg.src = URL.createObjectURL(file);
     resultBadge.className = "e-camera-result-badge";
+    wordBoxesContainer.innerHTML = "";
     playBands(); // 결과가 올 때까지 계속 반복 재생(아래에서 결과가 오면 멈춘다)
     successOverlay.hidden = false;
 
@@ -174,6 +208,18 @@
     runOcr(file, { silent: true }).then(function (ok) {
       bandsContainer.innerHTML = ""; // 반복 애니메이션 정지
       showResultBadge(ok);
+      if (ok && ocrResult) {
+        // successImg가 이미 로드돼 있어야 clientWidth/naturalWidth를 정확히 잴 수 있다 — 캡처
+        // 직후라 대부분 이미 로드돼 있지만, 혹시 아직이면 load 이벤트까지 기다린다.
+        if (successImg.complete) {
+          renderWordBoxes(ocrResult.ocrLines);
+        } else {
+          successImg.addEventListener("load", function onLoad() {
+            successImg.removeEventListener("load", onLoad);
+            renderWordBoxes(ocrResult.ocrLines);
+          });
+        }
+      }
       window.setTimeout(function () {
         if (ok) {
           successOverlay.hidden = true;
