@@ -16,3 +16,57 @@
   /* 별점 입력 - 이 페이지에서만 더 크게(다른 페이지의 공용 .e-rating-input에는 영향 없음) */
   #reviewRatingInput { gap: 8px; }
   #reviewRatingInput svg { width: 48px; height: 48px; }
+
+  /* "다녀오셨네요" 방문 확인 카드의 날짜/시간 표시용 정적 칩(2026-08-19 추가) — 편집 기능은 없고
+     읽기 전용이라 버튼이 아니라 그냥 라벨. */
+  .e-chip-static {
+    display: inline-flex; align-items: center;
+    padding: 9px 16px; border-radius: var(--r-full);
+    background: var(--bg-muted); color: var(--ink-700);
+    font-size: 13.5px; font-weight: 700;
+  }
+
+  /* 촬영 성공 오버레이(2026-08-19 재작업) — 셔터를 누른 뒤 OCR을 자동 실행하고, 인증에 성공하면
+     방금 찍은 사진 위에 스캔 라인 + 초록 체크 애니메이션을 ~3초 보여준 뒤 방문 확인 단계로 넘어간다. */
+  .e-camera-success-overlay {
+    position: absolute; inset: 0; z-index: 5;
+    background: #000;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  /* [hidden] 대비 명시도 보정 — 이 프로젝트에서 반복되는 패턴(eatty.css [hidden] 전역 보정 참고),
+     display:flex가 author 스타일이라 [hidden]보다 우선 적용될 수 있어 명시적으로 덮어쓴다. */
+  .e-camera-success-overlay[hidden] { display: none; }
+  .e-camera-success-overlay img {
+    width: 100%; height: 100%; object-fit: contain;
+  }
+  .e-camera-scanline {
+    position: absolute; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, #22c55e 20%, #22c55e 80%, transparent);
+    box-shadow: 0 0 16px 2px rgba(34, 197, 94, .8);
+    animation: e-camera-scan 1.5s ease-in-out 1;
+  }
+  @keyframes e-camera-scan {
+    0% { top: 6%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 94%; opacity: 0; }
+  }
+  .e-camera-success-badge {
+    position: absolute; left: 0; right: 0; bottom: 14%;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    opacity: 0; transform: translateY(10px) scale(.92);
+    animation: e-camera-success-in .32s var(--ease) 1.2s forwards;
+  }
+  @keyframes e-camera-success-in { to { opacity: 1; transform: translateY(0) scale(1); } }
+  .e-camera-success-check {
+    width: 64px; height: 64px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: #22c55e; color: #fff;
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, .18);
+  }
+  .e-camera-success-check svg { width: 30px; height: 30px; }
+  .e-camera-success-badge p {
+    color: #fff; font-size: 17px; font-weight: 800;
+    text-shadow: 0 1px 4px rgba(0,0,0,.4);
+  }

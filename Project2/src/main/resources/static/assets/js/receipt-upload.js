@@ -210,6 +210,9 @@
         });
     }
 
+    var successOverlay = document.getElementById("receiptCameraSuccessOverlay");
+    var successImg = document.getElementById("receiptCameraSuccessImg");
+
     shutterBtn.addEventListener("click", function () {
       if (!stream) return;
       var w = video.videoWidth, h = video.videoHeight;
@@ -224,7 +227,24 @@
         dt.items.add(file);
         fileInput.files = dt.files;
         fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-        closeModal();
+
+        // 2026-08-19 재작업 — 예전엔 모달을 바로 닫고 step1의 "OCR 인식" 버튼을 따로 눌러야 했는데,
+        // 촬영 직후 곧바로 OCR을 실행해서 카메라 모달 안에서 결과를 보여준다(보류했던 초록 인식
+        // 애니메이션 포함). 실패 시엔 모달을 닫고 기존처럼 1단계에서 토스트로 안내한다.
+        successImg.src = URL.createObjectURL(blob);
+        stopStream();
+        successOverlay.hidden = false;
+        runOcr(file).then(function (ok) {
+          if (ok) {
+            window.setTimeout(function () {
+              successOverlay.hidden = true;
+              closeModal();
+            }, 3000);
+          } else {
+            successOverlay.hidden = true;
+            closeModal();
+          }
+        });
       }, "image/jpeg", 0.92);
     });
 
@@ -260,8 +280,37 @@
     receiptDrop.hidden = false;
   });
 
+  // ---- OCR 실행(2026-08-19 리팩터링) — step1의 수동 "OCR 인식" 버튼과 카메라 촬영 직후 자동 실행
+  // 두 곳에서 같은 로직을 쓰도록 공용 함수로 뺐다. 성공 시 true, 실패(인증 실패/에러) 시 false로
+  // resolve하는 Promise를 돌려준다(호출자가 UI 후처리를 알아서 하도록).
+  function runOcr(file) {
+    if (!restaurant || !file) return Promise.resolve(false);
+    var formData = new FormData();
+    formData.append("image", file);
+    formData.append("restaurantId", restaurant.restaurantId);
+    formData.append("restaurantName", restaurant.name);
+
+    return Api.request("/api/receipts", { method: "POST", isForm: true, body: formData })
+      .then(function (data) {
+        // 2026-08-18 수정 — 예전엔 인증 실패(다른 매장 영수증 등)여도 일단 2단계로 넘어가서 박스 형태
+        // 경고문을 보여주고 "정보 확인 완료" 버튼만 비활성화했다. 그러면 사용자가 못 쓰는 화면을 한 번
+        // 더 거쳐야 했다 — 인증 실패는 그 자리(1단계)에서 토스트로 바로 알리고 다시 올리게 한다.
+        if (!data.verified) {
+          Eatty.toast("이 매장의 영수증으로 인증되지 않았어요. 영수증 상의 가게명이 선택한 매장과 다르면 리뷰를 작성할 수 없습니다. 다시 업로드해주세요.", "error");
+          return false;
+        }
+        ocrResult = data;
+        renderStep2(data);
+        goStep(2);
+        return true;
+      })
+      .catch(function (err) {
+        Eatty.toast(err.message || "영수증 인식에 실패했습니다.", "error");
+        return false;
+      });
+  }
+
   document.getElementById("runOcrBtn").addEventListener("click", function () {
-    if (!restaurant) return;
     var fileInput = document.getElementById("receiptFileInput");
     var file = fileInput.files && fileInput.files[0];
     if (!file) { Eatty.toast("영수증 사진을 선택해주세요.", "error"); return; }
@@ -272,39 +321,52 @@
     var originalHtml = btn.innerHTML;
     btn.disabled = true;
     btn.textContent = "확인 중...";
-
-    var formData = new FormData();
-    formData.append("image", file);
-    formData.append("restaurantId", restaurant.restaurantId);
-    formData.append("restaurantName", restaurant.name);
-
-    Api.request("/api/receipts", { method: "POST", isForm: true, body: formData })
-      .then(function (data) {
-        // 2026-08-18 수정 — 예전엔 인증 실패(다른 매장 영수증 등)여도 일단 2단계로 넘어가서 박스 형태
-        // 경고문을 보여주고 "정보 확인 완료" 버튼만 비활성화했다. 그러면 사용자가 못 쓰는 화면을 한 번
-        // 더 거쳐야 했다 — 인증 실패는 그 자리(1단계)에서 토스트로 바로 알리고 다시 올리게 한다.
-        if (!data.verified) {
-          Eatty.toast("이 매장의 영수증으로 인증되지 않았어요. 영수증 상의 가게명이 선택한 매장과 다르면 리뷰를 작성할 수 없습니다. 다시 업로드해주세요.", "error");
-          return;
-        }
-        ocrResult = data;
-        renderStep2(data);
-        goStep(2);
-      })
-      .catch(function (err) {
-        Eatty.toast(err.message || "영수증 인식에 실패했습니다.", "error");
-      })
-      .finally(function () { btn.disabled = false; btn.innerHTML = originalHtml; });
+    runOcr(file).finally(function () { btn.disabled = false; btn.innerHTML = originalHtml; });
   });
+
+  var WEEKDAY_KR = ["일", "월", "화", "수", "목", "금", "토"];
+  // "YYYY-MM-DD HH:mm[:ss]" 형태(서버가 그대로 내려주는 orderDatetime)를 파싱한다. 형식이 다르면
+  // 그냥 원문을 그대로 보여주는 쪽으로 안전하게 폴백한다.
+  function parseOrderDatetime(str) {
+    if (!str) return null;
+    var m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(str);
+    if (!m) return null;
+    var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]));
+    if (isNaN(d.getTime())) return null;
+    return d;
+  }
 
   function renderStep2(data) {
     var badge = document.getElementById("ocrVerifiedBadge");
     badge.textContent = "인증 성공";
-    badge.className = "e-badge e-badge-lg flex-none e-badge--success";
+    badge.className = "e-badge e-badge-lg e-badge--success mb-4";
 
-    document.getElementById("ocrShopName").textContent = data.storeName || "-";
+    document.getElementById("ocrShopName").textContent = data.storeName || restaurant.name || "-";
     document.getElementById("ocrTotalAmount").textContent = data.totalPrice != null ? Number(data.totalPrice).toLocaleString() + "원" : "-";
     document.getElementById("ocrVisitDatetime").textContent = data.orderDatetime || "-";
+
+    // "다녀오셨네요" 방문 확인 카드
+    var visitDate = parseOrderDatetime(data.orderDatetime);
+    var shopLabel = (data.storeName || restaurant.name || "").length > 10
+      ? (data.storeName || restaurant.name).slice(0, 10) + "..."
+      : (data.storeName || restaurant.name || "");
+    if (visitDate) {
+      document.getElementById("visitConfirmTitle").innerHTML =
+        (visitDate.getMonth() + 1) + "월 " + visitDate.getDate() + "일 " + WEEKDAY_KR[visitDate.getDay()] + "요일에<br>" +
+        escapeHtml(shopLabel) + " 다녀오셨네요!";
+      document.getElementById("visitConfirmDate").textContent =
+        (visitDate.getMonth() + 1) + "월 " + visitDate.getDate() + "일 " + WEEKDAY_KR[visitDate.getDay()];
+      var hour24 = visitDate.getHours();
+      var ampm = hour24 < 12 ? "오전" : "오후";
+      var hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+      document.getElementById("visitConfirmTime").textContent =
+        ampm + " " + hour12 + ":" + String(visitDate.getMinutes()).padStart(2, "0");
+    } else {
+      document.getElementById("visitConfirmTitle").textContent = escapeHtml(shopLabel) + " 다녀오셨네요!";
+      document.getElementById("visitConfirmDate").textContent = "-";
+      document.getElementById("visitConfirmTime").textContent = "-";
+    }
+    document.getElementById("visitConfirmAddress").textContent = restaurant.roadAddress || restaurant.address || "-";
 
     var menuList = document.getElementById("ocrMenuList");
     if (data.menuItems && data.menuItems.length) {
@@ -603,7 +665,6 @@
     document.getElementById("ocrTotalAmount").textContent = "-";
     document.getElementById("ocrVisitDatetime").textContent = "-";
     document.getElementById("ocrMenuList").innerHTML = "";
-    document.getElementById("ocrDuplicateAlert").hidden = true;
     if (menuVisibleToggle) {
       menuVisibleToggle.checked = true;
       menuVisibleLabel.textContent = "공개하기";
