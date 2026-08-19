@@ -69,7 +69,7 @@
   }
   @keyframes e-camera-word-box-in { to { opacity: 1; } }
   .e-camera-result-badge {
-    position: absolute; left: 0; right: 0; bottom: 14%;
+    position: absolute; left: 0; right: 0; bottom: 5%;
     display: flex; flex-direction: column; align-items: center; gap: 10px;
     opacity: 0; transform: translateY(10px) scale(.92);
   }
