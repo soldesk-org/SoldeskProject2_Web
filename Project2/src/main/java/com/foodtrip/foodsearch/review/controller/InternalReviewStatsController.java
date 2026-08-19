@@ -39,11 +39,14 @@ public class InternalReviewStatsController {
         return reviewKeywordStatsService.calculateRatios(request);
     }
 
+    // 2026-08-19 수정 — 예전엔 internalToken이 비어있으면(설정 누락) 검사 자체를 건너뛰어 통과시켰다.
+    // 이 서버가 아웃바운드로 다른 내부 서버를 호출할 때(BusinessVerificationClient 등)는 "로컬 개발 중
+    // 아직 토큰을 안 정했으면 건너뛴다"는 fail-open이 맞지만, 이건 반대로 "남이 우리를 호출하는" 인바운드
+    // 게이트라서 fail-open이면 배포 도구가 바뀌면서 이 값이 실수로 빠졌을 때 통계 API가 완전 무인증으로
+    // 뚫려버린다(보안 감사로 발견, 2026-08-19). /api/admin/** 같은 인바운드 게이트와 동일하게
+    // fail-closed로 바꾼다 — 토큰이 안 정해져 있으면 항상 거부.
     private void verifyInternalToken(String suppliedToken) {
-        if (internalToken.isBlank()) {
-            return;
-        }
-        if (suppliedToken == null || !MessageDigest.isEqual(
+        if (internalToken.isBlank() || suppliedToken == null || !MessageDigest.isEqual(
                 internalToken.getBytes(StandardCharsets.UTF_8),
                 suppliedToken.getBytes(StandardCharsets.UTF_8))) {
             throw new CustomException(ErrorCode.INTERNAL_API_UNAUTHORIZED);
