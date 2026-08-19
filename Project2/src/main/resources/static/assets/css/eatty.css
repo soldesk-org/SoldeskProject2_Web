@@ -1901,7 +1901,7 @@ body.is-modal-open { overflow: hidden; }
   background-size: 400% 100%;
   animation: e-shimmer 1.4s ease-in-out infinite;
 }
-#headerAvatar.e-auth-loaded, #drawerAvatar.e-auth-loaded, #profileAvatar.e-auth-loaded { color: inherit; }
+#headerAvatar.e-auth-loaded, #drawerAvatar.e-auth-loaded, #profileAvatar.e-auth-loaded { color: #fff; }
 #headerAvatar.e-auth-loaded::before, #drawerAvatar.e-auth-loaded::before, #profileAvatar.e-auth-loaded::before {
   content: none;
 }

@@ -64,7 +64,7 @@
           // 2026-08-12 — 박스 크기(w-16 h-16)는 그대로 두고 background-size만 키워서 "NO IMAGE"
           // 배경 이미지가 잘 보이게 한다(e-shop-thumb 클래스는 84px 고정폭까지 함께 와서 박스 자체가
           // 커지므로 대신 인라인 스타일로 background-size만 덮어쓴다).
-          '<a href="' + shopUrl + '" class="w-16 h-16 rounded-[var(--r)] e-img-ph flex-none" style="background-size:130%"></a>' +
+          '<a href="' + shopUrl + '" class="w-16 h-16 rounded-[var(--r)] e-img-ph flex-none" style="background-size:28px auto"></a>' +
           '<div class="min-w-0 flex-1">' +
             '<div class="flex flex-wrap items-center gap-2">' +
               '<a href="' + shopUrl + '" class="text-[16px] font-extrabold text-[var(--ink-900)] hover:text-[var(--brand-600)]">' + escapeHtml(r.restaurantName) + '</a>' +
