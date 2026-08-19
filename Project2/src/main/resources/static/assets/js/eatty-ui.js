@@ -23,6 +23,7 @@
     [15] 개발용 상태 전환바    data-devbar (실배포 시 삭제)
     [17] 이미지 라이트박스     data-lightbox="이미지URL"
     [18] 모바일 입력창 확대 자동 복구 (전역 자동 등록, 마크업 불필요)
+    [19] 입력창 지우기(X) 버튼        id="...ClearBtn" (값 있을 때만 표시)
 
    전역 API
      Eatty.toast(message, type)      type: default | success | error | brand
@@ -965,6 +966,19 @@
       if (input) {
         input.addEventListener('change', function () { handleFiles(zone, input.files); });
       }
+    });
+
+    /* 입력창 지우기(X) 버튼 — 값이 있을 때만 보이게(2026-08-19 추가) — id가 "...ClearBtn"으로 끝나는
+       버튼을 그 버튼이 속한 .e-input-wrap 안의 input과 짝지어, 입력값이 비어있으면 숨긴다. 비밀번호
+       표시/숨김 토글(.e-eye, data-password-toggle)은 이 규칙과 무관하게 항상 보여야 해서 클래스가
+       아니라 id 접미사로만 구분한다(explore.html/admin.html 검색창 X 버튼들이 이 패턴). */
+    $$('[id$="ClearBtn"]').forEach(function (btn) {
+      var wrap = btn.closest('.e-input-wrap');
+      var input = wrap ? wrap.querySelector('input') : null;
+      if (!input) return;
+      function sync() { btn.hidden = !input.value; }
+      input.addEventListener('input', sync);
+      sync();
     });
 
     /* 글자수 카운터 */

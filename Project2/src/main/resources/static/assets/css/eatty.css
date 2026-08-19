@@ -749,6 +749,10 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   width: 34px; height: 34px; border-radius: var(--r-xs);
   color: var(--ink-400); background: transparent;
 }
+/* display:inline-grid가 author 스타일이라 브라우저 기본 [hidden]{display:none}보다 항상 우선
+   적용돼서, 입력창 지우기(X) 버튼을 JS로 hidden 처리해도 안 사라지는 버그가 있었다(2026-08-19,
+   카메라 모달에서 겪은 것과 같은 종류의 문제) — 명시적으로 다시 덮어씀. */
+.e-eye[hidden] { display: none; }
 .e-eye:hover { background: var(--ink-100); color: var(--ink-700); }
 .e-eye svg { width: 18px; height: 18px; }
 .e-eye .icon-off { display: none; }
