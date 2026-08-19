@@ -677,12 +677,6 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background var(--dur);
   appearance: none;
 }
-/* 2026-08-19 추가 — iOS Safari는 포커스하는 입력 요소의 폰트가 16px 미만이면 화면을 자동으로 확대한다
-   (탐색 검색창 등에 포커스할 때마다 화면이 확대되고 다시 축소해야 했던 문제). 데스크톱 디자인은
-   그대로 두고 모바일 폭에서만 16px로 올려서 확대 자체가 안 일어나게 한다. */
-@media (max-width: 768px) {
-  .e-input, .e-textarea, .e-select { font-size: 16px; }
-}
 .e-input::placeholder, .e-textarea::placeholder { color: var(--ink-400); }
 /* type="search" 기본 취소(X) 아이콘은 브라우저마다 색/모양이 제각각이라 항상 숨기고,
    대신 마크업에서 .e-eye 버튼으로 커스텀 X를 직접 붙인다(explore.html 검색창과 동일한 패턴). */

@@ -22,6 +22,7 @@
     [14] 아코디언              data-accordion-toggle
     [15] 개발용 상태 전환바    data-devbar (실배포 시 삭제)
     [17] 이미지 라이트박스     data-lightbox="이미지URL"
+    [18] 모바일 입력창 확대 자동 복구 (전역 자동 등록, 마크업 불필요)
 
    전역 API
      Eatty.toast(message, type)      type: default | success | error | brand
@@ -47,6 +48,28 @@
   Eatty.formatNumber = function (n) {
     return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
+
+  /* ============================================================
+     [18] 모바일 입력창 확대 자동 복구(2026-08-19 추가)
+     ------------------------------------------------------------
+     iOS Safari는 폰트 16px 미만 입력 요소에 포커스하면 화면을 자동으로 확대한다(탐색 검색창,
+     잇티챗 입력창 등 사이트 전체 공통 현상). 폰트를 16px로 올려 확대 자체를 막는 방법도 검토했지만,
+     "확대됐다가 입력 끝나면 알아서 축소되게" 해달라는 요청으로 방향을 바꿈 — 입력을 마치고(focusout)
+     포커스가 빠지는 순간 viewport meta의 maximum-scale을 잠깐 1.0으로 좁혔다가 원래 값으로 되돌리는
+     방식으로 확대된 화면을 강제로 리셋한다(iOS에서 흔히 쓰는 트릭). 개별 페이지마다 처리할 필요 없이
+     이 파일(모든 페이지 공통 로드)에서 한 번만 등록한다.
+     ============================================================ */
+  (function () {
+    var viewport = document.querySelector('meta[name="viewport"]');
+    if (!viewport) return;
+    var original = viewport.getAttribute('content');
+    document.addEventListener('focusout', function (e) {
+      var tag = e.target && e.target.tagName;
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return;
+      viewport.setAttribute('content', original + ', maximum-scale=1.0');
+      setTimeout(function () { viewport.setAttribute('content', original); }, 300);
+    });
+  })();
 
   /* ============================================================
      [1] 로그인 상태 전환
