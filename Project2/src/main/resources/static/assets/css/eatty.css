@@ -1593,20 +1593,20 @@ body.is-modal-open { overflow: hidden; }
 .e-avatar--ring { box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--brand-100); }
 .e-avatar--gray { background: var(--ink-200); color: var(--ink-600); }
 
-/* 이미지 플레이스홀더 — 실제 이미지로 교체할 자리 */
+/* 이미지 플레이스홀더 — 실제 이미지로 교체할 자리.
+   2026-08-19 수정 — 박스 아이콘+"NO IMAGE" 글자가 baked-in된 PNG 대신, 숟가락+포크 아이콘만 있는
+   SVG로 교체(참고 이미지 스타일). 배경색(var(--bg-muted))은 그대로 유지. */
 .e-img-ph {
   position: relative; overflow: hidden;
-  background-image: url('../../img/no-image.png'), none;
+  background-image: url('../../img/no-image.svg'), none;
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 60%;
+  background-size: 40%;
   background-color: var(--bg-muted);
   display: grid; place-items: center;
 }
 .e-img-ph svg { display: none; }
 .e-img-ph--gray { background-color: var(--bg-muted); }
-/* 작은 썸네일(84px 안팎)에서는 60%로 축소하면 "NO IMAGE" 글자가 안 보여서 더 크게 채운다 */
-.e-shop-thumb.e-img-ph { background-size: 130%; }
 .e-img-ph-label {
   position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
   font-size: 10px; font-weight: 700; color: rgba(24, 21, 25, .38);
