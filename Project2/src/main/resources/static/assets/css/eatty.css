@@ -255,6 +255,10 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 @media (min-width: 1024px) {
   .e-nav { display: flex; }
   .e-header-burger { display: none !important; }
+  /* PC(1024px~)는 헤더에 전체 메뉴가 그대로 보이니 모바일 전용 드로어는 애초에 쓸 일이 없다
+     (2026-08-19) — display:none으로 렌더 트리에서 완전히 빼서 그 어떤 레이아웃/스크롤 계산에도
+     관여하지 않게 한다. */
+  .e-drawer, .e-drawer-backdrop { display: none !important; }
 }
 
 /* 헤더 우측 액션 */
