@@ -212,6 +212,13 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
   border-bottom: 1px solid var(--line);
+  /* 2026-08-20 추가 — 안전영역(padding-top)만큼 늘어난 부분의 배경이 스크롤로 sticky 고정된
+     뒤에는 다시 안 칠해지고 비어 보이는 문제(흰 배경이 로고 줄만 채우고 그 위 상태바 쪽은
+     비어 보임) — 헤더를 별도 GPU 레이어로 강제 승격시켜서 sticky 고정 시에도 전체 박스가
+     항상 다시 합성/페인트되게 한다. */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
 }
 .e-header-inner {
   height: 100%;
