@@ -257,11 +257,33 @@
   }
   #step3Section .e-receipt-summary-row span:last-child { font-weight: 800; color: var(--ink-900); }
 
+  /* Toss Face 이모지 폰트(2026-08-20 추가)
+     출처: (주)비바리퍼블리카(Viva Republica, Inc.) / Toss — https://toss.im/tossface
+     라이선스: https://toss.im/tossface/copyright (폰트 파일 수정 없이 그대로 사용, 이용조건은
+     위 링크의 최신 고지를 따름) — 화면에는 별도 출처 표기를 넣지 말라는 요청이 있어 이 주석으로만
+     남겨둔다. 파일이 12MB가 넘어 페이지 전체 텍스트에 걸면 안 쓰는 곳까지 폰트를 내려받으므로,
+     이모지 글자만 별도 span(.e-emoji)으로 감싸서 그 요소에만 적용한다. */
+  @font-face {
+    font-family: "TossFace";
+    src: url("../fonts/TossFaceFontMac.ttf") format("truetype");
+    font-display: swap;
+  }
+  .e-emoji { font-family: "TossFace", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+
   #step3Section .e-tag-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   }
   #step3Section .e-tag-grid .e-chip-check { display: flex; }
+  /* 2026-08-20 수정 — 글자 수가 긴 항목("재료가 신선하지 않아요" 등)만 두 줄로 줄바꿈돼서 그
+     칩만 세로로 커지고, 옆 열/아래 줄과 높이가 안 맞아 보이던 문제. 한 줄로 고정하고 넘치는
+     텍스트는 ...으로 잘라낸다(제출값은 checkbox value라 화면 표시만 잘려도 무방). */
   #step3Section .e-tag-grid .e-tag-pick { width: 100%; justify-content: flex-start; }
+  /* text-overflow:ellipsis는 flex 컨테이너 자체가 아니라 실제 텍스트를 담은 자식 요소에 걸어야
+     동작한다 — 라벨 텍스트를 감싼 span(.e-tag-pick-label) 쪽에 적용, min-width:0으로 flex 기본
+     min-width:auto를 없애야 줄어들 수 있다(STEP2 버튼 폭 버그와 같은 원리). */
+  #step3Section .e-tag-grid .e-tag-pick-label {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
 
   /* 사진 추가 — 아직 고른 사진이 없을 때는 참고 이미지처럼 큼직한 점선 박스 하나로(있으면 기존
      썸네일 그리드 그대로 이어붙임). */
