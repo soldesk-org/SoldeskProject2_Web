@@ -224,6 +224,7 @@
         if (ok) {
           successOverlay.hidden = true;
         } else {
+          if (lastOcrFailReason) sessionStorage.setItem("eatty.receiptFailReason", lastOcrFailReason);
           window.location.href = buildShopDetailUrl();
         }
       }, 1800);
@@ -392,6 +393,11 @@
   // eatty:filepicked 핸들러 하나뿐이다(공용 함수 구조는 그대로 유지). 성공 시 true, 실패(인증
   // 실패/에러) 시 false로
   // resolve하는 Promise를 돌려준다(호출자가 UI 후처리를 알아서 하도록).
+  // 2026-08-20 추가 — 자동촬영(silent) 흐름은 실패해도 토스트 없이 빨간 X 배지만 보여주고 바로
+  // 매장 상세로 돌려보내는데, 그러면 "왜" 실패했는지(이미 쓴 영수증인지, 가게명이 안 맞는지 등)를
+  // 전혀 알 수 없었다. 실패 사유를 여기 담아뒀다가, 매장 상세로 돌아간 뒤 그쪽에서 토스트로 보여준다.
+  var lastOcrFailReason = "";
+
   function runOcr(file, opts) {
     var silent = opts && opts.silent;
     if (!restaurant || !file) return Promise.resolve(false);
@@ -408,9 +414,8 @@
         // 2026-08-19 추가 — silent(자동 촬영 흐름)면 토스트 대신 결과 오버레이의 빨간 X 배지로
         // 실패를 알리므로 여기서는 토스트를 띄우지 않는다(수동 "OCR 인식" 버튼 경로는 계속 토스트).
         if (!data.verified) {
-          if (!silent) {
-            Eatty.toast("이 매장의 영수증으로 인증되지 않았어요. 영수증 상의 가게명이 선택한 매장과 다르면 리뷰를 작성할 수 없습니다. 다시 업로드해주세요.", "error");
-          }
+          lastOcrFailReason = "이 매장의 영수증으로 인증되지 않았어요. 영수증 상의 가게명이 선택한 매장과 다르면 리뷰를 작성할 수 없습니다. 다시 업로드해주세요.";
+          if (!silent) Eatty.toast(lastOcrFailReason, "error");
           return false;
         }
         ocrResult = data;
@@ -419,7 +424,8 @@
         return true;
       })
       .catch(function (err) {
-        if (!silent) Eatty.toast(err.message || "영수증 인식에 실패했습니다.", "error");
+        lastOcrFailReason = err.message || "영수증 인식에 실패했습니다.";
+        if (!silent) Eatty.toast(lastOcrFailReason, "error");
         return false;
       });
   }

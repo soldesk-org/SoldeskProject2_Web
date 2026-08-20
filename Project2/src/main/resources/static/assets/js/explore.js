@@ -13,6 +13,16 @@
   };
   var DEFAULT_CENTER = { lat: 37.4979, lng: 127.0276 }; // 강남역
 
+  // 2026-08-20 추가 — 영수증 자동촬영이 실패하면(이미 쓴 영수증, 가게명 불일치 등) receipt-upload.js가
+  // 토스트 없이 바로 이 페이지로 돌려보낸다. 그 실패 사유를 sessionStorage에 남겨두면 여기서 한 번만
+  // 꺼내 보여주고 지운다(새로고침해도 다시 안 뜨게).
+  (function showReceiptFailToast() {
+    var reason = sessionStorage.getItem("eatty.receiptFailReason");
+    if (!reason) return;
+    sessionStorage.removeItem("eatty.receiptFailReason");
+    if (window.Eatty && typeof Eatty.toast === "function") Eatty.toast(reason, "error");
+  })();
+
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
