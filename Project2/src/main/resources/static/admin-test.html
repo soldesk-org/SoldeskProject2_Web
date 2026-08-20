@@ -13,52 +13,40 @@
 ================================================================================
  admin-test — 개발/테스트용 관리자 화면
 --------------------------------------------------------------------------------
- 목적
-   admin 과 동일한 기능을 최소한의 마크업(단순 표 + 기본 폼)으로만 제공합니다.
-   API 응답을 눈으로 빠르게 확인하고, 각 엔드포인트를 개별 호출해 검증하는 용도입니다.
-   ※ 디자인 우선순위 낮음. 실서비스 배포 대상 아님.
+ 2026-08-20 재작업 — 이 파일은 원래 실제 API가 하나도 연결 안 된 mock 스텁이었다(모든 버튼이
+ fetch() 없이 가짜 JSON만 찍었고, 엔드포인트 이름도 실제 AdminController(/api/admin/*)와 전혀
+ 다른 상상 값 — /api/admin/health, /api/admin/members/{id}/suspend, 사업자 approve/reject 등,
+ 실제로 존재한 적 없음)이었다. git 로그상 최초 커밋 이후 한 번도 수정되지 않은 채 방치돼 있었던
+ 것으로 보인다. 이번에 AdminController의 실제 엔드포인트에 맞춰 처음부터 다시 연결했다.
+
+ 로그인: 이 페이지의 모든 API 호출은 실제 ADMIN 역할의 JWT가 필요하다(SecurityConfig가
+ /api/admin/** 전체를 hasRole("ADMIN")으로 막아둠). 맨 아래 "로그인 상태 전환" 버튼은 헤더
+ 표시(data-auth-view)만 바꾸는 눈속임이라 실제 인증과 무관 — 반드시 관리자 계정으로 실제
+ 로그인(login 페이지)한 뒤 이 페이지를 열어야 API 호출이 성공한다.
 
  [API 테스트 콘솔]
-   #apiMethodSelect       HTTP 메서드
-   #apiPathInput          엔드포인트 경로
-   #apiBodyInput          요청 본문 (JSON)
-   #apiSendBtn            요청 실행   ★ 팀에서 fetch() 연결
-   #apiResponseBox        응답 출력 (pre)
-   #apiStatusText         응답 상태 코드 / 소요 시간
-   #apiPresetList         자주 쓰는 엔드포인트 프리셋 (button[data-preset-method][data-preset-path])
+   #apiMethodSelect / #apiPathInput / #apiBodyInput
+   #apiSendBtn            ★ Api.request()로 실제 fetch 실행(Authorization 헤더 자동 첨부)
+   #apiResponseBox / #apiStatusText
+   #apiPresetList         실제 존재하는 엔드포인트로만 구성한 프리셋
 
- [회원 관리]
-   #testMemberRoleFilter / #testMemberStatusFilter / #testMemberSearchInput
-   #testMemberLoadBtn     목록 조회   ★ GET /api/admin/members
-   #testMemberTable       결과 표
-   [data-test-suspend]    정지        ★ POST /api/admin/members/{id}/suspend
-   [data-test-release]    해제        ★ POST /api/admin/members/{id}/release
-
- [신고 관리]
-   #testReportStatusFilter / #testReportTypeFilter
-   #testReportLoadBtn     목록 조회   ★ GET /api/admin/reports
-   #testReportTable       결과 표
-   [data-test-handle]     처리        ★ POST /api/admin/reports/{id}/handle
-   [data-test-reject]     반려        ★ POST /api/admin/reports/{id}/reject
-
- [서버 상태]
-   #testHealthLoadBtn     상태 조회   ★ GET /api/admin/health
-   #testHealthTable       결과 표
-
- [통계]
-   #testStatsLoadBtn      통계 조회   ★ GET /api/admin/stats/summary
-   #testStatsTable        결과 표
-
- [WebSocket 테스트]
-   #wsUrlInput            연결 URL (예: /ws-stomp)
-   #wsRoomInput           구독 방 ID
-   #wsConnectBtn / #wsDisconnectBtn / #wsSendInput / #wsSendBtn
-   #wsLogBox              송수신 로그
+ [회원 관리]  ★ GET /api/admin/members?role= · PATCH /api/admin/members/{id} {status}
+ [리뷰 관리]  ★ GET /api/admin/reviews · DELETE /api/admin/reviews/{id}
+ [리뷰 신고 관리]  ★ GET /api/admin/reports?status= · PATCH /api/admin/reports/{id} {status}
+ [채팅 신고 관리]  ★ GET /api/admin/chat-reports?status= · PATCH .../{id} {status}
+                    · DELETE /api/admin/chat-messages/{id} · DELETE /api/admin/chat-rooms/{id}
+ [대시보드]   ★ GET /api/admin/dashboard
+ [시스템 상태] ★ GET /api/admin/status
+ [주차장 동기화] ★ POST /api/admin/parking-lot-syncs?maxPages=
+ [공지 발송]  ★ POST /api/admin/notification-broadcasts {title, body}
+ [WebSocket(STOMP) 테스트] 실제 잇티챗 엔드포인트(/ws-chat) 그대로 연결
 ================================================================================
 -->
 
 <link rel="stylesheet" href="assets/css/eatty.css">
+<script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
 <link rel="stylesheet" href="assets/css/admin-test.css">
 
 </head>
@@ -79,9 +67,8 @@
   </div>
 
   <div class="tnote">
-    이 화면은 API 응답 확인과 기능 검증 전용입니다. 스타일은 최소한으로만 적용했고,
-    각 버튼에는 아직 <code>fetch()</code>가 연결되어 있지 않습니다.
-    주석에 표기된 엔드포인트를 참고해 연결해주세요. 실서비스 배포 시 이 파일은 제외합니다.
+    실제 <code>/api/admin/*</code> 엔드포인트에 연결돼 있습니다. 관리자 권한 계정으로 로그인한
+    상태여야 정상 동작합니다(비로그인 401, 비관리자 403). 실서비스 배포 시 이 파일은 제외합니다.
   </div>
 
   <!-- ==================== API 테스트 콘솔 ==================== -->
@@ -90,16 +77,13 @@
     <div class="tbody">
 
       <div class="tpreset" id="apiPresetList">
-        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/stats/summary">통계 요약</button>
-        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/members?page=0&size=20">회원 목록</button>
-        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/reports?status=PENDING">신고 목록(대기)</button>
-        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/health">서버 상태</button>
-        <button type="button" class="tbtn tbtn--xs" data-preset-method="POST" data-preset-path="/api/admin/members/1002/suspend">회원 정지</button>
-        <button type="button" class="tbtn tbtn--xs" data-preset-method="POST" data-preset-path="/api/admin/members/1002/release">정지 해제</button>
-        <button type="button" class="tbtn tbtn--xs" data-preset-method="POST" data-preset-path="/api/admin/reports/2419/handle">신고 처리</button>
-        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/shops/search?q=파스타">가게 검색</button>
-        <button type="button" class="tbtn tbtn--xs" data-preset-method="POST" data-preset-path="/api/ocr/receipt">영수증 OCR</button>
-        <button type="button" class="tbtn tbtn--xs" data-preset-method="POST" data-preset-path="/api/recommend">AI 추천</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/dashboard">대시보드</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/members">회원 목록(전체)</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/members?role=BUSINESS">회원 목록(사업자)</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/reviews">리뷰 목록</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/reports?status=PENDING">리뷰 신고(대기)</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/chat-reports?status=PENDING">채팅 신고(대기)</button>
+        <button type="button" class="tbtn tbtn--xs" data-preset-method="GET" data-preset-path="/api/admin/status">시스템 상태</button>
       </div>
 
       <div class="trow">
@@ -113,7 +97,7 @@
         </select>
 
         <label for="apiPathInput">Path</label>
-        <input type="text" class="tin" id="apiPathInput" value="/api/admin/stats/summary" style="flex:1;min-width:260px">
+        <input type="text" class="tin" id="apiPathInput" value="/api/admin/dashboard" style="flex:1;min-width:260px">
 
         <button type="button" class="tbtn tbtn--primary" id="apiSendBtn">요청 보내기</button>
         <span class="tstatus" id="apiStatusText">대기 중</span>
@@ -121,50 +105,32 @@
 
       <div style="margin-bottom:12px">
         <label for="apiBodyInput" style="font-size:12px;font-weight:700;color:var(--ink-600);display:block;margin-bottom:5px">
-          Request Body (JSON)
+          Request Body (JSON, GET/DELETE는 무시됩니다)
         </label>
-        <textarea class="tin" id="apiBodyInput" rows="4" placeholder='{ "period": 30, "reason": "FAKE_REVIEW" }'></textarea>
+        <textarea class="tin" id="apiBodyInput" rows="4" placeholder='{ "status": "SUSPENDED" }'></textarea>
       </div>
 
-      <pre class="tout" id="apiResponseBox">// 응답이 여기에 표시됩니다.
-// fetch() 연결 예시:
-//
-// const res = await fetch(path, {
-//   method,
-//   headers: { 'Content-Type': 'application/json' },
-//   credentials: 'include',
-//   body: method === 'GET' ? undefined : bodyText
-// });
-// const json = await res.json();</pre>
+      <pre class="tout" id="apiResponseBox">// 응답이 여기에 표시됩니다.</pre>
       <p class="thint">
-        인증이 필요한 엔드포인트는 <code>credentials: 'include'</code> 또는 Authorization 헤더가 필요합니다.
+        Authorization 헤더는 <code>Api.request()</code>가 로그인 세션의 accessToken을 자동으로 붙입니다.
       </p>
     </div>
   </section>
 
   <!-- ==================== 회원 관리 ==================== -->
   <section class="tsec">
-    <h2>회원 관리 <code>GET /api/admin/members</code></h2>
+    <h2>회원 관리 <code>GET /api/admin/members?role=</code></h2>
     <div class="tbody">
       <div class="trow">
         <label for="testMemberRoleFilter">역할</label>
         <select class="tin" id="testMemberRoleFilter">
-          <option value="all">전체</option>
-          <option value="user">USER</option>
-          <option value="business">BUSINESS</option>
-          <option value="admin">ADMIN</option>
+          <option value="">전체</option>
+          <option value="USER">USER</option>
+          <option value="BUSINESS">BUSINESS</option>
+          <option value="ADMIN">ADMIN</option>
         </select>
 
-        <label for="testMemberStatusFilter">상태</label>
-        <select class="tin" id="testMemberStatusFilter">
-          <option value="all">전체</option>
-          <option value="active">ACTIVE</option>
-          <option value="suspended">SUSPENDED</option>
-          <option value="pending">PENDING</option>
-          <option value="withdrawn">WITHDRAWN</option>
-        </select>
-
-        <label for="testMemberSearchInput">검색</label>
+        <label for="testMemberSearchInput">검색(화면 내 필터)</label>
         <input type="search" class="tin" id="testMemberSearchInput" placeholder="email / nickname" style="min-width:200px">
 
         <button type="button" class="tbtn tbtn--primary" id="testMemberLoadBtn">조회</button>
@@ -175,128 +141,62 @@
           <thead>
             <tr>
               <th style="width:70px">id</th>
-              <th style="width:160px">email</th>
-              <th style="width:110px">nickname</th>
+              <th style="width:180px">email</th>
+              <th style="width:120px">nickname</th>
               <th style="width:90px">role</th>
               <th style="width:100px">status</th>
-              <th style="width:60px">reviews</th>
-              <th style="width:60px">reports</th>
-              <th style="width:100px">createdAt</th>
+              <th style="width:110px">createdAt</th>
               <th style="width:150px">action</th>
             </tr>
           </thead>
-          <tbody>
-            <tr data-member-id="1001">
-              <td>1001</td>
-              <td>eatty@example.com</td>
-              <td>잇티러버</td>
-              <td>USER</td>
-              <td>ACTIVE</td>
-              <td>18</td>
-              <td>0</td>
-              <td>2025-04-18</td>
-              <td>
-                <button type="button" class="tbtn tbtn--xs tbtn--danger" data-test-suspend>suspend</button>
-                <button type="button" class="tbtn tbtn--xs" data-test-release>release</button>
-              </td>
-            </tr>
-            <tr data-member-id="1002">
-              <td>1002</td>
-              <td>spam@test.com</td>
-              <td>광고맛집왕</td>
-              <td>USER</td>
-              <td>SUSPENDED</td>
-              <td>46</td>
-              <td>12</td>
-              <td>2025-11-02</td>
-              <td>
-                <button type="button" class="tbtn tbtn--xs tbtn--danger" data-test-suspend>suspend</button>
-                <button type="button" class="tbtn tbtn--xs" data-test-release>release</button>
-              </td>
-            </tr>
-            <tr data-member-id="1003">
-              <td>1003</td>
-              <td>owner@myshop.com</td>
-              <td>잇티식당 강남점</td>
-              <td>BUSINESS</td>
-              <td>ACTIVE</td>
-              <td>0</td>
-              <td>1</td>
-              <td>2026-03-11</td>
-              <td>
-                <button type="button" class="tbtn tbtn--xs tbtn--danger" data-test-suspend>suspend</button>
-                <button type="button" class="tbtn tbtn--xs" data-test-release>release</button>
-              </td>
-            </tr>
-            <tr data-member-id="1004">
-              <td>1004</td>
-              <td>cheongdam@shop.com</td>
-              <td>청담옥 신사점</td>
-              <td>BUSINESS</td>
-              <td>PENDING</td>
-              <td>0</td>
-              <td>0</td>
-              <td>2026-07-30</td>
-              <td>
-                <button type="button" class="tbtn tbtn--xs tbtn--primary" data-test-approve>approve</button>
-                <button type="button" class="tbtn tbtn--xs" data-test-reject-biz>reject</button>
-              </td>
-            </tr>
-            <tr data-member-id="1005">
-              <td>1005</td>
-              <td>fire@mail.com</td>
-              <td>불사조</td>
-              <td>USER</td>
-              <td>ACTIVE</td>
-              <td>31</td>
-              <td>4</td>
-              <td>2025-08-14</td>
-              <td>
-                <button type="button" class="tbtn tbtn--xs tbtn--danger" data-test-suspend>suspend</button>
-                <button type="button" class="tbtn tbtn--xs" data-test-release>release</button>
-              </td>
-            </tr>
-            <tr data-member-id="1006">
-              <td>1006</td>
-              <td>admin@eattyway.com</td>
-              <td>운영관리자</td>
-              <td>ADMIN</td>
-              <td>ACTIVE</td>
-              <td>0</td>
-              <td>0</td>
-              <td>2025-03-02</td>
-              <td>-</td>
-            </tr>
-          </tbody>
+          <tbody><tr><td colspan="7" style="text-align:center;color:var(--ink-400)">조회 버튼을 눌러주세요</td></tr></tbody>
         </table>
       </div>
       <p class="thint">
-        suspend 는 <code>POST /api/admin/members/{id}/suspend</code> ·
-        release 는 <code>POST /api/admin/members/{id}/release</code> 로 연결하세요.
+        status는 <code>PATCH /api/admin/members/{id}</code>에 <code>{"status":"SUSPENDED"|"ACTIVE"}</code>를 보내서 바꿉니다.
       </p>
     </div>
   </section>
 
-  <!-- ==================== 신고 관리 ==================== -->
+  <!-- ==================== 리뷰 관리 ==================== -->
   <section class="tsec">
-    <h2>신고 관리 <code>GET /api/admin/reports</code></h2>
+    <h2>리뷰 관리 <code>GET /api/admin/reviews</code></h2>
+    <div class="tbody">
+      <div class="trow">
+        <button type="button" class="tbtn tbtn--primary" id="testReviewLoadBtn">조회</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="e-table-plain" id="testReviewTable">
+          <thead>
+            <tr>
+              <th style="width:60px">id</th>
+              <th style="width:100px">작성자</th>
+              <th style="width:150px">매장</th>
+              <th style="width:50px">별점</th>
+              <th>내용</th>
+              <th style="width:160px">태그</th>
+              <th style="width:100px">createdAt</th>
+              <th style="width:80px">action</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="8" style="text-align:center;color:var(--ink-400)">조회 버튼을 눌러주세요</td></tr></tbody>
+        </table>
+      </div>
+      <p class="thint">삭제는 <code>DELETE /api/admin/reviews/{id}</code> (작성자 무관, 강제 삭제)</p>
+    </div>
+  </section>
+
+  <!-- ==================== 리뷰 신고 관리 ==================== -->
+  <section class="tsec">
+    <h2>리뷰 신고 관리 <code>GET /api/admin/reports</code></h2>
     <div class="tbody">
       <div class="trow">
         <label for="testReportStatusFilter">status</label>
         <select class="tin" id="testReportStatusFilter">
           <option value="PENDING">PENDING (대기중)</option>
-          <option value="DONE">DONE (처리완료)</option>
+          <option value="RESOLVED">RESOLVED (처리완료)</option>
           <option value="REJECTED">REJECTED (반려)</option>
-          <option value="all">전체</option>
         </select>
-
-        <label for="testReportTypeFilter">type</label>
-        <select class="tin" id="testReportTypeFilter">
-          <option value="all">전체</option>
-          <option value="REVIEW">REVIEW</option>
-          <option value="CHAT">CHAT</option>
-        </select>
-
         <button type="button" class="tbtn tbtn--primary" id="testReportLoadBtn">조회</button>
       </div>
 
@@ -304,193 +204,141 @@
         <table class="e-table-plain" id="testReportTable">
           <thead>
             <tr>
-              <th style="width:90px">id</th>
-              <th style="width:80px">type</th>
-              <th style="width:150px">reason</th>
-              <th style="width:120px">reporter</th>
-              <th style="width:120px">target</th>
-              <th style="width:90px">status</th>
-              <th style="width:100px">createdAt</th>
+              <th style="width:60px">reviewId</th>
+              <th style="width:100px">작성자</th>
+              <th style="width:130px">매장</th>
+              <th style="width:50px">별점</th>
+              <th>내용</th>
+              <th style="width:60px">신고수</th>
+              <th style="width:100px">최근사유</th>
+              <th style="width:100px">최근신고자</th>
               <th style="width:150px">action</th>
             </tr>
           </thead>
-          <tbody>
-            <tr data-report-id="2419">
-              <td>R-2419</td>
-              <td>REVIEW</td>
-              <td>FAKE_REVIEW</td>
-              <td>매콤한김밥</td>
-              <td>광고맛집왕</td>
-              <td>PENDING</td>
-              <td>2026-07-29</td>
-              <td>
-                <button type="button" class="tbtn tbtn--xs tbtn--primary" data-test-handle>handle</button>
-                <button type="button" class="tbtn tbtn--xs" data-test-reject>reject</button>
-              </td>
-            </tr>
-            <tr data-report-id="2420">
-              <td>R-2420</td>
-              <td>CHAT</td>
-              <td>ABUSE</td>
-              <td>조용한김밥</td>
-              <td>불사조</td>
-              <td>PENDING</td>
-              <td>2026-07-30</td>
-              <td>
-                <button type="button" class="tbtn tbtn--xs tbtn--primary" data-test-handle>handle</button>
-                <button type="button" class="tbtn tbtn--xs" data-test-reject>reject</button>
-              </td>
-            </tr>
-            <tr data-report-id="2421">
-              <td>R-2421</td>
-              <td>REVIEW</td>
-              <td>IRRELEVANT</td>
-              <td>잇티식당 강남점</td>
-              <td>한우사랑</td>
-              <td>PENDING</td>
-              <td>2026-07-31</td>
-              <td>
-                <button type="button" class="tbtn tbtn--xs tbtn--primary" data-test-handle>handle</button>
-                <button type="button" class="tbtn tbtn--xs" data-test-reject>reject</button>
-              </td>
-            </tr>
-            <tr data-report-id="2422">
-              <td>R-2422</td>
-              <td>CHAT</td>
-              <td>PRIVACY</td>
-              <td>가성비왕</td>
-              <td>민초파</td>
-              <td>PENDING</td>
-              <td>2026-07-31</td>
-              <td>
-                <button type="button" class="tbtn tbtn--xs tbtn--primary" data-test-handle>handle</button>
-                <button type="button" class="tbtn tbtn--xs" data-test-reject>reject</button>
-              </td>
-            </tr>
-            <tr data-report-id="2418">
-              <td>R-2418</td>
-              <td>REVIEW</td>
-              <td>FAKE_REVIEW</td>
-              <td>매콤한김밥</td>
-              <td>광고맛집왕</td>
-              <td>DONE</td>
-              <td>2026-07-28</td>
-              <td>-</td>
-            </tr>
-            <tr data-report-id="2415">
-              <td>R-2415</td>
-              <td>REVIEW</td>
-              <td>FALSE_FACT</td>
-              <td>잇티식당 강남점</td>
-              <td>매콤한김밥</td>
-              <td>REJECTED</td>
-              <td>2026-07-27</td>
-              <td>-</td>
-            </tr>
-          </tbody>
+          <tbody><tr><td colspan="9" style="text-align:center;color:var(--ink-400)">조회 버튼을 눌러주세요</td></tr></tbody>
         </table>
       </div>
+      <p class="thint">
+        PENDING 상태에서만 처리완료(RESOLVED)/반려(REJECTED)가 가능합니다.
+        <code>PATCH /api/admin/reports/{reviewId}</code> {"status":"RESOLVED"|"REJECTED"}
+      </p>
+    </div>
+  </section>
 
-      <div class="trow" style="margin-top:12px;margin-bottom:0">
-        <label for="testReportAction">action</label>
-        <select class="tin" id="testReportAction">
-          <option value="HIDE_CONTENT">HIDE_CONTENT</option>
-          <option value="DELETE_CONTENT">DELETE_CONTENT</option>
-          <option value="WARN">WARN</option>
-          <option value="HIDE_AND_WARN">HIDE_AND_WARN</option>
-          <option value="SUSPEND_7">SUSPEND_7</option>
-          <option value="SUSPEND_30">SUSPEND_30</option>
-          <option value="SUSPEND_PERMANENT">SUSPEND_PERMANENT</option>
+  <!-- ==================== 채팅 신고 관리 ==================== -->
+  <section class="tsec">
+    <h2>채팅 신고 관리 <code>GET /api/admin/chat-reports</code></h2>
+    <div class="tbody">
+      <div class="trow">
+        <label for="testChatReportStatusFilter">status</label>
+        <select class="tin" id="testChatReportStatusFilter">
+          <option value="PENDING">PENDING (대기중)</option>
+          <option value="RESOLVED">RESOLVED (처리완료)</option>
+          <option value="REJECTED">REJECTED (반려)</option>
         </select>
-        <label for="testReportMemo">memo</label>
-        <input type="text" class="tin" id="testReportMemo" placeholder="처리 메모" style="flex:1;min-width:200px">
+        <button type="button" class="tbtn tbtn--primary" id="testChatReportLoadBtn">조회</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="e-table-plain" id="testChatReportTable">
+          <thead>
+            <tr>
+              <th style="width:60px">id</th>
+              <th style="width:80px">대상</th>
+              <th style="width:110px">방</th>
+              <th style="width:100px">신고자</th>
+              <th style="width:90px">사유</th>
+              <th>내용 스냅샷</th>
+              <th style="width:220px">action</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="7" style="text-align:center;color:var(--ink-400)">조회 버튼을 눌러주세요</td></tr></tbody>
+        </table>
       </div>
       <p class="thint">
-        handle 은 <code>POST /api/admin/reports/{id}/handle</code> (body: action, memo) ·
-        reject 는 <code>POST /api/admin/reports/{id}/reject</code> 로 연결하세요.
+        메시지 삭제는 <code>DELETE /api/admin/chat-messages/{id}</code>, 방 폭파는
+        <code>DELETE /api/admin/chat-rooms/{id}</code> — 둘 다 신고 처리와 별개 동작입니다.
       </p>
     </div>
   </section>
 
   <div class="tgrid2">
 
-    <!-- ==================== 서버 상태 ==================== -->
+    <!-- ==================== 시스템 상태 ==================== -->
     <section class="tsec">
-      <h2>서버 상태 <code>GET /api/admin/health</code></h2>
+      <h2>시스템 상태 <code>GET /api/admin/status</code></h2>
       <div class="tbody">
         <div class="trow">
-          <button type="button" class="tbtn tbtn--primary" id="testHealthLoadBtn">상태 조회</button>
-          <span class="tstatus tstatus--ok" id="testHealthStatus">UP</span>
+          <button type="button" class="tbtn tbtn--primary" id="testStatusLoadBtn">상태 조회</button>
         </div>
-
         <div style="overflow-x:auto">
-          <table class="e-table-plain" id="testHealthTable">
+          <table class="e-table-plain" id="testStatusTable">
             <thead>
               <tr>
-                <th style="width:150px">service</th>
-                <th style="width:80px">status</th>
-                <th style="width:90px">latency</th>
-                <th style="width:80px">errorRate</th>
+                <th style="width:130px">name</th>
+                <th style="width:110px">status</th>
+                <th style="width:80px">latency</th>
+                <th>detail</th>
               </tr>
             </thead>
-            <tbody>
-              <tr><td>rest-api</td><td>UP</td><td>96ms</td><td>0.08%</td></tr>
-              <tr><td>websocket-stomp</td><td>UP</td><td>42ms</td><td>0.02%</td></tr>
-              <tr><td>database</td><td>UP</td><td>12ms</td><td>0.00%</td></tr>
-              <tr><td>ocr-service</td><td>DEGRADED</td><td>1842ms</td><td>0.42%</td></tr>
-              <tr><td>ai-recommend</td><td>UP</td><td>684ms</td><td>0.21%</td></tr>
-              <tr><td>naver-map</td><td>UP</td><td>148ms</td><td>0.05%</td></tr>
-              <tr><td>mail-smtp</td><td>UP</td><td>312ms</td><td>0.11%</td></tr>
-              <tr><td>sms-sender</td><td>UP</td><td>268ms</td><td>0.09%</td></tr>
-              <tr><td>oauth-naver</td><td>DOWN</td><td>timeout</td><td>12.4%</td></tr>
-            </tbody>
+            <tbody><tr><td colspan="4" style="text-align:center;color:var(--ink-400)">조회 버튼을 눌러주세요</td></tr></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- ==================== 통계 ==================== -->
+    <!-- ==================== 대시보드 ==================== -->
     <section class="tsec">
-      <h2>통계 요약 <code>GET /api/admin/stats/summary</code></h2>
+      <h2>대시보드 <code>GET /api/admin/dashboard</code></h2>
       <div class="tbody">
         <div class="trow">
-          <button type="button" class="tbtn tbtn--primary" id="testStatsLoadBtn">통계 조회</button>
+          <button type="button" class="tbtn tbtn--primary" id="testDashboardLoadBtn">조회</button>
         </div>
-
         <div style="overflow-x:auto">
-          <table class="e-table-plain" id="testStatsTable">
-            <thead>
-              <tr><th style="width:200px">key</th><th>value</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>totalMembers</td><td>128412</td></tr>
-              <tr><td>newMembersToday</td><td>318</td></tr>
-              <tr><td>activeMembers7d</td><td>42907</td></tr>
-              <tr><td>suspendedMembers</td><td>64</td></tr>
-              <tr><td>businessMembers</td><td>3598</td></tr>
-              <tr><td>businessPending</td><td>12</td></tr>
-              <tr><td>totalReviews</td><td>42916</td></tr>
-              <tr><td>totalShops</td><td>31650</td></tr>
-              <tr><td>pendingReports</td><td>17</td></tr>
-              <tr><td>doneReports</td><td>2481</td></tr>
-              <tr><td>rejectedReports</td><td>316</td></tr>
-              <tr><td>activeChatRooms</td><td>2180</td></tr>
-              <tr><td>wsSessions</td><td>1842</td></tr>
-            </tbody>
+          <table class="e-table-plain" id="testDashboardTable">
+            <thead><tr><th style="width:150px">key</th><th>value</th></tr></thead>
+            <tbody><tr><td colspan="2" style="text-align:center;color:var(--ink-400)">조회 버튼을 눌러주세요</td></tr></tbody>
           </table>
         </div>
       </div>
     </section>
   </div>
 
+  <div class="tgrid2">
+    <!-- ==================== 주차장 동기화 ==================== -->
+    <section class="tsec">
+      <h2>주차장 동기화 <code>POST /api/admin/parking-lot-syncs</code></h2>
+      <div class="tbody">
+        <div class="trow">
+          <label for="testParkingMaxPages">maxPages</label>
+          <input type="number" class="tin" id="testParkingMaxPages" value="5" style="width:80px" min="1">
+          <button type="button" class="tbtn tbtn--primary" id="testParkingSyncBtn">동기화 실행</button>
+        </div>
+        <pre class="tout" id="testParkingResultBox">// 결과가 여기에 표시됩니다.</pre>
+      </div>
+    </section>
+
+    <!-- ==================== 공지 발송 ==================== -->
+    <section class="tsec">
+      <h2>공지 발송 <code>POST /api/admin/notification-broadcasts</code></h2>
+      <div class="tbody">
+        <div style="margin-bottom:8px">
+          <input type="text" class="tin" id="testBroadcastTitle" placeholder="제목(필수, 200자 이내)" style="width:100%;margin-bottom:8px">
+          <textarea class="tin" id="testBroadcastBody" rows="2" placeholder="본문(선택, 500자 이내)" style="width:100%"></textarea>
+        </div>
+        <div class="trow" style="margin-bottom:0">
+          <button type="button" class="tbtn tbtn--danger" id="testBroadcastBtn">활성 회원 전체에게 발송</button>
+        </div>
+        <pre class="tout" id="testBroadcastResultBox">// 결과가 여기에 표시됩니다.</pre>
+      </div>
+    </section>
+  </div>
+
   <!-- ==================== WebSocket 테스트 ==================== -->
   <section class="tsec">
-    <h2>WebSocket (STOMP) 테스트 <code>/ws-stomp</code></h2>
+    <h2>WebSocket (STOMP) 테스트 <code>/ws-chat</code></h2>
     <div class="tbody">
       <div class="trow">
-        <label for="wsUrlInput">URL</label>
-        <input type="text" class="tin" id="wsUrlInput" value="/ws-stomp" style="min-width:200px">
-
         <label for="wsRoomInput">roomId</label>
         <input type="text" class="tin" id="wsRoomInput" value="1" style="width:80px">
 
@@ -507,13 +355,7 @@
 
       <pre class="tout" id="wsLogBox">// 구독: /topic/rooms/{roomId}
 // 발행: /app/rooms/{roomId}/send
-//
-// 연결 예시 (SockJS + StompJS):
-// const sock = new SockJS(url);
-// const client = Stomp.over(sock);
-// client.connect({}, () => {
-//   client.subscribe(`/topic/rooms/${roomId}`, (msg) => log(msg.body));
-// });</pre>
+// 관리자 계정도 해당 방의 참가자여야 메시지 전송이 성공합니다(참가자가 아니면 서버가 거부).</pre>
     </div>
   </section>
 
@@ -589,7 +431,7 @@
     </div>
   </section>
 
-  <!-- ==================== 로그인 상태 전환 ==================== -->
+  <!-- ==================== 로그인 상태 전환(헤더 표시용, 실제 인증과 무관) ==================== -->
   <section class="tsec">
     <h2>로그인 상태 전환 <code>Eatty.setAuth()</code></h2>
     <div class="tbody">
@@ -601,8 +443,8 @@
         <span class="tstatus" id="currentAuthText">현재: admin</span>
       </div>
       <p class="thint">
-        전환 후 다른 화면으로 이동하면 헤더/네비게이션이 해당 상태로 표시됩니다.
-        (localStorage <code>eatty:demoAuthState</code> 에 저장)
+        이건 헤더 표시만 바꾸는 데모용입니다. 위 API 호출들은 실제 로그인 세션(Api.getAccessToken())을
+        그대로 쓰므로, 이 버튼과 무관하게 실제 관리자 계정으로 로그인돼 있어야 성공합니다.
       </p>
     </div>
   </section>
