@@ -993,6 +993,20 @@
   // 다시 숨긴다. 또한 실패 원인(위치 정보 자체를 못 가져온 것인지, API 호출이 실패한 것인지)을
   // 구분해서 토스트 문구를 다르게 보여준다 — 예전엔 둘 다 "위치 권한을 확인하세요"로 뭉뚱그려서,
   // 실제로는 위치 권한을 이미 허용했는데도(iOS 앱 등) 같은 문구가 떠서 원인 파악이 어려웠다.
+  // 2026-08-20 추가 — iOS 앱(WKWebView)에서 위치 권한을 방금 허용했거나 앱을 막 열었을 때,
+  // 첫 getCurrentPosition 호출이 시스템 쪽 초기화 타이밍 문제로 실패하는 경우가 있었다(권한은
+  // 켜져 있는데도 실패). PERMISSION_DENIED/POSITION_UNAVAILABLE이면 무조건 포기하지 않고
+  // 한 번 더 조용히 재요청해보고, 그래도 안 되면 그때 토스트로 알린다.
+  function getLocationWithRetry(onSuccess, onFail, triedOnce) {
+    navigator.geolocation.getCurrentPosition(onSuccess, function (geoErr) {
+      if (!triedOnce && (geoErr.code === 1 || geoErr.code === 2)) {
+        getLocationWithRetry(onSuccess, onFail, true);
+        return;
+      }
+      onFail(geoErr);
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+  }
+
   document.getElementById("directionBtn").addEventListener("click", function () {
     if (!currentDetail) return;
     var resultEl = document.getElementById("directionsResult");
@@ -1005,7 +1019,7 @@
       Eatty.toast("이 브라우저에서는 위치 정보를 지원하지 않습니다.", "error");
       return;
     }
-    navigator.geolocation.getCurrentPosition(function (pos) {
+    getLocationWithRetry(function (pos) {
       Api.request("/api/directions?startLat=" + pos.coords.latitude + "&startLng=" + pos.coords.longitude +
         "&goalLat=" + currentDetail.latitude + "&goalLng=" + currentDetail.longitude, { method: "GET" })
         .then(function (data) {
@@ -1035,12 +1049,13 @@
         });
     }, function (geoErr) {
       resultEl.hidden = true;
-      // geoErr.code: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+      // geoErr.code: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT — 여기 오는 시점엔
+      // 이미 getLocationWithRetry가 한 번 재시도한 뒤라는 뜻.
       var msg = geoErr && geoErr.code === 1
         ? "위치 권한이 꺼져있어요. 권한을 허용한 뒤 다시 시도해주세요."
         : "현재 위치를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.";
       Eatty.toast(msg, "error");
-    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+    });
   });
 
   // 대중교통/도보 경로는 실제로 지원하는 API가 없다(NCP Direction 5는 자동차 경로만 지원) — 자동차 결과만 보여준다.
