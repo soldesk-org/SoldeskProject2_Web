@@ -989,17 +989,20 @@
   });
 
   // ---- 길찾기(자동차 경로만 실제 지원 — NCP Direction 5 한계) ----
+  // 2026-08-20 수정 — 실패 시 화면에 계속 남는 경고 박스 대신 토스트로 안내하고 결과 영역은
+  // 다시 숨긴다. 또한 실패 원인(위치 정보 자체를 못 가져온 것인지, API 호출이 실패한 것인지)을
+  // 구분해서 토스트 문구를 다르게 보여준다 — 예전엔 둘 다 "위치 권한을 확인하세요"로 뭉뚱그려서,
+  // 실제로는 위치 권한을 이미 허용했는데도(iOS 앱 등) 같은 문구가 떠서 원인 파악이 어려웠다.
   document.getElementById("directionBtn").addEventListener("click", function () {
     if (!currentDetail) return;
     var resultEl = document.getElementById("directionsResult");
     resultEl.hidden = false;
     document.getElementById("directionsLoading").hidden = false;
     document.getElementById("directionsBody").hidden = true;
-    document.getElementById("directionsError").hidden = true;
 
     if (!navigator.geolocation) {
-      document.getElementById("directionsLoading").hidden = true;
-      document.getElementById("directionsError").hidden = false;
+      resultEl.hidden = true;
+      Eatty.toast("이 브라우저에서는 위치 정보를 지원하지 않습니다.", "error");
       return;
     }
     navigator.geolocation.getCurrentPosition(function (pos) {
@@ -1026,14 +1029,18 @@
             map.fitBounds(bounds);
           }
         })
-        .catch(function () {
-          document.getElementById("directionsLoading").hidden = true;
-          document.getElementById("directionsError").hidden = false;
+        .catch(function (err) {
+          resultEl.hidden = true;
+          Eatty.toast((err && err.message) || "경로를 찾지 못했습니다. 잠시 후 다시 시도해주세요.", "error");
         });
-    }, function () {
-      document.getElementById("directionsLoading").hidden = true;
-      document.getElementById("directionsError").hidden = false;
-    });
+    }, function (geoErr) {
+      resultEl.hidden = true;
+      // geoErr.code: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+      var msg = geoErr && geoErr.code === 1
+        ? "위치 권한이 꺼져있어요. 권한을 허용한 뒤 다시 시도해주세요."
+        : "현재 위치를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.";
+      Eatty.toast(msg, "error");
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
   });
 
   // 대중교통/도보 경로는 실제로 지원하는 API가 없다(NCP Direction 5는 자동차 경로만 지원) — 자동차 결과만 보여준다.

@@ -76,7 +76,7 @@
    #directionsResult        길찾기 결과 영역 (기본 hidden)
      ★ GET /api/directions?startLat=&startLng=&endLat=&endLng=&mode=
      #routeModeGroup        이동수단 (button[data-route-mode] = TRANSIT|WALK|CAR)
-     #directionsLoading / #directionsBody / #directionsError
+     #directionsLoading / #directionsBody (실패 시엔 이 영역을 숨기고 토스트로 안내, 2026-08-20)
      #routeDuration #routeDistance #routeFare #routeTransfer #routeSummary
      #routeExtraWrap        환승 정보 래퍼 (TRANSIT 일 때만 노출)
      #directionsCloseBtn    결과 닫기
@@ -548,16 +548,8 @@
                 </div>
               </div>
 
-              <!-- 실패 -->
-              <div id="directionsError" hidden>
-                <div class="e-alert e-alert--warning">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.6 2.7h15.8A1.8 1.8 0 0 0 21.5 18L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
-                  <div>
-                    <p class="e-alert-title">경로를 찾지 못했어요</p>
-                    <p>위치 권한을 허용했는지 확인하거나 다른 이동수단을 선택해보세요.</p>
-                  </div>
-                </div>
-              </div>
+              <!-- 2026-08-20 수정 — 실패 시 이 자리에 계속 남는 경고 박스 대신 토스트로 안내하고
+                   (요청에 따름), 이 결과 영역 자체를 다시 숨긴다. #directionsError는 이제 안 씀. -->
             </div>
           </div>
 
