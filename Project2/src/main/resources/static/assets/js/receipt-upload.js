@@ -453,26 +453,33 @@
     "카페\디저트": "img/markers/marker-cafe.png",
   };
   var visitConfirmMap = null;
+  // 2026-08-20 수정 — renderStep2()가 goStep(2)보다 먼저 실행돼서, #step2Section이 아직
+  // hidden(display:none)인 상태에서 지도를 생성하고 있었다. 그 시점엔 컨테이너 폭이 0이라
+  // 네이버 지도가 타일을 절반만 그리고 마는 문제(지도 오른쪽이 회색으로 비어 보임)가 있었다.
+  // requestAnimationFrame으로 한 프레임 미뤄서 goStep(2)이 섹션을 보여준 뒤에 생성한다.
   function renderVisitConfirmMap() {
-    var mapEl = document.getElementById("visitConfirmMap");
-    if (!mapEl || !restaurant || restaurant.latitude == null || restaurant.longitude == null) return;
-    if (!window.naver || !window.naver.maps) return;
-    var center = new naver.maps.LatLng(restaurant.latitude, restaurant.longitude);
-    if (!visitConfirmMap) {
-      visitConfirmMap = new naver.maps.Map(mapEl, {
-        center: center, zoom: 16,
-        draggable: false, scrollWheel: false, pinchZoom: false,
-        disableDoubleClickZoom: true, disableDoubleTapZoom: true, disableTwoFingerTapZoom: true,
-        keyboardShortcuts: false, scaleControl: false, zoomControl: false, mapDataControl: false,
-      });
-      var iconUrl = CATEGORY_MARKER[restaurant.category];
-      new naver.maps.Marker({
-        position: center, map: visitConfirmMap, title: restaurant.name,
-        icon: iconUrl ? { url: iconUrl, size: new naver.maps.Size(27, 35), scaledSize: new naver.maps.Size(27, 35), anchor: new naver.maps.Point(13.5, 35) } : undefined,
-      });
-    } else {
-      visitConfirmMap.setCenter(center);
-    }
+    requestAnimationFrame(function () {
+      var mapEl = document.getElementById("visitConfirmMap");
+      if (!mapEl || !restaurant || restaurant.latitude == null || restaurant.longitude == null) return;
+      if (!window.naver || !window.naver.maps) return;
+      var center = new naver.maps.LatLng(restaurant.latitude, restaurant.longitude);
+      if (!visitConfirmMap) {
+        visitConfirmMap = new naver.maps.Map(mapEl, {
+          center: center, zoom: 16,
+          draggable: false, scrollWheel: false, pinchZoom: false,
+          disableDoubleClickZoom: true, disableDoubleTapZoom: true, disableTwoFingerTapZoom: true,
+          keyboardShortcuts: false, scaleControl: false, zoomControl: false, mapDataControl: false,
+        });
+        var iconUrl = CATEGORY_MARKER[restaurant.category];
+        new naver.maps.Marker({
+          position: center, map: visitConfirmMap, title: restaurant.name,
+          icon: iconUrl ? { url: iconUrl, size: new naver.maps.Size(27, 35), scaledSize: new naver.maps.Size(27, 35), anchor: new naver.maps.Point(13.5, 35) } : undefined,
+        });
+      } else {
+        visitConfirmMap.setCenter(center);
+        naver.maps.Event.trigger(visitConfirmMap, "resize");
+      }
+    });
   }
 
   var visitShopLabel = "";

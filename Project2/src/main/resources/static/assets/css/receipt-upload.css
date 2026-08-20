@@ -86,7 +86,8 @@
      차지하도록 flex-1로 늘림(기존엔 내용 크기만큼만 좁게 잡혀 있었음). */
   button.e-chip-static--edit {
     flex: 1; justify-content: center;
-    gap: 14px; border: 0; cursor: pointer; border-radius: var(--r-lg);
+    gap: 14px; border: 0; cursor: pointer; border-radius: 10px;
+    padding-top: 14px; padding-bottom: 14px;
   }
   .e-chip-static--edit span { color: var(--ink-800); }
   .e-chip-static--edit em {
