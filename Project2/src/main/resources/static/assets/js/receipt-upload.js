@@ -529,9 +529,12 @@
     return col;
   }
 
+  var wheelSheetTitle = document.getElementById("wheelSheetTitle");
+
   // columns: [{ values: [{label}], selectedIndex }, ...]. onConfirm(selectedIndexes)에서 각 열의
   // 최종 선택 인덱스 배열을 받는다.
-  function openWheelPicker(columns, onConfirm) {
+  function openWheelPicker(columns, onConfirm, title) {
+    wheelSheetTitle.textContent = title || "";
     wheelCols.innerHTML = "";
     wheelColEls = columns.map(function (c) { return buildWheelColumn(c.values, c.selectedIndex); });
     wheelOnConfirm = onConfirm;
@@ -579,7 +582,7 @@
       var d2 = visitDate || new Date();
       visitDate = new Date(y, m - 1, d, d2.getHours(), d2.getMinutes());
       renderVisitDateUI();
-    });
+    }, base.getFullYear() + "년");
   }
 
   function openTimeWheel() {
@@ -598,7 +601,7 @@
       var d2 = visitDate || new Date();
       visitDate = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate(), h24, idx[2]);
       renderVisitDateUI();
-    });
+    }, base.getFullYear() + "년");
   }
 
   document.getElementById("visitConfirmDateEditBtn").addEventListener("click", openDateWheel);

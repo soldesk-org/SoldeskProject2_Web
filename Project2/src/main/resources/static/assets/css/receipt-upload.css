@@ -33,6 +33,12 @@
   }
   .e-wheel-sheet.is-open { transform: translateY(0); }
   .e-wheel-sheet[hidden] { display: block; }
+  /* 참고 이미지의 상단 "2026년" 헤더(2026-08-20 추가) — 열별 스크롤과 무관하게, 현재 연도(날짜
+     피커) 또는 확인 안내(시간 피커)를 항상 보여주는 고정 타이틀. */
+  .e-wheel-sheet-title {
+    text-align: center; font-size: 17px; font-weight: 800; color: var(--ink-900);
+    padding: 6px 0 4px;
+  }
   .e-wheel-cols {
     display: flex; justify-content: center; position: relative;
     height: 216px; /* 44px(행 높이) * 4.9열 정도, 가운데 행이 정확히 중앙에 오도록 */
