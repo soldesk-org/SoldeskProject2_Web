@@ -128,8 +128,12 @@
      모바일 폭에선 flex-col이 적용되고 있었음) → 항상 한 줄(flex-row)로 고정. (2) 필 모양(--r-full)이
      너무 둥글다는 지적으로 --r-md로 낮춤. */
   #step2Section .e-card-soft { background: var(--brand-50); border-color: transparent; }
+  /* 2026-08-20 재수정 — flex-1을 줘도 두 버튼 폭이 살짝 다르게 나오던 문제. flex 아이템의 기본
+     min-width는 auto(콘텐츠 크기)라서, 텍스트가 더 긴 "이 장소가 맞아요 →" 쪽이 flex-basis:0을
+     무시하고 자기 콘텐츠 폭만큼 버티고 남은 공간을 짧은 버튼이 가져가는 방식으로 계산됐다(실측:
+     178px vs 192px). min-width:0으로 그 기본값을 없애야 flex-1이 완전히 균등 분배된다. */
   #step2Section #ocrRetryBtn,
-  #step2Section #ocrConfirmBtn { border-radius: var(--r-md); }
+  #step2Section #ocrConfirmBtn { border-radius: var(--r-md); min-width: 0; }
 
   /* 2026-08-20 재수정 — 콘텐츠가 화면 위쪽에 쏠려 있다는 지적으로, 닫기(X) 버튼을 제외한 나머지
      내용을 세로 중앙 정렬한다. 카드 자체를 flex column으로 만들고 본문을 감싼 뒤 justify-content:
