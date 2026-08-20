@@ -1071,7 +1071,6 @@
   function initMap(center) {
     map = new naver.maps.Map("naverMap", { center: new naver.maps.LatLng(center.lat, center.lng), zoom: 15 });
     var mapLoadingOverlay = document.getElementById("mapLoadingOverlay");
-    if (mapLoadingOverlay) mapLoadingOverlay.hidden = true;
     naver.maps.Event.addListener(map, "dragend", function () { if (researchAreaBtn) researchAreaBtn.parentElement.style.display = ""; updateRadiusBadge(); });
     naver.maps.Event.addListener(map, "zoom_changed", function () { if (researchAreaBtn) researchAreaBtn.parentElement.style.display = ""; updateRadiusBadge(); });
 
@@ -1086,13 +1085,19 @@
       handoff.items.forEach(function (it) { bounds.extend(new naver.maps.LatLng(it.latitude, it.longitude)); });
       map.fitBounds(bounds);
       updateRadiusBadge();
+      if (mapLoadingOverlay) mapLoadingOverlay.hidden = true;
     } else if (sharedShopId) {
-      openSharedRestaurant(sharedShopId, qp);
+      // 2026-08-20 수정 — 여기서 바로 오버레이를 걷어버리면 상세정보 API 응답(비동기)이 오기 전까지
+      // 그 사이에 지도/탐색 화면이 그대로 보였다가 상세 패널이 뜨는 깜빡임이 있었다(영수증 리뷰 X
+      // 버튼으로 들어올 때 지적받음). openSharedRestaurant()가 끝난 뒤(성공/실패 모두)에 걷도록 미룬다.
+      openSharedRestaurant(sharedShopId, qp, mapLoadingOverlay);
     } else if (initialKeyword && initialKeyword.trim()) {
       if (searchInput) searchInput.value = initialKeyword.trim();
       searchKeyword(initialKeyword.trim());
+      if (mapLoadingOverlay) mapLoadingOverlay.hidden = true;
     } else {
       searchArea();
+      if (mapLoadingOverlay) mapLoadingOverlay.hidden = true;
     }
   }
 
@@ -1114,7 +1119,7 @@
   // 공유 링크(?shopId=...)로 들어온 경우 — 카카오는 place id 단건 재조회가 안 되므로 링크에
   // 함께 실어보낸 name/address/roadAddress/latitude/longitude 를 그대로 상세조회 API에 넘긴다.
   // 이 경우 지도/리스트는 주변 전체가 아니라 공유받은 그 가게 하나만 보여준다(searchArea() 미호출).
-  function openSharedRestaurant(shopId, qp) {
+  function openSharedRestaurant(shopId, qp, mapLoadingOverlay) {
     var name = qp.get("name") || "";
     var categoryQ = qp.get("category") || "";
     var address = qp.get("address") || "";
@@ -1153,6 +1158,9 @@
       .catch(function () {
         renderResults([]);
         Eatty.toast("공유된 가게 정보를 불러오지 못했습니다.", "error");
+      })
+      .finally(function () {
+        if (mapLoadingOverlay) mapLoadingOverlay.hidden = true;
       });
   }
 

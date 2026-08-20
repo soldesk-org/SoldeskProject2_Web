@@ -64,7 +64,9 @@
     font-size: 20px; font-weight: 700; color: var(--ink-800);
     font-variant-numeric: tabular-nums;
   }
-  /* 2026-08-20 수정 — "확인" 버튼은 라운드 없이(참고 이미지) */
+  /* 2026-08-20 수정 — "확인" 버튼은 라운드 없이(참고 이미지)
+     2026-08-20 재수정 — 버튼 밑에 여백이 비어 보인다는 지적으로 버튼 자체를 btn-lg(46px→54px)로
+     키워서 그 공간을 채움. */
   #wheelConfirmBtn { border-radius: 0; }
 
   /* 별점 입력 - 이 페이지에서만 더 크게(다른 페이지의 공용 .e-rating-input에는 영향 없음) */

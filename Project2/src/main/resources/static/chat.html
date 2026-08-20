@@ -2,6 +2,18 @@
 <html lang="ko" data-auth-state="user">
 <head>
 <meta charset="UTF-8">
+<script>
+  /* 2026-08-20 추가 — 로그인 안 된 상태로 잇티챗에 들어오면 body가 그려진 뒤 chat.js(defer)가
+     실행돼서야 로그인 페이지로 리다이렉트되다 보니, 잠깐 채팅 화면이 보였다 사라지는 깜빡임이
+     있었다(api.js/chat.js도 defer라 DOM 파싱이 끝나야 실행됨). body를 파싱/렌더링하기 전에
+     동기 스크립트로 먼저 검사해서 즉시 리다이렉트하면 그 깜빡임 자체가 없어진다 — api.js의
+     isLoggedIn()과 같은 저장소 키(ew_access_token)를 그대로 확인한다. */
+  (function () {
+    if (!localStorage.getItem("ew_access_token") && !sessionStorage.getItem("ew_access_token")) {
+      window.location.replace("login");
+    }
+  })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>잇티웨이</title>
 <link rel="icon" href="favicon.ico" sizes="any">
