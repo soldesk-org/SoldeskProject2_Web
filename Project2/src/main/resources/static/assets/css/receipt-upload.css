@@ -64,6 +64,8 @@
     font-size: 20px; font-weight: 700; color: var(--ink-800);
     font-variant-numeric: tabular-nums;
   }
+  /* 2026-08-20 수정 — "확인" 버튼은 라운드 없이(참고 이미지) */
+  #wheelConfirmBtn { border-radius: 0; }
 
   /* 별점 입력 - 이 페이지에서만 더 크게(다른 페이지의 공용 .e-rating-input에는 영향 없음) */
   #reviewRatingInput { gap: 8px; }
@@ -78,9 +80,13 @@
     font-size: 13.5px; font-weight: 700;
   }
   /* 2026-08-20 추가 — 값 + "수정" 링크를 하나의 둥근 박스로 합친 버전(참고 이미지처럼). button
-     요소라 기본 border/font가 리셋돼 있어 여기서 다시 지정한다. */
+     요소라 기본 border/font가 리셋돼 있어 여기서 다시 지정한다.
+     2026-08-20 재수정 — (1) 라운드가 너무 강했다는 지적으로 완전 필 모양(--r-full) 대신
+     --r-lg로 낮춤. (2) 값과 "수정" 사이 간격을 넓힘(8px→14px). (3) 아래 매장 카드 폭의 절반씩
+     차지하도록 flex-1로 늘림(기존엔 내용 크기만큼만 좁게 잡혀 있었음). */
   button.e-chip-static--edit {
-    gap: 8px; border: 0; cursor: pointer;
+    flex: 1; justify-content: center;
+    gap: 14px; border: 0; cursor: pointer; border-radius: var(--r-lg);
   }
   .e-chip-static--edit span { color: var(--ink-800); }
   .e-chip-static--edit em {
@@ -102,7 +108,8 @@
   /* 2026-08-20 추가 — iOS Safari에서 위/아래로 더 당기면(elastic overscroll) 문서 바깥의 html
      배경(--bg-soft, 살짝 라벤더 톤)이 드러나는데, 카드는 흰색(--bg)이라 그 순간 위/아래 끝에
      색이 살짝 다른 띠가 보인다는 지적. 몰입형일 때는 html 배경도 카드와 같은 흰색으로 맞춘다. */
-  html:has(body.e-immersive-step2) { background-color: var(--bg); }
+  html:has(body.e-immersive-step2) { background-color: var(--bg) !important; }
+  body.e-immersive-step2 { background-color: var(--bg) !important; }
   body.e-immersive-step2 #step2Section > .e-card {
     border-radius: 0; box-shadow: none; border: 0;
     min-height: 100dvh; padding-top: calc(20px + env(safe-area-inset-top));
@@ -153,7 +160,7 @@
   /* 인식 중 안내 문구(2026-08-20 추가) — 스캔 라인이 도는 동안만 보이고, 결과 배지가 뜨면 JS가
      hidden 처리한다. */
   .e-camera-scanning-caption {
-    position: absolute; left: 0; right: 0; bottom: 2%; padding: 0 12px;
+    position: absolute; left: 0; right: 0; bottom: 6%; padding: 0 12px;
     text-align: center; color: #fff; font-size: 24px; font-weight: 800; line-height: 1.3;
     text-shadow: 0 1px 4px rgba(0,0,0,.5);
   }
