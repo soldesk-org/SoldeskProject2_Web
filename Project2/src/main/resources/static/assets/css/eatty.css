@@ -89,7 +89,12 @@
   --sh-brand-sm: 0 4px 14px rgba(253, 109, 74, .25);
 
   /* 레이아웃 수치 */
-  --header-h: 68px;
+  /* 2026-08-20 수정 — iOS 앱(Capacitor WebView)에서 헤더가 상태바/노치에 딱 붙어서 로고·버튼이
+     가려지던 문제. 일반 모바일 브라우저에서는 env(safe-area-inset-top)이 0이라 지금까지처럼
+     그대로 68px지만, 전체화면으로 렌더링되는 웹뷰 앱에서는 상태바 높이만큼 자동으로 커진다.
+     이 변수를 쓰는 다른 calc(100vh - var(--header-h)) 같은 계산도 실제 헤더가 차지하는 공간
+     그대로 맞아야 하므로, 헤더 자체 높이에서 늘리는 대신 변수 값에 안전영역을 포함시켰다. */
+  --header-h: calc(68px + env(safe-area-inset-top));
   --header-h-sm: 60px;
   --admin-side-w: 248px;
 
@@ -206,7 +211,11 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   border-bottom: 1px solid var(--line);
 }
 .e-header-inner {
-  height: 100%;
+  /* 2026-08-20 수정 — --header-h가 이제 안전영역을 포함하므로 100%를 그대로 쓰면 로고/버튼이
+     그 안전영역까지 세로 중앙 정렬돼 상태바 쪽으로 밀려 올라간다. 실제 컨텐츠 줄은 원래 높이
+     그대로(68px) 고정하고, 안전영역만큼은 위쪽 빈 여백으로 남겨서 컨텐츠가 항상 헤더 맨 아래에
+     붙게 한다. */
+  height: 68px; margin-top: env(safe-area-inset-top);
   display: flex; align-items: center; gap: 12px;
 }
 .e-header--solid {
@@ -358,7 +367,10 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 .e-tabbar-item svg { width: 22px; height: 22px; }
 .e-tabbar-item[aria-current="page"] { color: var(--brand-500); }
 @media (min-width: 768px) { .e-tabbar { display: none; } }
-.has-tabbar { padding-bottom: 72px; }
+/* 2026-08-20 수정 — 탭바 자체는 safe-area-inset-bottom만큼 더 커지는데(홈 인디케이터 있는
+   기기), 본문이 미리 비워두는 여백은 고정 72px뿐이라 화면 맨 아래 콘텐츠가 탭바 뒤로 가려지던
+   문제(스크롤을 끝까지 내리면 탭바 밑으로 컨텐츠가 비쳐 보임). */
+.has-tabbar { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
 @media (min-width: 768px) { .has-tabbar { padding-bottom: 0; } }
 
 /* --- 맨 위로 버튼(2026-08-07 신규) --------------------------------------
