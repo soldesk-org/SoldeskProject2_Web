@@ -260,49 +260,87 @@
   var nearbyNameEl = document.getElementById("resultNearbyName");
   var nearbyAddrEl = document.getElementById("resultNearbyAddr");
   var nearbyLabelEl = document.getElementById("resultNearbyLabel");
+  var nearbyEmptyEl = document.getElementById("resultNearbyEmpty");
   var nearbyReqId = 0; // 다시 뽑기를 연타했을 때 예전 응답이 나중에 도착해 덮어쓰는 것 방지
   // 카테고리별로 이미 보여준 곳을 기억해뒀다가 다음엔 뺀다 — "계속 같은 곳만 추천된다"는 지적(2026-08-08)
   // 대응. 세션 동안만 유지(새로고침하면 초기화), 후보가 다 소진되면 그 카테고리만 비우고 다시 순환한다.
   var shownByCategory = {};
 
+  function fetchNearbyRestaurants(winner, lat, lng, radiusDeg) {
+    var qs = "categoryId=" + encodeURIComponent(winner.categoryId) +
+      "&minLat=" + (lat - radiusDeg) + "&maxLat=" + (lat + radiusDeg) +
+      "&minLng=" + (lng - radiusDeg) + "&maxLng=" + (lng + radiusDeg) +
+      "&page=0&size=30";
+    return Api.request("/api/restaurants/filter?" + qs, { method: "GET", auth: false })
+      .then(function (data) { return (data && data.restaurants) || []; });
+  }
+
   function loadNearbyPick(winner) {
     if (!nearbyBox) return;
-    nearbyBox.hidden = true;
-    if (!winner || winner.categoryId == null || !navigator.geolocation) return;
+    nearbyEmptyEl.hidden = true;
+    if (!winner || winner.categoryId == null || !navigator.geolocation) { nearbyBox.hidden = true; return; }
+
+    // 2026-08-20 추가 — 응답을 기다리는 동안 빈 화면 대신 스켈레톤을 바로 보여준다.
+    nearbyBox.hidden = false;
+    nearbyBox.classList.add("is-loading");
+    nearbyLabelEl.textContent = "내 주변 " + winner.categoryName + " 추천";
 
     var reqId = ++nearbyReqId;
     navigator.geolocation.getCurrentPosition(function (pos) {
       var lat = pos.coords.latitude;
       var lng = pos.coords.longitude;
-      var d = 0.018; // 약 2km 반경의 바운딩 박스
-      var qs = "categoryId=" + encodeURIComponent(winner.categoryId) +
-        "&minLat=" + (lat - d) + "&maxLat=" + (lat + d) +
-        "&minLng=" + (lng - d) + "&maxLng=" + (lng + d) +
-        "&page=0&size=30";
+      var shown = shownByCategory[winner.categoryId] || (shownByCategory[winner.categoryId] = []);
 
-      Api.request("/api/restaurants/filter?" + qs, { method: "GET", auth: false })
-        .then(function (data) {
-          if (reqId !== nearbyReqId) return; // 더 최신 요청이 있으면 이 응답은 버린다
-          var list = (data && data.restaurants) || [];
-          if (!list.length) return;
+      // 2026-08-20 추가 — 2km 반경에 후보가 1곳뿐이면(특히 패스트푸드처럼 매칭 가능한 매장이
+      // 적은 카테고리) 매번 같은 곳만 추천되던 문제. 이미 보여준 곳을 뺀 "새 후보"가 하나도 없거나
+      // 애초에 후보 자체가 1곳뿐이면, 반경을 5km로 넓혀서 한 번 더 찾아본다.
+      fetchNearbyRestaurants(winner, lat, lng, 0.018).then(function (list) {
+        if (reqId !== nearbyReqId) return;
+        var fresh = list.filter(function (r) { return shown.indexOf(r.restaurantId) === -1; });
+        if (list.length > 1 && fresh.length) {
+          return finishNearbyPick(winner, shown, list, fresh, reqId);
+        }
+        return fetchNearbyRestaurants(winner, lat, lng, 0.045).then(function (widerList) {
+          if (reqId !== nearbyReqId) return;
+          var widerFresh = widerList.filter(function (r) { return shown.indexOf(r.restaurantId) === -1; });
+          var finalList = widerList.length ? widerList : list;
+          var finalFresh = widerList.length ? widerFresh : fresh;
+          finishNearbyPick(winner, shown, finalList, finalFresh, reqId);
+        });
+      }).catch(function () {
+        if (reqId !== nearbyReqId) return;
+        nearbyBox.classList.remove("is-loading");
+        nearbyBox.hidden = true;
+      });
+    }, function () {
+      // 위치 권한 거부/실패 — 조용히 숨긴다(스켈레톤도 같이 제거).
+      if (reqId !== nearbyReqId) return;
+      nearbyBox.classList.remove("is-loading");
+      nearbyBox.hidden = true;
+    }, { timeout: 8000, maximumAge: 300000 });
+  }
 
-          var shown = shownByCategory[winner.categoryId] || (shownByCategory[winner.categoryId] = []);
-          var fresh = list.filter(function (r) { return shown.indexOf(r.restaurantId) === -1; });
-          if (!fresh.length) {
-            // 후보를 다 보여줬으면 그 카테고리만 초기화하고 전체 목록에서 다시 고른다.
-            shown.length = 0;
-            fresh = list;
-          }
-          var picked = fresh[Math.floor(Math.random() * fresh.length)];
-          shown.push(picked.restaurantId);
-
-          renderNearbyPick(picked, winner);
-        })
-        .catch(function () {});
-    }, function () { /* 위치 권한 거부 — 그냥 안 보여준다 */ }, { timeout: 8000, maximumAge: 300000 });
+  function finishNearbyPick(winner, shown, list, fresh, reqId) {
+    if (reqId !== nearbyReqId) return;
+    nearbyBox.classList.remove("is-loading");
+    if (!list.length) {
+      nearbyCard.hidden = true;
+      nearbyEmptyEl.hidden = false;
+      return;
+    }
+    if (!fresh.length) {
+      // 후보를 다 보여줬으면 그 카테고리만 초기화하고 전체 목록에서 다시 고른다.
+      shown.length = 0;
+      fresh = list;
+    }
+    var picked = fresh[Math.floor(Math.random() * fresh.length)];
+    shown.push(picked.restaurantId);
+    renderNearbyPick(picked, winner);
   }
 
   function renderNearbyPick(shop, winner) {
+    nearbyEmptyEl.hidden = true;
+    nearbyCard.hidden = false;
     nearbyLabelEl.textContent = "내 주변 " + winner.categoryName + " 추천";
     nearbyNameEl.textContent = shop.name || "";
     nearbyAddrEl.textContent = shop.roadAddress || shop.address || "";

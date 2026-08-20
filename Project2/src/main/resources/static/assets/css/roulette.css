@@ -126,6 +126,35 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
+  /* 2026-08-20 추가 — 위치 확인 + API 응답을 기다리는 동안 보여줄 스켈레톤(카드와 같은 자리에
+     겹쳐두고 로딩 중엔 카드를 숨긴 채 이것만 보여준다). */
+  .result-nearby-skeleton {
+    display: none; padding: 14px 16px; border-radius: 14px;
+    background: var(--bg-muted); border: 1px solid var(--line);
+  }
+  .result-nearby.is-loading .result-nearby-card { display: none; }
+  .result-nearby.is-loading .result-nearby-skeleton { display: block; }
+  .result-nearby-skeleton-line {
+    display: block; height: 12px; border-radius: 6px;
+    background: linear-gradient(90deg, var(--line) 25%, var(--line-soft, var(--bg-soft)) 50%, var(--line) 75%);
+    background-size: 200% 100%;
+    animation: result-nearby-shimmer 1.2s ease-in-out infinite;
+  }
+  .result-nearby-skeleton-line--title { width: 55%; height: 15px; }
+  .result-nearby-skeleton-line--addr { width: 75%; margin-top: 8px; }
+  @keyframes result-nearby-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* 2026-08-20 추가 — 결과가 진짜 0건일 때(위치 권한 거부/미지원과 달리, 응답은 왔는데 후보가
+     없는 경우) 조용히 숨기지 않고 안내 문구를 보여준다. */
+  .result-nearby-empty {
+    padding: 14px 16px; border-radius: 14px;
+    background: var(--bg-muted); border: 1px solid var(--line);
+    font-size: 13px; color: var(--ink-500); text-align: center;
+  }
+
   .result-modal-actions { display: flex; flex-direction: column; gap: 10px; }
   .btn-toss-primary {
     width: 100%; padding: 16px; border: none; border-radius: 16px;

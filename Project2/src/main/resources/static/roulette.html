@@ -219,13 +219,20 @@
     <h2 class="result-name" id="resultTitle"><span id="resultName">-</span></h2>
 
     <!-- 내 주변 추천(2026-08-07 추가) — 당첨된 카테고리의 음식점 중 한 곳을 무작위로 보여준다.
-         위치 권한이 없거나 주변에 결과가 없으면 이 블록 자체를 감춘다. -->
+         위치 권한이 없거나 지원 안 되면 이 블록 자체를 감춘다.
+         2026-08-20 추가 — 위치·API 응답을 기다리는 동안 아무것도 안 보이다가 갑자기 튀어나오던
+         문제로 스켈레톤 로딩 상태 추가, 결과가 진짜 0건일 때는 조용히 숨기지 않고 안내 문구를 보여줌. -->
     <div class="result-nearby" id="resultNearby" hidden>
       <p class="result-nearby-label" id="resultNearbyLabel">내 주변 추천</p>
       <a class="result-nearby-card" id="resultNearbyCard" href="explore">
         <span class="result-nearby-name" id="resultNearbyName"></span>
         <span class="result-nearby-addr" id="resultNearbyAddr"></span>
       </a>
+      <div class="result-nearby-skeleton" id="resultNearbySkeleton">
+        <span class="result-nearby-skeleton-line result-nearby-skeleton-line--title"></span>
+        <span class="result-nearby-skeleton-line result-nearby-skeleton-line--addr"></span>
+      </div>
+      <p class="result-nearby-empty" id="resultNearbyEmpty" hidden>현재 카테고리에 해당하는 매장이 위치 기준으로 없습니다</p>
     </div>
 
     <div class="result-modal-actions">
