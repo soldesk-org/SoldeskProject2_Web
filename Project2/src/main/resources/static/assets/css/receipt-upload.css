@@ -123,10 +123,20 @@
   }
   .e-visit-close-btn svg { width: 22px; height: 22px; }
 
-  /* 매장 카드/버튼을 참고 이미지 톤에 맞춤(2026-08-20) — 브랜드 배경색 카드 + 필 모양 버튼. */
+  /* 매장 카드/버튼을 참고 이미지 톤에 맞춤(2026-08-20) — 브랜드 배경색 카드.
+     2026-08-20 재수정 — (1) 버튼 두 개가 세로로 쌓이던 문제(위 html에서 sm:flex-row로만 줘서
+     모바일 폭에선 flex-col이 적용되고 있었음) → 항상 한 줄(flex-row)로 고정. (2) 필 모양(--r-full)이
+     너무 둥글다는 지적으로 --r-md로 낮춤. */
   #step2Section .e-card-soft { background: var(--brand-50); border-color: transparent; }
   #step2Section #ocrRetryBtn,
-  #step2Section #ocrConfirmBtn { border-radius: var(--r-full); }
+  #step2Section #ocrConfirmBtn { border-radius: var(--r-md); }
+
+  /* 2026-08-20 재수정 — 콘텐츠가 화면 위쪽에 쏠려 있다는 지적으로, 닫기(X) 버튼을 제외한 나머지
+     내용을 세로 중앙 정렬한다. 카드 자체를 flex column으로 만들고 본문을 감싼 뒤 justify-content:
+     center를 적용 — X 버튼은 absolute라 이 흐름에서 빠지므로 영향받지 않는다. */
+  body.e-immersive-step2 #step2Section > .e-card {
+    display: flex; flex-direction: column; justify-content: center;
+  }
 
   /* 촬영 성공 오버레이(2026-08-19 재작업, 같은 날 페이지 최상위로 이동) — 사진이 어떤 경로로
      선택됐든(우리 카메라/OS 기본 카메라 폴백/PC 파일선택) OCR을 자동 실행하고, 인증에 성공하면
