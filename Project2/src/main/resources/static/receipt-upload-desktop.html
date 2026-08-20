@@ -2,16 +2,6 @@
 <html lang="ko" data-auth-state="user">
 <head>
 <meta charset="UTF-8">
-<script>
-  /* 2026-08-20 추가 — 이 카메라 자동오픈 몰입형 UI는 모바일 전용이다. PC에서는 예전 파일선택+
-     수동 OCR 버튼 디자인(receipt-upload-desktop.html, 이 세션에서 삭제되기 전 커밋에서 그대로
-     복원해 별도 파일로 보존)을 대신 쓰기로 했다(요청: "모바일은 지금 그대로 두고 PC에서만 원래
-     있던 백업 디자인 쓰게 해줘"). 이 파일 자체는 이후로도 건드리지 않는다 — 아래 이 스크립트
-     한 줄만 추가된 것 외에는 모바일 흐름과 무관. */
-  if (window.innerWidth >= 1024) {
-    window.location.replace("receipt-upload-desktop" + window.location.search);
-  }
-</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>잇티웨이</title>
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -19,41 +9,54 @@
 <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
 <meta name="description" content="영수증을 업로드하면 OCR로 방문을 인증하고 리뷰를 작성할 수 있습니다.">
 
+<script>
+  /* 2026-08-20 추가 — 이 파일은 PC(데스크톱 폭) 전용이다. receipt-upload.html이 카메라 자동오픈/
+     자동OCR 몰입형 모바일 UI로 전면 재작업되면서, 그 이전의 파일선택+수동 OCR 버튼+1/2/3 스테퍼
+     디자인(이 파일)은 데스크톱 전용으로 따로 떼어 보존하기로 했다(요청: "모바일은 지금 그대로 두고
+     PC에서만 원래 있던 백업 디자인 쓰게 해줘"). 모바일 폭으로 직접 열리면 그 화면으로 되돌려보낸다
+     (반대 방향 가드는 receipt-upload.html 쪽에 있음). 두 페이지는 완전히 분리된 HTML/CSS/JS를 쓰며
+     서로 참조하지 않는다 — 실수로 섞여서 둘 다 깨지는 일이 없도록. */
+  if (window.innerWidth < 1024) {
+    window.location.replace("receipt-upload" + window.location.search);
+  }
+</script>
+
 <!--
 ================================================================================
- receipt-upload — 카메라 자동 오픈 → 촬영 즉시 OCR → 방문확인 → 리뷰 작성
+ receipt-upload-desktop — 영수증 업로드 → OCR 확인 → 리뷰 작성 (PC 전용, 2026-08-19 이전 디자인 보존)
 --------------------------------------------------------------------------------
- 2026-08-20 전면 재작업 — 예전엔 "1 업로드 / 2 인식확인 / 3 리뷰작성" 3단계를 사용자가 직접
- 눌러가며 진행했지만(스테퍼 UI), 지금은 페이지 진입과 동시에 카메라가 자동으로 뜨고 촬영 즉시
- OCR이 자동 실행돼 "업로드"라는 별도 단계 자체가 없다. #step1Section에는 이제 화면에 보이는
- 내용이 없고(cameraStartPrompt/노매장 경고/카메라 모달만 존재), 카메라를 취소하거나 인식에
- 실패하면 이 페이지에 남지 않고 매장 상세로 바로 돌아간다.
+ [3단계 진행]  #receiptSteps
+   step1 업로드 → step2 OCR 확인 → step3 리뷰 작성 → (완료 화면)
 
  이 페이지는 explore.html 매장 상세의 "리뷰 작성" 버튼으로만 진입합니다(쿼리 파라미터로
  restaurantId/name/address/roadAddress/latitude/longitude 전달). 영수증 업로드(POST /api/receipts)가
  이미 선택된 매장을 대상으로 인증하는 구조라(리뷰=반드시 receiptId 필요, 08/10 정책) 매장을 나중에
  검색·변경하는 UI는 없습니다. 로그인 필수(Api.requireLogin).
 
- [STEP 1 · 카메라] — 화면에 보이는 내용 없음(카메라 모달이 전체를 덮음)
+ [STEP 1 · 업로드]
    #step1Section          섹션 루트
-   #cameraStartPrompt     자동 오픈이 막혔을 때(iOS 등) 재시도 버튼
+   #targetRestaurantName  대상 매장명(쿼리 파라미터)
    #noRestaurantAlert     매장 정보 없이 들어온 경우 경고
-   #receiptDrop           카메라 모달의 호스트 컨테이너(투명, data-dropzone)
+   #receiptDrop           드롭존 (data-dropzone)
    #receiptFileInput      파일 입력 (name="receiptImage")
-   #receiptCameraModal    커스텀 카메라(셔터를 누르면 receiptDrop에 eatty:filepicked 발생 →
-                           receipt-upload.js가 그 이벤트 하나로 자동 OCR+인식 애니메이션까지 처리)
+   #receiptFileName       선택 파일명 출력 (data-dropzone-filename)
+   #receiptPreview        미리보기 래퍼 (data-dropzone-preview)
+   #receiptRemoveBtn      파일 제거
+   ※ 2026-08-18 변경 — 영수증 인증 무결성 때문에(갤러리의 오래된/재사용 사진을 첨부하지 못하게)
+     input에 capture="environment"를 넣어 모바일에서 항상 실시간 카메라 촬영이 바로 열리도록 함
+     (2026-08-07엔 "change 핸들러 없는 죽은 카메라 버튼"이라 아예 제거했었는데, 이번엔 표준 file
+     input 자체에 capture 속성만 추가하는 방식이라 change 핸들러(드롭존 공통 로직)가 그대로 재사용됨).
+   #runOcrBtn             영수증 업로드+OCR 실행 ★ POST /api/receipts (multipart)
 
- [STEP 2 · 방문확인] — "다녀오셨네요!" 카드, 전부 읽기 전용(서버 값 그대로 표시, 수정 API 없음)
-   #step2Section          섹션 루트 (기본 hidden), 몰입형(헤더/탭바 숨김, body.e-immersive-step2)
-   #visitConfirmCloseBtn  X 닫기 → 매장 상세로 복귀
-   #visitConfirmDateEditBtn / #visitConfirmTimeEditBtn  날짜/시간 화면 표시만 수정(커스텀 휠 피커)
-   #visitConfirmMap       카테고리 마커가 찍힌 조작 불가 미니맵
-   #ocrShopName / #ocrTotalAmount(화면엔 숨김) / #ocrVisitDatetime(화면엔 숨김)
-   #ocrMenuList           인식된 메뉴 목록(화면엔 숨김 — 리뷰 등록 시에는 그대로 쓰임)
-   #ocrRetryBtn           이 장소가 아니에요 → 매장 상세로 복귀
-   #ocrConfirmBtn         이 장소가 맞아요 → step3
-   (2026-08-18 수정, 2026-08-20 갱신 — 인증 실패는 2단계로 안 넘어가고 촬영 직후 결과 오버레이의
-    빨간 X 배지로 바로 알린 뒤 매장 상세로 돌아간다. 이 섹션은 인증 성공일 때만 보인다.)
+ [STEP 2 · OCR 결과 확인] — 전부 읽기 전용(서버 값 그대로 표시, 수정 API 없음)
+   #step2Section          섹션 루트 (기본 hidden)
+   #ocrVerifiedBadge      인증 성공/실패 배지
+   #ocrShopName / #ocrTotalAmount / #ocrVisitDatetime
+   #ocrMenuList           인식된 메뉴 목록
+   #ocrRetryBtn           다시 업로드 (step1 로 복귀)
+   #ocrConfirmBtn         정보 확인 완료 → step3
+   (2026-08-18 수정 — 인증 실패(다른 매장 영수증 등)는 이제 2단계로 넘어가지 않고 1단계에서
+    Eatty.toast()로 바로 안내하고 재업로드를 유도한다. 이 섹션은 인증 성공일 때만 보인다.)
 
  [STEP 3 · 리뷰 작성]
    #step3Section          섹션 루트 (기본 hidden)
@@ -75,7 +78,7 @@
  [완료]
    #doneSection           완료 화면 (기본 hidden)
    #goMyReviewsBtn        내 리뷰 보기 → mypage-reviews
-   #writeAnotherBtn       또 작성하기 (2026-08-20 변경 — 매장 상세로 복귀, 거기서 다시 시작)
+   #writeAnotherBtn       또 작성하기 (step1 복귀)
 ================================================================================
 -->
 
@@ -83,49 +86,14 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="assets/css/eatty.css">
-<!-- 방문확인 카드의 고정 미니맵용(2026-08-19 추가, explore.html과 동일 키) -->
-<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
 <script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
-<script defer src="assets/js/receipt-upload.js"></script>
+<script defer src="assets/js/receipt-upload-desktop.js"></script>
 
-<link rel="stylesheet" href="assets/css/receipt-upload.css">
+<link rel="stylesheet" href="assets/css/receipt-upload-desktop.css">
 </head>
 
 <body class="has-tabbar bg-[var(--bg-soft)]">
-
-<!-- 인식 결과 오버레이(2026-08-19, 페이지 최상위로 이동, 같은 날 성공/실패 분기 추가) — 영수증
-     사진이 어떤 경로로 선택됐든(우리가 만든 카메라 / 카메라 권한이 막혀 OS 기본 카메라로 폴백 / PC
-     파일 선택) 전부 여기서 공통으로 처리한다(receiptDrop의 eatty:filepicked 이벤트 하나로 통일).
-     그 즉시 OCR을 자동 실행하고, 사진 위에 줄 단위 초록 하이라이트 애니메이션이 순서대로 지나간 뒤
-     결과 배지(성공: 초록 체크 / 실패: 빨간 X)를 보여준다. 실제 OCR이 어느 글자를 읽었는지 좌표
-     단위로는 알 수 없어서(서버가 좌표를 안 줌) 특정 단어를 정확히 짚는 대신 줄 단위 하이라이트로
-     "읽고 있다"는 느낌만 준다. 실패 시엔 결과 배지를 보여준 뒤 매장 상세 페이지로 돌아간다
-     (receipt-upload.js의 eatty:filepicked 핸들러 참고). -->
-<div class="e-camera-success-overlay" id="receiptCameraSuccessOverlay" hidden>
-  <img id="receiptCameraSuccessImg" alt="촬영한 영수증">
-  <div id="receiptCameraBands"></div>
-  <!-- 실제 인식된 단어 박스(2026-08-19 추가) — Python OCR이 돌려준 좌표(ocr_lines)를 그대로 표시.
-       실제로 안 읽은 부분에 박스를 그리는 과장이 아니라, 진짜 인식 위치 그대로다. -->
-  <div id="receiptCameraWordBoxes"></div>
-  <!-- 인식 중 안내 문구(2026-08-20 추가) — 스캔 라인이 도는 동안 아래에 표시, 결과 배지가 뜨면 사라진다. -->
-  <p class="e-camera-scanning-caption" id="receiptCameraScanningCaption">영수증 정보를 인식 중입니다.</p>
-  <div class="e-camera-result-badge" id="receiptCameraResultBadge">
-    <span class="e-camera-result-check" id="receiptCameraResultIcon"></span>
-    <p id="receiptCameraResultText"></p>
-  </div>
-</div>
-
-<!-- 날짜/시간 수정용 iOS 스타일 휠 피커(2026-08-20 추가) — 네이티브 input[type=date/time]은 OS가
-     그리는 부분이라 우리가 스타일링할 수 없어서, 참고 이미지와 똑같은 모양을 내려면 직접 만든
-     스크롤 휠 컴포넌트가 필요했다. 날짜/시간 둘 다 이 하나의 시트를 재사용한다(receipt-upload.js
-     openWheelPicker() 참고). -->
-<div class="e-wheel-backdrop" id="wheelBackdrop" hidden></div>
-<div class="e-wheel-sheet" id="wheelSheet" hidden>
-  <p class="e-wheel-sheet-title" id="wheelSheetTitle">2026년</p>
-  <div class="e-wheel-cols" id="wheelCols"></div>
-  <button type="button" class="btn btn-primary btn-lg w-full" id="wheelConfirmBtn">확인</button>
-</div>
 
 <!-- ============================== 헤더 ============================== -->
 <header class="e-header e-header--solid" id="siteHeader">
@@ -211,8 +179,8 @@
 
 <main id="mainContent" class="py-8 md:py-12">
   <div class="e-container e-container-narrow">
-    <!-- 스테퍼(2026-08-19부터 미사용 — receipt-upload.js goStep() 참고. 마크업은 되돌리기 쉽게 유지) -->
-    <div class="e-card e-card-flat p-5 mb-6" hidden>
+    <!-- 스테퍼 -->
+    <div class="e-card e-card-flat p-5 mb-6">
       <div class="e-steps" id="receiptSteps">
         <div class="e-step is-current" data-step="1">
           <span class="e-step-dot">1</span>
@@ -236,17 +204,10 @@
          ================================================================== -->
     <section id="step1Section">
 
-      <!-- 카메라 자동 오픈 재시도 버튼(2026-08-19 추가) — 페이지 진입과 동시에 카메라를 자동으로 열려고
-           시도하지만, iOS Safari 등은 "실제 사용자 탭" 없이는 카메라 권한 요청 자체를 막는다(직전
-           페이지의 탭은 새 페이지로 넘어오면서 사라짐). 그 경우 조용히 OS 기본 카메라로 폴백하면 우리가
-           만든 카메라(즉시 OCR+인식완료 애니메이션)를 아예 건너뛰게 되므로, 대신 한 번 더 탭할 수 있는
-           버튼을 보여준다 — 이 버튼 클릭은 진짜 사용자 제스처라 카메라 권한 요청이 확실히 통과한다. -->
-      <div class="e-card e-card-pad text-center py-14" id="cameraStartPrompt" hidden>
-        <p class="t-h4 mb-2">카메라를 시작할게요</p>
-        <p class="t-sm mb-6">아래 버튼을 눌러 영수증을 촬영해주세요.</p>
-        <button type="button" class="btn btn-primary btn-lg" id="cameraStartBtn">카메라 열기</button>
+      <div class="e-card e-card-pad mb-5" id="targetRestaurantCard">
+        <p class="e-form-section-desc !mb-1">이 매장의 영수증을 인증합니다</p>
+        <p class="text-[17px] font-extrabold text-[var(--ink-900)]" id="targetRestaurantName">-</p>
       </div>
-
       <div class="e-alert e-alert--warning mb-5" id="noRestaurantAlert" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.6 2.7h15.8A1.8 1.8 0 0 0 21.5 18L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
         <div>
@@ -255,13 +216,13 @@
         </div>
       </div>
 
-      <!-- 2026-08-20 삭제 — 카메라가 곧바로 뜨는 지금 구조에서는 이 아래에 있던 드롭존 안내 문구/
-           촬영 가이드 3장 예시/수동 미리보기 카드가 사용자 눈에 보일 일이 전혀 없어서(카메라 취소 시
-           매장 상세로 바로 나가도록 고쳤음) 전부 제거했다. #receiptDrop은 카메라 모달의 호스트
-           컨테이너로만 남긴다(fileInput + 카메라 모달은 여전히 필요). -->
-      <!-- hidden을 주면 안 된다 — 안에 있는 카메라 모달(position:fixed)이 조상 display:none 때문에
-           같이 렌더 트리에서 빠져서 아예 안 뜬다. 이 div 자체는 아무 시각적 내용이 없어 투명하다. -->
-      <div id="receiptDrop" data-dropzone>
+      <div class="e-card e-card-pad">
+        <h2 class="e-form-section-title">영수증 사진 업로드</h2>
+        <p class="e-form-section-desc">가게명, 방문일시, 결제금액이 잘 보이도록 촬영해주세요.</p>
+
+        <!-- 드롭존 -->
+        <div class="e-dropzone" id="receiptDrop" data-dropzone
+             data-dropzone-preview="receiptPreview" data-dropzone-filename="receiptFileName">
           <input type="file" id="receiptFileInput" name="receiptImage" accept="image/png,image/jpeg,image/webp" capture="environment" aria-label="영수증 사진 업로드">
           <!-- 2026-08-19 추가 — 위 input의 capture="environment"가 OS 기본 카메라 앱을 열어서 셔터음이
                나던 문제를 해결하기 위한 커스텀 카메라 모달. receipt-upload.js가 input 클릭을 가로채서
@@ -321,6 +282,73 @@
               </div>
             </div>
           </div>
+          <div class="e-dropzone-icon">
+            <svg viewBox="0 0 384 512" fill="currentColor"><path d="M14 2.2C22.5-1.7 32.5-.3 39.6 5.8L80 40.4 120.4 5.8c9-7.7 22.3-7.7 31.2 0L192 40.4 232.4 5.8c9-7.7 22.3-7.7 31.2 0L304 40.4 344.4 5.8c7.1-6.1 17.1-7.5 25.6-3.6s14 12.4 14 21.8l0 464c0 9.4-5.5 17.9-14 21.8s-18.5 2.5-25.6-3.6L304 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L192 471.6l-40.4 34.6c-9 7.7-22.3 7.7-31.2 0L80 471.6 39.6 506.2c-7.1 6.1-17.1 7.5-25.6 3.6S0 497.4 0 488L0 24C0 14.6 5.5 6.1 14 2.2zM96 144c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 144zM80 352c0 8.8 7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 336c-8.8 0-16 7.2-16 16zM96 240c-8.8 0-16 7.2-16 16s7.2 16 16 16l192 0c8.8 0 16-7.2 16-16s-7.2-16-16-16L96 240z"/></svg>
+          </div>
+          <p class="text-[16px] font-extrabold text-[var(--ink-900)]">영수증을 끌어다 놓거나 클릭해서 선택</p>
+          <p class="t-sm mt-2">JPG · PNG · WEBP / 10MB 이하</p>
+          <p class="t-xs mt-3" id="receiptFileName">선택된 파일이 없습니다</p>
+        </div>
+
+        <!-- 미리보기 -->
+        <!-- 2026-08-19 수정 — 썸네일을 "업로드된 영수증" 텍스트+OCR 버튼 묶음과 같은 높이로 꽉 채워야
+             한다는 요청. flex align-items:stretch + 퍼센트 높이 조합으로 시도했으나 실제 모바일 Safari에서
+             카드 위아래로 넘치는 문제가 재현됨(데스크톱 시뮬레이션에서는 재현 안 됨 — 브라우저별 퍼센트
+             높이 계산 차이로 추정). CSS 캐스케이드/브라우저 차이에 기대지 않도록, receipt-upload.js가
+             옆 텍스트 블록(#receiptPreviewTextBlock)의 실제 렌더 높이를 측정해서 썸네일에 픽셀 값으로
+             직접 지정한다. -->
+        <div class="mt-4" id="receiptPreview" hidden>
+          <div class="e-file-item" style="align-items:flex-start">
+            <span id="receiptPreviewThumb" class="w-20 rounded-[10px] overflow-hidden flex-none e-img-ph e-img-ph--gray">
+              <img alt="영수증 미리보기" data-dropzone-img class="w-full h-full object-cover" style="display:none">
+            </span>
+            <div class="min-w-0 flex-1" id="receiptPreviewTextBlock">
+              <p class="text-sm font-bold text-[var(--ink-900)]">업로드된 영수증</p>
+              <p class="t-xs mt-1 leading-relaxed">사진이 선명한지 확인한 뒤 OCR 인식을 실행해주세요.</p>
+              <button type="button" class="btn btn-primary btn-sm mt-3" id="runOcrBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M8 12h8"/></svg>
+                OCR 인식
+              </button>
+            </div>
+            <button type="button" class="e-icon-btn !w-9 !h-9 flex-none" id="receiptRemoveBtn" aria-label="파일 제거">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 촬영 가이드 -->
+        <div class="mt-7 pt-6 border-t border-[var(--line)]">
+          <p class="t-h4 mb-4">이렇게 찍어주세요</p>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="text-center">
+              <div class="e-ratio-3-4 rounded-[var(--r)] overflow-hidden mb-2.5 relative">
+                <img src="img/receipt-examples/example-good.png" alt="영수증 전체가 잘 보이는 좋은 예시" class="w-full h-full object-cover">
+                <span class="absolute right-1.5 top-1.5 w-5 h-5 rounded-full grid place-items-center" style="background:var(--success);color:#fff">
+                  <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                </span>
+              </div>
+              <p class="t-xs font-bold text-[var(--success-ink)]">전체가 보이게</p>
+            </div>
+            <div class="text-center">
+              <div class="e-ratio-3-4 rounded-[var(--r)] overflow-hidden mb-2.5 relative">
+                <img src="img/receipt-examples/example-cropped.png" alt="영수증 일부가 잘려서 안 보이는 나쁜 예시" class="w-full h-full object-cover">
+                <span class="absolute right-1.5 top-1.5 w-5 h-5 rounded-full grid place-items-center" style="background:var(--danger);color:#fff">
+                  <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </span>
+              </div>
+              <p class="t-xs font-bold text-[var(--ink-500)]">잘리거나 접힘</p>
+            </div>
+            <div class="text-center">
+              <div class="e-ratio-3-4 rounded-[var(--r)] overflow-hidden mb-2.5 relative">
+                <img src="img/receipt-examples/example-dark.png" alt="너무 어두워서 글자가 안 보이는 나쁜 예시" class="w-full h-full object-cover">
+                <span class="absolute right-1.5 top-1.5 w-5 h-5 rounded-full grid place-items-center" style="background:var(--danger);color:#fff">
+                  <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </span>
+              </div>
+              <p class="t-xs font-bold text-[var(--ink-500)]">너무 어두움</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -328,61 +356,57 @@
          STEP 2 · OCR 인식 결과 확인
          ================================================================== -->
     <section id="step2Section" hidden>
-      <!-- 2026-08-19 재작업 — 기존 "OCR 인식 결과" 원자료 나열 화면 대신, 네이버 영수증 리뷰 참고
-           디자인처럼 "방문을 확인해주세요" 흐름으로 교체. 실제 데이터(가게명/방문일시/결제금액/메뉴)는
-           전부 OCR 결과 그대로이고, 표시 방식만 바꿨다. -->
-      <div class="e-card e-card-pad text-center" style="position:relative">
-        <button type="button" class="e-visit-close-btn" id="visitConfirmCloseBtn" aria-label="닫기">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
-        <h2 class="t-h3 leading-snug" id="visitConfirmTitle">방문을 확인해주세요</h2>
-
-        <!-- 날짜/시간 수정(2026-08-19 추가) — 영수증에서 읽은 값이 기본이지만, 화면 표시용으로만
-             수정 가능(리뷰의 "방문 일시" 요약 문구에만 반영, 실제 인증에 쓰인 영수증 원본 데이터는
-             바뀌지 않는다 — 수정 API가 없어 서버에는 전달되지 않음). -->
-        <!-- 2026-08-20 수정 — 참고 이미지처럼 날짜/시간 값과 "수정" 링크가 하나의 둥근 박스 안에
-             같이 들어가도록 통합(예전엔 칩과 수정 버튼이 서로 다른 배경으로 따로 떨어져 있었음). -->
-        <div class="flex items-center justify-center gap-2 mt-5">
-          <button type="button" class="e-chip-static e-chip-static--edit" id="visitConfirmDateEditBtn">
-            <span id="visitConfirmDate">-</span><em>수정</em>
-          </button>
-          <button type="button" class="e-chip-static e-chip-static--edit" id="visitConfirmTimeEditBtn">
-            <span id="visitConfirmTime">-</span><em>수정</em>
-          </button>
+      <div class="e-card e-card-pad">
+        <div class="flex items-start gap-3 mb-6">
+          <div class="flex-1">
+            <h2 class="e-form-section-title !mb-1">인식 결과를 확인해주세요</h2>
+            <p class="e-form-section-desc !mb-0">영수증에서 읽은 정보입니다.</p>
+          </div>
+          <span class="e-badge e-badge-lg flex-none" id="ocrVerifiedBadge">확인 중</span>
         </div>
 
-        <div class="e-card e-card-soft e-card-pad mt-6 text-left flex items-center gap-3.5">
-          <span class="w-14 h-14 rounded-[var(--r)] e-img-ph e-shop-thumb flex-none">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
-          </span>
-          <div class="min-w-0 flex-1">
-            <p class="text-[15.5px] font-extrabold text-[var(--ink-900)]" id="ocrShopName">-</p>
-            <p class="t-xs mt-1 leading-relaxed" id="visitConfirmAddress">-</p>
+        <!-- OCR 필드 (읽기 전용) -->
+        <div class="e-form-grid e-form-grid-2">
+          <div class="e-field">
+            <span class="e-label">영수증 상 가게명</span>
+            <p class="text-sm font-semibold text-[var(--ink-800)]" id="ocrShopName">-</p>
+          </div>
+          <div class="e-field">
+            <span class="e-label">결제 금액</span>
+            <p class="text-sm font-semibold text-[var(--ink-800)] t-num" id="ocrTotalAmount">-</p>
+          </div>
+          <div class="e-field !mb-0">
+            <span class="e-label">방문 일시</span>
+            <p class="text-sm font-semibold text-[var(--ink-800)] t-num" id="ocrVisitDatetime">-</p>
           </div>
         </div>
 
-        <!-- 매장 위치 미니맵(2026-08-19 추가) — 카테고리에 맞는 마커 이미지(explore.html과 동일)를
-             해당 좌표에 고정 표시만 한다. 드래그/줌/더블클릭 확대 전부 꺼서 조작 불가(움직이지 않게). -->
-        <div class="rounded-[var(--r-md)] overflow-hidden mt-3" style="height:170px" id="visitConfirmMap"></div>
+        <!-- 인식된 메뉴 -->
+        <div class="e-field mt-6">
+          <div class="flex items-center justify-between gap-2">
+            <span class="e-label !mb-0">인식된 메뉴</span>
+            <!-- 메뉴 공개 토글(2026-08-18 추가) — 다른 이용자에게 이 영수증에서 읽은 메뉴 목록을 보여줄지
+                 선택. 항목별이 아니라 목록 전체를 한 번에 공개/비공개하는 단일 토글로 둔다(요청 원문이
+                 "공개하기/공개하지 않기" 이진 선택 하나였음, 항목별 토글은 과한 세분화로 판단). -->
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+              <span class="t-xs font-semibold" id="menuVisibleLabel">공개하기</span>
+              <input type="checkbox" id="menuVisibleToggle" class="e-switch" checked>
+            </label>
+          </div>
+          <p class="t-xs mt-1" style="color:var(--ink-400)">공개하면 다른 이용자도 이 리뷰에서 어떤 메뉴를 드셨는지 볼 수 있어요.</p>
+          <div class="border border-[var(--line)] rounded-[var(--r-md)] divide-y divide-[var(--line-soft)] mt-2" id="ocrMenuList"></div>
+        </div>
 
-        <div class="flex flex-row gap-3 mt-7">
-          <button type="button" class="btn btn-outline btn-lg flex-1" id="ocrRetryBtn">이 장소가 아니에요</button>
-          <button type="button" class="btn btn-primary btn-lg flex-1" id="ocrConfirmBtn">
-            이 장소가 맞아요
+        <div class="flex flex-col sm:flex-row gap-3 mt-7">
+          <button type="button" class="btn btn-outline btn-lg sm:w-44" id="ocrRetryBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
+            다시 업로드
+          </button>
+          <button type="button" class="btn btn-primary btn-lg w-full sm:flex-1" id="ocrConfirmBtn">
+            정보가 정확해요, 리뷰 쓰기
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </button>
         </div>
-      </div>
-
-      <!-- 결제/메뉴 정보 카드 제거(2026-08-20 요청) — 방문확인 화면에는 더 이상 표시하지 않는다.
-           다만 이 값들은 JS(renderStep2)가 여전히 채워 넣고, 메뉴는 기본 공개 상태로 리뷰 등록 때
-           그대로 쓰이므로 요소 자체는 화면에서만 숨기고 유지한다. -->
-      <div hidden>
-        <p id="ocrTotalAmount">-</p>
-        <p id="ocrVisitDatetime">-</p>
-        <span id="menuVisibleLabel">공개하기</span>
-        <input type="checkbox" id="menuVisibleToggle" checked>
-        <div id="ocrMenuList"></div>
       </div>
     </section>
 
@@ -392,27 +416,20 @@
     <section id="step3Section" hidden>
       <form id="reviewForm" novalidate>
 
-        <!-- 2026-08-20 재작업 — 참고 이미지처럼 헤더/탭바 없는 전체화면(X로 닫기) + 카드가 아닌
-             제목줄 형태. goStep()이 STEP2와 마찬가지로 body에 e-immersive-step2 클래스를 붙인다. -->
-        <div class="flex items-start gap-3.5 mb-5">
-          <span class="w-14 h-14 rounded-[var(--r)] e-img-ph e-shop-thumb flex-none">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
-          </span>
-          <div class="min-w-0 flex-1 pt-0.5">
-            <p class="text-[16px] font-extrabold text-[var(--ink-900)]" id="step3RestaurantName">-</p>
-            <p class="t-sm mt-1 font-semibold" id="step3VisitSummary">-</p>
-          </div>
-          <button type="button" class="e-visit-close-btn flex-none" id="reviewCloseBtn" aria-label="닫기">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-        </div>
-
-        <!-- 2026-08-20 추가 — 영수증에서 이미 인식해둔 메뉴/금액을 다시 한 번 보여줌(참고 이미지 구성). -->
-        <div class="e-card e-card-pad mb-5 e-receipt-summary" id="step3ReceiptSummary" hidden>
-          <div id="step3MenuSummary"></div>
-          <div class="e-receipt-summary-row">
-            <span>총 금액</span>
-            <span id="step3TotalAmount">-</span>
+        <!-- 대상 매장 요약 -->
+        <div class="e-card e-card-pad mb-5">
+          <div class="flex items-center gap-3.5">
+            <span class="w-14 h-14 rounded-[var(--r)] e-img-ph e-shop-thumb flex-none">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[16px] font-extrabold text-[var(--ink-900)]" id="step3RestaurantName">-</p>
+              <p class="t-xs mt-1 t-num" id="step3VisitSummary">-</p>
+            </div>
+            <span class="e-badge e-badge--success e-badge-lg flex-none">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              방문 인증 완료
+            </span>
           </div>
         </div>
 
@@ -460,39 +477,45 @@
             <h2 class="e-form-section-title !mb-0">어떤 점이 좋았나요?</h2>
             <span class="e-badge e-badge--gray ml-auto"><span id="tagSelectedCount">0</span> / 5개 선택</span>
           </div>
-          <p class="e-form-section-desc">해당하는 항목을 모두 골라주세요. 다른 이용자에게 큰 도움이 됩니다.</p>
+          <p class="e-form-section-desc">해당하는 항목을 모두 골라주세요. (최대 5개) 다른 이용자에게 큰 도움이 됩니다.</p>
 
-          <!-- 긍정 태그 10종(2026-08-20 재디자인 — 참고 이미지처럼 이모지+2열 그리드) -->
+          <!-- 긍정 태그 10종 -->
           <div class="e-field">
-            <span class="e-label">좋았던 점</span>
-            <div class="e-tag-grid" id="positiveTagList">
-              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="맛있어요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">😋</span><span class="e-tag-pick-label">맛있어요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="재료가 신선해요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">🥬</span><span class="e-tag-pick-label">재료가 신선해요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="양이 많아요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">🍚</span><span class="e-tag-pick-label">양이 많아요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="가성비가 좋아요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">💰</span><span class="e-tag-pick-label">가성비가 좋아요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="깨끗해요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">✨</span><span class="e-tag-pick-label">깨끗해요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="친절해요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">💗</span><span class="e-tag-pick-label">친절해요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="차분해요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">😌</span><span class="e-tag-pick-label">차분해요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="대기시간짧아요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">⏱️</span><span class="e-tag-pick-label">대기시간짧아요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="음식이빨리나와요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">🚀</span><span class="e-tag-pick-label">음식이빨리나와요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="가게가예뻐요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">🏠</span><span class="e-tag-pick-label">가게가예뻐요</span></span></label>
+            <span class="e-label">
+              <svg class="w-4 h-4" style="color:var(--brand-500)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V10l4-8h1.5a2 2 0 0 1 2 2.3L14 8h5a2 2 0 0 1 2 2.4l-1.6 8A2 2 0 0 1 17.4 20H7Z"/><path d="M7 10H4v12h3"/></svg>
+              좋았던 점
+            </span>
+            <div class="flex flex-wrap gap-2" id="positiveTagList">
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="맛있어요"><span class="e-tag-pick e-tag-pick--pos">맛있어요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="재료가 신선해요"><span class="e-tag-pick e-tag-pick--pos">재료가 신선해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="양이 많아요"><span class="e-tag-pick e-tag-pick--pos">양이 많아요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="가성비가 좋아요"><span class="e-tag-pick e-tag-pick--pos">가성비가 좋아요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="깨끗해요"><span class="e-tag-pick e-tag-pick--pos">깨끗해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="친절해요"><span class="e-tag-pick e-tag-pick--pos">친절해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="차분해요"><span class="e-tag-pick e-tag-pick--pos">차분해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="대기시간짧아요"><span class="e-tag-pick e-tag-pick--pos">대기시간짧아요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="음식이빨리나와요"><span class="e-tag-pick e-tag-pick--pos">음식이빨리나와요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="가게가예뻐요"><span class="e-tag-pick e-tag-pick--pos">가게가예뻐요</span></label>
             </div>
           </div>
 
           <!-- 부정 태그 10종 -->
           <div class="e-field !mb-0">
-            <span class="e-label">아쉬운 점</span>
-            <div class="e-tag-grid" id="negativeTagList">
-              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="맛이 아쉬워요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">😕</span><span class="e-tag-pick-label">맛이 아쉬워요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="재료가 신선하지 않아요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">🥬</span><span class="e-tag-pick-label">재료가 신선하지 않아요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="양이 적어요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">🍚</span><span class="e-tag-pick-label">양이 적어요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="가격이 비싸요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">💸</span><span class="e-tag-pick-label">가격이 비싸요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="지저분해요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">🧹</span><span class="e-tag-pick-label">지저분해요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="불친절해요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">😠</span><span class="e-tag-pick-label">불친절해요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="소란스러워요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">🔊</span><span class="e-tag-pick-label">소란스러워요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="대기시간길어요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">⏳</span><span class="e-tag-pick-label">대기시간길어요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="음식이늦게나와요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">🐢</span><span class="e-tag-pick-label">음식이늦게나와요</span></span></label>
-              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="가게가부산스러워요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">😵</span><span class="e-tag-pick-label">가게가부산스러워요</span></span></label>
+            <span class="e-label">
+              <svg class="w-4 h-4" style="color:var(--ink-500)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2v12l-4 8h-1.5a2 2 0 0 1-2-2.3L10 16H5a2 2 0 0 1-2-2.4l1.6-8A2 2 0 0 1 6.6 4H17Z"/><path d="M17 14h3V2h-3"/></svg>
+              아쉬운 점
+            </span>
+            <div class="flex flex-wrap gap-2" id="negativeTagList">
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="맛이 아쉬워요"><span class="e-tag-pick e-tag-pick--neg">맛이 아쉬워요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="재료가 신선하지 않아요"><span class="e-tag-pick e-tag-pick--neg">재료가 신선하지 않아요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="양이 적어요"><span class="e-tag-pick e-tag-pick--neg">양이 적어요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="가격이 비싸요"><span class="e-tag-pick e-tag-pick--neg">가격이 비싸요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="지저분해요"><span class="e-tag-pick e-tag-pick--neg">지저분해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="불친절해요"><span class="e-tag-pick e-tag-pick--neg">불친절해요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="소란스러워요"><span class="e-tag-pick e-tag-pick--neg">소란스러워요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="대기시간길어요"><span class="e-tag-pick e-tag-pick--neg">대기시간길어요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="음식이늦게나와요"><span class="e-tag-pick e-tag-pick--neg">음식이늦게나와요</span></label>
+              <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="가게가부산스러워요"><span class="e-tag-pick e-tag-pick--neg">가게가부산스러워요</span></label>
             </div>
           </div>
         </div>
@@ -533,12 +556,12 @@
           </div>
         </div>
 
-        <div class="flex flex-row gap-3">
-          <button type="button" class="btn btn-outline btn-lg flex-1" id="reviewBackBtn">
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button type="button" class="btn btn-outline btn-lg sm:w-40" id="reviewBackBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
             이전
           </button>
-          <button type="submit" class="btn btn-primary btn-lg flex-1" id="reviewSubmitBtn">리뷰 등록하기</button>
+          <button type="submit" class="btn btn-primary btn-lg w-full sm:flex-1" id="reviewSubmitBtn">리뷰 등록하기</button>
         </div>
       </form>
     </section>
@@ -553,23 +576,23 @@
          여전히 화면 중앙보다 위로 치우쳐 보였다(2026-08-18 재수정) — 실제 보이는 영역(전체 뷰포트에서
          header/탭바를 뺀 나머지)을 기준으로 계산하고, main의 상하 padding(py-8/md:py-12)은 음수
          margin으로 상쇄해서 이 섹션이 그 남은 영역 전체를 기준으로 정확히 세로 중앙에 오게 한다. -->
-    <!-- 2026-08-20 재작업 — STEP2/3와 같은 몰입형 전체화면으로. 카드 테두리 없이 내용만 화면
-         정중앙에 오도록(요청: "네모 박스 테두리 없이 저거만 나오게"). -->
-    <section id="doneSection" hidden class="flex flex-col justify-center items-center min-h-[100dvh] text-center px-6">
-      <span class="w-20 h-20 rounded-full grid place-items-center mx-auto mb-7 text-white" style="background:var(--brand-grad);box-shadow:var(--sh-brand)">
-        <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-      </span>
+    <section id="doneSection" hidden
+             class="-mx-0 -mt-8 md:-mt-12 -mb-8 md:-mb-12 min-h-[calc(100dvh-var(--header-h)-72px)] md:min-h-[calc(100dvh-var(--header-h))] flex flex-col justify-center">
+      <div class="e-card e-card-pad text-center py-12 e-anim-up">
+        <span class="w-20 h-20 rounded-full grid place-items-center mx-auto mb-7 text-white" style="background:var(--brand-grad);box-shadow:var(--sh-brand)">
+          <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </span>
 
-      <h2 class="t-h2">리뷰가 등록됐어요</h2>
-      <p class="t-lead mt-4">
-        영수증 인증 리뷰로 등록되어<br>
-        다른 이용자에게 바로 노출됩니다.<br>
-        솔직한 후기 감사합니다.
-      </p>
+        <h2 class="t-h2">리뷰가 등록됐어요</h2>
+        <p class="t-lead mt-4">
+          영수증 인증 리뷰로 등록되어 다른 이용자에게 바로 노출됩니다.<br>
+          솔직한 후기 감사합니다.
+        </p>
 
-      <div class="mt-8 flex flex-row gap-3 justify-center w-full max-w-md">
-        <a href="mypage-reviews" class="btn btn-primary btn-lg flex-1" id="goMyReviewsBtn">내 리뷰 보기</a>
-        <button type="button" class="btn btn-outline btn-lg flex-1" id="writeAnotherBtn">또 작성하기</button>
+        <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+          <a href="mypage-reviews" class="btn btn-primary btn-lg w-full sm:flex-1" id="goMyReviewsBtn">내 리뷰 보기</a>
+          <button type="button" class="btn btn-outline btn-lg sm:w-40" id="writeAnotherBtn">또 작성하기</button>
+        </div>
       </div>
     </section>
   </div>
