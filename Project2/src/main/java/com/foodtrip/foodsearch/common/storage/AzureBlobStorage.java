@@ -51,6 +51,7 @@ public class AzureBlobStorage {
     // 비어있으면(기본값) 지금까지처럼 원본 blob URL을 그대로 쓴다 — CDN을 아직 안 붙인 환경에서도
     // 아무 영향 없이 그대로 동작해야 한다는 원칙(AZURE_STORAGE_ACCOUNT_URL과 동일한 이유).
     private final String publicBaseUrl;
+    private volatile BlobServiceClient serviceClient;
 
     public AzureBlobStorage(@Value("${azure-storage.account-url:}") String accountUrl,
                              @Value("${azure-storage.public-base-url:}") String publicBaseUrl) {
