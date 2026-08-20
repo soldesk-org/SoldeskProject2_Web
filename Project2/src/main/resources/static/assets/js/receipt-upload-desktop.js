@@ -603,7 +603,11 @@
     document.getElementById("ocrTotalAmount").textContent = "-";
     document.getElementById("ocrVisitDatetime").textContent = "-";
     document.getElementById("ocrMenuList").innerHTML = "";
-    document.getElementById("ocrDuplicateAlert").hidden = true;
+    // 2026-08-20 수정 — 이 페이지 HTML엔 #ocrDuplicateAlert 자체가 없어서(예전부터 없었던 것으로
+    // 확인됨) null 참조로 "또 작성하기" 버튼을 누르면 여기서 예외가 나 아래 goStep(1)까지 하나도
+    // 실행 안 되던 버그. 존재 여부를 확인하고 넘어가도록 방어.
+    var duplicateAlert = document.getElementById("ocrDuplicateAlert");
+    if (duplicateAlert) duplicateAlert.hidden = true;
     if (menuVisibleToggle) {
       menuVisibleToggle.checked = true;
       menuVisibleLabel.textContent = "공개하기";
