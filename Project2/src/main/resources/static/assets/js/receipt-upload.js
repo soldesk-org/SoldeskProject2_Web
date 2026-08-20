@@ -657,10 +657,26 @@
   document.getElementById("visitConfirmCloseBtn").addEventListener("click", function () {
     window.location.href = buildShopDetailUrl();
   });
+  // 2026-08-20 추가 — 3단계 상단에 영수증에서 인식한 메뉴/금액을 다시 보여준다(참고 이미지 구성).
+  // 임시저장 복원 케이스는 menuItems를 따로 저장해두지 않아 금액만 나올 수 있음(그래도 표시는 함).
+  function renderStep3ReceiptSummary(data) {
+    var box = document.getElementById("step3ReceiptSummary");
+    var hasMenu = data && data.menuItems && data.menuItems.length;
+    var hasAmount = data && data.totalPrice != null;
+    if (!hasMenu && !hasAmount) { box.hidden = true; return; }
+    document.getElementById("step3MenuSummary").textContent = hasMenu
+      ? data.menuItems.map(function (m) { return m.name; }).join(", ")
+      : "메뉴 정보 없음";
+    document.getElementById("step3TotalAmount").textContent = hasAmount
+      ? Number(data.totalPrice).toLocaleString() + "원" : "-";
+    box.hidden = false;
+  }
+
   document.getElementById("ocrConfirmBtn").addEventListener("click", function () {
     if (!ocrResult || !ocrResult.verified) return;
     document.getElementById("step3RestaurantName").textContent = restaurant.name;
     document.getElementById("step3VisitSummary").textContent = ocrResult.orderDatetime || "-";
+    renderStep3ReceiptSummary(ocrResult);
     goStep(3);
   });
   document.getElementById("reviewBackBtn").addEventListener("click", function () { goStep(2); });
@@ -887,6 +903,7 @@
   if (resumedDraft && restaurant && ocrResult) {
     document.getElementById("step3RestaurantName").textContent = restaurant.name;
     document.getElementById("step3VisitSummary").textContent = ocrResult.orderDatetime || "-";
+    renderStep3ReceiptSummary(ocrResult);
 
     var resumeRating = Number(resumedDraft.rating) || 0;
     document.getElementById("reviewScore").value = resumeRating;
