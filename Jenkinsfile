@@ -202,6 +202,12 @@ pipeline {
                         string(credentialsId: 'soldesk-password-reset-frontend-url', variable: 'PASSWORD_RESET_FRONTEND_URL'),
                         string(credentialsId: 'soldesk-azure-storage-account-url', variable: 'AZURE_STORAGE_ACCOUNT_URL'),
                         string(credentialsId: 'soldesk-image-storage-backend', variable: 'IMAGE_STORAGE_BACKEND'),
+                        // 이미지 CDN 커스텀 도메인(2026-08-21 추가, docs/30.이미지-CDN-커스텀도메인 참고) —
+                        // Azure Front Door는 이 구독(Free Trial/학생 계정)에서 금지돼 있고 구형 Azure CDN도
+                        // 신규 생성이 막혀있어서, Cloudflare 프록시(주황 구름)로 images.eattyway.com을
+                        // eattywaystorage.blob.core.windows.net에 직접 CNAME 연결하는 방식으로 대체했다.
+                        // 비어있으면 기존과 동일하게 원본 blob URL을 그대로 씀(opt-in, AZURE_STORAGE_ACCOUNT_URL과 동일 원칙).
+                        string(credentialsId: 'soldesk-azure-storage-public-base-url', variable: 'AZURE_STORAGE_PUBLIC_BASE_URL'),
                     ]) {
                         sh '''
                             cat > .env << ENVEOF
@@ -254,6 +260,7 @@ REVIEW_IMAGE_BASE_URL=$REVIEW_IMAGE_BASE_URL
 PASSWORD_RESET_FRONTEND_URL=$PASSWORD_RESET_FRONTEND_URL
 AZURE_STORAGE_ACCOUNT_URL=$AZURE_STORAGE_ACCOUNT_URL
 IMAGE_STORAGE_BACKEND=$IMAGE_STORAGE_BACKEND
+AZURE_STORAGE_PUBLIC_BASE_URL=$AZURE_STORAGE_PUBLIC_BASE_URL
 ENVEOF
                             chmod 600 .env
                             docker compose -f compose.yaml -f compose.prod.yaml build web
