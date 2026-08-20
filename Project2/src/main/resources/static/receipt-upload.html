@@ -330,11 +330,15 @@
         <!-- 날짜/시간 수정(2026-08-19 추가) — 영수증에서 읽은 값이 기본이지만, 화면 표시용으로만
              수정 가능(리뷰의 "방문 일시" 요약 문구에만 반영, 실제 인증에 쓰인 영수증 원본 데이터는
              바뀌지 않는다 — 수정 API가 없어 서버에는 전달되지 않음). -->
+        <!-- 2026-08-20 수정 — 참고 이미지처럼 날짜/시간 값과 "수정" 링크가 하나의 둥근 박스 안에
+             같이 들어가도록 통합(예전엔 칩과 수정 버튼이 서로 다른 배경으로 따로 떨어져 있었음). -->
         <div class="flex items-center justify-center gap-2 mt-5">
-          <span class="e-chip-static" id="visitConfirmDate">-</span>
-          <button type="button" class="e-link-brand text-[12.5px]" id="visitConfirmDateEditBtn">수정</button>
-          <span class="e-chip-static ml-2" id="visitConfirmTime">-</span>
-          <button type="button" class="e-link-brand text-[12.5px]" id="visitConfirmTimeEditBtn">수정</button>
+          <button type="button" class="e-chip-static e-chip-static--edit" id="visitConfirmDateEditBtn">
+            <span id="visitConfirmDate">-</span><em>수정</em>
+          </button>
+          <button type="button" class="e-chip-static e-chip-static--edit" id="visitConfirmTimeEditBtn">
+            <span id="visitConfirmTime">-</span><em>수정</em>
+          </button>
         </div>
 
         <div class="e-card e-card-soft e-card-pad mt-6 text-left flex items-center gap-3.5">

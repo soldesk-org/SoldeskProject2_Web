@@ -77,6 +77,15 @@
     background: var(--bg-muted); color: var(--ink-700);
     font-size: 13.5px; font-weight: 700;
   }
+  /* 2026-08-20 추가 — 값 + "수정" 링크를 하나의 둥근 박스로 합친 버전(참고 이미지처럼). button
+     요소라 기본 border/font가 리셋돼 있어 여기서 다시 지정한다. */
+  button.e-chip-static--edit {
+    gap: 8px; border: 0; cursor: pointer;
+  }
+  .e-chip-static--edit span { color: var(--ink-800); }
+  .e-chip-static--edit em {
+    font-style: normal; color: var(--brand-600); font-weight: 800;
+  }
 
   /* 방문확인 화면 몰입형 레이아웃(2026-08-20 재작업, 참고 이미지 구성대로) — 헤더/하단 탭바를 없애고
      카드가 화면을 꽉 채우게 한다. goStep()이 이 클래스를 body에 붙였다 뗀다. */
@@ -90,6 +99,10 @@
   body.e-immersive-step2 #mainContent > .e-container {
     max-width: none !important; padding: 0 !important; margin: 0 !important;
   }
+  /* 2026-08-20 추가 — iOS Safari에서 위/아래로 더 당기면(elastic overscroll) 문서 바깥의 html
+     배경(--bg-soft, 살짝 라벤더 톤)이 드러나는데, 카드는 흰색(--bg)이라 그 순간 위/아래 끝에
+     색이 살짝 다른 띠가 보인다는 지적. 몰입형일 때는 html 배경도 카드와 같은 흰색으로 맞춘다. */
+  html:has(body.e-immersive-step2) { background-color: var(--bg); }
   body.e-immersive-step2 #step2Section > .e-card {
     border-radius: 0; box-shadow: none; border: 0;
     min-height: 100dvh; padding-top: calc(20px + env(safe-area-inset-top));
