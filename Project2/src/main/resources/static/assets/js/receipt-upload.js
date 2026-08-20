@@ -53,9 +53,9 @@
     Object.keys(sections).forEach(function (k) { sections[k].hidden = Number(k) !== n; });
     doneSection.hidden = true;
     stepsRoot.parentElement.hidden = true;
-    // 2026-08-20 추가 — 방문확인 화면(2단계)은 참고 이미지처럼 헤더/하단 탭바 없이 카드만 꽉 차게
-    // 몰입형으로 보여준다(eatty.css 참고).
-    document.body.classList.toggle("e-immersive-step2", n === 2);
+    // 2026-08-20 추가 — 방문확인(2단계)/리뷰 작성(3단계) 둘 다 참고 이미지처럼 헤더/하단 탭바 없이
+    // 전체화면으로 보여준다(클래스 이름은 처음 그대로 두고 3단계에도 재사용 — receipt-upload.css 참고).
+    document.body.classList.toggle("e-immersive-step2", n === 2 || n === 3);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -658,26 +658,48 @@
     window.location.href = buildShopDetailUrl();
   });
   // 2026-08-20 추가 — 3단계 상단에 영수증에서 인식한 메뉴/금액을 다시 보여준다(참고 이미지 구성).
+  // 콤마로 이어붙인 한 줄이 아니라 항목마다 줄바꿈해서 보여달라는 요청으로, 이미 영수증에서 인식된
+  // 그대로(수량은 별도 필드가 없어 OCR이 뽑아낸 품목명 문자열을 그대로 사용) 한 줄씩 나열한다.
   // 임시저장 복원 케이스는 menuItems를 따로 저장해두지 않아 금액만 나올 수 있음(그래도 표시는 함).
   function renderStep3ReceiptSummary(data) {
     var box = document.getElementById("step3ReceiptSummary");
     var hasMenu = data && data.menuItems && data.menuItems.length;
     var hasAmount = data && data.totalPrice != null;
     if (!hasMenu && !hasAmount) { box.hidden = true; return; }
-    document.getElementById("step3MenuSummary").textContent = hasMenu
-      ? data.menuItems.map(function (m) { return m.name; }).join(", ")
-      : "메뉴 정보 없음";
+    var menuBox = document.getElementById("step3MenuSummary");
+    menuBox.innerHTML = hasMenu
+      ? data.menuItems.map(function (m) {
+          return '<div class="e-receipt-item"><span>' + escapeHtml(m.name) + '</span>' +
+            '<span class="t-num">' + (m.price != null ? Number(m.price).toLocaleString() + "원" : "") + '</span></div>';
+        }).join("")
+      : '<p class="t-sm">메뉴 정보 없음</p>';
     document.getElementById("step3TotalAmount").textContent = hasAmount
       ? Number(data.totalPrice).toLocaleString() + "원" : "-";
     box.hidden = false;
   }
 
+  // 2026-08-20 추가 — "N번째 방문이시네요!" 표시용. 별도 방문 횟수 API가 없어서, 이미 있는
+  // 마이페이지 내 리뷰 목록(GET /api/mypage/reviews)에서 같은 restaurantId를 가진 기존 리뷰 수를
+  // 세고 +1(지금 쓰는 이 리뷰)한다 — 새 백엔드 없이 기존 API 재사용.
+  function renderVisitOrdinal() {
+    var el = document.getElementById("step3VisitSummary");
+    el.textContent = "방문을 축하해요!";
+    if (!restaurant || !Api.isLoggedIn()) return;
+    Api.request("/api/mypage/reviews").then(function (list) {
+      var prevCount = (list || []).filter(function (r) { return r.restaurantId === restaurant.restaurantId; }).length;
+      el.textContent = (prevCount + 1) + "번째 방문이시네요!";
+    }).catch(function () {});
+  }
+
   document.getElementById("ocrConfirmBtn").addEventListener("click", function () {
     if (!ocrResult || !ocrResult.verified) return;
     document.getElementById("step3RestaurantName").textContent = restaurant.name;
-    document.getElementById("step3VisitSummary").textContent = ocrResult.orderDatetime || "-";
     renderStep3ReceiptSummary(ocrResult);
+    renderVisitOrdinal();
     goStep(3);
+  });
+  document.getElementById("reviewCloseBtn").addEventListener("click", function () {
+    window.location.href = buildShopDetailUrl();
   });
   document.getElementById("reviewBackBtn").addEventListener("click", function () { goStep(2); });
 
@@ -902,8 +924,8 @@
   // ---- 임시저장 이어서 쓰기 복원(2026-08-12 추가) — 별점/태그/내용을 그대로 되돌려서 3단계로 바로 진입.
   if (resumedDraft && restaurant && ocrResult) {
     document.getElementById("step3RestaurantName").textContent = restaurant.name;
-    document.getElementById("step3VisitSummary").textContent = ocrResult.orderDatetime || "-";
     renderStep3ReceiptSummary(ocrResult);
+    renderVisitOrdinal();
 
     var resumeRating = Number(resumedDraft.rating) || 0;
     document.getElementById("reviewScore").value = resumeRating;

@@ -118,12 +118,24 @@
     min-height: 100dvh; padding-top: calc(20px + env(safe-area-inset-top));
     padding-bottom: calc(28px + env(safe-area-inset-bottom));
   }
+  /* STEP3(리뷰 작성)도 몰입형으로 뜨지만 카드가 여러 개라 STEP2처럼 카드 하나에 패딩을 몰아줄 수
+     없다. #mainContent > .e-container에서 지워버린 padding-inline/상단 여백을 섹션 자체에 다시
+     채워 넣는다(2026-08-20 추가). */
+  body.e-immersive-step2 #step3Section {
+    padding: calc(20px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));
+    min-height: 100dvh;
+  }
   .e-visit-close-btn {
-    position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px;
     width: 36px; height: 36px; border-radius: 50%;
     display: grid; place-items: center; color: var(--ink-700);
   }
   .e-visit-close-btn svg { width: 22px; height: 22px; }
+  /* STEP2는 카드 하나가 화면을 꽉 채우는 구조라 X를 카드 우상단에 절대배치. STEP3(리뷰 작성)는
+     카드가 여러 개라 절대배치 기준이 애매해서(2026-08-20 추가) — 제목줄 안의 평범한 flex 아이템으로
+     둔다(참고 이미지도 스크롤과 함께 움직이는 위치). */
+  #step2Section .e-visit-close-btn {
+    position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px;
+  }
 
   /* 매장 카드/버튼을 참고 이미지 톤에 맞춤(2026-08-20) — 브랜드 배경색 카드.
      2026-08-20 재수정 — (1) 버튼 두 개가 세로로 쌓이던 문제(위 html에서 sm:flex-row로만 줘서
@@ -230,16 +242,18 @@
      그리드. 태그 색상(.e-tag-pick--pos/--neg)은 전역 클래스라 다른 페이지(회원가입-사업자,
      사업자 마이페이지, 마이페이지 리뷰)에서도 쓰이므로 여기서 건드리지 않고, 배치(그리드)만
      #step3Section 범위로 한정해서 바꾼다. */
-  #step3Section .e-receipt-summary {
-    background: var(--bg-muted); border-radius: var(--r-md); padding: 14px 16px;
+  /* 2026-08-20 재수정 — 메뉴를 콤마로 이어붙인 한 줄 대신, 영수증에 찍힌 그대로 항목마다 한 줄씩
+     쌓아 보여준다(참고 이미지: "카라빠이탄 1" 처럼 각 줄이 별도 항목). #step3MenuSummary 안쪽은
+     JS(renderStep3ReceiptSummary)가 채운다. */
+  #step3Section #step3MenuSummary .e-receipt-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 0; font-size: 14.5px; color: var(--ink-800); font-weight: 600;
   }
-  #step3Section .e-receipt-summary-menu {
-    font-size: 14px; font-weight: 700; color: var(--ink-800);
-    padding-bottom: 10px; border-bottom: 1px solid var(--line);
-  }
+  #step3Section #step3MenuSummary .e-receipt-item + .e-receipt-item { border-top: 1px solid var(--line); }
   #step3Section .e-receipt-summary-row {
     display: flex; align-items: center; justify-content: space-between;
-    padding-top: 10px; font-size: 14px; color: var(--ink-700);
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-bold);
+    font-size: 14.5px; color: var(--ink-700); font-weight: 700;
   }
   #step3Section .e-receipt-summary-row span:last-child { font-weight: 800; color: var(--ink-900); }
 
