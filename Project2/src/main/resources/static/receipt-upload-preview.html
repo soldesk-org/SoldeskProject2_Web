@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>디자인 미리보기 (임시)</title>
+
+<!--
+================================================================================
+ receipt-upload-preview — 임시 디자인 검토용 페이지 (2026-08-20 추가, 프로덕션 흐름 아님)
+--------------------------------------------------------------------------------
+ receipt-upload.html의 STEP 2(방문확인 카드) 마크업/스타일만 그대로 복제해서, 로그인·카메라·
+ 실제 OCR 없이 더미 데이터로 곧바로 볼 수 있게 만든 페이지. Elements 탭에서 값을 직접 바꿔가며
+ 디자인을 확인하기 위한 용도 — 다른 페이지에서 링크로 연결돼 있지 않고 URL을 직접 입력해야만
+ 들어올 수 있다. 검토 끝나면 지워도 되는 파일(운영 로직에 아무 영향 없음).
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/eatty.css">
+<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
+<link rel="stylesheet" href="assets/css/receipt-upload.css">
+</head>
+
+<body class="e-immersive-step2" style="background:var(--bg)">
+
+<div class="e-wheel-backdrop" id="wheelBackdrop" hidden></div>
+<div class="e-wheel-sheet" id="wheelSheet" hidden>
+  <p class="e-wheel-sheet-title" id="wheelSheetTitle">2026년</p>
+  <div class="e-wheel-cols" id="wheelCols"></div>
+  <button type="button" class="btn btn-primary w-full" id="wheelConfirmBtn">확인</button>
+</div>
+
+<main>
+  <section id="step2Section">
+    <div class="e-card e-card-pad text-center" style="position:relative">
+      <button type="button" class="e-visit-close-btn" id="visitConfirmCloseBtn" aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <h2 class="t-h3 leading-snug" id="visitConfirmTitle">8월 16일 일요일에<br>테스트가게 다녀오셨네요!</h2>
+
+      <div class="flex items-center justify-center gap-2 mt-5">
+        <button type="button" class="e-chip-static e-chip-static--edit" id="visitConfirmDateEditBtn">
+          <span id="visitConfirmDate">8월 16일 일</span><em>수정</em>
+        </button>
+        <button type="button" class="e-chip-static e-chip-static--edit" id="visitConfirmTimeEditBtn">
+          <span id="visitConfirmTime">오전 11:17</span><em>수정</em>
+        </button>
+      </div>
+
+      <div class="e-card e-card-soft e-card-pad mt-6 text-left flex items-center gap-3.5">
+        <span class="w-14 h-14 rounded-[var(--r)] e-img-ph e-shop-thumb flex-none">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 2v7a3 3 0 0 0 6 0V2M6 12v10M17 2c-1.7 0-3 2.2-3 5s1.3 4 3 4 3-1.2 3-4-1.3-5-3-5ZM17 11v11"/></svg>
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-[15.5px] font-extrabold text-[var(--ink-900)]" id="ocrShopName">테스트가게</p>
+          <p class="t-xs mt-1 leading-relaxed" id="visitConfirmAddress">서울시 테스트로 1</p>
+        </div>
+      </div>
+
+      <div class="rounded-[var(--r-md)] overflow-hidden mt-3" style="height:170px" id="visitConfirmMap"></div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mt-7">
+        <button type="button" class="btn btn-outline btn-lg sm:w-44" id="ocrRetryBtn">이 장소가 아니에요</button>
+        <button type="button" class="btn btn-primary btn-lg w-full sm:flex-1" id="ocrConfirmBtn">
+          이 장소가 맞아요
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  // 실제 receipt-upload.js의 휠 피커/지도 로직을 최소한만 복제(더미 데이터 전용, 프로덕션 코드와
+  // 무관 — 검토 끝나면 이 파일째로 삭제).
+  var visitDate = new Date(2026, 7, 16, 11, 17);
+  var WEEKDAY_KR = ["일", "월", "화", "수", "목", "금", "토"];
+  function pad2(n) { return String(n).padStart(2, "0"); }
+
+  function renderVisitDateUI() {
+    document.getElementById("visitConfirmTitle").innerHTML =
+      (visitDate.getMonth() + 1) + "월 " + visitDate.getDate() + "일 " + WEEKDAY_KR[visitDate.getDay()] + "요일에<br>테스트가게 다녀오셨네요!";
+    document.getElementById("visitConfirmDate").textContent =
+      (visitDate.getMonth() + 1) + "월 " + visitDate.getDate() + "일 " + WEEKDAY_KR[visitDate.getDay()];
+    var hour24 = visitDate.getHours();
+    var ampm = hour24 < 12 ? "오전" : "오후";
+    var hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    document.getElementById("visitConfirmTime").textContent = ampm + " " + hour12 + ":" + pad2(visitDate.getMinutes());
+  }
+
+  // ---- 휠 피커(receipt-upload.js와 동일 로직) ----
+  var ROW_H = 40;
+  var wheelBackdrop = document.getElementById("wheelBackdrop");
+  var wheelSheet = document.getElementById("wheelSheet");
+  var wheelCols = document.getElementById("wheelCols");
+  var wheelSheetTitle = document.getElementById("wheelSheetTitle");
+  var wheelConfirmBtn = document.getElementById("wheelConfirmBtn");
+  var wheelOnConfirm = null;
+  var wheelColEls = [];
+
+  function buildWheelColumn(values, selectedIndex) {
+    var col = document.createElement("div");
+    col.className = "e-wheel-col";
+    values.forEach(function (v) {
+      var item = document.createElement("div");
+      item.className = "e-wheel-col-item";
+      item.textContent = v.label;
+      col.appendChild(item);
+    });
+    wheelCols.appendChild(col);
+    requestAnimationFrame(function () { col.scrollTop = selectedIndex * ROW_H; });
+    return col;
+  }
+  function openWheelPicker(columns, onConfirm, title) {
+    wheelSheetTitle.textContent = title || "";
+    wheelCols.innerHTML = "";
+    wheelColEls = columns.map(function (c) { return buildWheelColumn(c.values, c.selectedIndex); });
+    wheelOnConfirm = onConfirm;
+    wheelBackdrop.hidden = false;
+    wheelSheet.hidden = false;
+    requestAnimationFrame(function () {
+      wheelBackdrop.classList.add("is-open");
+      wheelSheet.classList.add("is-open");
+    });
+  }
+  function closeWheelPicker() {
+    wheelBackdrop.classList.remove("is-open");
+    wheelSheet.classList.remove("is-open");
+    setTimeout(function () { wheelBackdrop.hidden = true; wheelSheet.hidden = true; }, 260);
+  }
+  wheelBackdrop.addEventListener("click", closeWheelPicker);
+  wheelConfirmBtn.addEventListener("click", function () {
+    var indexes = wheelColEls.map(function (col) {
+      var idx = Math.round(col.scrollTop / ROW_H);
+      return Math.max(0, Math.min(idx, col.children.length - 1));
+    });
+    if (wheelOnConfirm) wheelOnConfirm(indexes);
+    closeWheelPicker();
+  });
+
+  var YEAR_RANGE = [];
+  (function () { var y0 = new Date().getFullYear() - 5; for (var i = 0; i < 8; i++) YEAR_RANGE.push(y0 + i); })();
+  function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+
+  document.getElementById("visitConfirmDateEditBtn").addEventListener("click", function () {
+    var base = visitDate;
+    var yIdx = Math.max(0, YEAR_RANGE.indexOf(base.getFullYear()));
+    var mIdx = base.getMonth();
+    var dCount = daysInMonth(base.getFullYear(), mIdx + 1);
+    var dIdx = Math.min(base.getDate(), dCount) - 1;
+    openWheelPicker([
+      { values: YEAR_RANGE.map(function (y) { return { label: y + "년" }; }), selectedIndex: yIdx },
+      { values: Array.from({ length: 12 }, function (_, i) { return { label: (i + 1) + "월" }; }), selectedIndex: mIdx },
+      { values: Array.from({ length: dCount }, function (_, i) { return { label: (i + 1) + "일" }; }), selectedIndex: dIdx },
+    ], function (idx) {
+      var y = YEAR_RANGE[idx[0]], m = idx[1] + 1, dMax = daysInMonth(y, m), d = Math.min(idx[2] + 1, dMax);
+      visitDate = new Date(y, m - 1, d, visitDate.getHours(), visitDate.getMinutes());
+      renderVisitDateUI();
+    }, base.getFullYear() + "년");
+  });
+  document.getElementById("visitConfirmTimeEditBtn").addEventListener("click", function () {
+    var base = visitDate;
+    var hour24 = base.getHours();
+    var ampmIdx = hour24 < 12 ? 0 : 1;
+    var hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    openWheelPicker([
+      { values: [{ label: "오전" }, { label: "오후" }], selectedIndex: ampmIdx },
+      { values: Array.from({ length: 12 }, function (_, i) { return { label: String(i + 1) }; }), selectedIndex: hour12 - 1 },
+      { values: Array.from({ length: 60 }, function (_, i) { return { label: pad2(i) }; }), selectedIndex: base.getMinutes() },
+    ], function (idx) {
+      var isPm = idx[0] === 1;
+      var h12 = idx[1] + 1;
+      var h24 = isPm ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+      visitDate = new Date(visitDate.getFullYear(), visitDate.getMonth(), visitDate.getDate(), h24, idx[2]);
+      renderVisitDateUI();
+    }, base.getFullYear() + "년");
+  });
+
+  // ---- 지도(더미 좌표: 강남역) ----
+  requestAnimationFrame(function () {
+    if (!window.naver || !window.naver.maps) return;
+    var center = new naver.maps.LatLng(37.4979, 127.0276);
+    var map = new naver.maps.Map(document.getElementById("visitConfirmMap"), {
+      center: center, zoom: 16,
+      draggable: false, scrollWheel: false, pinchZoom: false,
+      disableDoubleClickZoom: true, disableDoubleTapZoom: true, disableTwoFingerTapZoom: true,
+      keyboardShortcuts: false, scaleControl: false, zoomControl: false, mapDataControl: false,
+    });
+    new naver.maps.Marker({
+      position: center, map: map, title: "테스트가게",
+      icon: { url: "img/markers/marker-korean.png", size: new naver.maps.Size(27, 35), scaledSize: new naver.maps.Size(27, 35), anchor: new naver.maps.Point(13.5, 35) },
+    });
+  });
+
+  document.getElementById("visitConfirmCloseBtn").addEventListener("click", function () { alert("(미리보기) 실제로는 매장 상세로 이동합니다"); });
+  document.getElementById("ocrRetryBtn").addEventListener("click", function () { alert("(미리보기) 실제로는 매장 상세로 이동합니다"); });
+  document.getElementById("ocrConfirmBtn").addEventListener("click", function () { alert("(미리보기) 실제로는 3단계(리뷰 작성)로 이동합니다"); });
+</script>
+</body>
+</html>
