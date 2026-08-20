@@ -46,10 +46,16 @@ import com.foodtrip.foodsearch.common.exception.ErrorCode;
 public class AzureBlobStorage {
 
     private final String accountUrl;
-    private volatile BlobServiceClient serviceClient;
+    // 2026-08-21 추가 — Azure CDN/Front Door로 images.eattyway.com 같은 자체 도메인을 씌웠을 때,
+    // 응답에 나가는 URL도 원본 blob.core.windows.net 대신 그 도메인으로 내보내기 위한 값.
+    // 비어있으면(기본값) 지금까지처럼 원본 blob URL을 그대로 쓴다 — CDN을 아직 안 붙인 환경에서도
+    // 아무 영향 없이 그대로 동작해야 한다는 원칙(AZURE_STORAGE_ACCOUNT_URL과 동일한 이유).
+    private final String publicBaseUrl;
 
-    public AzureBlobStorage(@Value("${azure-storage.account-url:}") String accountUrl) {
+    public AzureBlobStorage(@Value("${azure-storage.account-url:}") String accountUrl,
+                             @Value("${azure-storage.public-base-url:}") String publicBaseUrl) {
         this.accountUrl = accountUrl;
+        this.publicBaseUrl = publicBaseUrl;
     }
 
     public boolean isConfigured() {
@@ -96,7 +102,20 @@ public class AzureBlobStorage {
         } catch (UncheckedIOException e) {
             throw new CustomException(failureErrorCode, "이미지 저장에 실패했습니다: " + e.getMessage());
         }
-        return blob.getBlobUrl();
+        return toPublicUrl(blob.getBlobUrl());
+    }
+
+    // 원본 blob URL(https://{계정}.blob.core.windows.net/{컨테이너}/{파일})의 스킴+호스트만
+    // publicBaseUrl로 바꿔치기하고, 경로(컨테이너/파일명)는 그대로 유지한다. CDN 오리진이 이
+    // 스토리지 계정 그대로라 경로 구조가 똑같아야 한다.
+    private String toPublicUrl(String blobUrl) {
+        if (publicBaseUrl == null || publicBaseUrl.isBlank()) {
+            return blobUrl;
+        }
+        int pathStart = blobUrl.indexOf('/', "https://".length());
+        String path = pathStart >= 0 ? blobUrl.substring(pathStart) : "";
+        String base = publicBaseUrl.endsWith("/") ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1) : publicBaseUrl;
+        return base + path;
     }
 
     // 삭제 실패는 로컬 디스크 삭제와 마찬가지로 치명적이지 않다(Blob 하나 고아로 남는 정도) — 연결 문자열이

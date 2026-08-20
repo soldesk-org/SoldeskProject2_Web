@@ -137,6 +137,11 @@ azure-storage:
   # upload-dir 폴더 이름과 1:1로 대응시켜 헷갈리지 않게 함. 비어있으면(기본값) azure-blob backend를
   # 실제로 쓰려는 시점에만 에러가 난다 — 위 image-storage.backend 설명 참고.
   account-url: ${AZURE_STORAGE_ACCOUNT_URL:}
+  # 2026-08-21 추가 — Azure CDN/Front Door로 자체 도메인(예: images.eattyway.com)을 스토리지 앞단에
+  # 붙였을 때, 업로드 응답 URL의 호스트를 그 도메인으로 내보내기 위한 값(형식: https://images.eattyway.com,
+  # 끝에 슬래시 없이). 비어있으면(기본값) 지금처럼 원본 blob.core.windows.net URL을 그대로 쓴다 — CDN을
+  # 아직 안 붙인 환경도 그대로 동작해야 한다는 원칙(account-url과 동일).
+  public-base-url: ${AZURE_STORAGE_PUBLIC_BASE_URL:}
 
 profile-image:
   # backend가 local일 때만 실제로 쓰이는 로컬 디스크 저장 설정(과거 업로드 파일의 삭제 판별에도 항상 쓰임 —
