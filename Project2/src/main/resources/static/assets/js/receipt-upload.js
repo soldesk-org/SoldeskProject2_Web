@@ -842,6 +842,8 @@
         document.getElementById("step3Section").hidden = true;
         stepsRoot.parentElement.hidden = true;
         doneSection.hidden = false;
+        // 2026-08-20 추가 — 완료 화면도 STEP2/3와 같은 몰입형 전체화면으로(헤더/탭바 없이, 세로 중앙).
+        document.body.classList.add("e-immersive-step2");
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
     }).catch(function (err) {
