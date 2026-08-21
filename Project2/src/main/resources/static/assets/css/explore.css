@@ -70,7 +70,9 @@
   /* 하단 탭바(.e-tabbar)는 768px 미만에서만 보이므로(eatty.css), 그 폭에서만 상세 패널 하단에도
      탭바 높이만큼 여백을 더 줘서 가려지지 않게 한다(2026-08-07). */
   @media (max-width: 767px) {
-    .ex-detail { bottom: 61px; }
+    /* 2026-08-21 — 61px → --tabbar-total-h. 홈 인디케이터 안전영역이 빠져 있어서 상세 패널 하단이
+       그만큼 탭바에 가려 있었다. */
+    .ex-detail { bottom: var(--tabbar-total-h); }
   }
 
   /* 네이버 지도 SDK의 저작권/로고/축척 표시는 자체적으로 z-index:10000 안팎의 매우 높은 값을 써서
@@ -111,7 +113,11 @@
      clientHeight) 페이지 전체(body)가 스크롤된다. 그래서 목록 안에 padding-bottom을 줘봐야 소용없고,
      하단 탭바(.e-tabbar, position:fixed)가 화면 진짜 맨 아래에 항상 떠 있어서 페이지를 끝까지
      내려도 마지막 가게 카드가 가려 보였다 — body 쪽에 탭바 높이만큼 여백을 준다(탭바가 보이는
-     768px 미만에서만). */
+     768px 미만에서만).
+     2026-08-21 수정 — 그 61px은 탭바 "본체" 높이일 뿐이고, 홈 인디케이터가 있는 아이폰에서는 탭바가
+     env(safe-area-inset-bottom)(약 34px)만큼 더 높아진다. 그래서 iOS 앱에서 맨 아래까지 스크롤해도
+     마지막 가게 카드가 그 34px만큼 계속 가려 보였다(실기기 스크린샷 확인). 안전영역까지 포함한
+     --tabbar-total-h로 바꿔서 전체가 보이게 한다. */
   @media (max-width: 767px) {
-    body { padding-bottom: 61px; }
+    body { padding-bottom: var(--tabbar-total-h); }
   }

@@ -185,7 +185,9 @@
      2) 탭바가 페이지 맨 끝 콘텐츠를 가리지 않도록(내용이 넘쳐서 스크롤되는 경우 대비) 그 여백은
         main이 아니라 body에 별도로 둔다 — main의 중앙 정렬 계산에 전혀 영향을 주지 않는 곳이라야
         비대칭 문제가 재발하지 않는다. */
+  /* 2026-08-21 — 61px → --tabbar-total-h. 홈 인디케이터가 있는 아이폰에서는 탭바가 안전영역만큼
+     더 높아서, 그 차이(약 34px)만큼 아래 콘텐츠가 탭바에 가리고 중앙 정렬 기준도 밀려 있었다. */
   @media (max-width: 767px) {
-    #mainContent { min-height: calc(100vh - var(--header-total-h) - 61px); }
-    body { padding-bottom: 61px; }
+    #mainContent { min-height: calc(100vh - var(--header-total-h) - var(--tabbar-total-h)); }
+    body { padding-bottom: var(--tabbar-total-h); }
   }

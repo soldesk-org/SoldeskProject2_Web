@@ -97,6 +97,14 @@
      100vh에서 헤더를 뺀 높이 등)는 --header-h가 아니라 이 값을 기준으로 계산해야 안전영역만큼
      어긋나지 않는다. 데스크탑 브라우저에서는 env()가 0이라 --header-h와 동일해진다. */
   --header-total-h: calc(var(--header-h) + env(safe-area-inset-top));
+  /* 하단 모바일 탭바(2026-08-21 추가) — --tabbar-h는 탭바 본체 높이(실측 61px, 아이콘 22 + gap 3 +
+     라벨 + 상하 패딩 + border-top), --tabbar-total-h는 홈 인디케이터 안전영역까지 포함한 "화면에서
+     실제로 차지하는 높이"다. 탭바는 position:fixed라 문서 흐름에서 빠져 있으니, 본문 아래쪽에
+     이만큼 여백을 비워두지 않으면 마지막 콘텐츠가 탭바에 가린다. 여러 파일에 61px/72px이 각자
+     하드코딩돼 있어서(어떤 곳은 안전영역 누락, 어떤 곳은 11px 과다) 화면마다 어긋났던 걸 이 두
+     변수로 통일한다. */
+  --tabbar-h: 61px;
+  --tabbar-total-h: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
   --admin-side-w: 248px;
 
   /* 모션 */
@@ -387,8 +395,12 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 @media (min-width: 768px) { .e-tabbar { display: none; } }
 /* 2026-08-20 수정 — 탭바 자체는 safe-area-inset-bottom만큼 더 커지는데(홈 인디케이터 있는
    기기), 본문이 미리 비워두는 여백은 고정 72px뿐이라 화면 맨 아래 콘텐츠가 탭바 뒤로 가려지던
-   문제(스크롤을 끝까지 내리면 탭바 밑으로 컨텐츠가 비쳐 보임). */
-.has-tabbar { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+   문제(스크롤을 끝까지 내리면 탭바 밑으로 컨텐츠가 비쳐 보임).
+   2026-08-21 수정 — 그 72px이 탭바 실제 높이(61px)보다 11px 크다 보니, 홈 화면처럼 맨 아래가
+   푸터(어두운 배경)로 끝나는 페이지에서 푸터와 탭바 사이에 밝은 body 배경이 11px 띠로 드러나
+   보였다(실기기 스크린샷 확인). 어림값 대신 탭바 실제 높이(--tabbar-total-h)로 정확히 맞춘다 —
+   딱 탭바에 가려지는 만큼만 비우므로 띠도 안 생기고 콘텐츠도 안 가린다. */
+.has-tabbar { padding-bottom: var(--tabbar-total-h); }
 @media (min-width: 768px) { .has-tabbar { padding-bottom: 0; } }
 
 /* --- 맨 위로 버튼(2026-08-07 신규) --------------------------------------
@@ -406,7 +418,9 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 .e-to-top.is-visible { opacity: 1; visibility: visible; transform: translateY(0); }
 .e-to-top:hover { background: var(--bg-muted); color: var(--ink-900); }
 .e-to-top svg { width: 20px; height: 20px; }
-@media (max-width: 767px) { .e-to-top { bottom: calc(72px + 16px); right: 16px; } }
+/* 2026-08-21 — 72px 하드코딩 → --tabbar-total-h. 홈 인디케이터가 있는 기기에서는 탭바가 안전영역만큼
+   더 높아서 "맨 위로" 버튼이 탭바에 겹쳐 있었다. */
+@media (max-width: 767px) { .e-to-top { bottom: calc(var(--tabbar-total-h) + 16px); right: 16px; } }
 
 /* --- 푸터 --------------------------------------------------------------- */
 .e-footer {

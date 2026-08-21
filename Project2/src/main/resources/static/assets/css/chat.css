@@ -18,7 +18,8 @@
      메시지 입력창 아래 안내 문구를 가려버렸다(PC 에뮬레이터는 안전영역이 0이라 재현 안 됨). 100vh도
      모바일 브라우저 주소창 변화에 따라 값이 흔들리는 문제가 있어 100dvh로 함께 바꾼다. */
   @media (max-width: 767px) {
-    .e-chat-shell { height: calc(100dvh - var(--header-total-h) - 61px - env(safe-area-inset-bottom)); }
+    /* 2026-08-21 — 61px + env(safe-area-inset-bottom)을 --tabbar-total-h(같은 값)로 통일 */
+    .e-chat-shell { height: calc(100dvh - var(--header-total-h) - var(--tabbar-total-h)); }
   }
   /* 방장 전용 요소 */
   [data-owner-only] { display: none; }
