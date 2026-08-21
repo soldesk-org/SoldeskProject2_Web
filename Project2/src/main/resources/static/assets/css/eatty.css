@@ -2429,9 +2429,15 @@ body.is-modal-open { overflow: hidden; }
     border-left: 0; border-right: 0; border-bottom: 0;
     transform: translateY(100%);
     max-height: 82vh;
-    padding-bottom: env(safe-area-inset-bottom);
+    /* 2026-08-21 — 여기 있던 padding-bottom: env(safe-area-inset-bottom)을 .e-noti-foot으로 옮겼다.
+       패널에 주면 그 여백이 패널 배경(--bg, 흰색)으로 칠해지는데, 패널 맨 아래 자식인 푸터
+       ("알림 설정 / 고객센터" 줄)는 --bg-soft(회색)라서 회색 띠 아래에 흰 띠가 하나 더 생겨
+       색이 어긋나 보였다(실기기 확인). 푸터가 직접 안전영역까지 자기 배경으로 채우게 한다. */
   }
   .e-noti-panel.is-open { transform: translateY(0); }
+  /* 푸터는 알림이 없을 때도 항상 렌더링되므로(eatty-ui.js의 패널 생성 코드) 여기서 안전영역을
+     확보해도 여백이 사라지는 경우는 없다. */
+  .e-noti-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
 }
 
 /* 모바일 패널 뒤 배경 */
