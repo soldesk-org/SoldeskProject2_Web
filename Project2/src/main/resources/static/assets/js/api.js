@@ -364,16 +364,20 @@
 
      전체 흐름:
        1) 앱 WebView의 로그인 화면에서 소셜 버튼 클릭 → login.js가 startSocialLogin()으로 네이티브 호출
-       2) 네이티브가 브라우저 시트로 /login?appOAuth=1&provider=…&rememberMe=… 를 연다
-       3) 그 페이지의 login.js가 "앱에서 시작한 흐름"을 sessionStorage에 표시하고 인가 요청으로 넘긴다
-       4) 서버 콜백이 /login?accessToken=…&refreshToken=…&memberId=… 로 302로 돌려보내면,
-          login.js가 3)의 표시를 보고 eattyway://oauth-callback?… 로 이동 → 네이티브가 이걸 잡고 시트를 닫는다
+       2) 네이티브가 브라우저 시트로 인가 주소를 직접 연다
+          (/api/oauth-providers/{provider}/authorization?rememberMe=…&app=true)
+          → 서버가 곧바로 카카오/네이버/구글 공식 로그인 화면으로 302한다. 중간에 우리 페이지를 거치지
+            않는 게 중요하다 — 처음엔 /login?appOAuth=1을 먼저 열어 브라우저 sessionStorage에 "앱에서
+            시작함"을 표시하는 방식이었는데, 그러면 로그인 창이 공식 화면이 아니라 eattyway.com부터
+            시작해서 어색했다(2026-08-21 개선).
+       3) app=true는 OAuth state에 실려 콜백까지 전달된다(서버 OAuthStateService). 콜백은 그걸 보고
+          웹 페이지가 아니라 eattyway://oauth-callback?accessToken=…&refreshToken=…&memberId=… 로 302한다
+       4) 그 스킴으로 리다이렉트되는 순간 시스템이 브라우저 시트를 닫고 네이티브에 결과를 넘긴다
        5) 네이티브가 앱 WebView에서 completeAppOAuth(payload)를 호출 → 여기서 세션을 저장하고 랜딩
 
-     이 구조라서 서버(백엔드)는 전혀 수정하지 않아도 된다 — 콜백이 이미 토큰을 쿼리로 실어 프론트로
-     리다이렉트하는 방식이고, 인증도 쿠키가 아니라 JWT + 스토리지라 브라우저↔WebView 간 쿠키 공유가
-     필요 없기 때문이다. 일반 브라우저에서는 window.webkit이 없어서 아래 isInIosApp()이 false가 되고
-     기존 리다이렉트 방식이 그대로 쓰인다. */
+     인증이 쿠키가 아니라 JWT + 스토리지라서, 브라우저에서 로그인해도 토큰만 앱으로 넘겨주면 그대로
+     로그인 상태가 된다(브라우저↔WebView 쿠키 공유가 필요 없음). 일반 브라우저에서는 window.webkit이
+     없어서 아래 isInIosApp()이 false가 되고 기존 리다이렉트 방식이 그대로 쓰인다. */
   var APP_BRIDGE_NAME = "eattywayAuth";
 
   function appAuthBridge() {

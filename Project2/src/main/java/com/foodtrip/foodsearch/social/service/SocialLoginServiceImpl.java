@@ -69,10 +69,15 @@ public class SocialLoginServiceImpl implements SocialLoginService {
     }
 
     @Override
-    public String buildAuthorizeUrl(String providerPath, boolean rememberMe) {
+    public String buildAuthorizeUrl(String providerPath, boolean rememberMe, boolean appClient) {
         SocialOAuthClient client = resolveClient(providerPath);
-        String state = oAuthStateService.issue(client.provider(), rememberMe);
+        String state = oAuthStateService.issue(client.provider(), rememberMe, appClient);
         return client.buildAuthorizeUrl(state);
+    }
+
+    @Override
+    public boolean isAppClientState(String state) {
+        return oAuthStateService.isAppClient(state);
     }
 
     @Override

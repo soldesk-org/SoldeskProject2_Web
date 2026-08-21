@@ -38,14 +38,25 @@ public class AuthController {
     @Value("${oauth.frontend-redirect-url:http://localhost:8081/tmp-map-test.html}")
     private String frontendRedirectUrl;
 
+    // iOS 앱(EattyWayIOS)에서 시작한 소셜로그인의 결과를 되돌려줄 커스텀 스킴(2026-08-21 추가).
+    // 앱은 로그인 창을 앱 안 WebView가 아니라 시스템 브라우저(ASWebAuthenticationSession)로 띄우는데,
+    // 그 창은 이 스킴으로 리다이렉트되는 순간 닫히면서 앱에 결과를 넘겨준다. 앱 쪽 짝이 되는 값은
+    // EattyWayIOS의 MainViewController.swift(callbackScheme)와 Info.plist(CFBundleURLTypes)에 있다.
+    @Value("${oauth.app-redirect-url:eattyway://oauth-callback}")
+    private String appRedirectUrl;
+
     public AuthController(SocialLoginService socialLoginService) {
         this.socialLoginService = socialLoginService;
     }
 
+    // app=true는 iOS 앱이 시스템 브라우저로 이 주소를 직접 열 때만 붙는다(2026-08-21 추가). 그러면
+    // 콜백 결과가 웹 페이지 대신 앱 커스텀 스킴으로 돌아가서 로그인 창이 닫히고 앱으로 복귀한다.
+    // 이 값은 state에 실려 콜백까지 전달된다(OAuthStateService 참고).
     @GetMapping("/api/oauth-providers/{provider}/authorization")
     public ResponseEntity<Void> authorize(@PathVariable String provider,
-                                           @RequestParam(defaultValue = "false") boolean rememberMe) {
-        String authorizeUrl = socialLoginService.buildAuthorizeUrl(provider, rememberMe);
+                                           @RequestParam(defaultValue = "false") boolean rememberMe,
+                                           @RequestParam(name = "app", defaultValue = "false") boolean appClient) {
+        String authorizeUrl = socialLoginService.buildAuthorizeUrl(provider, rememberMe, appClient);
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(authorizeUrl)).build();
     }
 
@@ -57,12 +68,17 @@ public class AuthController {
     public ResponseEntity<Void> callback(@PathVariable String provider,
                                           @RequestParam(required = false) String code,
                                           @RequestParam(required = false) String state) {
+        // 결과를 되돌려줄 곳을 먼저 정한다(2026-08-21) — 아래 handleCallback()이 state를 1회용으로
+        // 소비해버리므로 그 전에 읽어야 하고, 성공/실패 양쪽 경로에서 같은 대상을 써야 한다.
+        // state가 이미 만료/무효면 앱 여부를 알 길이 없어 웹으로 되돌린다(그 경우 앱에서는 로그인 창이
+        // 자동으로 닫히지 않고 사용자가 직접 닫게 되며, 앱은 이를 취소로 처리한다).
+        String redirectBase = socialLoginService.isAppClientState(state) ? appRedirectUrl : frontendRedirectUrl;
         try {
             if (code == null || code.isBlank()) {
                 throw new CustomException(ErrorCode.INVALID_INPUT, "인가코드(code)가 없습니다.");
             }
             LoginResponseDto result = socialLoginService.handleCallback(provider, code, state);
-            URI redirectUri = UriComponentsBuilder.fromUriString(frontendRedirectUrl)
+            URI redirectUri = UriComponentsBuilder.fromUriString(redirectBase)
                     .queryParam("accessToken", result.getAccessToken())
                     .queryParam("refreshToken", result.getRefreshToken())
                     .queryParam("memberId", result.getMemberId())
@@ -72,7 +88,7 @@ public class AuthController {
                     .toUri();
             return ResponseEntity.status(HttpStatus.FOUND).location(redirectUri).build();
         } catch (CustomException e) {
-            URI redirectUri = UriComponentsBuilder.fromUriString(frontendRedirectUrl)
+            URI redirectUri = UriComponentsBuilder.fromUriString(redirectBase)
                     .queryParam("error", e.getErrorCode().name())
                     .queryParam("errorMessage", e.getMessage())
                     .build()
