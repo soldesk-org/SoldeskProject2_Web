@@ -6,7 +6,7 @@
     #mainContent:has(#step1Section:not([hidden])) > .e-container,
     #mainContent:has(#step2Section:not([hidden])) > .e-container,
     #mainContent:has(#doneSection:not([hidden])) > .e-container {
-      min-height: calc(100vh - var(--header-h) - 96px);
+      min-height: calc(100vh - var(--header-total-h) - 96px);
       display: flex;
       flex-direction: column;
       justify-content: center;

@@ -174,7 +174,7 @@
 
   /* #mainContent의 세로 중앙 정렬 기준(2026-08-07) — 인라인 style로 두면 특정도가 너무 높아 아래
      모바일 미디어쿼리로 못 덮어써서, 여기 스타일시트로 옮겨왔다. */
-  #mainContent { min-height: calc(100vh - var(--header-h)); }
+  #mainContent { min-height: calc(100vh - var(--header-total-h)); }
 
   /* 모바일 하단 탭바(.e-tabbar, position:fixed, 실측 높이 약 61px) 대응(2026-08-07, 재수정) —
      처음엔 #mainContent의 padding-bottom만 늘렸는데, 그러면 위/아래 여백이 비대칭이 되어 카드가
@@ -186,6 +186,6 @@
         main이 아니라 body에 별도로 둔다 — main의 중앙 정렬 계산에 전혀 영향을 주지 않는 곳이라야
         비대칭 문제가 재발하지 않는다. */
   @media (max-width: 767px) {
-    #mainContent { min-height: calc(100vh - var(--header-h) - 61px); }
+    #mainContent { min-height: calc(100vh - var(--header-total-h) - 61px); }
     body { padding-bottom: 61px; }
   }

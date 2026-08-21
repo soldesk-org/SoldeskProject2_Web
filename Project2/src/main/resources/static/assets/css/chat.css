@@ -6,7 +6,8 @@
 
   /* 모바일: 목록 ↔ 방 화면 전환 */
   @media (max-width: 1023px) {
-    .e-chat-shell { grid-template-columns: 1fr; height: calc(100vh - var(--header-h)); }
+    /* 2026-08-21 — --header-h → --header-total-h (헤더가 상태바 안전영역만큼 더 높다, eatty.css 참고) */
+    .e-chat-shell { grid-template-columns: 1fr; height: calc(100vh - var(--header-total-h)); }
     body.chat-room-open .e-chat-list { display: none; }
     body:not(.chat-room-open) .e-chat-room { display: none; }
   }
@@ -17,7 +18,7 @@
      메시지 입력창 아래 안내 문구를 가려버렸다(PC 에뮬레이터는 안전영역이 0이라 재현 안 됨). 100vh도
      모바일 브라우저 주소창 변화에 따라 값이 흔들리는 문제가 있어 100dvh로 함께 바꾼다. */
   @media (max-width: 767px) {
-    .e-chat-shell { height: calc(100dvh - var(--header-h) - 61px - env(safe-area-inset-bottom)); }
+    .e-chat-shell { height: calc(100dvh - var(--header-total-h) - 61px - env(safe-area-inset-bottom)); }
   }
   /* 방장 전용 요소 */
   [data-owner-only] { display: none; }

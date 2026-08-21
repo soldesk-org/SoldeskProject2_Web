@@ -91,6 +91,12 @@
   /* 레이아웃 수치 */
   --header-h: 68px;
   --header-h-sm: 60px;
+  /* 헤더가 화면에서 실제로 차지하는 높이(2026-08-21 추가) — .e-header는 height(--header-h)가
+     "컨텐츠 줄" 높이이고, 그 위에 상태바/노치 안전영역만큼 padding-top이 더 붙는다(iOS 앱에서
+     viewport-fit=cover로 띄우기 때문). 헤더 아래에 붙어야 하는 요소(스티키 요소의 top,
+     100vh에서 헤더를 뺀 높이 등)는 --header-h가 아니라 이 값을 기준으로 계산해야 안전영역만큼
+     어긋나지 않는다. 데스크탑 브라우저에서는 env()가 0이라 --header-h와 동일해진다. */
+  --header-total-h: calc(var(--header-h) + env(safe-area-inset-top));
   --admin-side-w: 248px;
 
   /* 모션 */
@@ -199,26 +205,32 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 /* --- 글로벌 헤더 --------------------------------------------------------- */
 .e-header {
   position: sticky; top: 0; z-index: 60;
+  /* 2026-08-21 수정(실제 원인) — 이 프로젝트는 Tailwind CDN을 쓰고, Tailwind preflight의
+     `*,::before,::after{box-sizing:border-box}`가 전역으로 걸린다. 그래서 아래 height(68px)
+     안에 padding-top(env(safe-area-inset-top), 노치/다이나믹 아일랜드 기기에서 47~59px)이
+     흡수돼버려 실제 컨텐츠 영역이 10px 남짓밖에 남지 않았다. 그 결과 .e-header-inner
+     (height:100%)가 찌그러지고 로고/버튼 줄이 헤더 박스 아래로 넘쳐서, "흰 배경이 상태바
+     아래 조금만 채워지고 로고 줄 절반은 히어로 그라데이션 위에 떠 있는" 상태로 보였다
+     (실기기 스크린샷으로 확인). 아래 주석대로 content-box를 "가정"만 했던 게 문제 —
+     명시적으로 박아준다. 이러면 height는 컨텐츠 줄 높이가 되고 안전영역 padding은 그 위에
+     더해져서, 흰 배경이 상태바부터 로고 줄 아래까지 온전히 칠해진다. */
+  box-sizing: content-box;
   height: var(--header-h);
   /* 2026-08-20 수정 — 처음엔 --header-h 자체를 calc(68px + env(safe-area-inset-top))로 늘렸는데,
      position:sticky인 요소의 height가 calc()+env()로 계산되면 iOS WKWebView에서 스크롤 중
      sticky 위치 재계산이 깨지는 버그가 있었다(스크롤하면 헤더가 상태바에 딱 붙어버리고, 맨 위로
      돌아가야 정상으로 복귀 — 실제로 겪음). height는 원래 고정값(--header-h, 68px)을 그대로 두고,
-     안전영역만큼은 padding-top으로만 늘린다(sticky 요소의 "높이 계산식"에 env()가 안 끼게).
-     content-box(기본값)에서는 padding이 height 위에 그대로 더해지므로, 컨텐츠 줄 높이(68px)는
-     그대로 유지하면서 전체 박스만 안전영역만큼 커진다 — box-sizing은 일부러 안 건드린다. */
+     안전영역만큼은 padding-top으로만 늘린다(sticky 요소의 "높이 계산식"에 env()가 안 끼게). */
   padding-top: env(safe-area-inset-top);
   background: rgba(255, 255, 255, .82);
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
   border-bottom: 1px solid var(--line);
-  /* 2026-08-20 추가 — 안전영역(padding-top)만큼 늘어난 부분의 배경이 스크롤로 sticky 고정된
-     뒤에는 다시 안 칠해지고 비어 보이는 문제(흰 배경이 로고 줄만 채우고 그 위 상태바 쪽은
-     비어 보임) — 헤더를 별도 GPU 레이어로 강제 승격시켜서 sticky 고정 시에도 전체 박스가
-     항상 다시 합성/페인트되게 한다. */
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  will-change: transform;
+  /* 2026-08-20에 넣었던 `transform: translateZ(0); will-change: transform`은 2026-08-21에 제거함 —
+     "안전영역 배경이 리페인트되지 않는다"는 가설로 GPU 레이어를 강제 승격시킨 것이었지만, 위에서
+     밝혀진 대로 진짜 원인은 box-sizing이었고 효과가 없었다. 게다가 transform이 걸린 요소는 후손
+     position:fixed의 containing block이 되어버려서(헤더 안 드롭다운 등) 나중에 엉뚱한 버그를
+     만들 수 있으므로 되돌린다. */
 }
 .e-header-inner {
   height: 100%;
@@ -1787,7 +1799,9 @@ body.is-modal-open { overflow: hidden; }
 .e-chat-shell {
   display: grid;
   grid-template-columns: 1fr;
-  height: calc(100vh - var(--header-h));
+  /* 2026-08-21 — var(--header-h) → var(--header-total-h). 헤더가 안전영역만큼 더 높아서
+     그만큼 채팅 화면 아래쪽이 화면 밖으로 밀려나가고 있었다. */
+  height: calc(100vh - var(--header-total-h));
   min-height: 520px;
 }
 @media (min-width: 1024px) {
@@ -2058,7 +2072,9 @@ body.is-modal-open { overflow: hidden; }
 .e-devbar-close svg { width: 13px; height: 13px; }
 
 /* 유틸: 스크롤 시 붙는 요소 */
-.e-sticky-top { position: sticky; top: calc(var(--header-h) + 16px); }
+/* 2026-08-21 — var(--header-h) → var(--header-total-h). 안전영역만큼 헤더에 가려지던 것 보정.
+   (top은 "위치"라서 sticky+env() 조합 버그와 무관 — 문제가 됐던 건 sticky 요소의 height였다) */
+.e-sticky-top { position: sticky; top: calc(var(--header-total-h) + 16px); }
 
 /* 유틸: 종횡비 */
 .e-ratio-1 { aspect-ratio: 1 / 1; }

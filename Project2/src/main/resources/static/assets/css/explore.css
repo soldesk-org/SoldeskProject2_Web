@@ -3,7 +3,8 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto 1fr;
-    height: calc(100vh - var(--header-h));
+    /* 2026-08-21 — --header-h → --header-total-h (헤더가 상태바 안전영역만큼 더 높다, eatty.css 참고) */
+    height: calc(100vh - var(--header-total-h));
     min-height: 560px;
   }
   /* grid-template-columns: minmax(0, 1fr)(2026-08-07 추가) — 명시적으로 안 주면 grid의 암묵적
@@ -58,7 +59,9 @@
        위에 있으면 되므로, 헤더·탭바·드롭다운·드로어·알림 전부보다 낮은 값으로 내려서 이 페이지의
        모든 오버레이 관련 문제를 한 번에 해결한다. */
     .ex-detail {
-      position: fixed !important; top: var(--header-h); right: 0; bottom: 0; left: 0;
+      /* 2026-08-21 — top: --header-h → --header-total-h. 헤더가 상태바 안전영역만큼 더 높아서
+         그 차이만큼 상세 패널이 헤더 밑에 가려지고 있었다(eatty.css의 --header-total-h 주석 참고). */
+      position: fixed !important; top: var(--header-total-h); right: 0; bottom: 0; left: 0;
       width: 100%; z-index: 40;
       border-right: 0; transform: translateY(100%) !important;
     }

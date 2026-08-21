@@ -106,7 +106,7 @@
      (16personalities류 테스트 UI 관례). 결과/인트로 화면은 스크롤 콘텐츠라 그대로 상단 기준을 유지한다. */
   @media (min-width: 768px) {
     #quizPlaySection:not([hidden]) {
-      min-height: calc(100vh - var(--header-h) - 96px);
+      min-height: calc(100vh - var(--header-total-h) - 96px);
       display: flex;
       flex-direction: column;
       justify-content: center;

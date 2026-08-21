@@ -1,6 +1,7 @@
   /* 풀스크린 채팅 레이아웃 (chat.html의 .e-chat-room과 같은 톤, 사이드바 없는 단일 패널) */
   .e-support-shell {
-    height: calc(100vh - var(--header-h));
+    /* 2026-08-21 — --header-h → --header-total-h (헤더가 상태바 안전영역만큼 더 높다, eatty.css 참고) */
+    height: calc(100vh - var(--header-total-h));
     min-height: 520px;
     display: flex;
     flex-direction: column;
