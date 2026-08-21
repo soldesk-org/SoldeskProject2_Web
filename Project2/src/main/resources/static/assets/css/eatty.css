@@ -451,7 +451,9 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   position: relative; overflow: hidden;
   background: var(--brand-grad);
   color: #fff;
-  padding: 56px 56px;
+  /* 상단은 안전영역 보정(2026-08-21) — 이 패널은 1024px 이상에서만 보이므로 아이폰에서는 안 보이지만,
+     아이패드 앱/가로 모드에서 노치 아래로 로고가 파묻히지 않게 같이 맞춰둔다(데스크탑은 env()=0). */
+  padding: calc(56px + env(safe-area-inset-top)) 56px 56px;
   flex-direction: column;
 }
 @media (min-width: 1024px) { .e-auth-aside { display: flex; } }
@@ -464,10 +466,18 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 .e-auth-aside::after  { width: 300px; height: 300px; left: -110px; bottom: -90px; }
 .e-auth-main {
   display: flex; flex-direction: column;
-  padding: 28px 20px 56px;
+  /* padding-top에 env(safe-area-inset-top) 추가(2026-08-21) — 로그인/사업자 로그인은 .e-header를
+     쓰지 않고 이 안에 자체 모바일 상단 바(로고 + "홈으로")를 두는 구조라, .e-header에 넣은 안전영역
+     처리가 적용되지 않는 별개 경로였다. 그래서 iOS 앱에서 로고가 상태바(시계/다이나믹 아일랜드)와
+     겹칠 만큼 위로 올라붙어 보였다(실기기 스크린샷 확인). 기존 여백(28px)은 그대로 두고 안전영역만
+     더해서, 헤더가 있는 다른 화면의 로고와 거의 같은 높이에 오게 한다(데스크탑은 env()가 0이라
+     기존과 동일). */
+  padding: calc(28px + env(safe-area-inset-top)) 20px 56px;
   background: var(--bg);
 }
-@media (min-width: 640px) { .e-auth-main { padding: 32px 40px 64px; } }
+@media (min-width: 640px) {
+  .e-auth-main { padding: calc(32px + env(safe-area-inset-top)) 40px 64px; }
+}
 .e-auth-card {
   width: 100%; max-width: 424px; margin: auto;
 }
