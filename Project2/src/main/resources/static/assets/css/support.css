@@ -1,3 +1,18 @@
+  /* 앱에서 토스트를 상단으로(2026-08-21 추가) ─────────────────────────────────
+     eatty.css가 앱(html.is-native-app)에서 토스트를 하단 탭바 위로 올려두는데, 이 AI 상담 화면은
+     그 자리에 메시지 입력창(.e-chat-input)이 있어서 토스트가 입력을 가려버린다. 이 화면에서만
+     상단으로 옮긴다(잇티챗도 같은 이유로 chat.css에 같은 규칙이 있다).
+
+     "입력창 위 N픽셀"로 잡지 않는 이유 — 입력창은 내용에 따라 높이가 늘어나고(autogrow) 키보드가
+     올라오면 위치도 달라져서 안전한 고정값이 없다. 상단이 모든 경우에 안 겹치는 유일한 자리다.
+     이 파일은 고객센터에서만 로드되고 eatty.css보다 나중에 로드돼서 bottom 값을 확실히 덮어쓴다. */
+  @media (max-width: 767px) {
+    html.is-native-app .e-toast-area {
+      top: calc(var(--header-total-h) + 12px);
+      bottom: auto;
+    }
+  }
+
   /* 풀스크린 채팅 레이아웃 (chat.html의 .e-chat-room과 같은 톤, 사이드바 없는 단일 패널) */
   .e-support-shell {
     /* 2026-08-21 — --header-h → --header-total-h (헤더가 상태바 안전영역만큼 더 높다, eatty.css 참고) */
