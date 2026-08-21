@@ -135,14 +135,20 @@
     resultText.textContent = ok ? "인식 성공" : "인식 실패";
   }
 
-  // 2026-08-19 추가 — object-fit:contain인 <img>는 실제 그려지는 이미지가 박스 전체를 안 채우고
-  // 위아래(또는 좌우)에 여백(letterbox)이 생길 수 있어서, 단순히 "이미지 박스의 N%" 위치로 계산하면
-  // 어긋난다. naturalWidth/Height와 실제 렌더 크기를 비교해서 진짜 그려지는 영역만 계산한다.
-  function containedImageRect(img) {
+  // 2026-08-19 추가 / 2026-08-21 cover로 변경 — <img>에 그려지는 이미지는 박스와 크기가 다르므로
+  // 단순히 "이미지 박스의 N%" 위치로 계산하면 어긋난다. naturalWidth/Height와 실제 렌더 크기를
+  // 비교해서 진짜 그려지는 영역을 구한다.
+  //
+  // ⚠️ Math.max = object-fit:cover 기준이다. CSS(.e-camera-success-overlay img)와 반드시 짝을
+  // 맞춰야 한다 — contain(Math.min)으로 되돌리면서 CSS를 그대로 두거나 그 반대로 하면 박스가
+  // 엉뚱한 곳에 그려진다. cover에서는 그려지는 이미지가 박스보다 커서 offsetX/offsetY가 음수가 되고,
+  // 화면 밖으로 나가는 박스는 오버레이의 overflow:hidden으로 잘린다(의도된 동작 — 사진 자체도
+  // 같은 만큼 잘려 보이지 않는 영역이다).
+  function renderedImageRect(img) {
     var boxW = img.clientWidth, boxH = img.clientHeight;
     var natW = img.naturalWidth, natH = img.naturalHeight;
     if (!boxW || !boxH || !natW || !natH) return null;
-    var scale = Math.min(boxW / natW, boxH / natH);
+    var scale = Math.max(boxW / natW, boxH / natH);
     var drawW = natW * scale, drawH = natH * scale;
     return { offsetX: (boxW - drawW) / 2, offsetY: (boxH - drawH) / 2, drawW: drawW, drawH: drawH };
   }
@@ -153,7 +159,7 @@
   function renderWordBoxes(ocrLines) {
     wordBoxesContainer.innerHTML = "";
     if (!ocrLines || !ocrLines.length) return;
-    var rect = containedImageRect(successImg);
+    var rect = renderedImageRect(successImg);
     if (!rect) return;
     ocrLines.forEach(function (line, i) {
       var box = document.createElement("div");
@@ -196,12 +202,10 @@
     if (!file || !restaurant) return;
     var pickedUrl = URL.createObjectURL(file);
     successImg.src = pickedUrl;
-    // 2026-08-21 — 사진 비율과 화면 비율이 달라서 위아래(또는 좌우)에 생기는 letterbox 여백이 검은
-    // 띠로 크게 보였다. 같은 사진을 흐리게 확대해 뒤에 깔아 그 여백을 채운다(CSS의
-    // .e-camera-success-overlay::before가 background-image: inherit로 이 값을 받아 쓴다).
-    // 이미지 자체는 object-fit:contain을 유지해야 한다 — 인식된 단어 박스 좌표를 contain 기준으로
-    // 계산하기 때문에(containedImageRect) cover로 바꾸면 박스 위치가 어긋난다.
-    successOverlay.style.backgroundImage = 'url("' + pickedUrl + '")';
+    // 2026-08-21 — 사진을 object-fit:cover로 화면에 꽉 채우므로 여백이 없다. 이전에는 contain으로
+    // 두고 남는 위아래를 같은 사진의 blur 처리본으로 채웠는데(여기서 backgroundImage를 지정하고
+    // CSS ::before가 inherit로 받아 썼다), 그 띠가 "위아래에 살짝 불투명하고 블러된 부분"으로
+    // 여전히 눈에 띈다는 지적이 있어 여백 자체를 없앴다. 그래서 배경 사진 지정도 더 필요하지 않다.
     resultBadge.className = "e-camera-result-badge";
     wordBoxesContainer.innerHTML = "";
     scanningCaption.hidden = false;

@@ -167,26 +167,21 @@
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
   }
-  /* 2026-08-21 — 사진이 화면 비율과 달라 위아래에 생기는 letterbox 여백이 그냥 검은 띠로 크게 보이던
-     문제(아이폰에서 특히 심함 — 화면이 세로로 길어서 4:3 사진을 contain하면 위아래가 많이 남는다).
-     JS가 오버레이에 지정한 background-image(같은 사진)를 이 가상요소가 물려받아 cover + blur로 깔아
-     그 여백을 채운다. 사진 자체는 contain을 유지해야 한다 — 인식된 단어 박스 좌표를 contain 기준으로
-     계산하므로(receipt-upload.js의 containedImageRect) cover로 바꾸면 박스가 엉뚱한 곳에 그려진다.
-     scale(1.15)는 blur가 가장자리에서 흐려지며 배경이 비는 걸 막기 위한 것(overflow:hidden으로 잘림). */
-  .e-camera-success-overlay::before {
-    content: ""; position: absolute; inset: 0;
-    background-image: inherit;
-    background-size: cover; background-position: center;
-    filter: blur(28px) brightness(.55);
-    transform: scale(1.15);
-  }
-  /* ::before보다 위에 그려지도록 쌓임 순서를 명확히 한다(밴드/단어박스/캡션/배지는 absolute라 이미 위). */
-  .e-camera-success-overlay img { position: relative; }
   /* [hidden] 대비 명시도 보정 — 이 프로젝트에서 반복되는 패턴(eatty.css [hidden] 전역 보정 참고),
      display:flex가 author 스타일이라 [hidden]보다 우선 적용될 수 있어 명시적으로 덮어쓴다. */
   .e-camera-success-overlay[hidden] { display: none; }
+  /* 촬영한 사진을 화면에 꽉 채운다(cover). 이 자리는 세 번 바뀌었다 —
+       1) contain + 남는 위아래는 검은 띠: 아이폰은 화면이 세로로 길어서 4:3 사진을 contain하면
+          위아래가 크게 남고, 그게 검은 띠로 보인다는 지적을 받았다.
+       2) contain + 남는 위아래를 같은 사진의 blur(28px) brightness(.55) 처리본으로 채움: 검은 띠는
+          없어졌지만 "위아래에 살짝 불투명하고 블러된 띠"로 여전히 눈에 띈다는 지적을 받았다.
+       3) (현재) cover: 여백 자체를 없앤다. 사진의 좌우 또는 위아래가 잘리는 대신, 촬영 화면과
+          똑같이 꽉 찬 화면이 된다.
+     주의 — cover인 동안에는 인식된 단어 박스 좌표 계산도 cover 기준이어야 한다.
+     receipt-upload.js의 renderedImageRect가 Math.max로 계산한다(contain이면 Math.min).
+     한쪽만 되돌리면 박스가 엉뚱한 곳에 그려지므로 둘을 항상 같이 볼 것. */
   .e-camera-success-overlay img {
-    width: 100%; height: 100%; object-fit: contain;
+    width: 100%; height: 100%; object-fit: cover;
   }
   /* 바코드 스캐너 형 스캔 라인(2026-08-19 4차 수정) — 아래 끝에 닿으면 뚝 끊기고 다시 위에서
      시작하는 대신, 왔던 길을 그대로 위로 되돌아간다(핑퐁, alternate). 결과가 올 때까지 계속
