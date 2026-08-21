@@ -107,6 +107,9 @@
 <div class="e-camera-success-overlay" id="receiptCameraSuccessOverlay" hidden>
   <img id="receiptCameraSuccessImg" alt="촬영한 영수증">
   <div id="receiptCameraBands"></div>
+  <!-- 네이버 바코드 스캐너 참고 상/하단 얇은 초록 띠(2026-08-21 추가). 위쪽은 CSS ::after로 그리고,
+       아래쪽은 이 요소로 그린다(::after는 요소당 하나뿐이라 위/아래 둘 다는 못 씀). -->
+  <div class="e-camera-edge-bottom" aria-hidden="true"></div>
   <!-- 실제 인식된 단어 박스(2026-08-19 추가) — Python OCR이 돌려준 좌표(ocr_lines)를 그대로 표시.
        실제로 안 읽은 부분에 박스를 그리는 과장이 아니라, 진짜 인식 위치 그대로다. -->
   <div id="receiptCameraWordBoxes"></div>

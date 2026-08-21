@@ -204,6 +204,30 @@
     0% { top: 14%; }
     100% { top: 78%; }
   }
+  /* 네이버 바코드 스캐너 참고(2026-08-21 추가) — 스캔 라인만으로는 화면 가장자리가 밋밋해서,
+     화면 위/아래 끝에 얇은 초록 그라데이션 띠를 깔고 은은하게 깜빡이게 한다. 스캔 라인이 도는
+     동안(인식 중)에만 보이고, 결과가 나오면(스캔 안내 문구가 hidden 되는 시점) 함께 사라진다 —
+     JS 수정 없이 :has()로 형제 요소(캡션)의 hidden 여부만 보고 판단한다. */
+  .e-camera-success-overlay::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; z-index: 1;
+    background: linear-gradient(90deg, transparent, #22c55e 20%, #22c55e 80%, transparent);
+    box-shadow: 0 0 10px 1px rgba(34, 197, 94, .8);
+    animation: e-camera-edge-pulse 1.6s ease-in-out infinite alternate;
+  }
+  .e-camera-edge-bottom {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; z-index: 1;
+    background: linear-gradient(90deg, transparent, #22c55e 20%, #22c55e 80%, transparent);
+    box-shadow: 0 0 10px 1px rgba(34, 197, 94, .8);
+    animation: e-camera-edge-pulse 1.6s ease-in-out infinite alternate;
+  }
+  .e-camera-success-overlay:has(> .e-camera-scanning-caption[hidden])::after,
+  .e-camera-success-overlay:has(> .e-camera-scanning-caption[hidden]) .e-camera-edge-bottom {
+    display: none;
+  }
+  @keyframes e-camera-edge-pulse {
+    0% { opacity: .45; }
+    100% { opacity: 1; }
+  }
   /* 인식 중 안내 문구(2026-08-20 추가) — 스캔 라인이 도는 동안만 보이고, 결과 배지가 뜨면 JS가
      hidden 처리한다. */
   .e-camera-scanning-caption {
