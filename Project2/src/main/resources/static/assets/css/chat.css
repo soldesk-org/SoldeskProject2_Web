@@ -20,6 +20,22 @@
   @media (max-width: 767px) {
     /* 2026-08-21 — 61px + env(safe-area-inset-bottom)을 --tabbar-total-h(같은 값)로 통일 */
     .e-chat-shell { height: calc(100dvh - var(--header-total-h) - var(--tabbar-total-h)); }
+
+    /* 키보드가 올라온 동안(=메시지 입력창 포커스) 레이아웃 보정(2026-08-21 추가) ─────────────
+       eatty.css에서 "입력 중에는 하단 탭바를 숨긴다"는 규칙을 넣었는데, 위 높이 계산은 여전히
+       탭바 높이를 빼고 있어서 그만큼(약 95px) 채팅 영역 아래에 빈 띠가 남았다(실기기에서 입력창
+       아래로 흰색/회색 영역이 드러나 보이던 문제). 탭바가 없는 동안에는 빼지 않는다.
+       100dvh는 키보드가 뜨면 그만큼 줄어들기 때문에, 남은 계산은 헤더만 빼면 정확히 맞는다.
+
+       입력창 하단 패딩도 같이 줄인다 — 키보드가 올라오면 홈 인디케이터가 사라지므로
+       env(safe-area-inset-bottom)만큼 비워둘 필요가 없는데, iOS는 그 값을 계속 반환해서
+       빈 여백으로 남는다. */
+    body:has(textarea:focus) .e-chat-shell {
+      height: calc(100dvh - var(--header-total-h));
+    }
+    body:has(textarea:focus) .e-chat-input {
+      padding-bottom: 14px;
+    }
   }
   /* 방장 전용 요소 */
   [data-owner-only] { display: none; }
