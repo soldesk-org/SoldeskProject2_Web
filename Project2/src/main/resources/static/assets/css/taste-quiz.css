@@ -112,3 +112,20 @@
       justify-content: center;
     }
   }
+  /* 2026-08-21 — iOS 앱에서만 문항 화면을 수직 가운데로.
+     증상: 앱에서는 문항 카드 아래 여백이 위쪽보다 훨씬 넓어 중앙이 안 맞아 보인다(모바일 웹은 정상).
+     원인: 바로 위 가운데 정렬이 768px 이상에만 걸려 있어 모바일에서는 콘텐츠가 위에 붙는다. 모바일
+     웹은 Safari 하단 툴바가 뷰포트를 잡아먹어 화면이 짧고 콘텐츠가 그 높이를 거의 채우므로 우연히
+     가운데처럼 보였을 뿐이다. 앱은 그 툴바가 없어 뷰포트가 약 100pt 더 길고, 남는 공간이 전부
+     아래로 몰린다. 그래서 앱에서만 데스크톱과 같은 가운데 정렬을 적용한다(웹 모바일은 요청대로
+     건드리지 않는다 — 앱 판별은 html.is-native-app, api.js가 붙인다).
+     빼는 값의 근거 — 헤더는 sticky라 흐름 높이를 차지하므로 --header-total-h, 본문 아래 탭바 자리는
+     body.has-tabbar의 padding-bottom(= --tabbar-total-h), 그리고 #mainContent의 py-8(위아래 32px)
+     합계 64px. 두 변수 모두 안전영역(env)을 포함하므로 앱에서도 값이 맞는다.
+     is-embed(회원가입 모달의 iframe)은 헤더/탭바가 없고 자체 가운데 정렬을 쓰므로 제외한다. */
+  html.is-native-app body:not(.is-embed) #quizPlaySection:not([hidden]) {
+    min-height: calc(100dvh - var(--header-total-h) - var(--tabbar-total-h) - 64px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
