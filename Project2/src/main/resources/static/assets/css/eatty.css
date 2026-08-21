@@ -1501,6 +1501,21 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 }
 .e-toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
+/* "검색 입력 + 오른쪽 필터" 조합 툴바(2026-08-21 추가) — 내정보 방문기록/즐겨찾기 탭처럼 왼쪽에 검색
+   입력, 오른쪽에 기간 select가 오는 툴바용. 검색 입력에 고정 폭(max-width:280px)을 주고 있었더니
+   좁은 화면(아이폰)에서 입력 + select 폭 합계가 컨테이너를 넘겨 select가 아래 줄로 떨어졌다.
+   좁을 때는 입력이 "남는 공간만" 차지하게(flex-basis:0) 해서 항상 한 줄에 나란히 오게 한다.
+   flex-basis를 0으로 두는 게 핵심 — auto로 두면 input[type=search]의 기본 콘텐츠 폭(iOS Safari가
+   데스크탑보다 크게 잡는다)이 그대로 반영돼서 계속 넘친다. min-width:0은 flex 아이템 기본값
+   min-width:auto를 풀어 실제로 줄어들 수 있게 하는 것. */
+.e-toolbar--search { flex-wrap: nowrap; }
+.e-toolbar--search .e-toolbar-search { flex: 1 1 0; min-width: 0; }
+.e-toolbar--search .e-toolbar-right { flex: none; }
+@media (min-width: 641px) {
+  /* 넓은 화면에서는 원래 의도대로 검색 입력이 과하게 길어지지 않게 상한을 둔다. */
+  .e-toolbar--search .e-toolbar-search { flex: 0 1 280px; max-width: 280px; }
+}
+
 /* ============ 11. 모달 / 바텀시트 / 토스트 / 드롭다운 ================== */
 .e-modal {
   position: fixed; inset: 0; z-index: 100;
@@ -1570,6 +1585,11 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
     border-radius: 0;
     transform: translateY(100%);
     transition: transform .26s var(--ease);
+    /* padding-top 추가(2026-08-21) — 이 시트는 inset:0으로 화면을 완전히 덮기 때문에, iOS 앱에서는
+       맨 위 제목/닫기 버튼(.e-modal-head)이 상태바에 그대로 파묻혀 보이지 않았다(잇티챗 "방 만들기",
+       "참가코드로 입장" 모달에서 상단이 다 가려지고 입력도 못 하던 문제). 전역 border-box라서
+       padding이 height:100% 안쪽으로 들어가므로 내용이 안전영역 아래로 밀린다. */
+    padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
   .e-modal--sheet.is-open .e-modal-panel { transform: translateY(0); }
@@ -2436,8 +2456,18 @@ body.is-modal-open { overflow: hidden; }
   }
   .e-noti-panel.is-open { transform: translateY(0); }
   /* 푸터는 알림이 없을 때도 항상 렌더링되므로(eatty-ui.js의 패널 생성 코드) 여기서 안전영역을
-     확보해도 여백이 사라지는 경우는 없다. */
-  .e-noti-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+     확보해도 여백이 사라지는 경우는 없다.
+     2026-08-21 재조정 — 12px으로는 "알림 설정 / 고객센터" 글씨가 화면 맨 아래에 거의 붙어서 누르기
+     어려웠다. 하단 탭바(.e-tabbar)처럼 여유를 두고, 그 늘어난 영역까지 푸터 배경(--bg-soft)으로
+     채워지게 한다. 링크 자체도 최소 높이를 줘서 손가락으로 짚을 영역을 확보한다(작은 글씨 12.5px). */
+  .e-noti-foot {
+    padding-top: 14px;
+    padding-bottom: calc(22px + env(safe-area-inset-bottom));
+  }
+  .e-noti-foot > a {
+    display: inline-flex; align-items: center;
+    min-height: 40px; padding: 0 2px;
+  }
 }
 
 /* 모바일 패널 뒤 배경 */

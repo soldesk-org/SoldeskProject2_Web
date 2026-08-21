@@ -194,7 +194,14 @@
   receiptDrop.addEventListener("eatty:filepicked", function (e) {
     var file = e.detail && e.detail.file;
     if (!file || !restaurant) return;
-    successImg.src = URL.createObjectURL(file);
+    var pickedUrl = URL.createObjectURL(file);
+    successImg.src = pickedUrl;
+    // 2026-08-21 — 사진 비율과 화면 비율이 달라서 위아래(또는 좌우)에 생기는 letterbox 여백이 검은
+    // 띠로 크게 보였다. 같은 사진을 흐리게 확대해 뒤에 깔아 그 여백을 채운다(CSS의
+    // .e-camera-success-overlay::before가 background-image: inherit로 이 값을 받아 쓴다).
+    // 이미지 자체는 object-fit:contain을 유지해야 한다 — 인식된 단어 박스 좌표를 contain 기준으로
+    // 계산하기 때문에(containedImageRect) cover로 바꾸면 박스 위치가 어긋난다.
+    successOverlay.style.backgroundImage = 'url("' + pickedUrl + '")';
     resultBadge.className = "e-camera-result-badge";
     wordBoxesContainer.innerHTML = "";
     scanningCaption.hidden = false;

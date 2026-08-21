@@ -354,8 +354,11 @@
 
       <!-- ---------- 탭: 즐겨찾기 ---------- -->
       <div class="p-5 md:p-6" id="tabFavorites" data-tab-panel>
-        <div class="e-toolbar !pt-0">
-          <div class="e-input-wrap has-icon" style="max-width:280px">
+        <!-- e-toolbar--search / e-toolbar-search(2026-08-21) — 인라인 max-width:280px으로 폭을 고정했더니
+             아이폰 폭에서 오른쪽 정렬 select가 아래 줄로 떨어졌다. 폭 상한은 CSS(641px 이상)로 옮기고,
+             좁은 화면에서는 입력이 남는 공간만 차지하게 한다(eatty.css의 .e-toolbar--search 주석 참고). -->
+        <div class="e-toolbar e-toolbar--search !pt-0">
+          <div class="e-input-wrap e-toolbar-search has-icon">
             <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
             <input type="search" class="e-input e-input-sm" id="favoriteSearchInput" placeholder="즐겨찾기 내 검색" aria-label="즐겨찾기 검색">
           </div>
@@ -468,8 +471,10 @@
 
       <!-- ---------- 탭: 방문기록 ---------- -->
       <div class="p-5 md:p-6" id="tabVisits" data-tab-panel hidden>
-        <div class="e-toolbar !pt-0">
-          <div class="e-input-wrap has-icon" style="max-width:280px">
+        <!-- 즐겨찾기 탭과 같은 이유로 e-toolbar--search 적용(2026-08-21) — "전체 기간" select가 아이폰에서
+             아래 줄로 떨어지던 문제. -->
+        <div class="e-toolbar e-toolbar--search !pt-0">
+          <div class="e-input-wrap e-toolbar-search has-icon">
             <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
             <input type="search" class="e-input e-input-sm" id="visitSearchInput" placeholder="방문기록 내 검색" aria-label="방문기록 검색">
           </div>
