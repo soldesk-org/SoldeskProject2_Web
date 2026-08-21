@@ -190,11 +190,15 @@
   }
   /* 바코드 스캐너 형 스캔 라인(2026-08-19 4차 수정) — 아래 끝에 닿으면 뚝 끊기고 다시 위에서
      시작하는 대신, 왔던 길을 그대로 위로 되돌아간다(핑퐁, alternate). 결과가 올 때까지 계속
-     반복하다가(infinite), JS가 결과 수신 즉시 bandsContainer를 비워서 멈춘다. */
+     반복하다가(infinite), JS가 결과 수신 즉시 bandsContainer를 비워서 멈춘다.
+     2026-08-21 — 위/아래에 고정 띠 2개를 따로 추가하는 시도를 두 번 했는데(화면 가장자리 →
+     스캔 영역 경계), 둘 다 원하는 게 아니었다. 실제로 원하던 건 이 스캔 라인이 지나가면서 생기는
+     초록 빛 번짐(글로우) 자체였다("네이버 바코드 스캐너 참고" = 이 발광 효과를 말한 것) — 그래서
+     새 요소를 추가하는 대신 이 glow(box-shadow) 자체를 눈에 더 띄게 키우는 쪽으로 방향을 바꿨다. */
   .e-camera-highlight-band {
-    position: absolute; left: 0; right: 0; height: 2px;
+    position: absolute; left: 0; right: 0; height: 3px;
     background: #22c55e;
-    box-shadow: 0 0 8px 1px rgba(34, 197, 94, .9), 0 0 2px rgba(34, 197, 94, 1);
+    box-shadow: 0 0 20px 6px rgba(34, 197, 94, .85), 0 0 8px 2px rgba(74, 222, 128, .95);
     animation: e-camera-scanline-sweep 1.6s ease-in-out infinite alternate;
   }
   /* 2026-08-20 수정 — 스캔 라인이 아래쪽 "영수증 정보를 인식 중입니다" 문구 위까지 내려와 겹치던
@@ -203,34 +207,6 @@
   @keyframes e-camera-scanline-sweep {
     0% { top: 14%; }
     100% { top: 78%; }
-  }
-  /* 네이버 바코드 스캐너 참고(2026-08-21 추가, 2026-08-21 재수정)
-     1차 시도는 화면 절대 맨 위/아래(top:0/bottom:0)에 3px 띠를 깔았는데, 위쪽은 iOS 상태바
-     (다이나믹 아일랜드) 영역과 겹쳐서 그 뒤에 가려 실제로는 안 보였다("안 해준거 같은데" 지적,
-     실기기 스크린샷으로 확인). 화면 가장자리가 아니라 스캔 라인이 오가는 실제 스캔 영역의 위/아래
-     경계(top:14% / top:78%, e-camera-scanline-sweep과 동일한 기준)에 맞춰서 다시 그렸다 — 네이버
-     바코드 스캐너도 화면 끝이 아니라 스캔 창 테두리에 색 띠를 준다. 두께/광량도 눈에 띄게 키웠다. */
-  .e-camera-success-overlay::after {
-    content: ""; position: absolute; left: 6%; right: 6%; top: 14%; height: 4px; z-index: 5;
-    border-radius: 3px;
-    background: linear-gradient(90deg, transparent, #22c55e 15%, #4ade80 50%, #22c55e 85%, transparent);
-    box-shadow: 0 0 16px 3px rgba(34, 197, 94, .9);
-    animation: e-camera-edge-pulse 1.6s ease-in-out infinite alternate;
-  }
-  .e-camera-edge-bottom {
-    content: ""; position: absolute; left: 6%; right: 6%; top: 78%; height: 4px; z-index: 5;
-    border-radius: 3px;
-    background: linear-gradient(90deg, transparent, #22c55e 15%, #4ade80 50%, #22c55e 85%, transparent);
-    box-shadow: 0 0 16px 3px rgba(34, 197, 94, .9);
-    animation: e-camera-edge-pulse 1.6s ease-in-out infinite alternate;
-  }
-  .e-camera-success-overlay:has(> .e-camera-scanning-caption[hidden])::after,
-  .e-camera-success-overlay:has(> .e-camera-scanning-caption[hidden]) .e-camera-edge-bottom {
-    display: none;
-  }
-  @keyframes e-camera-edge-pulse {
-    0% { opacity: .45; }
-    100% { opacity: 1; }
   }
   /* 인식 중 안내 문구(2026-08-20 추가) — 스캔 라인이 도는 동안만 보이고, 결과 배지가 뜨면 JS가
      hidden 처리한다. */
