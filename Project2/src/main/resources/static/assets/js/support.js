@@ -141,13 +141,11 @@
     bubble.appendChild(foot);
   }
 
-  /* ================================== AI 답변 생성 대기 애니메이션 */
-  var THINK_STEPS = [
-    '질문을 이해하고 있어요',
-    '도움말 문서를 찾고 있어요',
-    '답변을 작성하고 있어요'
-  ];
-
+  /* ================================== AI 답변 생성 대기 애니메이션
+     2026-08-21 수정 — 질문 이해/자료 검색/답변 작성 단계 문구 + 스켈레톤 줄로 구성됐던 걸 걷어내고,
+     참고 이미지(카톡류 채팅앱의 "입력 중" 말풍선)와 같은 단순한 점 3개 바운스 버블로 교체했다.
+     이 점 3개 애니메이션(.e-thinking-dots) 자체는 eatty.css에 이미 만들어져 있었는데 실제로는
+     한 번도 안 쓰이고 있었다. */
   function showThinking() {
     var wrap = document.createElement('div');
     wrap.className = 'e-thinking';
@@ -158,40 +156,17 @@
       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>' +
       '</span>' +
       '<div class="e-thinking-box">' +
-      '<p class="e-thinking-step" id="thinkingStep">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>' +
-      '<span class="js-step-text">' + THINK_STEPS[0] + '</span></p>' +
-      '<div class="e-thinking-skeleton"><span class="e-skeleton"></span><span class="e-skeleton"></span><span class="e-skeleton"></span></div>' +
+      '<div class="e-thinking-dots"><span></span><span></span><span></span></div>' +
       '</div>';
     els.msgArea.appendChild(wrap);
     els.progress.hidden = false;
     scrollBottom();
-
-    var i = 0;
-    wrap._stepTimer = setInterval(function () {
-      i = Math.min(i + 1, THINK_STEPS.length - 1);
-      setThinkingStep(THINK_STEPS[i]);
-      if (i === THINK_STEPS.length - 1) clearInterval(wrap._stepTimer);
-    }, 900);
-
     return wrap;
-  }
-
-  function setThinkingStep(text) {
-    var step = document.getElementById('thinkingStep');
-    if (!step) return;
-    step.querySelector('.js-step-text').textContent = text;
-    step.classList.remove('is-swap');
-    void step.offsetWidth;
-    step.classList.add('is-swap');
   }
 
   function hideThinking() {
     var wrap = document.getElementById('botThinking');
-    if (wrap) {
-      clearInterval(wrap._stepTimer);
-      wrap.remove();
-    }
+    if (wrap) wrap.remove();
     els.progress.hidden = true;
   }
 
