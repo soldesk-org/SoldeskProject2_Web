@@ -1786,6 +1786,30 @@ body.is-modal-open { overflow: hidden; }
 
 /* ======================= 13. 지도 영역 (네이버 지도) ==================== */
 /* 실제 라이브러리는 미연결. 아래 요소에 new naver.maps.Map(el, ...) 을 붙인다. */
+/* 네이버 지도 컨테이너 격리(2026-08-21 추가) ─────────────────────────────
+   네이버 지도 SDK는 저작권 표시("NAVER Corp."), 로고, 축척 바를 지도 안에 z-index 10000 안팎으로
+   그린다(실측). 우리 UI 중 가장 높은 게 카메라 모달(200)이라 그보다도 위여서, 지도가 있는 페이지를
+   스크롤하면 그 워터마크가 하단 탭바(z-index 55) 위에 겹쳐 보였다(AI 추천 화면에서 지적받음).
+
+   isolation: isolate를 주면 지도 컨테이너가 독립 stacking context가 되어 내부 z-index가 그 안에서만
+   유효해진다. 컨테이너 자체는 z-index auto라서 탭바/헤더/모달 아래로 정상 배치된다. 지도 내부 요소들의
+   상대 순서(마커, 인포윈도우 등)는 그대로 유지되므로 지도 기능에는 영향이 없다.
+
+   2026-08-07에는 explore에서 같은 문제를 "상세 패널이 열리면 지도를 display:none으로 감추기"로
+   우회했는데(explore.css 참고), 이게 근본 해결책이다. 그 우회는 지금 동작 중이라 일단 그대로 뒀다.
+
+   ※ 지도를 새로 넣는 화면이 생기면 그 컨테이너 선택자를 여기에 추가할 것. z-index를 올려서 해결하려
+     하면 안 된다 — 10000을 넘기려면 우리 UI 전체 계층을 다시 매겨야 하고, 그러면 모달/드로어/토스트
+     순서가 전부 어긋난다. */
+#naverMap,           /* explore — 지도 탐색 */
+#naverMapRecommend,  /* recommend — AI 추천의 "추천 위치" */
+#heroMap,            /* index — 홈 히어로 지도 */
+#visitConfirmMap,    /* receipt-upload, receipt-upload-preview — 방문 확인 */
+#bizMapArea,         /* business-mypage — 내 매장 위치 */
+#shopMapArea {       /* signup-business-info — 사업자 가입 시 매장 위치 */
+  isolation: isolate;
+}
+
 .e-map {
   position: relative; width: 100%; height: 100%;
   min-height: 320px;
