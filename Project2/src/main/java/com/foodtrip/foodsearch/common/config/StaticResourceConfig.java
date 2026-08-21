@@ -27,6 +27,19 @@ public class StaticResourceConfig implements WebMvcConfigurer {
 
     private static final CacheControl UPLOADED_IMAGE_CACHE = CacheControl.maxAge(Duration.ofHours(1)).cachePublic();
     private static final CacheControl BUNDLED_IMAGE_CACHE = CacheControl.maxAge(Duration.ofDays(7)).cachePublic();
+    /**
+     * CSS/JS 캐시(2026-08-21 추가). 위 클래스 주석에 "JS/CSS는 버전 해시가 없으니 캐싱하지 않는다"고
+     * 적어뒀지만, 그 대가가 생각보다 컸다 — 렌더 블로킹인 stylesheet를 매 페이지 이동마다 새로 받아서
+     * (eatty.css 하나가 130KB, gzip 35KB) 그 0.3~0.5초 동안 화면이 비어 보였다. iOS 앱에서 "페이지
+     * 넘어갈 때마다 0.5초쯤 흰 화면이 뜬다"고 지적받은 현상의 실제 원인이다(전송량/응답시간 측정으로 확인).
+     *
+     * 그래서 "캐시 안 함" 대신 <b>짧게 캐시</b>로 바꿨다. 2분이면 한 번 사이트를 둘러보는 동안의 이동은
+     * 거의 다 캐시 히트라 흰 화면이 사라지고, 배포 후 새 코드가 안 보이는 시간도 최대 2분이라
+     * 원래 우려했던 문제(배포해도 기존 방문자에게 한참 반영 안 됨)는 실질적으로 없다.
+     * 만료 후에도 Last-Modified 기반 조건부 요청이 되므로 대개 304(본문 없음)로 끝난다.
+     * 나중에 파일명에 버전 해시를 넣는 빌드 단계가 생기면 이 값을 길게 올리면 된다.
+     */
+    private static final CacheControl CODE_CACHE = CacheControl.maxAge(Duration.ofMinutes(2)).cachePublic();
 
     private final String profileImageUploadDir;
     private final String restaurantImageUploadDir;
@@ -79,5 +92,20 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/assets/images/**")
                 .addResourceLocations("classpath:/static/assets/images/")
                 .setCacheControl(BUNDLED_IMAGE_CACHE);
+
+        // CSS/JS 짧은 캐시(2026-08-21 추가, 사유는 위 CODE_CACHE 주석 참고).
+        // ※ 이게 실제로 효과를 내려면 SecurityConfig의 정적 리소스 전용 필터체인이 함께 있어야 한다 —
+        //   Spring Security가 모든 응답에 붙이는 no-store가 여기서 준 Cache-Control을 덮어쓰기 때문에,
+        //   그 체인에서 캐시 금지 헤더를 끄지 않으면 이 설정은 무시된다(2026-08-14에 favicon 캐싱이
+        //   안 먹혔던 것과 같은 종류의 함정).
+        registry.addResourceHandler("/assets/css/**")
+                .addResourceLocations("classpath:/static/assets/css/")
+                .setCacheControl(CODE_CACHE);
+        registry.addResourceHandler("/assets/js/**")
+                .addResourceLocations("classpath:/static/assets/js/")
+                .setCacheControl(CODE_CACHE);
+        registry.addResourceHandler("/js/**")
+                .addResourceLocations("classpath:/static/js/")
+                .setCacheControl(CODE_CACHE);
     }
 }
