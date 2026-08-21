@@ -2,6 +2,14 @@
 <html lang="ko" data-auth-state="guest">
 <head>
 <meta charset="UTF-8">
+<!-- 2026-08-21 추가 — iOS 앱(WKWebView)에서 페이지를 옮길 때마다 흰 화면이 번쩍이던 문제 대응.
+     외부 stylesheet(eatty.css 등)는 렌더 블로킹이라 도착하기 전에는 화면을 못 그리는데, 그 대기 구간에
+     새 문서의 캔버스가 브라우저 기본색(흰색)으로 칠해진다. 이 인라인 <style>은 문서를 파싱하는 즉시
+     적용되므로 그 구간부터 사이트 배경색이 깔린다. 외부 CSS를 기다리지 않는 게 핵심이라 반드시
+     인라인이어야 하고(별도 파일로 빼면 같은 대기가 다시 생긴다), charset 선언 뒤에 둬야 한다
+     (charset은 head 앞쪽 1024바이트 안에 있어야 함). 값은 eatty.css의 --bg-soft와 같은 색.
+     같은 목적의 다른 두 겹: 네이티브 WebView 배경색(EattyWayIOS의 MainViewController) + view transition. -->
+<style>html{background-color:#f8f7fb}</style>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>잇티웨이</title>
 <link rel="icon" href="favicon.ico" sizes="any">
