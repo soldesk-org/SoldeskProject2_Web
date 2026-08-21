@@ -222,13 +222,17 @@
 
     <!-- ==================== 툴바 ==================== -->
     <section class="e-card e-card-pad !py-4 mb-5">
-      <div class="flex flex-wrap items-center gap-2.5">
-        <div class="e-input-wrap has-icon flex-1" style="min-width:220px;max-width:340px">
-          <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="search" class="e-input e-input-sm" id="reviewSearchInput" placeholder="가게명 또는 리뷰 내용 검색" aria-label="리뷰 검색">
-        </div>
+      <div class="e-input-wrap has-icon mb-2.5">
+        <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" class="e-input e-input-sm" id="reviewSearchInput" placeholder="가게명 또는 리뷰 내용 검색" aria-label="리뷰 검색">
+      </div>
 
-        <select class="e-select e-input-sm" id="reviewRatingFilter" aria-label="별점 필터" style="width:auto">
+      <!-- 2026-08-21 수정 — 좁은 화면(모바일)에서 select 4개+버튼이 줄바꿈되어 두 줄로 나뉘던 문제
+           ("별점, 전체 기간, 최신순, 초기화 저게 한 줄에 다 나오게 해줘"). flex-wrap 대신 한 줄
+           고정(nowrap) + 가로 스크롤로 바꿔서, 화면이 좁아도 무조건 한 줄에 다 나오고 넘치는 부분만
+           옆으로 스크롤해서 보게 한다. */
+      <div class="flex flex-nowrap items-center gap-2.5" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <select class="e-select e-input-sm" id="reviewRatingFilter" aria-label="별점 필터" style="width:auto;flex:none">
           <option value="all">별점 전체</option>
           <option value="5">5점</option>
           <option value="4">4점</option>
@@ -237,25 +241,23 @@
           <option value="1">1점</option>
         </select>
 
-        <select class="e-select e-input-sm" id="reviewPeriodFilter" aria-label="기간 필터" style="width:auto">
+        <select class="e-select e-input-sm" id="reviewPeriodFilter" aria-label="기간 필터" style="width:auto;flex:none">
           <option value="all">전체 기간</option>
           <option value="1m">최근 1개월</option>
           <option value="3m">최근 3개월</option>
           <option value="1y">최근 1년</option>
         </select>
 
-        <div class="ml-auto flex items-center gap-2.5">
-          <select class="e-select e-input-sm" id="reviewSortSelect" aria-label="정렬" style="width:auto">
-            <option value="recent">최신순</option>
-            <option value="rating-high">별점 높은순</option>
-            <option value="rating-low">별점 낮은순</option>
-            <option value="helpful">도움됨 많은순</option>
-          </select>
-          <button type="button" class="btn btn-outline btn-sm" id="reviewFilterResetBtn" aria-label="필터 초기화">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-            초기화
-          </button>
-        </div>
+        <select class="e-select e-input-sm" id="reviewSortSelect" aria-label="정렬" style="width:auto;flex:none">
+          <option value="recent">최신순</option>
+          <option value="rating-high">별점 높은순</option>
+          <option value="rating-low">별점 낮은순</option>
+          <option value="helpful">도움됨 많은순</option>
+        </select>
+        <button type="button" class="btn btn-outline btn-sm" id="reviewFilterResetBtn" aria-label="필터 초기화" style="flex:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+          초기화
+        </button>
       </div>
     </section>
 
