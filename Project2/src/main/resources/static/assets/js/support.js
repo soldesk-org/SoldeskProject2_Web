@@ -109,10 +109,13 @@
   function createBotBubble() {
     var wrap = document.createElement('div');
     wrap.className = 'e-msg';
-    // 2026-08-21 수정 — 안쪽 컬럼에 flex-1이 붙어있어서 답변이 짧든 길든 매번 강제로 최대 너비
-    // (88%)까지 늘어나 있었다("처음부터 옆으로 긴데?" 지적). flex-1을 빼서 내용 길이만큼만 차지하게
-    // 하고, 88%는 그 위 "허용 한도"로만 남긴다(긴 답변은 여전히 그만큼까지 넓어질 수 있음).
-    wrap.style.maxWidth = '88%';
+    // 2026-08-21 1차 수정 — 안쪽 컬럼에 flex-1이 붙어있어서 답변이 짧든 길든 매번 강제로 최대 너비
+    // (88%)까지 늘어나 있었다("처음부터 옆으로 긴데?" 지적). flex-1을 뺐지만, 여러 줄짜리 긴 답변
+    // (번호 목록 등)은 block 요소 특성상 flex-1 없이도 shrink-to-fit 계산에서 결국 상한선까지
+    // 채워지는 경우가 많아 "여전히 크다"는 지적이 또 나왔다.
+    // 2026-08-21 2차 수정 — 상한 자체를 78%(사용자 말풍선과 동일)로 낮췄다. 모바일 화면에서는
+    // 88%가 사실상 화면 끝까지 닿아서 짧은 답변이든 긴 답변이든 "꽉 찬" 느낌이었다.
+    wrap.style.maxWidth = '78%';
     wrap.innerHTML =
       '<span class="e-bot-avatar" aria-hidden="true">' +
       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>' +
@@ -235,7 +238,6 @@
     streamText(greetWrap, greeting, function () {
       state.messages.push({ role: 'bot', text: greeting, at: Date.now() });
       setQuickReplies(DEFAULT_QUICK);
-      els.input.focus();
     });
 
     resetIdle();
@@ -282,7 +284,12 @@
       });
   }
 
-  /* 정상 답변 처리 — 서버 answer 를 그대로 렌더링. */
+  /* 정상 답변 처리 — 서버 answer 를 그대로 렌더링.
+     2026-08-21 수정 — 답변이 끝날 때마다 els.input.focus()를 호출하던 게 iOS 앱(WKWebView)에서
+     사용자가 손 안 댔는데도 매번 키보드가 자동으로 올라오는 문제였다("자동 호버" 지적). 데스크톱
+     브라우저에서는 커서만 깜빡여서 티가 안 났지만, 모바일에서는 답변 올 때마다 키보드가 튀어나온다.
+     사용자가 직접 입력창을 탭했을 때만 포커스가 가야 하므로, 답변/에러/초기 인사 뒤의 자동 focus()는
+     전부 제거했다(idleContinueBtn처럼 실제 버튼 클릭이라는 사용자 제스처가 있는 경우는 그대로 둠). */
   function onAnswer(answer) {
     var wrap = createBotBubble();
     streamText(wrap, answer, function () {
@@ -295,7 +302,6 @@
       setQuickReplies(DEFAULT_QUICK);
       state.busy = false;
       els.sendBtn.disabled = false;
-      els.input.focus();
       resetIdle();
     });
   }
@@ -307,7 +313,6 @@
     setQuickReplies(DEFAULT_QUICK);
     state.busy = false;
     els.sendBtn.disabled = false;
-    els.input.focus();
     resetIdle();
   }
 

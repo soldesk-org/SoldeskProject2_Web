@@ -2331,9 +2331,11 @@ body.is-modal-open { overflow: hidden; }
 .e-bot-avatar--xl { width: 72px; height: 72px; border-radius: 22px; }
 .e-bot-avatar--xl svg { width: 34px; height: 34px; }
 
-/* 봇 말풍선 — .e-msg-bubble 을 상속하되 살짝 넓게 */
+/* 봇 말풍선 — .e-msg-bubble 을 상속 */
+/* 2026-08-21 — max-width:none을 빼서 부모(.e-msg, JS가 78%로 지정)의 상한을 실제로 지키게 했다.
+   원래 여기서 max-width:none을 준 게, 긴 답변(번호 목록 등)이 부모 상한을 넘어 계속 커지던
+   원인이었다("여전히 크게 나와" 지적). */
 .e-msg-bubble--bot {
-  max-width: none;
   line-height: 1.68;
 }
 .e-msg-bubble--bot strong { color: var(--ink-900); font-weight: 700; }
