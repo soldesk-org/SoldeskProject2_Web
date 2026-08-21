@@ -2079,6 +2079,24 @@ body.is-modal-open { overflow: hidden; }
   background-size: 18px 18px;
 }
 
+/* 지도 "현재 위치" 마커의 halo 펄스(2026-08-21, 토스 매장 지도 실측 기반) — GPS 정확도 반경(미터
+   단위 원)이 아니라 화면 고정 픽셀 크기(44px)의 원이 점 뒤에서 scale(1)->scale(2)->scale(1)로
+   커졌다 작아지길 반복하고, 투명도는 애니메이션 내내 고정이다(끝에서 옅어지지 않음) — 처음 만들었던
+   "반경이 커지면서 옅어지는" 버전과는 반대. store.tossplace.com의 실제 DOM/CSS(.location-indicator__
+   point, .location-indicator__shadow, keyframes)를 Playwright로 직접 열어 확인하고 그대로 값만
+   우리 브랜드 컬러로 바꿔 옮겼다. */
+.e-mylocation-halo {
+  position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; margin-left: -22px; margin-top: -22px;
+  border-radius: 50%; background: #4285F4; opacity: .12; z-index: -1;
+  animation: e-mylocation-pulse 1.6s cubic-bezier(.45, 0, .55, 1) infinite;
+}
+@keyframes e-mylocation-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(2); }
+  100% { transform: scale(1); }
+}
+
 @keyframes e-spin { to { transform: rotate(360deg); } }
 @keyframes e-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 @keyframes e-pulse {

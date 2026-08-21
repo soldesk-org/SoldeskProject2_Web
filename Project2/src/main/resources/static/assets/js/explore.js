@@ -516,46 +516,26 @@
   // 2026-08-09 추가 — "현재 위치로 이동"만 하고 실제로 그 위치가 어딘지 지도 위에 표시가 안 되던 문제.
   // 처음엔 네이버 지도의 기본(빨간 핀) 마커를 그대로 썼는데, "네이버 지도 앱이 실제로 쓰는 파란 점
   // 스타일로 해달라"는 피드백으로 흰 테두리가 있는 파란 원(점) 아이콘을 직접 그려서 대체했다. 그 주변에
-  // 정확도 반경 원(Circle)을 함께 그려서 위치가 눈에 띄게 한다. 클릭할 때마다 새로 그리므로 이전
-  // 마커/원은 지우고 다시 그린다.
+  // 2026-08-21 — GPS 정확도 반경(미터 단위 Circle)을 그리던 방식을 버리고, 토스 매장 지도
+  // (store.tossplace.com)를 Playwright로 직접 열어 확인한 실제 구현으로 교체했다: 점 마커 뒤에
+  // 화면 고정 픽셀 크기(44px)의 halo가 CSS 애니메이션(scale(1)->scale(2)->scale(1), 투명도 고정)으로
+  // 펄스친다. 지도 줌/미터 단위와 무관하게 항상 같은 화면 크기로 뛴다는 게 토스 쪽과의 핵심 차이점 —
+  // naver.maps.Marker의 icon.content에 halo용 div를 점과 함께 넣어서, 순수 CSS 애니메이션
+  // (.e-mylocation-halo, eatty.css)으로 움직이게 한다(JS로 프레임마다 갱신하던 이전 버전보다 가볍고,
+  // 실제 토스 구현과 동일한 방식).
   var MY_LOCATION_DOT_ICON = {
-    content: '<div style="width:18px;height:18px;border-radius:50%;background:#4285F4;' +
-      'border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25),0 2px 5px rgba(0,0,0,.35);"></div>',
-    size: new naver.maps.Size(18, 18),
-    anchor: new naver.maps.Point(9, 9),
+    content: '<div style="position:relative;width:44px;height:44px;">' +
+      '<div class="e-mylocation-halo"></div>' +
+      '<div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin-left:-10px;' +
+      'margin-top:-10px;border-radius:50%;background:#4285F4;border:4px solid #fff;' +
+      'box-shadow:0 2px 4px rgba(0,25,54,.31);"></div>' +
+      '</div>',
+    size: new naver.maps.Size(44, 44),
+    anchor: new naver.maps.Point(22, 22),
   };
   var myLocationMarker = null;
-  var myLocationCircle = null;
-  var myLocationPulseRAF = null;
-  var myLocationBaseRadius = 120;
-  // 2026-08-21 추가 — 토스맵(store.tossplace.com)의 "현재 위치" 반경 원처럼 숨쉬듯 커졌다 옅어지는
-  // 애니메이션. naver.maps.Circle은 CSS 트랜지션 대상이 아니라(캔버스/SVG 오버레이) requestAnimationFrame
-  // 으로 매 프레임 반경(setRadius)과 투명도(setOptions)를 직접 갱신하는 방식으로 흉내낸다.
-  function startMyLocationPulse(baseRadius) {
-    stopMyLocationPulse();
-    myLocationBaseRadius = baseRadius;
-    var start = performance.now();
-    var duration = 1800;
-    function tick(now) {
-      if (!myLocationCircle) { myLocationPulseRAF = null; return; }
-      var t = ((now - start) % duration) / duration;
-      // 0 -> 1 -> 0으로 부드럽게 오가는 이징(코사인 기반) 대신, 반경은 계속 커지다가 리셋되고
-      // 투명도만 그에 맞춰 옅어지는 "펄스"가 토스 쪽 느낌과 더 가깝다.
-      var radius = baseRadius * (1 + t * 0.8);
-      var fadeOpacity = 0.18 * (1 - t);
-      myLocationCircle.setRadius(radius);
-      myLocationCircle.setOptions({ fillOpacity: fadeOpacity, strokeOpacity: 0.55 * (1 - t) });
-      myLocationPulseRAF = requestAnimationFrame(tick);
-    }
-    myLocationPulseRAF = requestAnimationFrame(tick);
-  }
-  function stopMyLocationPulse() {
-    if (myLocationPulseRAF) { cancelAnimationFrame(myLocationPulseRAF); myLocationPulseRAF = null; }
-  }
   function clearMyLocationOverlay() {
-    stopMyLocationPulse();
     if (myLocationMarker) { myLocationMarker.setMap(null); myLocationMarker = null; }
-    if (myLocationCircle) { myLocationCircle.setMap(null); myLocationCircle = null; }
   }
   var myLocationBtn = document.getElementById("myLocationBtn");
   if (myLocationBtn) {
@@ -576,15 +556,6 @@
         myLocationMarker = new naver.maps.Marker({
           position: here, map: map, title: "현재 위치", zIndex: 200, icon: MY_LOCATION_DOT_ICON,
         });
-        // GPS 정확도(accuracy, 미터)가 있으면 그 값을, 없으면 원이 점 아이콘보다 넉넉히 보이도록
-        // 기본값(120m)을 반경으로 쓴다 — 값이 너무 작으면 원이 점 아이콘 아래에 거의 안 보인다.
-        var radius = pos.coords.accuracy ? Math.max(pos.coords.accuracy, 120) : 120;
-        myLocationCircle = new naver.maps.Circle({
-          map: map, center: here, radius: radius,
-          fillColor: "#4285F4", fillOpacity: 0.15,
-          strokeColor: "#4285F4", strokeOpacity: 0.6, strokeWeight: 1,
-        });
-        startMyLocationPulse(radius);
       }, function () {
         // 2026-08-09 추가 — 위치 권한을 거부한 상태에서 버튼을 누르면 아무 반응이 없어 혼란스럽다는
         // 지적으로, 실패 콜백에 안내 토스트를 추가했다(권한 거부/타임아웃/기기 미지원 등 사유 불문 동일 문구).
