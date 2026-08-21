@@ -924,12 +924,28 @@
           }
         }
 
+        // 2026-08-21 추가 — iOS 앱(Capacitor WKWebView)/모바일 브라우저에는 Web Share API
+        // (navigator.share)가 있으면 그걸 우선 쓴다 — 시스템 공유 시트(카카오톡/문자/에어드랍 등)가
+        // 그대로 뜬다. 지원 안 하는 환경(대부분의 데스크톱 브라우저)에서만 기존처럼 링크 클립보드
+        // 복사로 대체한다(fail-open, 공유 자체가 막히면 안 됨).
+        function shareOrCopy(url) {
+          if (navigator.share) {
+            navigator.share({ title: item.name || "잇티웨이", url: url }).catch(function (err) {
+              // 사용자가 공유 시트를 취소한 경우(AbortError)는 실패로 취급하지 않는다.
+              if (err && err.name === "AbortError") return;
+              copyLink(url);
+            });
+          } else {
+            copyLink(url);
+          }
+        }
+
         // 2026-08-09 추가 — 원래는 이 긴 쿼리스트링 URL을 그대로 복사했는데("너무 길어서 보기 안 좋다"는
         // 지적) 서버에서 짧은 코드를 발급받아 그걸 복사한다. 발급 실패(네트워크 오류 등)해도 공유 자체가
         // 막히면 안 되니 원래의 긴 URL로 조용히 대체한다(fail-open).
         Api.request("/api/short-links", { method: "POST", auth: false, body: { path: longPath } })
-          .then(function (res) { copyLink(window.location.origin + "/s/" + res.code); })
-          .catch(function () { copyLink(longUrl); });
+          .then(function (res) { shareOrCopy(window.location.origin + "/s/" + res.code); })
+          .catch(function () { shareOrCopy(longUrl); });
       };
     }
 
