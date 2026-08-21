@@ -77,7 +77,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- ?v= 는 캐시 무효화용(2026-08-21) — recommend.html의 같은 위치 주석 참고 -->
-<link rel="stylesheet" href="assets/css/eatty.css?v=20260821f">
+<link rel="stylesheet" href="assets/css/eatty.css?v=20260821g">
 <script defer src="assets/js/api.js?v=20260821c"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/mypage-reviews.js"></script>
@@ -429,17 +429,20 @@
       <!-- 긍정 태그 -->
       <div class="e-field">
         <span class="e-label">좋았던 점</span>
+        <!-- 2026-08-21 수정 — 리뷰 작성(receipt-upload.html)에는 있던 <span class="e-emoji"> 아이콘이
+             수정 모달에는 처음부터 빠져 있었다("태그 지정할 때 이모티콘이 안 나와있어" 지적). 그 화면과
+             완전히 동일한 마크업(이모지+라벨 구조)으로 맞췄다. -->
         <div class="flex flex-wrap gap-2" id="editPositiveTagList">
-          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="맛있어요"><span class="e-tag-pick e-tag-pick--pos">맛있어요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="재료가 신선해요"><span class="e-tag-pick e-tag-pick--pos">재료가 신선해요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="양이 많아요"><span class="e-tag-pick e-tag-pick--pos">양이 많아요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="가성비가 좋아요"><span class="e-tag-pick e-tag-pick--pos">가성비가 좋아요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="깨끗해요"><span class="e-tag-pick e-tag-pick--pos">깨끗해요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="친절해요"><span class="e-tag-pick e-tag-pick--pos">친절해요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="차분해요"><span class="e-tag-pick e-tag-pick--pos">차분해요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="대기시간짧아요"><span class="e-tag-pick e-tag-pick--pos">대기시간 짧아요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="음식이빨리나와요"><span class="e-tag-pick e-tag-pick--pos">음식이 빨리 나와요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="가게가예뻐요"><span class="e-tag-pick e-tag-pick--pos">가게가 예뻐요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="맛있어요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">😋</span><span class="e-tag-pick-label">맛있어요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="재료가 신선해요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">🥬</span><span class="e-tag-pick-label">재료가 신선해요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="양이 많아요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">🍚</span><span class="e-tag-pick-label">양이 많아요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="가성비가 좋아요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">💰</span><span class="e-tag-pick-label">가성비가 좋아요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="깨끗해요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">✨</span><span class="e-tag-pick-label">깨끗해요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="친절해요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">💗</span><span class="e-tag-pick-label">친절해요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="차분해요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">😌</span><span class="e-tag-pick-label">차분해요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="대기시간짧아요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">⏱️</span><span class="e-tag-pick-label">대기시간 짧아요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="음식이빨리나와요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">🚀</span><span class="e-tag-pick-label">음식이 빨리 나와요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="positiveTags" value="가게가예뻐요"><span class="e-tag-pick e-tag-pick--pos"><span class="e-emoji">🏠</span><span class="e-tag-pick-label">가게가 예뻐요</span></span></label>
         </div>
       </div>
 
@@ -447,16 +450,16 @@
       <div class="e-field">
         <span class="e-label">아쉬운 점</span>
         <div class="flex flex-wrap gap-2" id="editNegativeTagList">
-          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="맛이 아쉬워요"><span class="e-tag-pick e-tag-pick--neg">맛이 아쉬워요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="재료가 신선하지 않아요"><span class="e-tag-pick e-tag-pick--neg">재료가 신선하지 않아요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="양이 적어요"><span class="e-tag-pick e-tag-pick--neg">양이 적어요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="가격이 비싸요"><span class="e-tag-pick e-tag-pick--neg">가격이 비싸요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="지저분해요"><span class="e-tag-pick e-tag-pick--neg">지저분해요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="불친절해요"><span class="e-tag-pick e-tag-pick--neg">불친절해요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="소란스러워요"><span class="e-tag-pick e-tag-pick--neg">소란스러워요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="대기시간길어요"><span class="e-tag-pick e-tag-pick--neg">대기시간 길어요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="음식이늦게나와요"><span class="e-tag-pick e-tag-pick--neg">음식이 늦게 나와요</span></label>
-          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="가게가부산스러워요"><span class="e-tag-pick e-tag-pick--neg">가게가 부산스러워요</span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="맛이 아쉬워요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">😕</span><span class="e-tag-pick-label">맛이 아쉬워요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="재료가 신선하지 않아요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">🥬</span><span class="e-tag-pick-label">재료가 신선하지 않아요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="양이 적어요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">🍚</span><span class="e-tag-pick-label">양이 적어요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="가격이 비싸요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">💸</span><span class="e-tag-pick-label">가격이 비싸요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="지저분해요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">🧹</span><span class="e-tag-pick-label">지저분해요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="불친절해요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">😠</span><span class="e-tag-pick-label">불친절해요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="소란스러워요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">🔊</span><span class="e-tag-pick-label">소란스러워요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="대기시간길어요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">⏳</span><span class="e-tag-pick-label">대기시간 길어요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="음식이늦게나와요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">🐢</span><span class="e-tag-pick-label">음식이 늦게 나와요</span></span></label>
+          <label class="e-chip-check"><input type="checkbox" name="negativeTags" value="가게가부산스러워요"><span class="e-tag-pick e-tag-pick--neg"><span class="e-emoji">😵</span><span class="e-tag-pick-label">가게가 부산스러워요</span></span></label>
         </div>
       </div>
 

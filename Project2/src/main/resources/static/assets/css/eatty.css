@@ -56,6 +56,21 @@
        교체할 것을 권장한다. (CDN은 개발/시안 용도)
    ========================================================================== */
 
+/* Toss Face 이모지 폰트(2026-08-20 receipt-upload.css에 추가, 2026-08-21 이 전역 파일로 이동)
+   출처: (주)비바리퍼블리카(Viva Republica, Inc.) / Toss — https://toss.im/tossface
+   라이선스: https://toss.im/tossface/copyright (폰트 파일 수정 없이 그대로 사용, 이용조건은
+   위 링크의 최신 고지를 따름) — 화면에는 별도 출처 표기를 넣지 말라는 요청이 있어 이 주석으로만
+   남겨둔다. 파일이 12MB가 넘어 페이지 전체 텍스트에 걸면 안 쓰는 곳까지 폰트를 내려받으므로,
+   이모지 글자만 별도 span(.e-emoji)으로 감싸서 그 요소에만 적용한다. 처음엔 receipt-upload.css
+   (리뷰 작성 화면)에만 있었는데, 리뷰 수정 모달(mypage-reviews.html)도 같은 태그 이모지가
+   필요해져서 이 공용 파일로 옮겼다. */
+@font-face {
+  font-family: "TossFace";
+  src: url("../fonts/TossFaceFontMac.ttf") format("truetype");
+  font-display: swap;
+}
+.e-emoji { font-family: "TossFace", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+
 /* ============================ 1. 디자인 토큰 ============================= */
 :root {
   /* 브랜드 (오렌지) — 기존 팔레트 유지 */
