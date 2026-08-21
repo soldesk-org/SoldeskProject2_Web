@@ -407,6 +407,22 @@
     if (global.Eatty && typeof global.Eatty.toast === "function") global.Eatty.toast(msg, "error");
   }
 
+  // 2026-08-21 추가 — navigator.share(Web Share API)가 WKWebView(iOS 앱 내장 웹뷰)에서는 아직
+  // 구현이 안 돼 있어서(Safari 앱 자체와 다름), 공유 버튼을 눌러도 계속 클립보드 복사로만 폴백되던
+  // 문제. 소셜로그인과 같은 네이티브 브릿지로 진짜 iOS 공유 시트(UIActivityViewController)를
+  // 띄운다. 브릿지가 없으면(=일반 브라우저) false를 돌려주므로 호출한 쪽이 navigator.share/클립보드
+  // 복사로 폴백하면 된다.
+  function nativeShare(url, title) {
+    var bridge = appAuthBridge();
+    if (!bridge) return false;
+    try {
+      bridge.postMessage({ action: "nativeShare", url: String(url), title: title ? String(title) : "" });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // 네이티브가 브라우저 시트에서 받아온 콜백 파라미터를 그대로 넘겨준다(evaluateJavaScript로 호출됨).
   function completeAppOAuth(payload) {
     if (!payload || typeof payload !== "object") return;
@@ -434,6 +450,7 @@
     startSocialLogin: startAppSocialLogin,
     completeAppOAuth: completeAppOAuth,
     appOAuthCancelled: appOAuthCancelled,
+    nativeShare: nativeShare,
   };
 
   global.Api = {

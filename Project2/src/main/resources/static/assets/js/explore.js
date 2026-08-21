@@ -900,6 +900,11 @@
         // 그대로 뜬다. 지원 안 하는 환경(대부분의 데스크톱 브라우저)에서만 기존처럼 링크 클립보드
         // 복사로 대체한다(fail-open, 공유 자체가 막히면 안 됨).
         function shareOrCopy(url) {
+          // 2026-08-21 수정 — iOS 앱(WKWebView) 안에서는 navigator.share가 아예 없어서 매번
+          // 클립보드 복사로만 폴백되고 있었다. 앱 안이면(EattyWayApp.nativeShare) 네이티브
+          // 공유 시트(UIActivityViewController)를 먼저 시도하고, 실패하면 웹 표준 순서
+          // (navigator.share → 클립보드 복사)로 이어서 폴백한다.
+          if (window.EattyWayApp && window.EattyWayApp.nativeShare(url, item.name || "잇티웨이")) return;
           if (navigator.share) {
             navigator.share({ title: item.name || "잇티웨이", url: url }).catch(function (err) {
               // 사용자가 공유 시트를 취소한 경우(AbortError)는 실패로 취급하지 않는다.
