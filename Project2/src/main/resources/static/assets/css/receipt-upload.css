@@ -204,20 +204,24 @@
     0% { top: 14%; }
     100% { top: 78%; }
   }
-  /* 네이버 바코드 스캐너 참고(2026-08-21 추가) — 스캔 라인만으로는 화면 가장자리가 밋밋해서,
-     화면 위/아래 끝에 얇은 초록 그라데이션 띠를 깔고 은은하게 깜빡이게 한다. 스캔 라인이 도는
-     동안(인식 중)에만 보이고, 결과가 나오면(스캔 안내 문구가 hidden 되는 시점) 함께 사라진다 —
-     JS 수정 없이 :has()로 형제 요소(캡션)의 hidden 여부만 보고 판단한다. */
+  /* 네이버 바코드 스캐너 참고(2026-08-21 추가, 2026-08-21 재수정)
+     1차 시도는 화면 절대 맨 위/아래(top:0/bottom:0)에 3px 띠를 깔았는데, 위쪽은 iOS 상태바
+     (다이나믹 아일랜드) 영역과 겹쳐서 그 뒤에 가려 실제로는 안 보였다("안 해준거 같은데" 지적,
+     실기기 스크린샷으로 확인). 화면 가장자리가 아니라 스캔 라인이 오가는 실제 스캔 영역의 위/아래
+     경계(top:14% / top:78%, e-camera-scanline-sweep과 동일한 기준)에 맞춰서 다시 그렸다 — 네이버
+     바코드 스캐너도 화면 끝이 아니라 스캔 창 테두리에 색 띠를 준다. 두께/광량도 눈에 띄게 키웠다. */
   .e-camera-success-overlay::after {
-    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; z-index: 1;
-    background: linear-gradient(90deg, transparent, #22c55e 20%, #22c55e 80%, transparent);
-    box-shadow: 0 0 10px 1px rgba(34, 197, 94, .8);
+    content: ""; position: absolute; left: 6%; right: 6%; top: 14%; height: 4px; z-index: 5;
+    border-radius: 3px;
+    background: linear-gradient(90deg, transparent, #22c55e 15%, #4ade80 50%, #22c55e 85%, transparent);
+    box-shadow: 0 0 16px 3px rgba(34, 197, 94, .9);
     animation: e-camera-edge-pulse 1.6s ease-in-out infinite alternate;
   }
   .e-camera-edge-bottom {
-    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; z-index: 1;
-    background: linear-gradient(90deg, transparent, #22c55e 20%, #22c55e 80%, transparent);
-    box-shadow: 0 0 10px 1px rgba(34, 197, 94, .8);
+    content: ""; position: absolute; left: 6%; right: 6%; top: 78%; height: 4px; z-index: 5;
+    border-radius: 3px;
+    background: linear-gradient(90deg, transparent, #22c55e 15%, #4ade80 50%, #22c55e 85%, transparent);
+    box-shadow: 0 0 16px 3px rgba(34, 197, 94, .9);
     animation: e-camera-edge-pulse 1.6s ease-in-out infinite alternate;
   }
   .e-camera-success-overlay:has(> .e-camera-scanning-caption[hidden])::after,
