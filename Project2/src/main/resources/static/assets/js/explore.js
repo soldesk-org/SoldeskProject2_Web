@@ -934,7 +934,10 @@
       .then(function (detail) {
         document.getElementById("detailPhone").textContent = detail.phone || "정보 없음";
         renderHours(detail.businessHours, detail.businessStatus === "TEMP_CLOSED");
-        if (callBtn) callBtn.setAttribute("href", detail.phone ? "tel:" + detail.phone : "tel:");
+        // 2026-08-21 수정 — 전화번호가 없는 가게는 href="tel:"(빈 번호)라 iOS에서 "잘못된 요청"류
+        // 팝업조차 안 뜨고 조용히 실패하던 문제. 실제 없는 번호(010-0000-0000)로 걸게 해서, iOS
+        // 통화 앱이 "없는 번호입니다" 안내를 정상적으로 띄우게 한다.
+        if (callBtn) callBtn.setAttribute("href", "tel:" + (detail.phone || "010-0000-0000"));
         renderMenus(detail.menus);
 
         detailImages = (detail.images && detail.images.length) ? detail.images : (detail.imageUrl ? [detail.imageUrl] : []);
