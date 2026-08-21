@@ -2,12 +2,21 @@
   /* 관리자 상단바 */
   .adm-topbar {
     position: sticky; top: 0; z-index: 50;
+    /* 2026-08-21 — iOS 앱에서 이 상단바가 상태바(시계/다이나믹 아일랜드)에 딱 붙어버리던 문제.
+       이 화면은 전역 헤더(.e-header)를 쓰지 않고 자체 상단바를 갖는 구조라, .e-header에 넣어둔
+       안전영역 처리가 적용되지 않는 별개 경로였다. .e-header와 같은 방식으로 맞춘다 —
+       box-sizing을 content-box로 명시하는 게 핵심(Tailwind preflight가 전역으로 border-box를 깔기
+       때문에, 그대로 두면 아래 height 64px 안으로 padding-top이 흡수돼서 상단바 내용이 찌그러진다.
+       eatty.css의 .e-header 주석에 같은 함정을 자세히 적어뒀다).
+       padding-top은 반드시 padding 단축 속성 뒤에 와야 한다(단축이 먼저 오면 0으로 덮인다). */
+    box-sizing: content-box;
     height: 64px;
     background: rgba(255, 255, 255, .88);
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--line);
     display: flex; align-items: center; gap: 12px;
     padding: 0 20px;
+    padding-top: env(safe-area-inset-top);
   }
   /* 섹션 전환 */
   .adm-section[hidden] { display: none !important; }

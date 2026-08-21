@@ -352,6 +352,11 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   transition: transform .28s var(--ease), box-shadow .28s var(--ease);
   display: flex; flex-direction: column;
   overflow-y: auto;
+  /* 2026-08-21 추가 — 관리자 사이드바(.e-admin-side)와 같은 이유. 화면 전체 높이를 차지하는 fixed
+     요소라 iOS 앱에서는 드로어 헤드(로고 + 닫기 버튼)가 상태바에 파묻히고 맨 아래 항목이 홈
+     인디케이터와 겹쳤다. */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 /* 닫혀 있을 때(box-shadow: none)는 화면 밖으로 밀려나 있어도 그림자 블러가 뷰포트 오른쪽 끝에
    살짝 비쳐 보일 수 있다는 지적(모바일 실기기, 2026-08-19)으로, 열렸을 때(.is-open)만 그림자를
@@ -534,6 +539,11 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   transform: translateX(-100%);
   transition: transform .26s var(--ease);
   overflow-y: auto;
+  /* 2026-08-21 추가 — 이 사이드바는 화면 전체 높이(inset: 0 auto 0 0)를 차지하는 fixed 요소라서,
+     iOS 앱에서는 맨 위 로고가 상태바에 파묻히고 맨 아래 메뉴가 홈 인디케이터와 겹쳤다.
+     위아래 안전영역만큼 내용 영역을 좁힌다(데스크탑은 env()가 0이라 기존과 동일). */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 .e-admin-side.is-open { transform: translateX(0); }
 .e-admin-main { flex: 1; min-width: 0; }
