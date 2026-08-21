@@ -357,22 +357,21 @@
   document.addEventListener("DOMContentLoaded", initNotifications);
 
   /* ===== iOS 앱(EattyWayIOS, Capacitor WKWebView) 전용 브릿지 (2026-08-21 추가) ==================
-     iOS 앱에서는 소셜 로그인을 앱 안의 WebView에서 열지 않고, iOS 표준인 ASWebAuthenticationSession
-     (시스템 브라우저 시트)으로 열고 로그인이 끝나면 앱으로 자동 복귀시킨다. Safari와 쿠키를 공유하므로
-     카카오/네이버에 이미 로그인돼 있으면 그대로 통과하고, 구글이 embedded WebView OAuth를 막는
-     정책(disallowed_useragent)도 우회된다.
+     iOS 앱에서는 소셜 로그인을 앱 안에서 열지 않고 **앱 밖(기본 브라우저)으로 내보내서** 로그인시키고,
+     끝나면 커스텀 스킴으로 앱이 자동으로 다시 열리게 한다(요기요 앱과 같은 방식). 브라우저로 나가기
+     때문에 거기서 "카카오톡으로 로그인"/"네이버 앱으로 로그인" 앱 전환도 그대로 동작하고, 구글이
+     embedded WebView OAuth를 막는 정책(disallowed_useragent)도 해당되지 않는다.
 
      전체 흐름:
        1) 앱 WebView의 로그인 화면에서 소셜 버튼 클릭 → login.js가 startSocialLogin()으로 네이티브 호출
-       2) 네이티브가 브라우저 시트로 인가 주소를 직접 연다
+       2) 네이티브가 UIApplication.open()으로 인가 주소를 앱 밖 브라우저에 넘긴다
           (/api/oauth-providers/{provider}/authorization?rememberMe=…&app=true)
-          → 서버가 곧바로 카카오/네이버/구글 공식 로그인 화면으로 302한다. 중간에 우리 페이지를 거치지
-            않는 게 중요하다 — 처음엔 /login?appOAuth=1을 먼저 열어 브라우저 sessionStorage에 "앱에서
-            시작함"을 표시하는 방식이었는데, 그러면 로그인 창이 공식 화면이 아니라 eattyway.com부터
-            시작해서 어색했다(2026-08-21 개선).
+          → 서버가 곧바로 카카오/네이버/구글 공식 로그인 화면으로 302하므로 브라우저에는 우리 사이트가
+            아니라 공식 화면이 뜬다
        3) app=true는 OAuth state에 실려 콜백까지 전달된다(서버 OAuthStateService). 콜백은 그걸 보고
           웹 페이지가 아니라 eattyway://oauth-callback?accessToken=…&refreshToken=…&memberId=… 로 302한다
-       4) 그 스킴으로 리다이렉트되는 순간 시스템이 브라우저 시트를 닫고 네이티브에 결과를 넘긴다
+       4) 그 스킴을 iOS가 받아 앱을 다시 열고(Info.plist의 CFBundleURLTypes), SceneDelegate → 
+          MainViewController가 URL을 받는다
        5) 네이티브가 앱 WebView에서 completeAppOAuth(payload)를 호출 → 여기서 세션을 저장하고 랜딩
 
      인증이 쿠키가 아니라 JWT + 스토리지라서, 브라우저에서 로그인해도 토큰만 앱으로 넘겨주면 그대로
@@ -425,7 +424,9 @@
     global.location.replace(landingPageForRole());
   }
 
-  // 사용자가 브라우저 시트를 직접 닫은 경우. 본인이 취소한 것이라 굳이 오류를 띄우지 않는다.
+  // 사용자가 브라우저에서 로그인을 취소한 경우. 지금 방식(앱 밖 브라우저)에서는 취소를 앱이 알 수
+  // 없어서 호출되지 않지만, 네이티브 구현이 바뀌어도 깨지지 않게 진입점은 남겨둔다.
+  // 본인이 취소한 것이라 굳이 오류를 띄울 필요도 없다.
   function appOAuthCancelled() {}
 
   global.EattyWayApp = {
