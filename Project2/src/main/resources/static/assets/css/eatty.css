@@ -2089,11 +2089,15 @@ body.is-modal-open { overflow: hidden; }
   position: absolute; left: 50%; top: 50%;
   width: 44px; height: 44px; margin-left: -22px; margin-top: -22px;
   border-radius: 50%; background: #4285F4; opacity: .12; z-index: -1;
-  animation: e-mylocation-pulse 1.6s cubic-bezier(.45, 0, .55, 1) infinite;
+  animation: e-mylocation-pulse 1.6s infinite;
 }
+/* 2026-08-21 수정 — 처음엔 이징을 cubic-bezier 하나로 뭉뚱그렸는데, 토스 원본은 커지는 구간(0~50%)과
+   작아지는 구간(50~100%)에 서로 다른 이징을 쓴다(각 구간이 시작하는 시점의 animation-timing-function
+   으로 그 구간 전체를 지배하는 CSS 표준 동작). 하나로 합치면 눈에 띄게 "덜 스냅있게" 보여서, 원본
+   keyframe 값(0, .55, .45, 1 / .32, 0, .67, 0) 그대로 옮겼다. */
 @keyframes e-mylocation-pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(2); }
+  0% { transform: scale(1); animation-timing-function: cubic-bezier(0, .55, .45, 1); }
+  50% { transform: scale(2); animation-timing-function: cubic-bezier(.32, 0, .67, 0); }
   100% { transform: scale(1); }
 }
 
