@@ -70,7 +70,12 @@
           '<p class="t-xs mt-1">저장 <b class="t-num">' + formatDate(it.recordedAt) + '</b></p>' +
         '</div>' +
         '<div class="flex flex-col gap-1.5 flex-none">' +
-          '<button type="button" class="btn btn-ghost btn-xs !text-[var(--danger)]" data-remove-favorite data-restaurant-id="' + escapeHtml(it.restaurantId) + '">해제</button>' +
+          // 2026-08-21 수정 — "해제" 텍스트 버튼 대신 빨간 휴지통 아이콘 버튼으로("폰트어썸 X버튼
+          // 또는 휴지통 아이콘으로" 요청). 이 프로젝트는 아이콘 폰트 라이브러리 없이 인라인 SVG만
+          // 쓰는 방식이라(다른 페이지 전부 동일 패턴), Font Awesome 대신 같은 톤의 인라인 SVG로.
+          '<button type="button" class="e-icon-btn !text-[var(--danger)]" data-remove-favorite data-restaurant-id="' + escapeHtml(it.restaurantId) + '" aria-label="즐겨찾기 해제" title="즐겨찾기 해제">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>' +
+          '</button>' +
         '</div>' +
       '</div>'
     );

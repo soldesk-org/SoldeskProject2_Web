@@ -2369,11 +2369,14 @@ body.is-modal-open { overflow: hidden; }
 /* --- AI 답변 생성 대기 애니메이션 -------------------------------------- */
 .e-thinking { display: flex; gap: 9px; align-items: flex-start; }
 .e-thinking-box {
-  padding: 12px 15px;
+  /* 2026-08-21 — min-width:190px는 문구+스켈레톤 3줄이 있던 예전 레이아웃 값. 점 3개짜리 지금
+     콘텐츠엔 안 맞아서 빈 공간만 넓게 뜨고 있었다("말풍선 대기 사이즈가 여전히 커" 지적). 점
+     크기에 맞게 좁혔다. */
+  padding: 12px 16px;
   border-radius: 4px 16px 16px 16px;
   background: #fff; border: 1px solid var(--line);
   box-shadow: var(--sh-xs);
-  min-width: 190px;
+  width: fit-content;
 }
 
 /* 점 3개 바운스 */
