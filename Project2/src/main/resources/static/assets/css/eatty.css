@@ -1679,6 +1679,23 @@ body.is-modal-open { overflow: hidden; }
   display: flex; flex-direction: column-reverse; gap: 10px;
   width: min(92vw, 420px); pointer-events: none;
 }
+
+/* iOS 앱에서만 토스트를 하단 탭바 위로 올린다(2026-08-21 추가) ─────────────
+   기본값 bottom:28px은 탭바가 차지하는 영역(61px + 홈 인디케이터 안전영역 ≈ 95px) 안에 들어가서,
+   토스트가 뜬 동안 탭바 위에 겹쳐 보이고 .e-toast의 pointer-events:auto 때문에 탭 터치까지
+   가로챈다("밑에 있는 바를 눌러야 하는데 토스트가 그 자리에 떠서 불편하다"는 지적).
+
+   웹 브라우저에서는 기존 위치를 그대로 두라는 요청이라, 앱에서만 붙는 .is-native-app 클래스로
+   범위를 한정했다. 이 클래스는 두 곳에서 붙는다 —
+     1) assets/js/api.js: window.Capacitor(앱 WebView에만 주입됨) 확인 후 추가
+     2) 앱 네이티브(MainViewController의 WKUserScript): document-start에 추가
+   둘 중 먼저 실행되는 쪽이 붙이며, 어느 쪽이든 결과는 같다(네이티브 경로는 JS 캐시와 무관하게
+   즉시 동작하고, JS 경로는 재빌드하지 않은 앱에서도 동작한다). */
+@media (max-width: 767px) {
+  html.is-native-app .e-toast-area {
+    bottom: calc(var(--tabbar-total-h) + 12px);
+  }
+}
 .e-toast {
   display: flex; align-items: center; gap: 11px;
   padding: 14px 18px; border-radius: var(--r-md);

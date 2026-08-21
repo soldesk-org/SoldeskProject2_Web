@@ -377,6 +377,19 @@
      인증이 쿠키가 아니라 JWT + 스토리지라서, 브라우저에서 로그인해도 토큰만 앱으로 넘겨주면 그대로
      로그인 상태가 된다(브라우저↔WebView 쿠키 공유가 필요 없음). 일반 브라우저에서는 window.webkit이
      없어서 아래 isInIosApp()이 false가 되고 기존 리다이렉트 방식이 그대로 쓰인다. */
+  /* 앱에서만 적용할 CSS를 위한 표시(2026-08-21 추가) — html에 .is-native-app을 붙인다.
+     지금 쓰임새는 하단 탭바와 겹치던 토스트 위치 보정(eatty.css의 html.is-native-app .e-toast-area).
+     window.Capacitor는 Capacitor 런타임이 앱 WebView에만 주입하므로 이걸로 앱 여부를 판별할 수 있다
+     (아래 isInIosApp()은 우리가 직접 등록한 메시지 핸들러 기준이라 그 코드가 들어간 빌드에서만 true인데,
+     이 표시는 그보다 넓게 "앱이면" 붙어야 해서 판별 근거를 따로 둔다).
+     앱 네이티브에서도 document-start에 같은 클래스를 주입하므로(MainViewController의 WKUserScript),
+     둘 중 먼저 실행되는 쪽이 붙인다 — 중복 추가는 classList가 무시하니 안전하다. */
+  try {
+    if (global.Capacitor && document.documentElement) {
+      document.documentElement.classList.add("is-native-app");
+    }
+  } catch (e) { /* 판별 실패는 무시 — 웹과 동일하게 동작하면 된다 */ }
+
   var APP_BRIDGE_NAME = "eattywayAuth";
 
   function appAuthBridge() {
