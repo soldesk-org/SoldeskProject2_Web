@@ -526,7 +526,34 @@
   };
   var myLocationMarker = null;
   var myLocationCircle = null;
+  var myLocationPulseRAF = null;
+  var myLocationBaseRadius = 120;
+  // 2026-08-21 추가 — 토스맵(store.tossplace.com)의 "현재 위치" 반경 원처럼 숨쉬듯 커졌다 옅어지는
+  // 애니메이션. naver.maps.Circle은 CSS 트랜지션 대상이 아니라(캔버스/SVG 오버레이) requestAnimationFrame
+  // 으로 매 프레임 반경(setRadius)과 투명도(setOptions)를 직접 갱신하는 방식으로 흉내낸다.
+  function startMyLocationPulse(baseRadius) {
+    stopMyLocationPulse();
+    myLocationBaseRadius = baseRadius;
+    var start = performance.now();
+    var duration = 1800;
+    function tick(now) {
+      if (!myLocationCircle) { myLocationPulseRAF = null; return; }
+      var t = ((now - start) % duration) / duration;
+      // 0 -> 1 -> 0으로 부드럽게 오가는 이징(코사인 기반) 대신, 반경은 계속 커지다가 리셋되고
+      // 투명도만 그에 맞춰 옅어지는 "펄스"가 토스 쪽 느낌과 더 가깝다.
+      var radius = baseRadius * (1 + t * 0.8);
+      var fadeOpacity = 0.18 * (1 - t);
+      myLocationCircle.setRadius(radius);
+      myLocationCircle.setOptions({ fillOpacity: fadeOpacity, strokeOpacity: 0.55 * (1 - t) });
+      myLocationPulseRAF = requestAnimationFrame(tick);
+    }
+    myLocationPulseRAF = requestAnimationFrame(tick);
+  }
+  function stopMyLocationPulse() {
+    if (myLocationPulseRAF) { cancelAnimationFrame(myLocationPulseRAF); myLocationPulseRAF = null; }
+  }
   function clearMyLocationOverlay() {
+    stopMyLocationPulse();
     if (myLocationMarker) { myLocationMarker.setMap(null); myLocationMarker = null; }
     if (myLocationCircle) { myLocationCircle.setMap(null); myLocationCircle = null; }
   }
@@ -557,6 +584,7 @@
           fillColor: "#4285F4", fillOpacity: 0.15,
           strokeColor: "#4285F4", strokeOpacity: 0.6, strokeWeight: 1,
         });
+        startMyLocationPulse(radius);
       }, function () {
         // 2026-08-09 추가 — 위치 권한을 거부한 상태에서 버튼을 누르면 아무 반응이 없어 혼란스럽다는
         // 지적으로, 실패 콜백에 안내 토스트를 추가했다(권한 거부/타임아웃/기기 미지원 등 사유 불문 동일 문구).
