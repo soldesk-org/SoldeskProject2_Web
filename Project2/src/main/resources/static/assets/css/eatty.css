@@ -13,18 +13,8 @@
 
    전환 시간은 기본값(0.25s)이 앱에서는 다소 늘어져 보여서 0.18s로 줄였다. 모션 감소 설정을 켠
    사용자에게는 애니메이션을 끄되, 전환 자체는 유지해서 흰 번쩍임은 여전히 막는다. */
-@view-transition { navigation: auto; }
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: .18s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) { animation: none !important; }
-}
+/* (여기 있던 @view-transition 선언은 2026-08-21에 제거했다 — 위 주석 참고. 앱에서만 적용되도록
+   EattyWayIOS의 MainViewController가 WKUserScript로 주입하는 방식으로 옮겼다.) */
 
 /* ==========================================================================
    잇티웨이 (Eatty way) — 공통 디자인 시스템
