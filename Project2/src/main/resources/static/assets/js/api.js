@@ -356,6 +356,81 @@
 
   document.addEventListener("DOMContentLoaded", initNotifications);
 
+  /* ===== iOS 앱(EattyWayIOS, Capacitor WKWebView) 전용 브릿지 (2026-08-21 추가) ==================
+     iOS 앱에서는 소셜 로그인을 앱 안의 WebView에서 열지 않고, iOS 표준인 ASWebAuthenticationSession
+     (시스템 브라우저 시트)으로 열고 로그인이 끝나면 앱으로 자동 복귀시킨다. Safari와 쿠키를 공유하므로
+     카카오/네이버에 이미 로그인돼 있으면 그대로 통과하고, 구글이 embedded WebView OAuth를 막는
+     정책(disallowed_useragent)도 우회된다.
+
+     전체 흐름:
+       1) 앱 WebView의 로그인 화면에서 소셜 버튼 클릭 → login.js가 startSocialLogin()으로 네이티브 호출
+       2) 네이티브가 브라우저 시트로 /login?appOAuth=1&provider=…&rememberMe=… 를 연다
+       3) 그 페이지의 login.js가 "앱에서 시작한 흐름"을 sessionStorage에 표시하고 인가 요청으로 넘긴다
+       4) 서버 콜백이 /login?accessToken=…&refreshToken=…&memberId=… 로 302로 돌려보내면,
+          login.js가 3)의 표시를 보고 eattyway://oauth-callback?… 로 이동 → 네이티브가 이걸 잡고 시트를 닫는다
+       5) 네이티브가 앱 WebView에서 completeAppOAuth(payload)를 호출 → 여기서 세션을 저장하고 랜딩
+
+     이 구조라서 서버(백엔드)는 전혀 수정하지 않아도 된다 — 콜백이 이미 토큰을 쿼리로 실어 프론트로
+     리다이렉트하는 방식이고, 인증도 쿠키가 아니라 JWT + 스토리지라 브라우저↔WebView 간 쿠키 공유가
+     필요 없기 때문이다. 일반 브라우저에서는 window.webkit이 없어서 아래 isInIosApp()이 false가 되고
+     기존 리다이렉트 방식이 그대로 쓰인다. */
+  var APP_BRIDGE_NAME = "eattywayAuth";
+
+  function appAuthBridge() {
+    try {
+      if (!global.webkit || !global.webkit.messageHandlers) return null;
+      return global.webkit.messageHandlers[APP_BRIDGE_NAME] || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function isInIosApp() { return !!appAuthBridge(); }
+
+  // 네이티브에 소셜 로그인 시작을 요청한다. 브릿지가 없으면(=일반 브라우저) false를 돌려주므로
+  // 호출한 쪽이 기존 리다이렉트 방식으로 폴백하면 된다.
+  function startAppSocialLogin(provider, rememberMe) {
+    var bridge = appAuthBridge();
+    if (!bridge) return false;
+    try {
+      bridge.postMessage({ action: "startSocialLogin", provider: String(provider), rememberMe: !!rememberMe });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function appOAuthToast(msg) {
+    if (global.Eatty && typeof global.Eatty.toast === "function") global.Eatty.toast(msg, "error");
+  }
+
+  // 네이티브가 브라우저 시트에서 받아온 콜백 파라미터를 그대로 넘겨준다(evaluateJavaScript로 호출됨).
+  function completeAppOAuth(payload) {
+    if (!payload || typeof payload !== "object") return;
+    if (payload.error) {
+      appOAuthToast(payload.errorMessage || "소셜 로그인에 실패했습니다.");
+      return;
+    }
+    if (!payload.accessToken || !payload.refreshToken || !payload.memberId) return;
+    var remember = payload.rememberMe === true || payload.rememberMe === "true";
+    setSession({
+      accessToken: payload.accessToken,
+      refreshToken: payload.refreshToken,
+      memberId: payload.memberId,
+    }, remember);
+    global.location.replace(landingPageForRole());
+  }
+
+  // 사용자가 브라우저 시트를 직접 닫은 경우. 본인이 취소한 것이라 굳이 오류를 띄우지 않는다.
+  function appOAuthCancelled() {}
+
+  global.EattyWayApp = {
+    isInIosApp: isInIosApp,
+    startSocialLogin: startAppSocialLogin,
+    completeAppOAuth: completeAppOAuth,
+    appOAuthCancelled: appOAuthCancelled,
+  };
+
   global.Api = {
     request: request,
     login: login,
