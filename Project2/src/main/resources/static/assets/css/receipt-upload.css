@@ -196,6 +196,21 @@
     box-shadow: 0 0 20px 6px rgba(34, 197, 94, .85), 0 0 8px 2px rgba(74, 222, 128, .95);
     animation: e-camera-scanline-sweep 1.6s ease-in-out infinite alternate;
   }
+  /* 2026-08-21 — 스캔 라인 아래로 초록빛이 번져 내려가는 그라디언트(사용자 첨부 이미지 참고).
+     새 DOM 요소를 만들지 않고 ::after로 처리한다 — 밴드 div는 JS(playBands)가 만들기 때문에 요소를
+     추가하려면 JS까지 고쳐야 하고, 이 화면에서 "위/아래 고정 띠 2개"를 따로 추가하는 방식은 이미
+     두 번 시도했다가 원하는 결과가 아니어서 폐기한 이력이 있다(위 주석 참고).
+     ⚠️ height에 %를 쓰면 안 된다 — 이 가상요소의 containing block은 밴드(높이 3px)라서 %가 3px
+     기준으로 계산돼 거의 보이지 않는다. 그래서 화면 기준인 vh를 쓴다.
+     스윕이 alternate(핑퐁)라 내려갈 때는 진행 방향 쪽, 올라갈 때는 지나온 쪽에 번짐이 생긴다.
+     위쪽으로 번지게 하려면 top: 100% -> bottom: 100%, to bottom -> to top으로 바꾸면 된다.
+     세기/길이를 조절하려면 alpha(.38)와 height(16vh)만 만지면 된다. */
+  .e-camera-highlight-band::after {
+    content: ""; position: absolute; left: 0; right: 0;
+    top: 100%; height: 16vh;
+    background: linear-gradient(to bottom, rgba(34, 197, 94, .38), rgba(34, 197, 94, 0));
+    pointer-events: none;
+  }
   /* 2026-08-20 수정 — 스캔 라인이 아래쪽 "영수증 정보를 인식 중입니다" 문구 위까지 내려와 겹치던
      문제. 그 문구 영역(bottom:6% + 텍스트 높이) 위에서 멈추도록 아래쪽 한계를 올리고, 위쪽도
      같은 여백만큼(14%)으로 맞춰서 위아래 대칭이 되게 했다. */
