@@ -109,12 +109,15 @@
   function createBotBubble() {
     var wrap = document.createElement('div');
     wrap.className = 'e-msg';
+    // 2026-08-21 수정 — 안쪽 컬럼에 flex-1이 붙어있어서 답변이 짧든 길든 매번 강제로 최대 너비
+    // (88%)까지 늘어나 있었다("처음부터 옆으로 긴데?" 지적). flex-1을 빼서 내용 길이만큼만 차지하게
+    // 하고, 88%는 그 위 "허용 한도"로만 남긴다(긴 답변은 여전히 그만큼까지 넓어질 수 있음).
     wrap.style.maxWidth = '88%';
     wrap.innerHTML =
       '<span class="e-bot-avatar" aria-hidden="true">' +
       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>' +
       '</span>' +
-      '<div class="min-w-0 flex-1">' +
+      '<div class="min-w-0">' +
       '<p class="e-msg-name">잇티 AI</p>' +
       '<div class="e-msg-bubble e-msg-bubble--bot">' +
       '<span class="js-text" style="white-space:pre-wrap"></span>' +
