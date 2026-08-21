@@ -843,7 +843,11 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   .e-input,
   .e-input-sm,
   .e-textarea,
-  .e-select { font-size: 16px; }
+  .e-select,
+  /* 잇티챗 메시지 입력창(2026-08-21 추가) — 이건 .e-textarea 클래스를 쓰지 않고 자체 셀렉터
+     (.e-chat-input-box textarea, 15px)로 스타일돼 있어서 위 목록에서 빠져 있었다. 정작 가장 많이
+     입력하는 곳이라 여기가 확대되면 제일 불편하다. */
+  .e-chat-input-box textarea { font-size: 16px; }
 }
 
 .e-select {

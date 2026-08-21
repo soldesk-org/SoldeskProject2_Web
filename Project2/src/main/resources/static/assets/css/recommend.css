@@ -54,14 +54,34 @@
 
   /* 2026-08-18 추가 — 최초 진입 안내의 예시 질문 칩 4개를 한 줄로 고정. 화면이 좁아지면 칩 자체가
      줄어들도록(패딩/글자 축소) 해서 두 줄로 밀리지 않게 한다(min-width:0으로 flex 기본 축소 제한 해제). */
+  /* 2026-08-21 수정 — 아이폰 폭에서 칩 4개가 한 줄에 다 안 들어가는데 flex-shrink가 열려 있어서
+     칩이 글씨보다 좁게 눌리고, 그 상태에서 text-overflow:ellipsis가 걸려 글씨가 잘려 보였다
+     ("동그라미가 글씨보다 작아서 글씨가 삐져나온 것처럼" 보이던 원인).
+
+     칩을 압축하지 않고(flex:none) 넘치는 만큼 가로 스크롤하게 바꿨다 — 요청대로 항상 한 줄이고,
+     글씨는 잘리지 않는다. 눌리지 않으니 ellipsis도 필요 없어져서 제거했다.
+     압축이 없어진 덕에 글씨/패딩을 vw 기준 clamp로 쥐어짜지 않아도 되므로, 고정값으로 올려서
+     터치 영역과 가독성을 확보했다(11px → 13px, 패딩 8px → 14px, 높이 34 → 36px).
+
+     justify-content는 좁을 때 flex-start여야 한다 — center로 두면 내용이 넘칠 때 왼쪽 첫 칩이
+     스크롤로도 닿을 수 없는 위치로 잘려나간다. 한 줄에 다 들어가는 폭(700px~)에서만 center로 돌린다. */
   .rc-example-row {
-    display: flex; flex-wrap: nowrap; justify-content: center; gap: 8px;
+    display: flex; flex-wrap: nowrap; justify-content: flex-start; gap: 8px;
     width: 100%; max-width: 640px;
+    overflow-x: auto;
+    scrollbar-width: none; -ms-overflow-style: none;
+    /* 스크롤 양끝에 살짝 여백 — 칩이 카드 경계에 딱 붙어 잘린 것처럼 보이지 않게 */
+    padding-inline: 2px;
+  }
+  .rc-example-row::-webkit-scrollbar { display: none; }
+  @media (min-width: 700px) {
+    .rc-example-row { justify-content: center; }
   }
   .rc-example-chip {
-    height: 34px; padding: 0 clamp(8px, 2vw, 15px);
-    font-size: clamp(11px, 1.6vw, 13px);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: none;
+    height: 36px; padding: 0 14px;
+    font-size: 13px;
+    white-space: nowrap;
   }
 
   /* 로딩 스피너 */
