@@ -843,12 +843,11 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
   .e-input,
   .e-input-sm,
   .e-textarea,
-  .e-select,
-  /* 잇티챗 메시지 입력창(2026-08-21 추가) — 이건 .e-textarea 클래스를 쓰지 않고 자체 셀렉터
-     (.e-chat-input-box textarea, 15px)로 스타일돼 있어서 위 목록에서 빠져 있었다. 정작 가장 많이
-     입력하는 곳이라 여기가 확대되면 제일 불편하다. */
-  .e-chat-input-box textarea { font-size: 16px; }
+  .e-select { font-size: 16px; }
 }
+/* ※ 잇티챗 메시지 입력창(.e-chat-input-box textarea)은 여기에 넣으면 안 된다 — 그 원본 선언이
+   이 파일 훨씬 뒤(14장 채팅 섹션)에 있어서, 명시도가 같은 이 규칙은 순서에서 밀려 무효가 된다
+   (2026-08-21에 실제로 이 실수를 해서 잇티챗만 계속 확대됐다). 그 섹션 바로 뒤에 따로 뒀다. */
 
 .e-select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2378727f' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -2068,6 +2067,13 @@ body.is-modal-open { overflow: hidden; }
   font-size: 15px; line-height: 1.5; padding: 6px 0;
   background: transparent; color: var(--ink-900);
   font-family: inherit;
+}
+/* iOS 자동 확대 방지(2026-08-21) — 폼 요소가 16px보다 작으면 포커스 시 화면이 확대된다.
+   위 15px을 터치 기기에서만 16px로 덮는다. 이 규칙은 반드시 위 선언 **뒤**에 있어야 한다 —
+   6장(폼)의 같은 목적 미디어쿼리에 이 선택자를 넣었더니 명시도가 같은데 순서가 앞이라 밀려서
+   잇티챗만 계속 확대됐다. 이 입력창은 .e-textarea 클래스를 쓰지 않아 그 목록으로는 안 잡힌다. */
+@media (pointer: coarse) {
+  .e-chat-input-box textarea { font-size: 16px; }
 }
 .e-chat-send {
   width: 40px; height: 40px; border-radius: 50%; flex: none;
