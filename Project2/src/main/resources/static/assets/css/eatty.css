@@ -808,6 +808,16 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
      화면 밖으로 밀려나갔다(히어로 검색창이 오른쪽으로 치우쳐 보이던 원인). */
   min-width: 0;
   min-height: 48px;
+  /* line-height: 1(2026-08-21 추가) — 회원가입 화면에서 입력칸+버튼(.e-input-row) 높이가 계속
+     안 맞던 진짜 원인. Tailwind preflight가 input/select/textarea에 line-height: inherit를 강제하고,
+     body의 line-height가 1.6이라 15px 글자의 줄 높이가 24px이 된다. 여기에 위아래 padding 24px +
+     border 2px을 더하면 50px — min-height(48px)는 바닥값일 뿐 그 이상을 못 누르므로 입력칸은 실제로
+     50px로 그려진다(pointer:coarse로 16px가 되는 모바일에서는 더 벌어진다). 반면 옆의 .btn은
+     height(고정값)를 쓰는 flex 컨테이너라 내용이 커도 선언한 높이를 유지한다 — 그래서 버튼 쪽 높이를
+     맞추는 것만으로는(--btn-h:48px) 부족했다. line-height를 1로 낮춰 내용 높이가 padding+border 안에
+     들어가게 하면 min-height가 그대로 최종 높이가 된다. .e-textarea는 이 뒤에서 line-height:1.65로
+     다시 덮어써서(여러 줄 텍스트라 필요) 영향받지 않는다. */
+  line-height: 1;
   padding: 12px 14px;
   border: 1px solid var(--line-bold);
   border-radius: var(--r);
