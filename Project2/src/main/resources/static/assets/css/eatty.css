@@ -942,8 +942,14 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
    (기본 46px)라는 명시적 높이가 있어서 늘어나지 않는데, 옆의 .e-input은 min-height:48px다. 사이즈
    클래스(.btn-sm/.btn-lg 등) 없이 그냥 .btn만 쓴 버튼 전부가 대상이라 각 HTML을 고치는 대신 이 한
    줄로 --btn-h를 .e-input의 min-height와 맞췄다(사이즈 클래스가 있는 버튼은 자기 값이 더 우선이라
-   영향받지 않는다 — .btn-sm/.btn-lg 등은 같은 상세도의 다른 선택자로 뒤에 있으므로 그대로 이긴다). */
-.e-input-row > .btn { --btn-h: 48px; }
+   영향받지 않는다 — .btn-sm/.btn-lg 등은 같은 상세도의 다른 선택자로 뒤에 있으므로 그대로 이긴다).
+
+   .btn-input-h — 같은 목적의 수동 버전. `.e-input-row`를 쓰지 않고 Tailwind flex로 직접 조립한 줄에
+   붙인다(예: signup-business.html의 사업자등록번호 3칸 + "진위확인"). 그 줄은 입력칸 사이에 "-"
+   구분자가 들어가 `.e-input-row`의 `> .e-input { flex:1 }`과 잘 맞지 않아서, 컨테이너를 바꾸는 대신
+   버튼에만 이 클래스를 준다. **입력칸과 한 줄에 놓이는 버튼을 새로 만들 때 이 클래스를 쓸 것.** */
+.e-input-row > .btn,
+.btn-input-h { --btn-h: 48px; }
 
 /* 체크박스 / 라디오 */
 .e-check {
