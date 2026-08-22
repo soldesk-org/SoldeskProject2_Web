@@ -927,6 +927,13 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 .e-input-row { display: flex; gap: 8px; align-items: stretch; }
 .e-input-row > .e-input-wrap, .e-input-row > .e-input { flex: 1; min-width: 0; }
 .e-input-row > .btn { flex: none; }
+/* 2026-08-21 — 회원가입 화면(이메일/휴대폰 인증코드 "확인", 닉네임 "중복확인", 우편번호 "주소 검색")에서
+   입력칸과 버튼 높이가 2px 어긋나 보이던 문제. align-items:stretch가 있어도 .btn은 height:var(--btn-h)
+   (기본 46px)라는 명시적 높이가 있어서 늘어나지 않는데, 옆의 .e-input은 min-height:48px다. 사이즈
+   클래스(.btn-sm/.btn-lg 등) 없이 그냥 .btn만 쓴 버튼 전부가 대상이라 각 HTML을 고치는 대신 이 한
+   줄로 --btn-h를 .e-input의 min-height와 맞췄다(사이즈 클래스가 있는 버튼은 자기 값이 더 우선이라
+   영향받지 않는다 — .btn-sm/.btn-lg 등은 같은 상세도의 다른 선택자로 뒤에 있으므로 그대로 이긴다). */
+.e-input-row > .btn { --btn-h: 48px; }
 
 /* 체크박스 / 라디오 */
 .e-check {
