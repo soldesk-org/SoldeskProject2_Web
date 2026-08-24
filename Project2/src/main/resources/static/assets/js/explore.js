@@ -13,6 +13,198 @@
   };
   var DEFAULT_CENTER = { lat: 37.4979, lng: 127.0276 }; // 강남역
 
+  // ===========================================================================
+  // 공유 — 카카오 메시지 템플릿 (2026-08-24 재구성)
+  // ---------------------------------------------------------------------------
+  // 동작 갈래:
+  //   iOS 앱 → #shareChoiceModal 로 선택("카카오톡으로 공유 / 링크 복사 / 다른 앱으로 공유")
+  //   그 외   → 예전 그대로 곧바로 링크 복사. **모바일 브라우저도 여기 포함**
+  //             (README "확정된 공유 동작" — 웹에는 공유 시트를 띄우지 않는다는 결정을 유지한다)
+  //
+  // ⚠️ 왜 선택 모달이 필요한가: iOS 기본 공유 시트(UIActivityViewController)에서 사용자가 카카오톡을
+  // 고르는 순간부터는 **카카오톡의 공유 익스텐션**이 처리하므로 우리가 개입할 수 없다. 즉 "공유 시트에서
+  // 카카오톡을 선택했을 때 템플릿으로 보내기"는 원리적으로 불가능하다. 메시지 템플릿을 쓰려면 카카오톡만
+  // 공유 시트를 우회해서 카카오 공유 API를 직접 불러야 하고, 그 선택을 받는 UI가 이 모달이다.
+  //
+  // ⚠️ 네이티브 재빌드가 필요 없는 이유: 카카오 JS SDK는 카카오톡을 열 때 kakaolink:// 커스텀 스킴으로
+  // 이동한다. Capacitor의 WebViewDelegationHandler.decidePolicyFor가 "앱 URL도 아니고 allowNavigation에도
+  // 없는 최상위 이동"을 UIApplication.shared.open으로 넘기기 때문에 그 스킴이 그대로 열린다
+  // (node_modules/@capacitor/ios/.../WebViewDelegationHandler.swift 96~115행에서 확인).
+  // 카카오톡이 없는 기기에서는 SDK가 sharer.kakao.com 웹 피커로 폴백하는데, 그 호스트는
+  // capacitor.config.json의 allowNavigation에 *.kakao.com으로 이미 들어가 있어 앱 안에서 정상 처리된다.
+  // ===========================================================================
+
+  // 카카오 JavaScript 앱 키. 콘솔(카카오 개발자) → 내 애플리케이션 → 앱 키 → **JavaScript 키**.
+  // ⚠️ 소셜 로그인에 쓰는 REST API 키(서버의 KAKAO_CLIENT_ID)와는 **다른 값**이다.
+  // 브라우저에 노출되는 것이 정상인 공개 키이며(네이버 지도 키를 HTML에 그대로 두는 것과 같은 성격),
+  // 콘솔에 등록한 도메인에서만 동작하도록 카카오가 제한한다.
+  // ⚠️ 콘솔 → 앱 설정 → 앱 → 플랫폼 키 → JavaScript 키 수정 → **JavaScript SDK 도메인**에
+  //    https://eattyway.com 이 등록돼 있어야 한다. 그 화면에 "도메인 정보를 등록하지 않으면
+  //    JavaScript 키를 사용할 수 없습니다"라고 명시돼 있다 — 등록 전에는 SDK가 동작하지 않는다.
+  // 값이 비어 있으면 "카카오톡으로 공유" 버튼이 표시되지 않고 기존 동작으로 떨어진다 —
+  // 그래서 키를 채우지 않은 상태로 배포해도 공유 기능이 깨지지 않는다.
+  // 앱 Eattyway(ID 1517447)의 "Default JS Key" — 2026-08-24 등록.
+  var KAKAO_JS_KEY = "8909b1d8385d0b648afbe292a9c51a99";
+
+  // 사용자 정의 템플릿 ID. 콘솔 → 도구 → 메시지 템플릿 구성에서 만든 템플릿의 ID다.
+  // ⚠️ **콘솔의 템플릿 설정과 아래 templateArgs의 키가 정확히 일치해야 한다.** 어긋나면 에러 없이
+  // 빈 칸이나 `${KEY}` 문자열이 그대로 찍힌 메시지가 나간다(조용히 깨지는 종류의 실수다).
+  // 템플릿에 넣어야 하는 값 — 왼쪽이 콘솔, 오른쪽이 이 코드가 보내는 키:
+  //     제목                        ${TITLE}   → TITLE
+  //     설명                        ${DESC}    → DESC
+  //     이미지(썸네일) URL           ${THUMB}   → THUMB
+  //     링크(모바일 웹 / 웹 URL)     https://eattyway.com/s/${CODE}   → CODE
+  //     버튼("자세히 보기") 링크      위 링크와 동일
+  // 링크에 **코드만** 인자로 넘기는 이유: 경로 전체를 인자로 넘기면 ?, &, / 가 섞여 카카오 쪽 URL
+  // 검증/인코딩에서 어떻게 처리되는지 보장할 수 없다. 도메인과 /s/ 경로를 템플릿에 고정하면
+  // 인자는 코드 문자열 하나뿐이라 그 위험이 사라진다.
+  // 0으로 두면 사용자 정의 템플릿을 쓰지 않고 아래 기본 템플릿 폴백으로만 동작한다.
+  var KAKAO_TEMPLATE_ID = 136530;
+
+  // 템플릿의 이미지를 가게 사진으로 바꿔 보낼지 여부.
+  // false = 콘솔에 **업로드해둔 고정 이미지**를 쓴다(기본값).
+  //   그렇게 둔 이유가 셋 있다:
+  //     1) 빌더의 이미지 칸이 URL/사용자 인자를 받는지 공식 문서로 확인되지 않았다(업로드만 가능할 수도 있다).
+  //     2) 업로드 이미지는 카카오가 호스팅하므로 "외부에서 가져갈 수 있는 URL이어야 한다"는 제약이 사라진다.
+  //     3) RESTAURANT_DEFAULT_IMAGE_URL이 비어 있어서 imageUrl이 null로 내려오는 가게가 실제로 있다.
+  // true = templateArgs에 THUMB를 실어 보낸다.
+  //   콘솔의 이미지 칸에 ${THUMB} 를 넣을 수 있는 경우에만 켤 것. 칸이 없는데 켜면 인자만 무시된다.
+  var KAKAO_TEMPLATE_SENDS_IMAGE = false;
+
+  // 카카오 공유를 쓸 수 있는 상태인지 확인한다. 최초 호출 때 한 번만 init한다.
+  function kakaoShareReady() {
+    if (!KAKAO_JS_KEY) return false;
+    if (!window.Kakao) return false; // SDK 로드 실패(네트워크 차단, integrity 불일치 등)
+    try {
+      if (!Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY);
+      return !!(Kakao.isInitialized() && Kakao.Share && Kakao.Share.sendDefault);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // 템플릿 이미지 URL을 고른다.
+  // 카카오 서버가 **외부에서 직접 가져갈 수 있는** 절대 URL이어야 한다. 가게 이미지는
+  // RESTAURANT_IMAGE_BASE_URL 기반이라 환경에 따라 localhost일 수 있고, RESTAURANT_DEFAULT_IMAGE_URL은
+  // 비어 있어서 imageUrl이 null로 내려오는 가게도 있다. 그런 경우는 사이트 로고로 대체한다.
+  function shareImageUrl(raw) {
+    var fallback = window.location.origin + "/assets/images/logo-full.png";
+    if (!raw) return fallback; // ⚠️ new URL(undefined, base)는 ".../undefined"가 되므로 먼저 걸러야 한다
+    var abs = null;
+    try { abs = new URL(raw, window.location.origin); } catch (e) { return fallback; }
+    if (abs.protocol !== "https:" && abs.protocol !== "http:") return fallback;
+    var host = abs.hostname;
+    if (/^(localhost|127\.0\.0\.1|::1)$/i.test(host)) return fallback;
+    if (/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return fallback; // 사설망
+    return abs.href;
+  }
+
+  // 설명문. "카테고리 · 별점" 과 "주소"를 sep으로 이어붙인다.
+  // sep을 인자로 받는 이유: 기본 템플릿의 description은 \n 줄바꿈이 확실히 먹지만, 사용자 정의
+  // 템플릿의 본문에 **사용자 인자 값으로 넣은** \n이 줄바꿈으로 렌더링되는지는 확인되지 않았다.
+  // 그래서 사용자 정의 템플릿 경로는 " · "로 한 줄로 보내 애매함을 없앤다.
+  function shareDescription(item, sep) {
+    var head = [];
+    if (item.category) head.push(item.category);
+    if (Number(item.averageRating) > 0) {
+      var score = "별점 " + Number(item.averageRating).toFixed(1);
+      if (Number(item.reviewCount) > 0) score += " (리뷰 " + item.reviewCount + "개)";
+      head.push(score);
+    }
+    var line1 = head.join(" · ");
+    var line2 = item.roadAddress || item.address || "";
+    var text = (line1 && line2) ? (line1 + sep + line2) : (line1 || line2);
+    // 카카오 피드 템플릿 description은 200자 제한이라 넉넉히 잘라둔다.
+    return text.length > 190 ? text.slice(0, 190) + "…" : text;
+  }
+
+  // 카카오톡으로 메시지 템플릿 전송. 실패는 호출자가 try/catch로 잡는다.
+  // share: { url: 공유할 최종 URL, code: 단축링크 코드 또는 null }
+  //
+  // 두 경로가 있고 **사용자 정의 템플릿이 우선**이다:
+  //   1) sendCustom  — 콘솔에서 디자인한 템플릿(KAKAO_TEMPLATE_ID) + 사용자 인자.
+  //      단축링크 코드가 있어야 쓸 수 있다(템플릿 링크가 .../s/${CODE}로 고정돼 있으므로).
+  //   2) sendDefault — 코드로 조립하는 기본 템플릿. 콘솔 설정과 무관하게 항상 동작한다.
+  //      단축링크 발급이 실패해 긴 URL을 써야 할 때의 폴백이다(기본 템플릿은 URL 전체를 그대로 받는다).
+  function sendKakaoShare(item, share) {
+    var title = item.name || "잇티웨이 맛집";
+    var thumb = shareImageUrl(detailImages[0] || item.imageUrl);
+
+    if (KAKAO_TEMPLATE_ID && share.code) {
+      // 키는 ${} 없이 넘긴다 — SDK가 내부에서 ${KEY} 형태로 감싼다.
+      var args = { TITLE: title, DESC: shareDescription(item, " · "), CODE: share.code };
+      if (KAKAO_TEMPLATE_SENDS_IMAGE) args.THUMB = thumb;
+      Kakao.Share.sendCustom({ templateId: KAKAO_TEMPLATE_ID, templateArgs: args });
+      return;
+    }
+
+    var link = { mobileWebUrl: share.url, webUrl: share.url };
+    Kakao.Share.sendDefault({
+      objectType: "feed",
+      content: { title: title, description: shareDescription(item, "\n"), imageUrl: thumb, link: link },
+      buttons: [{ title: "가게 보기", link: link }],
+    });
+  }
+
+  // 선택 모달을 열고 버튼 3개를 지금 환경에 맞게 구성한다.
+  // 핸들러는 onclick으로 **덮어쓴다** — 상세 패널을 여러 번 열어도 addEventListener처럼 쌓이지 않는다.
+  // sharePromise: { url, code }로 resolve되는 Promise. 모달은 그걸 기다리지 않고 즉시 뜨고,
+  //               각 버튼이 눌린 시점에 await한다 — 탭 반응이 즉각적이다.
+  function openShareChoice(item, sharePromise, copyLink) {
+    var modalId = "shareChoiceModal";
+    var kakaoBtn = document.getElementById("shareKakaoBtn");
+    var copyBtn = document.getElementById("shareCopyBtn");
+    var moreBtn = document.getElementById("shareMoreBtn");
+    var descEl = document.getElementById("shareChoiceDesc");
+    function copyResolved() { sharePromise.then(function (s) { copyLink(s.url); }); }
+
+    // 구 HTML이 캐시된 상태(모달 마크업 없음)면 예전 동작으로 폴백한다.
+    if (!copyBtn) { copyResolved(); return; }
+
+    var canKakao = kakaoShareReady();
+    // "다른 앱으로 공유"는 네이티브 공유 시트다. 네이티브가 share 지원을 선언한 빌드에서만 보인다
+    // (api.js의 nativeShare가 EattyWayNativeCaps.share를 확인하는 구조와 같은 게이트).
+    var canNative = !!(window.EattyWayApp && window.EattyWayNativeCaps && window.EattyWayNativeCaps.share === true);
+
+    // 선택지가 "링크 복사" 하나뿐이면 모달을 띄우는 의미가 없다 → 예전처럼 바로 복사한다.
+    // (카카오 키가 비었고 네이티브도 구 빌드인 경우가 여기에 해당한다.)
+    if (!canKakao && !canNative) { copyResolved(); return; }
+
+    if (descEl) {
+      descEl.textContent = item.name ? item.name + "을(를) 친구에게 알려주세요." : "이 가게를 친구에게 알려주세요.";
+    }
+
+    if (kakaoBtn) {
+      kakaoBtn.hidden = !canKakao;
+      kakaoBtn.onclick = function () {
+        sharePromise.then(function (s) {
+          try {
+            sendKakaoShare(item, s);
+            Eatty.closeModal(modalId);
+          } catch (e) {
+            Eatty.toast("카카오톡 공유를 시작할 수 없습니다.", "error");
+          }
+        });
+      };
+    }
+
+    copyBtn.onclick = function () {
+      sharePromise.then(function (s) { copyLink(s.url); Eatty.closeModal(modalId); });
+    };
+
+    if (moreBtn) {
+      moreBtn.hidden = !canNative;
+      moreBtn.onclick = function () {
+        sharePromise.then(function (s) {
+          if (!window.EattyWayApp.nativeShare(s.url, item.name || "잇티웨이")) copyLink(s.url);
+          Eatty.closeModal(modalId);
+        });
+      };
+    }
+
+    Eatty.openModal(modalId);
+  }
+
   // 2026-08-20 추가 — 영수증 자동촬영이 실패하면(이미 쓴 영수증, 가게명 불일치 등) receipt-upload.js가
   // 토스트 없이 바로 이 페이지로 돌려보낸다. 그 실패 사유를 sessionStorage에 남겨두면 여기서 한 번만
   // 꺼내 보여주고 지운다(새로고침해도 다시 안 뜨게).
@@ -895,28 +1087,34 @@
           }
         }
 
-        // 공유 동작은 환경에 따라 딱 두 갈래다(2026-08-23 확정).
-        //   iOS 앱  → 네이티브 공유 시트(UIActivityViewController). 카카오톡/문자/에어드랍이 뜬다.
+        // 공유 동작(2026-08-24 변경 — 그전에는 앱에서 곧바로 네이티브 공유 시트를 띄웠다).
+        //   iOS 앱  → 선택 모달(#shareChoiceModal): 카카오톡 메시지 템플릿 / 링크 복사 / 다른 앱으로 공유
         //   그 외    → 링크를 클립보드에 복사. **모바일 브라우저도 여기에 포함된다.**
         //
         // ⚠️ navigator.share(Web Share API)는 **일부러 쓰지 않는다.** 한때 "앱이 아니면 navigator.share를
         // 먼저 시도"하도록 돼 있었는데, 그러면 모바일 Safari/Chrome에서도 시스템 공유 시트가 떠버린다.
         // 웹에서는 링크 복사로 통일해달라는 요청이라 그 분기를 없앴다(다시 넣지 말 것).
         //
-        // 앱 판별은 window.EattyWayApp.nativeShare()의 반환값으로 한다 — 그 함수는 브릿지가 있고
-        // **네이티브가 share 지원을 선언했을 때만** true를 준다(api.js의 EattyWayNativeCaps 참고).
-        // 그래서 구 빌드(선언 없음)에서는 false가 되어 아래 링크 복사로 내려간다.
-        function shareOrCopy(url) {
-          if (window.EattyWayApp && window.EattyWayApp.nativeShare(url, item.name || "잇티웨이")) return;
-          copyLink(url);
-        }
+        // 자세한 배경(공유 시트를 가로챌 수 없는 이유, 재빌드가 필요 없는 이유)은 파일 상단
+        // "공유 — 카카오 메시지 템플릿" 섹션 주석에 정리해두었다.
 
         // 2026-08-09 추가 — 원래는 이 긴 쿼리스트링 URL을 그대로 복사했는데("너무 길어서 보기 안 좋다"는
-        // 지적) 서버에서 짧은 코드를 발급받아 그걸 복사한다. 발급 실패(네트워크 오류 등)해도 공유 자체가
+        // 지적) 서버에서 짧은 코드를 발급받아 그걸 공유한다. 발급 실패(네트워크 오류 등)해도 공유 자체가
         // 막히면 안 되니 원래의 긴 URL로 조용히 대체한다(fail-open).
-        Api.request("/api/short-links", { method: "POST", auth: false, body: { path: longPath } })
-          .then(function (res) { shareOrCopy(window.location.origin + "/s/" + res.code); })
-          .catch(function () { shareOrCopy(longUrl); });
+        // code는 카카오 사용자 정의 템플릿에 그대로 넘어간다(템플릿 링크가 .../s/${CODE} 고정).
+        // 발급 실패 시 code는 null이고, 그 경우 카카오 공유는 기본 템플릿으로 폴백한다.
+        var sharePromise = Api.request("/api/short-links", { method: "POST", auth: false, body: { path: longPath } })
+          .then(function (res) { return { url: window.location.origin + "/s/" + res.code, code: res.code }; })
+          .catch(function () { return { url: longUrl, code: null }; });
+
+        // 앱 판별은 브릿지 존재 여부로 한다(api.js의 isInIosApp). 개별 기능 지원 여부는
+        // openShareChoice 안에서 EattyWayNativeCaps로 따로 확인한다.
+        var inApp = !!(window.EattyWayApp && window.EattyWayApp.isInIosApp && window.EattyWayApp.isInIosApp());
+        if (!inApp) {
+          sharePromise.then(function (s) { copyLink(s.url); });
+          return;
+        }
+        openShareChoice(item, sharePromise, copyLink);
       };
     }
 
