@@ -428,6 +428,14 @@
   function nativeShare(url, title) {
     var bridge = appAuthBridge();
     if (!bridge) return false;
+    // 2026-08-23 추가 — 브릿지 객체가 있다는 것만으로 "네이티브가 이 기능을 처리한다"고 볼 수 없다.
+    // 웹은 배포로 즉시 반영되지만 앱 네이티브는 재빌드+재설치가 필요해서, 웹이 새 action을 부르는데
+    // 기기에 깔린 구 빌드는 그 action을 모르는 구간이 생긴다. 그 구간에 여기서 true를 돌려주면 호출한
+    // 쪽이 폴백(navigator.share → 클립보드 복사)을 건너뛰어 공유 버튼이 아무 반응도 하지 않는다.
+    // 실제로 그렇게 죽어 있었다. 그래서 네이티브가 직접 선언한 지원 목록만 신뢰한다
+    // (MainViewController의 WKUserScript가 window.EattyWayNativeCaps를 주입한다).
+    var caps = global.EattyWayNativeCaps;
+    if (!caps || caps.share !== true) return false;
     try {
       bridge.postMessage({ action: "nativeShare", url: String(url), title: title ? String(title) : "" });
       return true;
