@@ -895,25 +895,20 @@
           }
         }
 
-        // 2026-08-21 추가 — iOS 앱(Capacitor WKWebView)/모바일 브라우저에는 Web Share API
-        // (navigator.share)가 있으면 그걸 우선 쓴다 — 시스템 공유 시트(카카오톡/문자/에어드랍 등)가
-        // 그대로 뜬다. 지원 안 하는 환경(대부분의 데스크톱 브라우저)에서만 기존처럼 링크 클립보드
-        // 복사로 대체한다(fail-open, 공유 자체가 막히면 안 됨).
+        // 공유 동작은 환경에 따라 딱 두 갈래다(2026-08-23 확정).
+        //   iOS 앱  → 네이티브 공유 시트(UIActivityViewController). 카카오톡/문자/에어드랍이 뜬다.
+        //   그 외    → 링크를 클립보드에 복사. **모바일 브라우저도 여기에 포함된다.**
+        //
+        // ⚠️ navigator.share(Web Share API)는 **일부러 쓰지 않는다.** 한때 "앱이 아니면 navigator.share를
+        // 먼저 시도"하도록 돼 있었는데, 그러면 모바일 Safari/Chrome에서도 시스템 공유 시트가 떠버린다.
+        // 웹에서는 링크 복사로 통일해달라는 요청이라 그 분기를 없앴다(다시 넣지 말 것).
+        //
+        // 앱 판별은 window.EattyWayApp.nativeShare()의 반환값으로 한다 — 그 함수는 브릿지가 있고
+        // **네이티브가 share 지원을 선언했을 때만** true를 준다(api.js의 EattyWayNativeCaps 참고).
+        // 그래서 구 빌드(선언 없음)에서는 false가 되어 아래 링크 복사로 내려간다.
         function shareOrCopy(url) {
-          // 2026-08-21 수정 — iOS 앱(WKWebView) 안에서는 navigator.share가 아예 없어서 매번
-          // 클립보드 복사로만 폴백되고 있었다. 앱 안이면(EattyWayApp.nativeShare) 네이티브
-          // 공유 시트(UIActivityViewController)를 먼저 시도하고, 실패하면 웹 표준 순서
-          // (navigator.share → 클립보드 복사)로 이어서 폴백한다.
           if (window.EattyWayApp && window.EattyWayApp.nativeShare(url, item.name || "잇티웨이")) return;
-          if (navigator.share) {
-            navigator.share({ title: item.name || "잇티웨이", url: url }).catch(function (err) {
-              // 사용자가 공유 시트를 취소한 경우(AbortError)는 실패로 취급하지 않는다.
-              if (err && err.name === "AbortError") return;
-              copyLink(url);
-            });
-          } else {
-            copyLink(url);
-          }
+          copyLink(url);
         }
 
         // 2026-08-09 추가 — 원래는 이 긴 쿼리스트링 URL을 그대로 복사했는데("너무 길어서 보기 안 좋다"는
