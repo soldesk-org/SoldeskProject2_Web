@@ -146,6 +146,86 @@
     });
   }
 
+  // 바텀시트를 손가락(또는 마우스)으로 끌어내려 닫는 제스처. 그립과 헤더를 잡을 수 있다.
+  // 한 번만 붙이면 된다 — openModal이 시트를 body 마지막 자식으로 옮기지만 리스너는 유지된다.
+  var sheetDragBound = false;
+  function bindSheetDrag(modalId) {
+    if (sheetDragBound) return;
+    var modal = document.getElementById(modalId);
+    if (!modal || !window.PointerEvent) return;
+    var panel = modal.querySelector(".e-modal-panel");
+    var handles = modal.querySelectorAll(".ex-sheet-grip, .ex-sheet-head");
+    if (!panel || !handles.length) return;
+    sheetDragBound = true;
+
+    var startY = 0, dy = 0, dragging = false, moved = false;
+    // 끈 직후의 click 한 번만 막기 위한 플래그. **반드시 시간 제한을 둬야 한다** —
+    // 끌었는데도 click이 아예 발생하지 않는 경우가 있어서, 플래그를 계속 들고 있으면
+    // 나중에 사용자가 누른 "카카오톡으로 공유" 같은 정상 클릭이 삼켜진다.
+    var suppressClick = false;
+    var suppressTimer = null;
+
+    function onMove(e) {
+      if (!dragging) return;
+      // 아래로만 끌린다. 위로 당겨도 시트가 화면 위로 솟지 않게 0에서 자른다.
+      dy = Math.max(0, e.clientY - startY);
+      panel.style.transform = "translateY(" + dy + "px)";
+      if (dy > 4) moved = true;
+    }
+
+    function onUp() {
+      if (!dragging) return;
+      dragging = false;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+
+      // 시트 높이의 25%(최대 90px) 넘게 내렸으면 닫고, 아니면 제자리로 돌아간다.
+      var shouldClose = dy > Math.min(90, panel.offsetHeight * 0.25);
+
+      // ⚠️ 순서가 중요하다. transition을 먼저 되살리고 인라인 transform을 지운 다음
+      // (닫는 경우) is-open을 떼면, 브라우저가 최종 transform 하나만 계산해서
+      // 지금 위치 → 목표 위치로 한 번에 애니메이션한다.
+      // 인라인 transform을 남겨두면 CSS의 닫기 위치가 무시되고, 순서를 바꾸면 0으로
+      // 튀었다가 다시 내려가는 두 단계 움직임이 보인다.
+      panel.style.transition = "";
+      panel.style.transform = "";
+      if (shouldClose) Eatty.closeModal(modalId);
+      dy = 0;
+
+      if (moved) {
+        suppressClick = true;
+        if (suppressTimer) clearTimeout(suppressTimer);
+        suppressTimer = setTimeout(function () { suppressClick = false; }, 350);
+      }
+      moved = false;
+    }
+
+    Array.prototype.forEach.call(handles, function (h) {
+      h.addEventListener("pointerdown", function (e) {
+        if (e.button) return; // 마우스 우클릭/가운데클릭 무시
+        dragging = true; moved = false; dy = 0;
+        startY = e.clientY;
+        panel.style.transition = "none"; // 끄는 동안은 손가락을 그대로 따라오게
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onUp);
+      });
+    });
+
+    // 끌었다가 제자리로 돌아온 경우, 뒤이어 발생하는 click이 그립의 data-modal-close를
+    // 타고 document 위임까지 올라가 시트를 닫아버린다. 끈 직후의 click 한 번만 막는다.
+    // 그냥 톡 누른 경우(suppressClick=false)는 그대로 닫히게 둔다.
+    // 캡처 단계에서 잡는 이유: 여기서 stopPropagation을 하면 타깃(그립)과 document 위임
+    // 양쪽에 아예 도달하지 않는다.
+    modal.addEventListener("click", function (e) {
+      if (!suppressClick) return;
+      suppressClick = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }, true);
+  }
+
   // 선택 모달을 열고 버튼 3개를 지금 환경에 맞게 구성한다.
   // 핸들러는 onclick으로 **덮어쓴다** — 상세 패널을 여러 번 열어도 addEventListener처럼 쌓이지 않는다.
   // sharePromise: { url, code }로 resolve되는 Promise. 모달은 그걸 기다리지 않고 즉시 뜨고,
@@ -202,6 +282,7 @@
       };
     }
 
+    bindSheetDrag(modalId);
     Eatty.openModal(modalId);
   }
 

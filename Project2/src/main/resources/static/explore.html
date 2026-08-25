@@ -123,9 +123,9 @@
         crossorigin="anonymous"></script>
 <script defer src="assets/js/api.js?v=20260823a"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
-<script defer src="assets/js/explore.js?v=20260824a"></script>
+<script defer src="assets/js/explore.js?v=20260824b"></script>
 
-<link rel="stylesheet" href="assets/css/explore.css?v=20260824b">
+<link rel="stylesheet" href="assets/css/explore.css?v=20260824c">
 </head>
 
 <body>
@@ -906,7 +906,14 @@
 -->
 <div class="e-modal ex-sheet" id="shareChoiceModal" role="dialog" aria-modal="true" aria-labelledby="shareChoiceTitle" aria-hidden="true">
   <div class="e-modal-backdrop" data-modal-close></div>
-  <div class="e-modal-panel">
+  <!--
+   tabindex="-1" + data-modal-autofocus — eatty-ui.js의 openModal은 자동 포커스 대상을
+   [data-modal-autofocus] → 첫 input/button 순서로 찾는다. 이걸 안 주면 첫 버튼인 그립이
+   포커스를 받고, eatty.css의 전역 :focus-visible 외곽선이 그립의 가로 전체 폭에 그려져서
+   시트 위쪽에 주황색 줄이 생긴다(2026-08-24에 실제로 발생). 대화상자 컨테이너에 포커스를
+   주는 것이 표준 패턴이기도 해서 이렇게 잡았다. 외곽선은 explore.css에서 없앤다.
+  -->
+  <div class="e-modal-panel" tabindex="-1" data-modal-autofocus>
     <button type="button" class="ex-sheet-grip" data-modal-close aria-label="닫기"></button>
 
     <div class="ex-sheet-head">

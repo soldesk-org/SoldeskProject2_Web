@@ -144,11 +144,19 @@
    =========================================================================== */
 /* 화면 바닥/좌우에 붙이지 않고 **여백을 두고 떠 있는 카드**다. 그래서 네 모서리가 모두 둥글다.
    아래 여백은 홈 인디케이터 자리(env)까지 더해서 잡는다. */
-.ex-sheet { place-items: end center; padding: 0 12px calc(12px + env(safe-area-inset-bottom)); }
+/* 아래 여백: 안전영역을 그대로 더하면(다이나믹 아일랜드 기기 약 34px) 너무 많이 떠 보인다.
+   홈 인디케이터만 피하면 되므로 안전영역에서 12px을 덜어내고, 안전영역이 없는 기기는 10px로 둔다. */
+.ex-sheet { place-items: end center; padding: 0 12px max(10px, calc(env(safe-area-inset-bottom) - 12px)); }
 .ex-sheet .e-modal-panel {
   width: 100%; max-width: 440px; max-height: 86dvh;
   border-radius: var(--r-lg);
-  padding-bottom: 12px; /* 마지막 행 아래 안쪽 여백 */
+  padding-bottom: 8px; /* 마지막 행 아래 안쪽 여백 */
+  /* 끌어내리기 제스처(explore.js의 initSheetDrag)가 이 패널의 transform을 직접 만진다.
+     ⚠️ 포커스 링을 지우는 이유: eatty-ui.js의 openModal이 패널에 자동 포커스를 주는데
+     (data-modal-autofocus + tabindex="-1"), eatty.css의 전역 :focus-visible 규칙이
+     [tabindex]까지 포함해서 주황색 외곽선을 그린다. 대화상자 컨테이너에 포커스를 주는 건
+     표준 패턴이라 포커스 자체는 유지하고 외곽선만 없앤다. */
+  outline: none;
   /* 아래에서 올라오는 연출 — .e-modal-panel의 translateY(14px)+scale 기본값을 덮어쓴다.
      시트가 바닥에서 12px 떠 있으므로 100%만으로는 그만큼 화면에 남는다 → 여백만큼 더 내린다. */
   transform: translateY(calc(100% + 20px));
@@ -160,16 +168,26 @@
    이 디자인에는 X 버튼이 없어서, 백드롭 탭 말고 화면에 드러나는 닫기 수단이 하나는 있어야 한다
    (키보드 포커스와 스크린리더에서도 잡힌다). 히트 영역을 26px로 넉넉히 잡고 막대는 ::before로 그린다. */
 .ex-sheet-grip {
-  display: block; width: 100%; height: 26px;
-  padding: 0; border: 0; background: transparent; cursor: pointer;
+  display: block; width: 100%; height: 28px;
+  padding: 0; border: 0; background: transparent; cursor: grab;
+  /* 끌어내리기 제스처가 브라우저 기본 스크롤/선택과 싸우지 않게 한다. */
+  touch-action: none; -webkit-user-select: none; user-select: none;
 }
 .ex-sheet-grip::before {
-  content: ""; display: block; width: 44px; height: 4px; margin: 11px auto 0;
+  content: ""; display: block; width: 44px; height: 4px; margin: 12px auto 0;
   border-radius: var(--r-full); background: var(--ink-200);
 }
+.ex-sheet-grip:active { cursor: grabbing; }
 .ex-sheet-grip:active::before { background: var(--ink-300); }
+/* 키보드 포커스는 전역 규칙의 외곽선(가로 전체 폭이라 줄처럼 보인다) 대신 막대 색으로 표시한다. */
+.ex-sheet-grip:focus-visible { outline: none; }
+.ex-sheet-grip:focus-visible::before { background: var(--brand-500); }
 
-.ex-sheet-head { padding: 14px 20px 12px; }
+/* 헤더도 잡아서 끌 수 있다 — 그립만 잡게 하면 히트 영역이 너무 좁다. */
+.ex-sheet-head {
+  padding: 12px 20px 12px;
+  touch-action: none; -webkit-user-select: none; user-select: none;
+}
 .ex-sheet-title { font-size: 18px; font-weight: 800; color: var(--ink-900); letter-spacing: -.025em; }
 .ex-sheet-desc {
   margin-top: 5px; font-size: 13.5px; color: var(--ink-500); line-height: 1.5;
@@ -193,11 +211,7 @@
   cursor: pointer;
   transition: background var(--dur) var(--ease);
 }
-/* 행 사이 구분선.
-   ⚠️ 양쪽에 :not([hidden])을 붙인 이유 — 이 목록은 환경에 따라 행이 [hidden]으로 빠진다.
-   그냥 `+ .ex-sheet-item`으로 두면 앞 행이 감춰져 있어도 CSS 인접 선택자는 DOM 기준이라
-   여전히 매칭돼서, 카드 맨 위에 선이 하나 떠 있는 것처럼 보인다. */
-.ex-sheet-item:not([hidden]) + .ex-sheet-item:not([hidden]) { box-shadow: inset 0 1px 0 var(--ink-100); }
+/* 행 사이 구분선은 두지 않는다(2026-08-24 요청으로 제거). 행 구분은 hover/누름 배경으로만 한다. */
 /* hover(마우스 있는 환경)와 누름(터치) 모두 회색으로. 평소에는 흰 배경이다.
    hover는 hover가 실제로 되는 기기에만 적용한다 — 터치 기기에서 :hover는 탭 후 색이
    그대로 남는 문제가 있다. */
