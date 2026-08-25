@@ -74,58 +74,30 @@
     };
   }
 
-  /* 카드 뒷면에 찍히는 만료월/CVC는 이름에서 만든 해시로 고정한다.
-     매번 랜덤이면 다시 뽑을 때 같은 사람의 카드 값이 바뀌어 어색하다. */
-  function hashOf(name) {
-    var h = 5381;
-    for (var i = 0; i < name.length; i++) h = ((h << 5) + h + name.charCodeAt(i)) | 0;
-    return Math.abs(h);
-  }
-
   /* ── 카드 마크업 ───────────────────────────────────────────
      앞면은 참가자와 무관하게 전부 동일하다(뽑기 공정성). 이름은 뒷면 서명란에만 들어간다. */
-  var CARET_SVG =
-    '<svg class="sc-caret" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 9.5 5-5 5 5"/></svg>';
+  /* 카드 마크업.
+     앞면/뒷면은 CSS가 카드 시안 **이미지**를 배경으로 깐다. 여기서 만드는 것은 상자와
+     서명란 이름뿐이다(무늬·로고·칩·자기 띠·문구는 모두 이미지가 가진 그림).
 
-  function buildCard(el, name) {
-    var h = hashOf(name);
-    el.innerHTML =
-      '<div class="sc-card-inner">' +
-        // 앞면 — 워드마크 + 구분선 + 가운데 IC 칩. 번호는 찍지 않는다(실물 이미지와 동일).
-        '<div class="sc-side sc-front">' +
-          '<div class="sc-fhead"><span class="sc-logo">Eattyway</span>' + CARET_SVG + '</div>' +
-          '<span class="sc-emv"></span>' +
-        '</div>' +
-        // 뒷면 — 고객센터/도메인, 자기 띠, 서명란(여기에 이름), CVC, 하단 표기
-        '<div class="sc-side sc-side-back sc-back">' +
-          '<div class="sc-btop"><span>고객센터 1544-7000</span><span>www.eattyway.com</span></div>' +
-          '<div class="sc-mag"></div>' +
-          '<div class="sc-bbody">' +
-            '<div class="sc-siglabel">AUTHORIZED SIGNATURE <em>서명</em></div>' +
-            '<div class="sc-sigrow">' +
-              '<div class="sc-sign"><span class="sc-sign-name"></span></div>' +
-              '<div class="sc-cvc"></div>' +
-            '</div>' +
-            '<p class="sc-legal">서명한 본인만이 사용할 수 있으며 타인에게 양도 및 대여할 수 없습니다.</p>' +
-            '<div class="sc-bfoot">' +
-              '<span class="sc-logo">Eattyway</span>' + CARET_SVG +
-              '<span class="sc-bno">BC 12345678 123<br>MADE IN KOREA</span>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
+     withBack: 뒷면을 만들지 여부.
+       · 부채꼴 카드는 false — 뒷면이 필요 없고, 무엇보다 **이름을 DOM에 넣지 않아야 한다.**
+         opacity로만 감추면 스크린리더가 펼쳐진 카드 10장의 이름을 다 읽어버려서 결과가
+         미리 새어나간다(눈에는 안 보여도 접근성 트리에는 남는다).
+       · 당첨 카드는 true. */
+  function buildCard(el, name, withBack) {
+    var html = '<div class="sc-card-inner"><div class="sc-side sc-front"></div>';
+    if (withBack) html += '<div class="sc-side sc-back"><span class="sc-sign-name"></span></div>';
+    el.innerHTML = html + '</div>';
 
-    // 사용자 입력/생성 문자열은 전부 textContent로 — innerHTML 경로를 타지 않게 한다.
+    if (!withBack) return;
+
     var nameEl = el.querySelector(".sc-sign-name");
-    var cvcEl = el.querySelector(".sc-cvc");
-    if (nameEl) {
-      nameEl.textContent = name;
-      /* 서명란 폭이 정해져 있어서 긴 이름은 잘린다. 글자 수에 따라 크기를 낮춰
-         maxlength(12자)까지는 잘리지 않고 들어가게 한다. */
-      nameEl.style.fontSize = name.length > 8 ? "9.5px" : name.length > 6 ? "11.5px" : "14px";
-    }
-    if (cvcEl) cvcEl.textContent = ("00" + (h % 1000)).slice(-3);
+    if (!nameEl) return;
+    nameEl.textContent = name;   // 사용자 입력 — innerHTML 경로를 타지 않게 textContent로만
+    /* 서명란 폭이 정해져 있어서 긴 이름은 잘린다. 글자 수에 따라 크기를 낮춰
+       maxlength(12자)까지 잘리지 않고 들어가게 한다. */
+    nameEl.style.fontSize = name.length > 10 ? "9px" : name.length > 8 ? "10.5px" : "13px";
   }
 
   /* ── 부채꼴 렌더 ───────────────────────────────────────── */
@@ -156,7 +128,7 @@
       el.className = "sc-card";
       el.style.setProperty("--a", (n === 1 ? 0 : (-spread / 2 + spread * i / (n - 1))).toFixed(2) + "deg");
       el.style.zIndex = String(i + 1);
-      buildCard(el, name);
+      buildCard(el, name, false);   // 부채꼴은 앞면만 — 이름을 DOM에 넣지 않는다(위 buildCard 주석)
       fanEl.appendChild(el);
       // 한 장씩 차례로 펼쳐지게 지연을 준다(트럼프 카드 펼치는 느낌).
       setTimeout(function () { el.classList.add("is-in"); }, 50 + i * 52);
@@ -294,7 +266,7 @@
 
     // ⚠️ flier가 아니라 cardHost에 만든다 — flier에는 클릭 레이어(.sc-flip)가 함께 들어 있어서
     // flier.innerHTML을 덮어쓰면 그 버튼이 사라진다.
-    buildCard(cardHost, name);
+    buildCard(cardHost, name, true);
     flier.classList.remove("is-flipped");
     if (flipBtn) {
       flipBtn.disabled = false;

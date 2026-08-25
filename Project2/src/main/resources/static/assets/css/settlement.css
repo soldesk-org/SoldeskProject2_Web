@@ -20,8 +20,9 @@
    ============================================================================ */
 
 :root {
+  /* 카드 시안 원본 비율 그대로: 1578 / 996 = 1.5843 (160 x 253.5) */
   --sc-w: 160px;
-  --sc-h: 254px;
+  --sc-h: 253.5px;
   /* 뽑힌 카드를 중앙에서 확대할 배율(뒷면 미세 문구 가독성용) */
   --sc-rs: 1.5;
   /* 토스 계열 중성 회색 — 사이트 --ink 스케일이 보라 기운이 있어서, 카드/무대처럼
@@ -155,142 +156,74 @@
 .sc-card.is-up { transform: rotate(var(--a)) translateY(-30px) scale(1.04); } /* 훑고 지나갈 때 */
 .sc-card.is-gone { opacity: 0; }
 
-/* ── 카드 본체 ───────────────────────────────────────────────
-   .sc-card-inner가 3D 뒤집기를 담당한다. 부채꼴 카드는 뒤집지 않지만 같은 구조를 써서
-   당첨 카드와 마크업을 공유한다(settlement.js의 buildCard 하나로 둘 다 만든다). */
+/* ── 카드 (실제 카드 시안 이미지를 그대로 사용) ─────────────────────────
+   앞면(세로)/뒷면(가로) 시안을 배경 이미지로 깐다. 카드 위에 코드로 그리는 요소는
+   **서명란의 이름 하나뿐**이고, 무늬·로고·칩·자기 띠·문구는 모두 이미지가 가진 그림이다.
+
+   원본은 996x1578 / 1578x997(각 1.6MB)였다. 화면에 그려지는 최대 크기가 긴 변 약 380px
+   (당첨 카드 확대 배율 1.5)이라 3배 고밀도 화면까지 감당하는 1200px으로 줄이고 JPEG 92로
+   재인코딩했다 → 각 105KB / 120KB. 어두운 그라데이션이라 밴딩이 걱정됐지만 실물 확인 결과
+   눈에 띄지 않았다. 모서리는 원본이 검정 배경이고 아래에서 border-radius로 잘라낸다.
+
+   ⚠️ 뒷면 시안은 **가로**다. 세로 카드 상자에 넣으려면 폭/높이를 맞바꾼 가로 크기로 만들어
+   rotate(-90deg)로 눕힌다. 그러면 회전 후 외곽이 세로 상자와 정확히 일치한다. 카드 전체가
+   뒤집힐 때 rotate(90deg)를 받으므로 -90 + 90 = 0이 되어 뒷면이 똑바로 선다
+   (그 순간 카드는 가로가 된다 — 실물 카드를 뒤집어 눕혀 보는 것과 같은 모습).
+
+   ⚠️ 3D(rotateY + backface-visibility)를 쓰지 않는다. 부모 Z회전과 자식 Y회전이 겹치면
+   브라우저에 따라 내용이 거울상으로 뒤집힌다. 회전 중간에 앞/뒷면을 불투명도로 교차하면
+   같은 인상을 주면서 그 위험이 없다.
+   ------------------------------------------------------------------ */
 .sc-card-inner {
-  position: absolute; inset: 0;
-  transform-style: preserve-3d;
-  transition: transform .78s cubic-bezier(.3, .8, .25, 1);
+  position: absolute; inset: 0; border-radius: 15px;
+  box-shadow: 0 8px 22px rgba(10, 12, 18, .26);
+  transition: transform .8s cubic-bezier(.32, .8, .24, 1);
 }
-/* 자손 선택자를 쓴다 — 당첨 카드는 .sc-flier > .sc-card-host > .sc-card-inner 로 한 단계 더 깊다. */
-.is-flipped .sc-card-inner { transform: rotateY(180deg); }
+/* 뒤집기 = 카드를 가로로 눕히기. 당첨 카드에만 붙는다(부채꼴 카드는 뒤집지 않는다). */
+.sc-flier.is-flipped .sc-card-inner { transform: rotate(90deg); }
 
 .sc-side {
-  position: absolute; inset: 0; border-radius: 17px; overflow: hidden;
-  backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  box-shadow: 0 8px 22px rgba(10, 12, 18, .22);
-}
-.sc-side-back { transform: rotateY(180deg); }
-
-/* ── 카드 공통 무늬 (2026-08-25 실물 카드 이미지 기준으로 재작업) ──────────
-   요청 이미지의 무늬를 **이미지 파일 없이 CSS만으로** 재현했다. 카드가 부채꼴에서 축소되고
-   당첨 시 확대되는데, 비트맵을 쓰면 그 과정에서 흐려진다. 그라데이션은 배율과 무관하게 선명하다.
-
-   구성 두 겹:
-     · repeating-radial-gradient — 1px 선을 13px 간격으로 반복해 얇은 동심원 호를 여러 겹 만든다
-     · radial-gradient(하드 스톱) — 경계가 뚜렷한 큰 호 하나로 밝은 면/어두운 면을 나눈다
-   원의 중심을 카드 **오른쪽 위 바깥**(124% -12%)에 두면 왼쪽 위에서 오른쪽 아래로 흐르는
-   곡선이 되어 이미지와 같은 흐름이 나온다. */
-.sc-front, .sc-back {
-  background-color: #1c1c20;
-  background-image:
-    repeating-radial-gradient(circle at 124% -12%,
-      rgba(255, 255, 255, .045) 0 1px, rgba(255, 255, 255, 0) 1px 13px),
-    radial-gradient(circle at 124% -12%,
-      #35353d 0 54%, #292930 54% 62%, #15151b 62.4%, #0d0d11 100%);
+  position: absolute; border-radius: 15px; overflow: hidden;
+  background-repeat: no-repeat; background-position: center center;
+  background-size: cover;
+  /* 회전이 절반쯤 진행됐을 때 앞/뒷면이 바뀌도록 지연을 준다. */
+  transition: opacity .3s var(--ease) .27s;
 }
 
-/* 워드마크 — 이미지의 각진 로고체를 그대로 쓸 수 없어(웹폰트 없음) 굵은 산세리프로 근사했다. */
-.sc-logo {
-  font-size: 17px; font-weight: 800; letter-spacing: -.005em; line-height: 1;
-  color: #fff; white-space: nowrap;
-}
-.sc-caret { width: 11px; height: 11px; flex: none; color: #fff; }
-
-/* ── 카드 앞면 ──────────────────────────────────────────────
-   상단에 워드마크 + 구분선, 그 아래 가운데에 IC 칩. 번호는 찍지 않는다(이미지와 동일). */
+/* 앞면 — 세로 시안. 카드 상자를 그대로 채운다. */
 .sc-front {
-  padding: 15px 14px;
-  display: flex; flex-direction: column;
-  color: #fff;
-}
-.sc-fhead {
-  display: flex; align-items: center; gap: 7px;
-  padding-bottom: 11px; border-bottom: 1px solid rgba(255, 255, 255, .17);
-  position: relative; z-index: 1;
-}
-/* IC 칩 — 금색이 아니라 이미지처럼 실버. */
-.sc-emv {
-  width: 31px; height: 25px; margin: 23px auto 0; flex: none;
-  border-radius: 4px; position: relative; z-index: 1;
-  background: linear-gradient(155deg, #e2e2e4 0%, #a7a7ac 38%, #f1f1f3 60%, #97979d 100%);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .42), inset 0 0 0 .5px rgba(255, 255, 255, .55);
-}
-/* 접점 무늬 — 가로 구분선 + 위쪽 절반의 세로선 2개(box-shadow로 두 번째 선을 만든다). */
-.sc-emv::before {
-  content: ""; position: absolute; left: 0; right: 0; top: 56%; height: 1px;
-  background: rgba(0, 0, 0, .3);
-}
-.sc-emv::after {
-  content: ""; position: absolute; top: 0; height: 56%; left: 34%; width: 1px;
-  background: rgba(0, 0, 0, .3);
-  box-shadow: 10px 0 0 rgba(0, 0, 0, .3);
+  inset: 0;
+  background-image: url("../images/settlement-card-front.jpg");
 }
 
-/* ── 카드 뒷면 — 뽑힌 사람 이름이 서명란에 적혀 나온다 ────────── */
-.sc-back { display: flex; flex-direction: column; color: #fff; }
-
-.sc-btop {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 12px 9px;
-  font-size: 5.5px; font-weight: 600; letter-spacing: .02em;
-  color: rgba(255, 255, 255, .62);
-  position: relative; z-index: 1; white-space: nowrap;
+/* 뒷면 — 가로 시안. 가로 크기로 만들어 눕혀 넣는다(위 주석 참고). */
+.sc-back {
+  width: var(--sc-h); height: var(--sc-w);
+  left: 50%; top: 50%;
+  margin-left: calc(var(--sc-h) / -2);
+  margin-top: calc(var(--sc-w) / -2);
+  transform: rotate(-90deg);
+  background-image: url("../images/settlement-card-back.jpg");
+  opacity: 0;
 }
-.sc-btop span:last-child { margin-left: auto; }
+.sc-flier.is-flipped .sc-front { opacity: 0; }
+.sc-flier.is-flipped .sc-back { opacity: 1; }
 
-/* 자기 띠 */
-.sc-mag { height: 36px; flex: none; background: #08080a; position: relative; z-index: 1; }
-
-.sc-bbody {
-  flex: 1; padding: 11px 12px 12px;
-  display: flex; flex-direction: column;
-  position: relative; z-index: 1;
-}
-.sc-siglabel {
-  font-size: 6px; font-weight: 700; letter-spacing: .13em;
-  color: rgba(255, 255, 255, .62); white-space: nowrap;
-}
-.sc-siglabel em { font-style: normal; letter-spacing: 0; }
-
-.sc-sigrow { display: flex; margin-top: 5px; }
-
-/* 서명란 — 밝은 띠에 EATTYWAY 워터마크가 반복된다.
-   워터마크는 인라인 SVG를 data URI로 넣어 **실제 반복되는 글자**로 만들었다
-   (줄무늬 그라데이션으로 흉내내면 실물 카드의 보안 인쇄 느낌이 안 난다). */
-.sc-sign {
-  flex: 1; min-width: 0; height: 28px;
-  display: flex; align-items: center; padding: 0 7px;
-  background-color: #f5f2ea;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='13'%3E%3Ctext x='1' y='9' font-family='Arial,Helvetica,sans-serif' font-size='6' fill='%23b6a888' fill-opacity='.55'%3EEATTYWAY%3C/text%3E%3C/svg%3E");
-  box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .14);
-}
+/* 서명란에 적히는 이름 — 카드에 코드로 그리는 유일한 요소.
+   위치는 뒷면 이미지(1200x758)에서 밝은 서명 띠를 실측해 비율로 환산한 값이다
+   (좌 43px / 상 302px / 폭 634px / 높이 98px). 이미지를 교체하면 이 값도 다시 재야 한다.
+   ⚠️ 부모(.sc-back)가 가로 상자라 %는 가로 기준으로 계산된다. */
 .sc-sign-name {
-  font-size: 14px; font-weight: 800; letter-spacing: -.03em; line-height: 1.15;
-  color: #17181c; font-style: italic;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-/* CVC 칸 — 서명란 오른쪽에 붙는 회색 박스 */
-.sc-cvc {
-  flex: none; width: 31px; display: grid; place-items: center;
-  background: #56565b; color: #fff;
-  font-size: 9.5px; font-weight: 700; letter-spacing: .02em;
-  font-variant-numeric: tabular-nums;
-}
-
-.sc-legal {
-  margin-top: 7px; font-size: 5px; font-weight: 500; line-height: 1.55;
-  color: rgba(255, 255, 255, .46);
-}
-
-.sc-bfoot { margin-top: auto; display: flex; align-items: flex-end; gap: 6px; }
-.sc-bfoot .sc-logo { font-size: 12px; }
-.sc-bfoot .sc-caret { width: 8px; height: 8px; }
-.sc-bno {
-  margin-left: auto; text-align: right; white-space: nowrap;
-  font-size: 5.2px; font-weight: 600; letter-spacing: .04em; line-height: 1.6;
-  color: rgba(255, 255, 255, .52);
+  position: absolute;
+  left: 3.6%; top: 39.9%; width: 52.8%; height: 12.9%;
+  display: flex; align-items: center;
+  padding-left: 3.4%;
+  font-size: 13px; font-weight: 700; font-style: italic;
+  letter-spacing: -.02em; line-height: 1;
+  color: #1b1c20;
+  white-space: nowrap; overflow: hidden;
+  /* 손으로 적은 느낌을 아주 약하게 — 과하면 유치해진다. */
+  transform: rotate(-1deg);
 }
 
 /* ── 무대 하단 ───────────────────────────────────────────── */
@@ -307,7 +240,6 @@
   position: fixed; inset: 0; z-index: 120;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 22px; padding: 24px;
-  perspective: 1400px;                     /* 3D 뒤집기에 깊이감을 준다 */
   opacity: 0; visibility: hidden;
   transition: opacity .28s var(--ease), visibility .28s;
 }
@@ -326,22 +258,18 @@
 .sc-guide b { display: block; margin-bottom: 5px; font-size: 13px; color: rgba(255, 255, 255, .45); font-weight: 600; }
 
 /* 뽑힌 카드 — 부채꼴에서의 위치/각도로 시작해 이 자리로 날아온다(좌표는 JS가 넣는다).
-   ⚠️ 기본 크기(160x254)로는 뒷면 미세 문구가 안 읽혀서 --sc-rs 배율로 확대한다.
-   확대는 width/height를 키우는 대신 scale로 한다 — 크기를 키우면 카드 안쪽 글자/칩/서명란을
-   전부 따로 맞춰야 한다(파일 상단 주석의 "크기는 한 벌만" 원칙).
+   ⚠️ 기본 크기로는 뒷면 시안의 미세 문구가 안 읽혀서 --sc-rs 배율로 확대한다.
+   확대는 width/height를 키우는 대신 scale로 한다 — 크기를 키우면 서명란 이름의 좌표(%)는
+   따라오지만 글자 크기는 안 따라와서 따로 맞춰야 한다(파일 상단 "크기는 한 벌만" 원칙).
    JS는 시작 transform만 인라인으로 넣고 마지막에 비우므로, 최종 상태는 이 규칙이 결정한다. */
 .sc-flier {
   position: relative; z-index: 2;
   width: var(--sc-w); height: var(--sc-h);
   transform: scale(var(--sc-rs, 1.5));
-  transform-style: preserve-3d;
   will-change: transform;
 }
-/* 카드가 실제로 그려지는 곳. 3D 문맥은 여기까지만 유지된다. */
-.sc-card-host {
-  position: absolute; inset: 0;
-  transform-style: preserve-3d;
-}
+/* 카드가 실제로 그려지는 곳 */
+.sc-card-host { position: absolute; inset: 0; }
 /* 아직 안 뒤집었을 때 "눌러보세요" 신호 — 아주 약한 호흡 */
 .sc-flier:not(.is-flipped) .sc-card-host { animation: scBreathe 2.1s var(--ease) infinite; }
 @keyframes scBreathe {
