@@ -34,31 +34,42 @@
   var drawing = false;   // 뽑기~오버레이 닫기까지 입력/삭제를 잠그는 플래그
   var flipped = false;   // 당첨 카드를 뒤집었는지
 
-  /* fanOrder[i] = 화면 i번째(왼쪽부터) 카드가 어떤 names 인덱스를 보여주는지.
+  /* fanOrder[i] = 화면 i번째(왼쪽부터) 자리가 어떤 names 인덱스를 보여주는지.
      ⚠️ names 배열 자체는 절대 섞지 않는다 — 참가자 칩 목록은 입력한 순서를 유지해야 하는데
      names를 섞으면 칩 순서도 같이 뒤섞여 버린다(renderNames도 같은 names를 쓴다).
-     그래서 "카드가 어디 있는지"만 따로 이 배열로 관리하고, 뽑기 전에 이것만 섞는다.
+     그래서 "카드가 어디 있는지"만 따로 이 배열로 관리한다.
      이름을 추가/삭제할 때마다 resetFanOrder()로 다시 identity(0,1,2,...) 상태로 되돌린다 —
-     참가자 목록을 편집한 뒤에는 위치도 편집한 순서 그대로 보이는 게 자연스럽다. */
+     참가자 목록을 편집한 뒤에는 위치도 편집한 순서 그대로 보이는 게 자연스럽다.
+     뽑기 버튼을 누르면 doShuffleAnimation()이 카드를 실제로 맞바꾸며 이 배열을 갱신한다
+     (2026-08-25 재작업 — 예전에는 카드를 통째로 걷었다가 다시 그리는 방식이었는데,
+     "저건 사라졌다 다시 생기는 거잖아, 섞는 애니메이션으로 해달라"는 지적으로 바꿨다). */
   var fanOrder = [];
   function resetFanOrder() { fanOrder = names.map(function (_, i) { return i; }); }
-  function shuffleFanOrder() {
-    for (var i = fanOrder.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var t = fanOrder[i]; fanOrder[i] = fanOrder[j]; fanOrder[j] = t;
-    }
+
+  /* 화면 위치별 회전 각도. 부채꼴 펼침 각도는 카드 수(n)에만 좌우되고 어떤 이름이 그
+     자리에 있는지와는 무관하므로, renderFan(최초 펼침)과 셔플 애니메이션(자리 교환)이
+     이 함수 하나를 공유한다 — 따로 계산식을 두면 한쪽만 고치고 잊어버리기 쉽다. */
+  function calcAngles(n) {
+    var spread = Math.min(72, n * 9.5);   // 사람이 적으면 좁게, 많아지면 넓게
+    var angles = [];
+    for (var k = 0; k < n; k++) angles.push(n === 1 ? 0 : (-spread / 2 + spread * k / (n - 1)));
+    return angles;
   }
 
-  // 부채꼴 카드가 나타나는 타이밍(renderFan)과 뽑기 시작 타이밍(startDraw)이 같은 상수를
-  // 공유해야 한다 — 따로 매직넘버로 두면 한쪽만 바뀌었을 때 카드가 다 펼쳐지기 전에
-  // 뽑기가 시작되는 조용한 버그가 생긴다.
+  // 부채꼴 카드가 나타나는 타이밍(renderFan)이 쓰는 상수.
   // prefers-reduced-motion에서는 settlement.css가 .sc-card의 transition을 .01ms로 누른다.
   // 그 경우 500ms를 그대로 기다리면 카드가 이미 멈춘 뒤에도 한참 대기하게 되므로 짧게 쓴다.
   var REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var CARD_ENTER_BASE = 50;                        // 첫 카드가 펼쳐지기 시작하는 지연(ms)
   var CARD_ENTER_STEP = REDUCED_MOTION ? 0 : 52;   // 카드 한 장마다 늘어나는 지연(ms)
   var CARD_ENTER_MS = REDUCED_MOTION ? 20 : 500;   // settlement.css .sc-card의 transition 시간과 일치
-  var CARD_COLLAPSE_MS = REDUCED_MOTION ? 20 : 500; // 같은 transition을 되감아 접힐 때도 쓴다
+
+  // 셔플(카드 맞바꾸기) 타이밍. .sc-fan.is-shuffling .sc-card 의 transition 시간과 반드시
+  // 일치시켜야 한다 — 이 값들로 "언제 다음 스텝을 시작할지"와 "언제 뽑기를 시작할지"를
+  // 정하는데, CSS 쪽 시간이 다르면 애니메이션이 끝나지 않았는데 다음 단계가 시작돼 버린다.
+  var SHUFFLE_MOVE_MS = REDUCED_MOTION ? 0 : 300;  // 카드 한 번 맞바꿀 때의 이동 시간
+  var SHUFFLE_STEP_MS = REDUCED_MOTION ? 0 : 230;  // 다음 맞바꿈을 시작하기까지의 간격
+                                                    // (MOVE보다 짧게 둬서 스텝끼리 살짝 겹치며 매끄럽게 이어진다)
 
   var nameInput = document.getElementById("scName");
   var addBtn = document.getElementById("scAddBtn");
@@ -161,10 +172,7 @@
     }
 
     var base = cardBase();
-    var spread = Math.min(72, n * 9.5);   // 사람이 적으면 좁게, 많아지면 넓게
-
-    var angles = [];
-    for (var k = 0; k < n; k++) angles.push(n === 1 ? 0 : (-spread / 2 + spread * k / (n - 1)));
+    var angles = calcAngles(n);
 
     // fanOrder가 names와 길이가 안 맞으면(추가/삭제 직후 등) 안전하게 identity로 되돌린다.
     if (fanOrder.length !== n) resetFanOrder();
@@ -208,6 +216,80 @@
   }
 
   function cards() { return fanEl.querySelectorAll(".sc-card"); }
+
+  /* ── 카드 실제 맞바꾸기(셔플) ─────────────────────────────
+     예전 방식(카드를 전부 지웠다가 다시 그리기)은 "사라졌다 다시 생기는 것"으로 보인다는
+     지적을 받았다. 대신 지금은 화면의 두 카드가 서로 자리를 **실제로 이동**해서 맞바꾼다 —
+     DOM 노드 자체는 그대로 있고, 각도(--a)와 z-index만 서로 교환한 뒤 CSS transition으로
+     자연스럽게 미끄러져 자리를 바꾼다. 앞면이 전부 동일한 이미지라 이름표를 다시 그릴
+     필요도 없다(뽑기 공정성상 부채꼴 카드에는 원래도 이름이 없다).
+
+     swapPair(a, b): 화면상 a번째, b번째 자리의 카드를 서로 맞바꾼다.
+       - fanOrder[a] <-> fanOrder[b] (실제 참가자 대응도 함께 바뀐다)
+       - 두 엘리먼트의 --a(각도)와 z-index를 맞바꾼다
+       - 살짝 위로 뜨는 상태(is-swap)를 짧게 얹어서 카드가 서로를 스쳐 지나가는 느낌을 준다 */
+  function swapPair(a, b) {
+    var t = fanOrder[a]; fanOrder[a] = fanOrder[b]; fanOrder[b] = t;
+
+    var list = cards();
+    var elA = null, elB = null;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].dataset.slot === String(a)) elA = list[i];
+      if (list[i].dataset.slot === String(b)) elB = list[i];
+    }
+    if (!elA || !elB) return;
+
+    var angleA = elA.style.getPropertyValue("--a");
+    var angleB = elB.style.getPropertyValue("--a");
+    var zA = elA.style.zIndex, zB = elB.style.zIndex;
+
+    elA.style.setProperty("--a", angleB);
+    elB.style.setProperty("--a", angleA);
+    elA.style.zIndex = zB;
+    elB.style.zIndex = zA;
+
+    // dataset.slot도 함께 바꿔야 다음 swapPair 호출에서 "화면 a번째"를 다시 정확히 찾는다.
+    elA.dataset.slot = String(b);
+    elB.dataset.slot = String(a);
+
+    elA.classList.add("is-swap");
+    elB.classList.add("is-swap");
+    setTimeout(function () {
+      elA.classList.remove("is-swap");
+      elB.classList.remove("is-swap");
+    }, SHUFFLE_MOVE_MS);
+  }
+
+  /* 뽑기 전에 카드를 실제로 몇 차례 맞바꿔 뒤섞는 애니메이션.
+     ⚠️ 왜 필요한가: 뽑히는 사람 자체는 이미 Math.random()으로 완전히 균등하다(실측 검증됨).
+     하지만 화면상 카드 위치는 항상 참가자를 추가한 순서 그대로 고정돼 있어서, "이름 순서대로
+     카드에 배정된 것처럼" 보이는 착시가 있었다(2026-08-25 지적). 카드를 실제로 맞바꾸면
+     그 착시가 사라지고, 트럼프를 섞는 듀얼 셔플 같은 느낌도 더해진다.
+
+     방식: 서로 다른 두 자리를 고른 무작위 쌍을 여러 번(카드 수에 비례) swapPair로 실행한다.
+     매번 완전히 새로운 무작위 쌍을 고르므로(이전에 어떤 쌍을 섞었는지 기억하지 않는다),
+     충분한 횟수를 반복하면 최종 배치는 통계적으로 균등하게 섞인다 — 그리고 어차피 최종
+     승자는 이 배치와 무관하게 Math.random()으로 다시 뽑으므로, 셔플의 균등성 자체가
+     공정성을 좌우하지는 않는다(순수히 "보는 재미 + 위치 고정 착시 제거" 목적). */
+  function shuffleCards(onDone) {
+    var n = names.length;
+    if (n < 2) { onDone(); return; }
+
+    // 카드가 많을수록 더 여러 번 섞는다. 최소 6번은 돌려야 "고작 한두 번 스쳤나" 싶은
+    // 느낌이 안 든다.
+    var rounds = Math.max(6, n * 2);
+    var r = 0;
+
+    (function step() {
+      if (r >= rounds) { onDone(); return; }
+      var a = Math.floor(Math.random() * n);
+      var b = Math.floor(Math.random() * n);
+      if (a === b) { b = (b + 1) % n; }   // 같은 자리를 고르면 옆자리로 밀어 항상 실제로 맞바뀌게 한다
+      swapPair(a, b);
+      r++;
+      setTimeout(step, SHUFFLE_STEP_MS);
+    })();
+  }
 
   /* ── 목록 / 상태 ──────────────────────────────────────── */
   function renderNames() {
@@ -300,36 +382,20 @@
      카드를 한 장씩 훑으며 튀어 오르게 하고(올라갔다 내려갔다), 간격을 점점 늘려
      감속시킨 뒤 마지막에 당첨 카드에서 멈춘다.
      총 스텝을 laps*n + winner + 1로 잡으면 마지막 스텝의 인덱스가 정확히 winner가 된다. */
+  // idx는 **화면 자리 인덱스**다. swapPair가 각도/z-index만 바꾸고 DOM 순서(=cards()가 반환하는
+  // 순서)는 그대로 두므로, "화면 몇 번째 자리인가"는 always dataset.slot으로 찾아야 한다.
   function markUp(idx) {
     var list = cards();
-    for (var i = 0; i < list.length; i++) list[i].classList.toggle("is-up", i === idx);
+    for (var i = 0; i < list.length; i++) {
+      list[i].classList.toggle("is-up", list[i].dataset.slot === String(idx));
+    }
   }
 
-  /* 뽑기 전에 카드를 걷어서 다시 무작위 자리에 펼치는 섞기 애니메이션.
-     ⚠️ 왜 필요한가: 뽑히는 사람 자체는 이미 Math.random()으로 완전히 균등하다(실측 검증됨).
-     하지만 화면상 카드 위치는 항상 참가자를 추가한 순서 그대로 고정돼 있어서, "이름 순서대로
-     카드에 배정된 것처럼" 보이는 착시가 있었다(2026-08-25 지적). 실제로 자리를 뒤섞으면
-     그 착시가 사라지고, 매번 카드를 새로 펼치는 느낌도 더해진다.
-     방식: 현재 카드들을 CSS의 "등장 전" 상태(모여서 접힌 모습)로 되돌린 뒤, fanOrder를
-     Fisher-Yates로 섞고 renderFan()으로 새 자리에 다시 그린다 — buildCard를 다시 타므로
-     이름과 자리의 대응 자체가 바뀐다(단순히 각도만 재배치하는 게 아니다). */
   function shuffleThenDraw() {
-    var list = cards();
-    for (var i = 0; i < list.length; i++) list[i].classList.remove("is-in");
-
-    setTimeout(function () {
-      shuffleFanOrder();
-      renderFan();
-      // renderFan이 카드를 다시 펼치는 데 걸리는 시간(마지막 카드 지연 + 펼침 전환 시간)만큼
-      // 기다린 뒤 뽑기를 시작한다. 카드가 다 펼쳐지기 전에 훑기 애니메이션이 시작되면
-      // is-up이 아직 "접힌" 카드에 붙어 뜬금없이 보인다.
-      var n = names.length;
-      var enterDone = CARD_ENTER_BASE + Math.max(0, n - 1) * CARD_ENTER_STEP + CARD_ENTER_MS;
-      setTimeout(function () {
-        if (noteEl) noteEl.textContent = "뽑는 중이에요";
-        startDraw();
-      }, enterDone + 120);
-    }, CARD_COLLAPSE_MS);
+    shuffleCards(function () {
+      if (noteEl) noteEl.textContent = "뽑는 중이에요";
+      startDraw();
+    });
   }
 
   /* ── 뽑기 ─────────────────────────────────────────────────
@@ -377,7 +443,13 @@
      가로로 돌아 눕는다.** 즉 회전은 등장 연출의 일부이고 별도 코드가 없다.
      ⚠️ 이름은 아직 보이지 않는다 — 가로로 누운 앞면이 보이고, 사용자가 눌러야 뒷면이 나온다. */
   function flyOut(i) {
-    var srcEl = cards()[i];
+    // i는 화면 자리 인덱스다. swapPair가 DOM 순서를 바꾸지 않으므로 dataset.slot으로 찾는다
+    // (markUp과 같은 이유).
+    var srcEl = null;
+    var list = cards();
+    for (var k = 0; k < list.length; k++) {
+      if (list[k].dataset.slot === String(i)) { srcEl = list[k]; break; }
+    }
     if (!srcEl) { drawing = false; syncUI(); return; }
     var name = names[fanOrder[i]];   // i는 화면 자리 인덱스 — fanOrder로 실제 참가자를 찾는다
 
