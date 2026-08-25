@@ -125,3 +125,82 @@
   @media (max-width: 767px) {
     body { padding-bottom: var(--tabbar-total-h); }
   }
+
+/* ===========================================================================
+   공유 선택 바텀시트 (2026-08-24 추가) — #shareChoiceModal
+   ---------------------------------------------------------------------------
+   화면 아래에서 올라오는 시트 + 상단 그립 + [아이콘][라벨][화살표] 행 목록 구성.
+
+   eatty.css의 .e-modal 골격을 **그대로 쓰고 위치·모양만 여기서 덮어쓴다.**
+   그래야 Eatty.openModal/closeModal, [data-modal-close] 클릭 위임, Escape 닫기,
+   body.is-modal-open 관리가 전부 기존 코드로 동작한다(전용 JS가 필요 없다).
+
+   ⚠️ eatty.css의 .e-modal--sheet 변형은 **쓰지 않는다** — 그건 768px 이하에서
+   패널을 position:fixed; inset:0으로 만들어 전체화면이 된다. 행 3개짜리 선택창에는 과하다.
+
+   ⚠️ 이 파일은 explore.html에서 eatty.css **뒤에** 로드된다. 아래 규칙 중
+   .ex-sheet.is-open .e-modal-panel 은 eatty.css의 .e-modal.is-open .e-modal-panel 과
+   명시도가 같으므로(클래스 3개) **로드 순서로 이긴다.** 로드 순서를 바꾸면 연출이 깨진다.
+   =========================================================================== */
+.ex-sheet { place-items: end center; padding: 0; }
+.ex-sheet .e-modal-panel {
+  width: 100%; max-width: 440px; max-height: 86dvh;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  /* 홈 인디케이터 자리를 시트 안쪽 여백으로 확보한다(앱에서 마지막 행이 가리지 않게). */
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  /* 아래에서 올라오는 연출 — .e-modal-panel의 translateY(14px)+scale 기본값을 덮어쓴다. */
+  transform: translateY(100%);
+  transition: transform .34s cubic-bezier(.32, .72, 0, 1);
+}
+.ex-sheet.is-open .e-modal-panel { transform: translateY(0); }
+
+/* 상단 그립. 보이는 건 얇은 막대 하나지만 실제로는 **닫기 버튼**이다 —
+   이 디자인에는 X 버튼이 없어서, 백드롭 탭 말고 화면에 드러나는 닫기 수단이 하나는 있어야 한다
+   (키보드 포커스와 스크린리더에서도 잡힌다). 히트 영역을 26px로 넉넉히 잡고 막대는 ::before로 그린다. */
+.ex-sheet-grip {
+  display: block; width: 100%; height: 26px;
+  padding: 0; border: 0; background: transparent; cursor: pointer;
+}
+.ex-sheet-grip::before {
+  content: ""; display: block; width: 44px; height: 4px; margin: 11px auto 0;
+  border-radius: var(--r-full); background: var(--ink-200);
+}
+.ex-sheet-grip:active::before { background: var(--ink-300); }
+
+.ex-sheet-head { padding: 14px 22px 14px; }
+.ex-sheet-title { font-size: 18px; font-weight: 800; color: var(--ink-900); letter-spacing: -.025em; }
+.ex-sheet-desc {
+  margin-top: 5px; font-size: 13.5px; color: var(--ink-500); line-height: 1.5;
+  /* 가게명이 길어도 두 줄에서 끊는다. */
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* 행 목록을 감싸는 연회색 카드 */
+.ex-sheet-list {
+  margin: 0 16px; border-radius: var(--r-md);
+  background: var(--bg-soft); overflow: hidden;
+}
+.ex-sheet-item {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 15px 14px;
+  background: transparent; border: 0; text-align: left;
+  font-size: 15px; font-weight: 700; color: var(--ink-900);
+  cursor: pointer;
+}
+/* 행 사이 구분선.
+   ⚠️ 양쪽에 :not([hidden])을 붙인 이유 — 이 목록은 환경에 따라 행이 [hidden]으로 빠진다.
+   그냥 `+ .ex-sheet-item`으로 두면 앞 행이 감춰져 있어도 CSS 인접 선택자는 DOM 기준이라
+   여전히 매칭돼서, 카드 맨 위에 선이 하나 떠 있는 것처럼 보인다. */
+.ex-sheet-item:not([hidden]) + .ex-sheet-item:not([hidden]) { box-shadow: inset 0 1px 0 var(--ink-200); }
+.ex-sheet-item:active { background: var(--ink-100); }
+
+.ex-sheet-ico {
+  flex: none; width: 32px; height: 32px; border-radius: var(--r-sm);
+  display: grid; place-items: center;
+}
+.ex-sheet-ico svg { width: 18px; height: 18px; }
+.ex-sheet-ico--kakao { background: #fee500; color: #191600; } /* 카카오 브랜드 옐로 */
+.ex-sheet-ico--copy  { background: var(--ink-500); color: #fff; }
+.ex-sheet-ico--more  { background: var(--brand-500); color: #fff; }
+.ex-sheet-label { flex: 1; min-width: 0; }
+.ex-sheet-arrow { flex: none; width: 18px; height: 18px; color: var(--ink-300); }

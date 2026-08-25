@@ -125,7 +125,7 @@
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/explore.js?v=20260824a"></script>
 
-<link rel="stylesheet" href="assets/css/explore.css">
+<link rel="stylesheet" href="assets/css/explore.css?v=20260824a">
 </head>
 
 <body>
@@ -900,40 +900,44 @@
    #shareKakaoBtn  카카오 SDK가 초기화 가능할 때만(JS 앱 키가 있고 SDK가 로드됐을 때)
    #shareCopyBtn   항상
    #shareMoreBtn   네이티브가 share 지원을 선언했을 때만(EattyWayNativeCaps.share)
- e-modal--sheet를 **일부러 안 붙였다** — 그 변형은 768px 이하에서 전체화면이 되는데,
- 버튼 3개짜리 선택창을 전체화면으로 띄우는 건 과하다.
+ 모양은 아래에서 올라오는 바텀시트다(.ex-sheet). 스타일은 explore.css 하단에 있고,
+ 여닫기/Escape/백드롭 처리는 eatty.css + eatty-ui.js의 .e-modal 골격을 그대로 쓴다.
+ X 버튼이 없는 디자인이라 **상단 그립(.ex-sheet-grip)이 곧 닫기 버튼**이다.
 -->
-<div class="e-modal" id="shareChoiceModal" role="dialog" aria-modal="true" aria-labelledby="shareChoiceTitle" aria-hidden="true">
+<div class="e-modal ex-sheet" id="shareChoiceModal" role="dialog" aria-modal="true" aria-labelledby="shareChoiceTitle" aria-hidden="true">
   <div class="e-modal-backdrop" data-modal-close></div>
-  <div class="e-modal-panel e-modal-panel--sm">
-    <div class="e-modal-head">
-      <div>
-        <span class="e-modal-icon e-modal-icon--brand">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
-        </span>
-        <h2 class="e-modal-title" id="shareChoiceTitle">공유하기</h2>
-        <p class="e-modal-desc" id="shareChoiceDesc">이 가게를 친구에게 알려주세요.</p>
-      </div>
-      <button type="button" class="e-modal-close" data-modal-close aria-label="닫기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
+  <div class="e-modal-panel">
+    <button type="button" class="ex-sheet-grip" data-modal-close aria-label="닫기"></button>
+
+    <div class="ex-sheet-head">
+      <h2 class="ex-sheet-title" id="shareChoiceTitle">공유하기</h2>
+      <p class="ex-sheet-desc" id="shareChoiceDesc">이 가게를 친구에게 알려주세요.</p>
     </div>
 
-    <div class="e-modal-body">
-      <div class="grid gap-2">
-        <button type="button" class="btn btn-outline btn-block" id="shareKakaoBtn" hidden>
+    <div class="ex-sheet-list">
+      <button type="button" class="ex-sheet-item" id="shareKakaoBtn" hidden>
+        <span class="ex-sheet-ico ex-sheet-ico--kakao">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.9 3 2.8 6.3 2.8 10.3c0 2.6 1.7 4.9 4.3 6.2-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.7-1.8 3.7-2.5.5.1 1.1.1 1.6.1 5.1 0 9.2-3.3 9.2-7.2S17.1 3 12 3Z"/></svg>
-          카카오톡으로 공유
-        </button>
-        <button type="button" class="btn btn-outline btn-block" id="shareCopyBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          링크 복사
-        </button>
-        <button type="button" class="btn btn-outline btn-block" id="shareMoreBtn" hidden>
+        </span>
+        <span class="ex-sheet-label">카카오톡으로 공유</span>
+        <svg class="ex-sheet-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+
+      <button type="button" class="ex-sheet-item" id="shareCopyBtn">
+        <span class="ex-sheet-ico ex-sheet-ico--copy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.2 1.2"/><path d="M14 11a5 5 0 0 0-7.1 0l-3 3a5 5 0 0 0 7.1 7.1l1.2-1.2"/></svg>
+        </span>
+        <span class="ex-sheet-label">링크 복사</span>
+        <svg class="ex-sheet-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+
+      <button type="button" class="ex-sheet-item" id="shareMoreBtn" hidden>
+        <span class="ex-sheet-ico ex-sheet-ico--more">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
-          다른 앱으로 공유
-        </button>
-      </div>
+        </span>
+        <span class="ex-sheet-label">다른 앱으로 공유</span>
+        <svg class="ex-sheet-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
     </div>
   </div>
 </div>
