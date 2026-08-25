@@ -84,35 +84,47 @@
 
   /* ── 카드 마크업 ───────────────────────────────────────────
      앞면은 참가자와 무관하게 전부 동일하다(뽑기 공정성). 이름은 뒷면 서명란에만 들어간다. */
+  var CARET_SVG =
+    '<svg class="sc-caret" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 9.5 5-5 5 5"/></svg>';
+
   function buildCard(el, name) {
     var h = hashOf(name);
     el.innerHTML =
       '<div class="sc-card-inner">' +
+        // 앞면 — 워드마크 + 구분선 + 가운데 IC 칩. 번호는 찍지 않는다(실물 이미지와 동일).
         '<div class="sc-side sc-front">' +
-          '<div class="sc-front-top"><span class="sc-wordmark">EATTYWAY</span><span class="sc-dot"></span></div>' +
-          '<div class="sc-front-kind">정산 카드</div>' +
-          '<div class="sc-front-bot">' +
-            '<span class="sc-emv"></span>' +
-            '<div class="sc-mask">&bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull;</div>' +
-          '</div>' +
+          '<div class="sc-fhead"><span class="sc-logo">Eattyway</span>' + CARET_SVG + '</div>' +
+          '<span class="sc-emv"></span>' +
         '</div>' +
+        // 뒷면 — 고객센터/도메인, 자기 띠, 서명란(여기에 이름), CVC, 하단 표기
         '<div class="sc-side sc-side-back sc-back">' +
+          '<div class="sc-btop"><span>고객센터 1544-7000</span><span>www.eattyway.com</span></div>' +
           '<div class="sc-mag"></div>' +
-          '<div class="sc-back-body">' +
-            '<div class="sc-sign">' +
-              '<span class="sc-sign-label">CARD HOLDER</span>' +
-              '<span class="sc-sign-name"></span>' +
+          '<div class="sc-bbody">' +
+            '<div class="sc-siglabel">AUTHORIZED SIGNATURE <em>서명</em></div>' +
+            '<div class="sc-sigrow">' +
+              '<div class="sc-sign"><span class="sc-sign-name"></span></div>' +
+              '<div class="sc-cvc"></div>' +
             '</div>' +
-            '<div class="sc-cvc">CVC <b></b></div>' +
-            '<div class="sc-back-foot">EATTYWAY SETTLEMENT CARD<br>오늘 계산은 이 카드로</div>' +
+            '<p class="sc-legal">서명한 본인만이 사용할 수 있으며 타인에게 양도 및 대여할 수 없습니다.</p>' +
+            '<div class="sc-bfoot">' +
+              '<span class="sc-logo">Eattyway</span>' + CARET_SVG +
+              '<span class="sc-bno">BC 12345678 123<br>MADE IN KOREA</span>' +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>';
 
     // 사용자 입력/생성 문자열은 전부 textContent로 — innerHTML 경로를 타지 않게 한다.
     var nameEl = el.querySelector(".sc-sign-name");
-    var cvcEl = el.querySelector(".sc-cvc b");
-    if (nameEl) nameEl.textContent = name;
+    var cvcEl = el.querySelector(".sc-cvc");
+    if (nameEl) {
+      nameEl.textContent = name;
+      /* 서명란 폭이 정해져 있어서 긴 이름은 잘린다. 글자 수에 따라 크기를 낮춰
+         maxlength(12자)까지는 잘리지 않고 들어가게 한다. */
+      nameEl.style.fontSize = name.length > 8 ? "9.5px" : name.length > 6 ? "11.5px" : "14px";
+    }
     if (cvcEl) cvcEl.textContent = ("00" + (h % 1000)).slice(-3);
   }
 
@@ -299,14 +311,16 @@
 
     var from = srcEl.getBoundingClientRect();
     var to = flier.getBoundingClientRect();
-    var base = cardBase();
-    /* 부채꼴 카드는 회전돼 있어서 getBoundingClientRect()가 회전 후 외곽 상자를 준다.
-       폭/높이는 신뢰할 수 없지만 **중심 좌표는 정확하다**(회전은 중심을 보존한다).
-       크기 차이는 --sc-fs(부채꼴 축소 배율)로 계산한다. */
+    /* 회전/확대된 요소의 getBoundingClientRect()는 **변환 후 외곽 상자**를 준다. 폭/높이는
+       신뢰할 수 없지만 **중심 좌표는 정확하다** — 회전과 (중심 기준) 확대 모두 중심을 보존한다.
+       그래서 양쪽 모두 rect의 중심만 쓴다.
+       ⚠️ 여기서 to의 크기를 카드 기본 크기로 가정하면 안 된다. .sc-flier에는 CSS가
+       scale(--sc-rs) 확대를 걸어 두므로 rect가 그만큼 커져 있다(중심은 그대로다).
+       translate는 scale보다 먼저 적용되므로 dx/dy는 화면 px 그대로 쓰면 된다. */
     var startS = parseFloat(fanEl.style.getPropertyValue("--sc-fs")) || 1;
     var startA = (srcEl.style.getPropertyValue("--a") || "0deg").trim();
-    var dx = (from.left + from.width / 2) - (to.left + base.w / 2);
-    var dy = (from.top + from.height / 2) - (to.top + base.h / 2);
+    var dx = (from.left + from.width / 2) - (to.left + to.width / 2);
+    var dy = (from.top + from.height / 2) - (to.top + to.height / 2);
 
     flier.style.transition = "none";
     flier.style.transform =

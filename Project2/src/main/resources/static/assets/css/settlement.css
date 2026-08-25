@@ -22,6 +22,8 @@
 :root {
   --sc-w: 160px;
   --sc-h: 254px;
+  /* 뽑힌 카드를 중앙에서 확대할 배율(뒷면 미세 문구 가독성용) */
+  --sc-rs: 1.5;
   /* 토스 계열 중성 회색 — 사이트 --ink 스케일이 보라 기운이 있어서, 카드/무대처럼
      무채색이어야 자연스러운 곳에만 이 값을 쓴다. */
   --sc-ink: #191f28;
@@ -171,90 +173,124 @@
 }
 .sc-side-back { transform: rotateY(180deg); }
 
-/* ── 카드 앞면 — 토스뱅크처럼 거의 검정 + 최소 정보 ────────── */
-.sc-front {
-  padding: 18px 17px;
-  display: flex; flex-direction: column;
-  color: #fff;
-  background: linear-gradient(163deg, #2b2b33 0%, #1a1a20 52%, #101015 100%);
-}
-/* 표면 광택 — 아주 약하게. 토스 카드는 번들거리지 않는다. */
-.sc-front::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(150deg, rgba(255, 255, 255, .085) 0%, rgba(255, 255, 255, 0) 42%);
-}
-.sc-front-top { display: flex; align-items: flex-start; gap: 8px; position: relative; z-index: 1; }
-.sc-wordmark { font-size: 11px; font-weight: 800; letter-spacing: .15em; }
-.sc-dot {
-  margin-left: auto; width: 9px; height: 9px; border-radius: var(--r-full); flex: none;
-  background: var(--brand-grad);
-  box-shadow: 0 0 0 3px rgba(253, 109, 74, .16);
-}
-.sc-front-kind {
-  margin-top: 4px; font-size: 9.5px; font-weight: 600; letter-spacing: .04em;
-  color: rgba(255, 255, 255, .46); position: relative; z-index: 1;
+/* ── 카드 공통 무늬 (2026-08-25 실물 카드 이미지 기준으로 재작업) ──────────
+   요청 이미지의 무늬를 **이미지 파일 없이 CSS만으로** 재현했다. 카드가 부채꼴에서 축소되고
+   당첨 시 확대되는데, 비트맵을 쓰면 그 과정에서 흐려진다. 그라데이션은 배율과 무관하게 선명하다.
+
+   구성 두 겹:
+     · repeating-radial-gradient — 1px 선을 13px 간격으로 반복해 얇은 동심원 호를 여러 겹 만든다
+     · radial-gradient(하드 스톱) — 경계가 뚜렷한 큰 호 하나로 밝은 면/어두운 면을 나눈다
+   원의 중심을 카드 **오른쪽 위 바깥**(124% -12%)에 두면 왼쪽 위에서 오른쪽 아래로 흐르는
+   곡선이 되어 이미지와 같은 흐름이 나온다. */
+.sc-front, .sc-back {
+  background-color: #1c1c20;
+  background-image:
+    repeating-radial-gradient(circle at 124% -12%,
+      rgba(255, 255, 255, .045) 0 1px, rgba(255, 255, 255, 0) 1px 13px),
+    radial-gradient(circle at 124% -12%,
+      #35353d 0 54%, #292930 54% 62%, #15151b 62.4%, #0d0d11 100%);
 }
 
-/* 앞면 가운데는 의도적으로 비운다(토스뱅크 카드가 그렇다). 칩과 마스킹된 번호만 아래에 둔다. */
-.sc-front-bot { margin-top: auto; position: relative; z-index: 1; }
-.sc-emv {
-  width: 34px; height: 26px; border-radius: 5px; position: relative;
-  background: linear-gradient(150deg, #e7cf94 0%, #c2a259 44%, #eadcae 72%, #b0913f 100%);
-  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .35);
+/* 워드마크 — 이미지의 각진 로고체를 그대로 쓸 수 없어(웹폰트 없음) 굵은 산세리프로 근사했다. */
+.sc-logo {
+  font-size: 17px; font-weight: 800; letter-spacing: -.005em; line-height: 1;
+  color: #fff; white-space: nowrap;
 }
+.sc-caret { width: 11px; height: 11px; flex: none; color: #fff; }
+
+/* ── 카드 앞면 ──────────────────────────────────────────────
+   상단에 워드마크 + 구분선, 그 아래 가운데에 IC 칩. 번호는 찍지 않는다(이미지와 동일). */
+.sc-front {
+  padding: 15px 14px;
+  display: flex; flex-direction: column;
+  color: #fff;
+}
+.sc-fhead {
+  display: flex; align-items: center; gap: 7px;
+  padding-bottom: 11px; border-bottom: 1px solid rgba(255, 255, 255, .17);
+  position: relative; z-index: 1;
+}
+/* IC 칩 — 금색이 아니라 이미지처럼 실버. */
+.sc-emv {
+  width: 31px; height: 25px; margin: 23px auto 0; flex: none;
+  border-radius: 4px; position: relative; z-index: 1;
+  background: linear-gradient(155deg, #e2e2e4 0%, #a7a7ac 38%, #f1f1f3 60%, #97979d 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .42), inset 0 0 0 .5px rgba(255, 255, 255, .55);
+}
+/* 접점 무늬 — 가로 구분선 + 위쪽 절반의 세로선 2개(box-shadow로 두 번째 선을 만든다). */
 .sc-emv::before {
-  content: ""; position: absolute; inset: 5px 6px;
-  border-left: 1px solid rgba(0, 0, 0, .2); border-right: 1px solid rgba(0, 0, 0, .2);
+  content: ""; position: absolute; left: 0; right: 0; top: 56%; height: 1px;
+  background: rgba(0, 0, 0, .3);
 }
 .sc-emv::after {
-  content: ""; position: absolute; left: 6px; right: 6px; top: 50%; height: 1px;
-  background: rgba(0, 0, 0, .2);
-  box-shadow: 0 -6px 0 rgba(0, 0, 0, .14), 0 6px 0 rgba(0, 0, 0, .14);
-}
-.sc-mask {
-  margin-top: 13px; font-size: 12.5px; font-weight: 600; letter-spacing: .1em;
-  color: rgba(255, 255, 255, .5); font-variant-numeric: tabular-nums;
+  content: ""; position: absolute; top: 0; height: 56%; left: 34%; width: 1px;
+  background: rgba(0, 0, 0, .3);
+  box-shadow: 10px 0 0 rgba(0, 0, 0, .3);
 }
 
-/* ── 카드 뒷면 — 이름이 서명란에 적혀 나온다 ────────────────── */
-.sc-back {
-  display: flex; flex-direction: column;
-  background: linear-gradient(163deg, #26262e 0%, #17171c 60%, #0e0e12 100%);
-  color: #fff;
+/* ── 카드 뒷면 — 뽑힌 사람 이름이 서명란에 적혀 나온다 ────────── */
+.sc-back { display: flex; flex-direction: column; color: #fff; }
+
+.sc-btop {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 12px 9px;
+  font-size: 5.5px; font-weight: 600; letter-spacing: .02em;
+  color: rgba(255, 255, 255, .62);
+  position: relative; z-index: 1; white-space: nowrap;
 }
+.sc-btop span:last-child { margin-left: auto; }
+
 /* 자기 띠 */
-.sc-mag { height: 42px; margin-top: 20px; background: #0a0a0d; flex: none; }
-.sc-back-body { padding: 16px 15px 15px; display: flex; flex-direction: column; height: 100%; }
+.sc-mag { height: 36px; flex: none; background: #08080a; position: relative; z-index: 1; }
 
-/* 서명란 — 실제 카드처럼 밝은 띠. 여기에 뽑힌 사람 이름이 들어간다. */
-.sc-sign {
-  background: linear-gradient(180deg, #f7f8fa 0%, #e9ebef 100%);
-  border-radius: 5px; padding: 7px 10px 8px;
-  box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .1);
+.sc-bbody {
+  flex: 1; padding: 11px 12px 12px;
+  display: flex; flex-direction: column;
+  position: relative; z-index: 1;
 }
-.sc-sign-label {
-  display: block; font-size: 7px; font-weight: 700; letter-spacing: .12em;
-  color: #9aa2ad;
+.sc-siglabel {
+  font-size: 6px; font-weight: 700; letter-spacing: .13em;
+  color: rgba(255, 255, 255, .62); white-space: nowrap;
+}
+.sc-siglabel em { font-style: normal; letter-spacing: 0; }
+
+.sc-sigrow { display: flex; margin-top: 5px; }
+
+/* 서명란 — 밝은 띠에 EATTYWAY 워터마크가 반복된다.
+   워터마크는 인라인 SVG를 data URI로 넣어 **실제 반복되는 글자**로 만들었다
+   (줄무늬 그라데이션으로 흉내내면 실물 카드의 보안 인쇄 느낌이 안 난다). */
+.sc-sign {
+  flex: 1; min-width: 0; height: 28px;
+  display: flex; align-items: center; padding: 0 7px;
+  background-color: #f5f2ea;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='13'%3E%3Ctext x='1' y='9' font-family='Arial,Helvetica,sans-serif' font-size='6' fill='%23b6a888' fill-opacity='.55'%3EEATTYWAY%3C/text%3E%3C/svg%3E");
+  box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .14);
 }
 .sc-sign-name {
-  display: block; margin-top: 3px;
-  font-size: 19px; font-weight: 800; letter-spacing: -.03em; line-height: 1.2;
-  color: #16181d;
-  /* 손으로 적은 느낌을 아주 살짝만 준다(기울임 + 약한 회전) — 과하면 유치해진다. */
-  font-style: italic; transform: rotate(-.6deg);
+  font-size: 14px; font-weight: 800; letter-spacing: -.03em; line-height: 1.15;
+  color: #17181c; font-style: italic;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* CVC 칸 — 서명란 오른쪽에 붙는 회색 박스 */
 .sc-cvc {
-  margin-top: 9px; display: flex; align-items: center; gap: 7px;
-  font-size: 8px; font-weight: 700; letter-spacing: .1em; color: rgba(255, 255, 255, .42);
+  flex: none; width: 31px; display: grid; place-items: center;
+  background: #56565b; color: #fff;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
 }
-.sc-cvc b {
-  padding: 3px 7px; border-radius: 3px; background: rgba(255, 255, 255, .12);
-  color: rgba(255, 255, 255, .8); letter-spacing: .16em;
+
+.sc-legal {
+  margin-top: 7px; font-size: 5px; font-weight: 500; line-height: 1.55;
+  color: rgba(255, 255, 255, .46);
 }
-.sc-back-foot {
-  margin-top: auto; font-size: 7.5px; font-weight: 600; letter-spacing: .1em;
-  line-height: 1.7; color: rgba(255, 255, 255, .3);
+
+.sc-bfoot { margin-top: auto; display: flex; align-items: flex-end; gap: 6px; }
+.sc-bfoot .sc-logo { font-size: 12px; }
+.sc-bfoot .sc-caret { width: 8px; height: 8px; }
+.sc-bno {
+  margin-left: auto; text-align: right; white-space: nowrap;
+  font-size: 5.2px; font-weight: 600; letter-spacing: .04em; line-height: 1.6;
+  color: rgba(255, 255, 255, .52);
 }
 
 /* ── 무대 하단 ───────────────────────────────────────────── */
@@ -289,10 +325,15 @@
 }
 .sc-guide b { display: block; margin-bottom: 5px; font-size: 13px; color: rgba(255, 255, 255, .45); font-weight: 600; }
 
-/* 뽑힌 카드 — 부채꼴에서의 위치/각도로 시작해 이 자리로 날아온다(좌표는 JS가 넣는다). */
+/* 뽑힌 카드 — 부채꼴에서의 위치/각도로 시작해 이 자리로 날아온다(좌표는 JS가 넣는다).
+   ⚠️ 기본 크기(160x254)로는 뒷면 미세 문구가 안 읽혀서 --sc-rs 배율로 확대한다.
+   확대는 width/height를 키우는 대신 scale로 한다 — 크기를 키우면 카드 안쪽 글자/칩/서명란을
+   전부 따로 맞춰야 한다(파일 상단 주석의 "크기는 한 벌만" 원칙).
+   JS는 시작 transform만 인라인으로 넣고 마지막에 비우므로, 최종 상태는 이 규칙이 결정한다. */
 .sc-flier {
   position: relative; z-index: 2;
   width: var(--sc-w); height: var(--sc-h);
+  transform: scale(var(--sc-rs, 1.5));
   transform-style: preserve-3d;
   will-change: transform;
 }
@@ -346,6 +387,7 @@
    ⚠️ 카드 크기(--sc-w/--sc-h)는 건드리지 않는다(파일 상단 주석 참고).
    무대 높이만 줄이고, 카드 축소는 JS가 --sc-fs로 처리한다. */
 @media (max-width: 767px) {
+  :root { --sc-rs: 1.25; }
   .sc-hero h1 { font-size: 26px; }
   .sc-hero p { font-size: 14.5px; }
   .sc-panel { padding: 18px; border-radius: 20px; }
@@ -353,7 +395,16 @@
   .sc-overlay { gap: 18px; }
 }
 @media (max-width: 380px) {
+  :root { --sc-rs: 1.15; }
   .sc-stage { height: 238px; }
+}
+/* 세로로 짧은 화면(가로 모드, 작은 노트북)에서는 카드 + 안내 + 버튼이 한 화면에 안 들어간다. */
+@media (max-height: 720px) {
+  :root { --sc-rs: 1.15; }
+}
+@media (max-height: 600px) {
+  :root { --sc-rs: .95; }
+  .sc-overlay { gap: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
