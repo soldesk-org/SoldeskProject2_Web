@@ -1722,6 +1722,20 @@ body.is-modal-open { overflow: hidden; }
   html.is-native-app .e-toast-area {
     bottom: calc(var(--tabbar-total-h) + 12px);
   }
+  /* 2026-08-24 보정 — 위 규칙이 **탭바가 없는 화면에도** 적용돼서(로그인/회원가입/찾기/약관/관리자 등)
+     토스트가 아무것도 없는 허공에 붕 떠 보였다("여기서는 너무 위로 뜬다"는 지적, 사업자 로그인 화면).
+     탭바가 없으면 피할 대상도 없으니 홈 인디케이터만 비키고 내려온다.
+
+     ⚠️ body.has-tabbar로 판별하면 안 된다 — explore/chat/roulette은 탭바가 있는데도 그 클래스가
+     없다(각 화면 CSS에서 body padding-bottom을 직접 처리하는 구조라 클래스를 안 쓴다). 그걸
+     기준으로 삼으면 그 세 화면에서 위 2026-08-21 수정이 되살아나 버린다. 그래서 실제 탭바
+     요소(.e-tabbar)의 존재를 :has()로 본다.
+
+     :has()를 못 쓰는 브라우저에서는 이 규칙만 무효가 되어 위 규칙(=기존 동작)이 남는다.
+     안전한 퇴화라 폴백을 따로 두지 않았다. 앱 WebView는 :has()를 지원한다. */
+  html.is-native-app body:not(:has(.e-tabbar)) .e-toast-area {
+    bottom: calc(env(safe-area-inset-bottom) + 16px);
+  }
 }
 .e-toast {
   display: flex; align-items: center; gap: 11px;
