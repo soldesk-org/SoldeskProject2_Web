@@ -52,9 +52,7 @@
   var flier = document.getElementById("scFlier");
   var cardHost = document.getElementById("scCardHost");
   var flipBtn = document.getElementById("scFlipBtn");
-  var ovActions = document.getElementById("scOverlayActions");
-  var againBtn = document.getElementById("scAgainBtn");
-  var closeBtn = document.getElementById("scCloseBtn");
+  var closeBtn = document.getElementById("scCloseBtn");   // 우측 상단 X
   var confetti = document.getElementById("scConfetti");
 
   // 이 페이지의 필수 요소가 없으면(다른 페이지에 잘못 로드된 경우) 조용히 빠진다.
@@ -314,7 +312,6 @@
       flipBtn.setAttribute("aria-label", "카드를 눌러 뽑힌 사람 확인하기");
     }
     if (guideEl) guideEl.innerHTML = '<b>카드가 뽑혔어요</b>카드를 눌러 확인해 보세요';
-    if (ovActions) ovActions.classList.remove("is-in");
 
     // 오버레이를 먼저 띄워야 .sc-flier의 최종 위치를 측정할 수 있다.
     overlay.classList.add("is-open");
@@ -362,9 +359,9 @@
       if (guideEl) guideEl.innerHTML = '<b>오늘 계산은</b>이 카드의 주인입니다';
       popConfetti();
     }, 380);
+    // 확인이 끝나면 남은 동작은 닫기뿐이라 X로 포커스를 옮긴다(키보드 사용자 배려).
     setTimeout(function () {
-      if (ovActions) ovActions.classList.add("is-in");
-      if (againBtn) againBtn.focus({ preventScroll: true });
+      if (closeBtn) closeBtn.focus({ preventScroll: true });
     }, 700);
   }
 
@@ -388,11 +385,10 @@
     confetti.appendChild(frag);
   }
 
-  /* ── 닫기 / 다시 뽑기 ──────────────────────────────────── */
+  /* ── 닫기 ─────────────────────────────────────────────── */
   function closeOverlay() {
     overlay.classList.remove("is-open");
     overlay.setAttribute("aria-hidden", "true");
-    if (ovActions) ovActions.classList.remove("is-in");
     // 다른 모달이 열려 있지 않을 때만 스크롤 잠금을 푼다(eatty-ui.js closeModal과 같은 판정).
     if (!document.querySelector(".e-modal.is-open")) document.body.classList.remove("is-modal-open");
 
@@ -409,14 +405,10 @@
     }, 300);
   }
 
+  // 닫는 방법 세 가지: X 버튼, 백드롭(카드 밖 어두운 영역) 탭, Esc.
+  // "다시 뽑기" 버튼은 없앴다 — 닫고 페이지의 "랜덤 뽑기"를 다시 누르면 된다.
   if (closeBtn) closeBtn.addEventListener("click", closeOverlay);
   if (overlayBg) overlayBg.addEventListener("click", closeOverlay);
-  if (againBtn) {
-    againBtn.addEventListener("click", function () {
-      closeOverlay();
-      setTimeout(startDraw, 480);   // 카드가 제자리로 돌아온 뒤 다시 시작
-    });
-  }
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape" || !overlay.classList.contains("is-open")) return;
     closeOverlay();

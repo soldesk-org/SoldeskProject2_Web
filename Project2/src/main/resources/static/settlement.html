@@ -36,7 +36,7 @@
      #scFlier                 원본 카드 위치에서 중앙으로 날아가는 복제 카드
      #scPrize                 당첨 팝업 (#scPrizeName / #scPrizeDesc)
      #scConfetti              종이꽃
-     #scAgainBtn / #scCloseBtn
+     #scCloseBtn              닫기(우측 상단 X). 백드롭 탭과 Esc로도 닫힌다
 
  [서버]
    호출하는 API가 없다. 순수 클라이언트 기능이고 로그인도 필요 없다(roulette과 같은 성격).
@@ -53,9 +53,9 @@
 <link rel="stylesheet" href="assets/css/eatty.css?v=20260824a">
 <script defer src="assets/js/api.js?v=20260823a"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
-<script defer src="assets/js/settlement.js?v=20260825e"></script>
+<script defer src="assets/js/settlement.js?v=20260825f"></script>
 
-<link rel="stylesheet" href="assets/css/settlement.css?v=20260825h">
+<link rel="stylesheet" href="assets/css/settlement.css?v=20260825i">
 </head>
 <body class="has-tabbar">
 
@@ -208,6 +208,14 @@
   <div class="sc-overlay-bg" id="scOverlayBg"></div>
   <div class="sc-confetti" id="scConfetti" aria-hidden="true"></div>
 
+  <!-- 닫기는 우측 상단 X 하나로만 한다(2026-08-25 요청 — 하단 버튼 줄 제거).
+       카드를 다시 뽑으려면 닫고 페이지의 "랜덤 뽑기"를 다시 누르면 된다. -->
+  <button type="button" class="sc-close" id="scCloseBtn" aria-label="닫기">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+      <path d="M18 6 6 18M6 6l12 12"/>
+    </svg>
+  </button>
+
   <p class="sc-guide" id="scGuide" role="status" aria-live="polite"></p>
 
   <!--
@@ -227,10 +235,6 @@
     </div>
   </div>
 
-  <div class="sc-overlay-actions" id="scOverlayActions">
-    <button type="button" class="sc-btn sc-btn--lg sc-btn--ghost-w" id="scCloseBtn" style="flex:1">닫기</button>
-    <button type="button" class="sc-btn sc-btn--lg sc-btn--white" id="scAgainBtn">다시 뽑기</button>
-  </div>
 </div>
 
 <!-- 모바일 하단 탭바 -->
