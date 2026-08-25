@@ -32,14 +32,19 @@
 }
 
 /* ── 페이지 헤드 ─────────────────────────────────────────── */
+/* 제목/설명은 <br> 없이 한 줄로 두고, 폭이 부족할 때만 넘어가게 한다.
+   · word-break: keep-all — 한글이 단어 중간에서 끊기는 것을 막는다(브라우저 기본은 어절 무시).
+   · text-wrap: balance   — 넘어갈 때 줄 길이를 고르게 나눈다. 미지원 브라우저는 무시하고 기본 줄바꿈. */
 .sc-hero { text-align: center; margin-bottom: 28px; }
 .sc-hero h1 {
   font-size: 30px; font-weight: 800; letter-spacing: -.035em; line-height: 1.28;
   color: var(--sc-ink);
+  word-break: keep-all; text-wrap: balance;
 }
 .sc-hero p {
   margin-top: 12px; font-size: 15.5px; font-weight: 500; line-height: 1.62;
   color: var(--sc-ink-2);
+  word-break: keep-all; text-wrap: pretty;
 }
 
 /* ── 패널 (그림자 대신 얇은 선) ───────────────────────────── */

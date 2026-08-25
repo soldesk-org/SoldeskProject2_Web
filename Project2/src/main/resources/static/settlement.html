@@ -55,7 +55,7 @@
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/settlement.js?v=20260825a"></script>
 
-<link rel="stylesheet" href="assets/css/settlement.css?v=20260825a">
+<link rel="stylesheet" href="assets/css/settlement.css?v=20260825b">
 </head>
 <body class="has-tabbar">
 
@@ -141,9 +141,12 @@
 <main id="mainContent" class="py-8 md:py-12">
   <div class="e-container w-full" style="max-width:880px">
 
+    <!-- ⚠️ <br>로 줄을 강제로 끊지 않는다(2026-08-25) — 넓은 화면에서도 두 줄로 떨어져 보였다.
+         폭이 부족할 때만 자연스럽게 넘어가게 두고, 그때 어디서 끊길지는 settlement.css의
+         word-break: keep-all / text-wrap: balance가 정한다. -->
     <div class="sc-hero">
-      <h1>오늘 계산은<br>누가 할까요?</h1>
-      <p>정산할 사람을 담고 카드를 뽑으면<br>오늘의 계산 담당이 정해져요.</p>
+      <h1>오늘 계산은 누가 할까요?</h1>
+      <p>정산할 사람을 담고 카드를 뽑으면 오늘의 계산 담당이 정해져요.</p>
     </div>
 
     <!-- ── 참가자 ──
