@@ -1,0 +1,360 @@
+/* ============================================================================
+   settlement — 정산 카드 뽑기 (2026-08-24 신규)
+   ----------------------------------------------------------------------------
+   정산할 사람 이름을 최대 10명 담고, 신용카드 모양 카드를 트럼프 카드처럼 부채꼴로
+   펼친 뒤 랜덤으로 한 장을 뽑아 "오늘의 계산 담당"을 정하는 화면.
+
+   클래스는 전부 sc- (settlement card) 접두어를 쓴다. eatty.css의 공통 클래스와
+   이름이 겹치지 않게 하려는 것이고, 이 파일은 eatty.css **뒤에** 로드되므로
+   필요하면 공통 스타일을 덮어쓸 수도 있다.
+
+   카드 비율은 실제 신용카드 규격(85.60 x 53.98mm = 1.5858)을 따랐다.
+   부채꼴에서는 세로로 세워 두고(--sc-w x --sc-h), 뽑힌 뒤 90도 돌려 가로로 만든다.
+
+   ⚠️ 앞면 내용은 **가로 카드로 디자인**해서 세로 박스 안에 rotate(-90deg)로 눕혀 넣었다.
+   그래서 카드 전체가 rotate(90deg) 되는 순간 내용이 정확히 똑바로 선다(-90 + 90 = 0).
+   ⚠️ 앞/뒷면 교체는 3D 뒤집기(rotateY + backface-visibility)가 아니라 **불투명도 교차**다.
+   3D를 쓰면 부모 transform 때문에 preserve-3d / backface 조합이 브라우저마다 달라져
+   글자가 좌우로 뒤집히는 경우가 있다. 회전이 이미 극적이라 교차만으로 충분하다.
+   ============================================================================ */
+
+:root {
+  /* 카드 기본 크기(세로로 세운 상태). 1 : 1.5858 */
+  --sc-w: 148px;
+  --sc-h: 235px;
+}
+
+/* ── 참가자 입력 ─────────────────────────────────────────── */
+.sc-add-row { display: flex; gap: 9px; }
+.sc-add-row .sc-input { flex: 1; min-width: 0; }
+
+.sc-input {
+  height: 48px; padding: 0 15px;
+  border: 1.5px solid var(--ink-200); border-radius: 13px;
+  background: var(--bg); font: inherit; font-size: 15px; color: var(--ink-900);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.sc-input::placeholder { color: var(--ink-300); }
+.sc-input:focus {
+  outline: none; border-color: var(--brand-400);
+  box-shadow: 0 0 0 4px rgba(253, 109, 74, .12);
+}
+.sc-input:disabled { background: var(--ink-50); color: var(--ink-400); }
+
+.sc-count { font-size: 13px; font-weight: 700; color: var(--ink-400); }
+.sc-count b { color: var(--brand-500); }
+
+/* 안내 문구 — 비어 있을 때도 높이를 차지해서 아래 내용이 흔들리지 않게 한다. */
+.sc-msg {
+  margin-top: 10px; min-height: 18px;
+  font-size: 13px; font-weight: 600; color: var(--brand-600);
+  transition: opacity var(--dur) var(--ease);
+}
+.sc-msg:empty { opacity: 0; }
+
+.sc-names { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+.sc-names:empty { display: none; }
+
+.sc-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 8px 8px 8px 12px; border-radius: var(--r-full);
+  background: var(--ink-50); border: 1px solid var(--ink-100);
+  font-size: 14px; font-weight: 700; color: var(--ink-900);
+  animation: scChipIn .26s var(--ease) both;
+}
+@keyframes scChipIn { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: none; } }
+.sc-chip-no {
+  display: inline-grid; place-items: center;
+  width: 18px; height: 18px; margin-right: 3px; border-radius: var(--r-full);
+  background: var(--brand-grad); color: #fff; font-size: 10.5px; font-weight: 800;
+}
+.sc-chip-x {
+  display: inline-grid; place-items: center;
+  width: 22px; height: 22px; border: 0; border-radius: var(--r-full);
+  background: transparent; color: var(--ink-400); cursor: pointer;
+  transition: background .16s, color .16s;
+}
+.sc-chip-x:hover { background: var(--ink-200); color: var(--ink-900); }
+.sc-chip-x svg { width: 12px; height: 12px; }
+
+.sc-empty {
+  margin-top: 16px; padding: 20px 14px; border-radius: var(--r-md);
+  border: 1.5px dashed var(--ink-200); background: var(--ink-50);
+  text-align: center; font-size: 13.5px; font-weight: 600; color: var(--ink-400);
+}
+
+/* ── 부채꼴 무대 ─────────────────────────────────────────── */
+.sc-stage {
+  position: relative;
+  display: flex; align-items: flex-end; justify-content: center;
+  height: 300px; overflow: hidden;
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(120% 90% at 50% 118%, rgba(253, 109, 74, .10) 0%, rgba(253, 109, 74, 0) 60%),
+    var(--ink-50);
+}
+/* 카드가 많아지면 부채꼴 전체 폭이 화면을 넘는다 → 통째로 축소한다(JS가 --sc-fs를 넣는다). */
+.sc-fan {
+  position: relative; width: var(--sc-w); height: var(--sc-h);
+  margin-bottom: 26px;
+  transform: scale(var(--sc-fs, 1));
+  transition: transform .4s var(--ease);
+}
+.sc-stage-empty {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 13.5px; font-weight: 600; color: var(--ink-400);
+}
+
+.sc-card {
+  position: absolute; left: 0; top: 0;
+  width: var(--sc-w); height: var(--sc-h);
+  border-radius: 15px;
+  /* 회전축을 카드 아래쪽 바깥에 두면 트럼프 카드처럼 호를 그리며 펼쳐진다. */
+  transform-origin: 50% 152%;
+  transition: transform .52s var(--ease), opacity .3s var(--ease);
+  will-change: transform;
+}
+/* 등장 전 — 한 뭉치로 겹쳐 아래에 깔려 있다 */
+.sc-card { transform: rotate(0deg) translateY(48px) scale(.9); opacity: 0; }
+.sc-card.is-in { transform: rotate(var(--a)) translateY(0) scale(1); opacity: 1; }
+/* 뽑기 중 훑고 지나갈 때 튀어 오르는 상태 */
+.sc-card.is-up { transform: rotate(var(--a)) translateY(-32px) scale(1.05); }
+.sc-card.is-up .sc-face { box-shadow: 0 18px 36px rgba(24, 21, 25, .32); }
+/* 당첨 카드는 오버레이로 복제해 날리므로 원본은 감춘다(같은 카드가 두 장 보이지 않게) */
+.sc-card.is-gone { opacity: 0; }
+
+/* ── 카드 면 ─────────────────────────────────────────────── */
+.sc-face {
+  position: absolute; inset: 0; border-radius: 15px; overflow: hidden;
+  transition: opacity .3s var(--ease);
+  box-shadow: 0 6px 18px rgba(24, 21, 25, .2);
+}
+.sc-face-front { opacity: 0; }
+/* is-front는 부채꼴 카드(.sc-card)와 날아가는 복제 카드(.sc-flier) 양쪽에 붙는다.
+   .sc-card로 한정하면 복제 카드에 안 먹어서 앞면이 영원히 안 보인다. */
+.is-front > .sc-face-back { opacity: 0; }
+.is-front > .sc-face-front { opacity: 1; }
+
+/* 뒷면 — 부채꼴에서 보이는 면. 세로 방향으로 디자인했다. */
+.sc-face-back { background: var(--brand-grad); }
+.sc-face-back::before {
+  /* 지폐 무늬 느낌의 사선 격자 */
+  content: ""; position: absolute; inset: 0; opacity: .55;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .17) 0 2px, rgba(255, 255, 255, 0) 2px 9px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .07) 0 2px, rgba(0, 0, 0, 0) 2px 9px);
+}
+.sc-face-back::after {
+  content: ""; position: absolute; inset: 8px; border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, .48);
+}
+.sc-back-body {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+}
+.sc-back-mark {
+  width: 46px; height: 46px; border-radius: var(--r-full);
+  background: rgba(255, 255, 255, .95);
+  display: grid; place-items: center;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, .18);
+}
+.sc-back-mark img { width: 27px; height: 27px; object-fit: contain; }
+.sc-back-word {
+  font-size: 11.5px; font-weight: 800; letter-spacing: .17em; color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .2);
+}
+.sc-back-sub { font-size: 8px; font-weight: 700; letter-spacing: .11em; color: rgba(255, 255, 255, .84); }
+
+/*
+ 앞면 — 실제 신용카드처럼 **가로**로 디자인해 세로 박스 안에 눕혀 넣는다.
+ .sc-cc의 크기는 부모(세로 카드)의 가로/세로를 서로 바꾼 값이라, rotate(-90deg) 하면
+ 회전 후 외곽이 부모와 정확히 일치한다(잘림 없음).
+*/
+.sc-face-front { background: #16141b; display: grid; place-items: center; }
+.sc-cc {
+  width: var(--sc-h); height: var(--sc-w); flex: none;
+  transform: rotate(-90deg);
+  padding: 13px 14px;
+  display: flex; flex-direction: column;
+  color: #fff;
+  background:
+    /* 오른쪽 위 브랜드 광원 */
+    radial-gradient(125% 145% at 116% -20%, rgba(254, 162, 85, .55) 0%, rgba(254, 162, 85, 0) 52%),
+    /* 왼쪽 아래 보조 광원 */
+    radial-gradient(120% 130% at -14% 118%, rgba(253, 109, 74, .42) 0%, rgba(253, 109, 74, 0) 56%),
+    linear-gradient(145deg, #2b2834 0%, #17151c 58%, #232030 100%);
+}
+/* 카드 표면 광택(대각선 하이라이트) */
+.sc-cc::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(118deg, rgba(255, 255, 255, .13) 0%, rgba(255, 255, 255, 0) 34%,
+              rgba(255, 255, 255, 0) 66%, rgba(255, 255, 255, .07) 100%);
+}
+/* 공개 순간 한 번 스쳐 지나가는 반사광 */
+.sc-face-front::after {
+  content: ""; position: absolute; inset: -20%; pointer-events: none;
+  background: linear-gradient(105deg, rgba(255, 255, 255, 0) 34%, rgba(255, 255, 255, .32) 48%,
+              rgba(255, 255, 255, 0) 62%);
+  transform: translateX(-130%);
+}
+.is-front .sc-face-front::after { animation: scSheen 1.05s .3s var(--ease) 1 both; }
+@keyframes scSheen { to { transform: translateX(130%); } }
+
+.sc-cc-top { display: flex; align-items: flex-start; position: relative; z-index: 1; }
+.sc-cc-brand { font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+.sc-cc-kind {
+  margin-top: 2px; font-size: 6.5px; font-weight: 700; letter-spacing: .1em;
+  color: rgba(255, 255, 255, .58);
+}
+.sc-cc-wave { margin-left: auto; width: 16px; height: 16px; color: rgba(255, 255, 255, .72); }
+
+.sc-cc-mid {
+  display: flex; align-items: center; gap: 9px; margin-top: 9px;
+  position: relative; z-index: 1;
+}
+/* EMV 칩 — 금색 그라데이션 + 접점 무늬 */
+.sc-cc-chip {
+  width: 29px; height: 22px; border-radius: 4px; flex: none; position: relative;
+  background: linear-gradient(150deg, #f7dc90 0%, #d9ab4b 42%, #f4e3a8 72%, #c1953a 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .35), inset 0 0 0 .5px rgba(255, 255, 255, .45);
+}
+.sc-cc-chip::before {
+  content: ""; position: absolute; inset: 4px 5px;
+  border-left: 1px solid rgba(0, 0, 0, .24); border-right: 1px solid rgba(0, 0, 0, .24);
+}
+.sc-cc-chip::after {
+  content: ""; position: absolute; left: 5px; right: 5px; top: 50%; height: 1px;
+  background: rgba(0, 0, 0, .24);
+  box-shadow: 0 -5px 0 rgba(0, 0, 0, .18), 0 5px 0 rgba(0, 0, 0, .18);
+}
+/* 홀로그램 — 각도에 따라 색이 도는 원 */
+.sc-cc-holo {
+  width: 24px; height: 24px; border-radius: var(--r-full); flex: none;
+  background: conic-gradient(from 205deg, #a5e9ff, #d9bcff, #ffdca6, #b6ffdc, #a5e9ff);
+  opacity: .8; filter: saturate(1.25);
+  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .55);
+}
+
+/* 번호 — 실제 카드처럼 도장(엠보싱)된 느낌 */
+.sc-cc-num {
+  margin-top: 11px; position: relative; z-index: 1;
+  font-size: 14px; font-weight: 700; letter-spacing: .07em;
+  font-variant-numeric: tabular-nums;
+  color: #ece7f3;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .6), 0 -1px 0 rgba(255, 255, 255, .16);
+}
+.sc-cc-num i { font-style: normal; opacity: .6; letter-spacing: .02em; }
+
+.sc-cc-bot {
+  margin-top: auto; display: flex; align-items: flex-end; gap: 12px;
+  position: relative; z-index: 1;
+}
+.sc-cc-label { font-size: 6px; font-weight: 700; letter-spacing: .12em; color: rgba(255, 255, 255, .52); }
+.sc-cc-holder {
+  margin-top: 2px; font-size: 13px; font-weight: 800; letter-spacing: -.01em;
+  max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .55);
+}
+.sc-cc-thru div:last-child {
+  margin-top: 2px; font-size: 10.5px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .55);
+}
+/* 카드사 마크 자리 — 겹친 두 원 */
+.sc-cc-net { margin-left: auto; flex: none; display: flex; align-items: center; }
+.sc-cc-net span {
+  width: 17px; height: 17px; border-radius: var(--r-full); display: block;
+}
+.sc-cc-net span:first-child { background: linear-gradient(140deg, #ff8a5c, #fd6d4a); }
+.sc-cc-net span:last-child { background: linear-gradient(140deg, #ffd08a, #fea255); margin-left: -7px; }
+
+/* ── 뽑기 버튼 영역 ──────────────────────────────────────── */
+.sc-actions { display: flex; gap: 9px; margin-top: 16px; }
+.sc-hint {
+  margin-top: 12px; text-align: center;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-400);
+}
+
+/* ── 당첨 오버레이 ───────────────────────────────────────────
+   .e-modal을 쓰지 않고 직접 만든 이유: 날아가는 카드와 당첨 패널을 **한 레이어 안에서**
+   같이 보여줘야 하는데, .e-modal을 쓰면 모달 백드롭이 카드 위를 덮어 카드가 탁해진다.
+   대신 ESC/백드롭 닫기는 settlement.js에서 직접 처리한다.
+   z-index는 헤더(60)·탭바(55)보다 위, 토스트(130)보다 아래로 둔다 — 뽑기 결과 위에
+   토스트가 뜰 일은 없고, 혹시 떠도 가려지지 않는 게 낫다. */
+.sc-overlay {
+  position: fixed; inset: 0; z-index: 120;
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s var(--ease), visibility .3s;
+}
+.sc-overlay.is-open { opacity: 1; visibility: visible; }
+.sc-overlay-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(70% 55% at 50% 34%, rgba(58, 53, 67, .74) 0%, rgba(18, 16, 21, .92) 100%);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+
+/* 원본 카드 위치에서 시작해 중앙으로 날아가는 복제 카드. 좌표/배율은 JS가 넣는다. */
+.sc-flier {
+  position: fixed; z-index: 2; border-radius: 15px;
+  transform-origin: 50% 50%; will-change: transform;
+}
+.sc-flier .sc-face { box-shadow: 0 26px 62px rgba(0, 0, 0, .55); }
+
+.sc-prize {
+  position: absolute; z-index: 3; left: 50%; bottom: 7%;
+  width: min(400px, calc(100vw - 40px));
+  /* 홈 인디케이터 위로 살짝 띄운다(iOS 앱) */
+  margin-bottom: env(safe-area-inset-bottom);
+  padding: 24px 22px; border-radius: 22px;
+  background: var(--bg); box-shadow: 0 30px 70px rgba(0, 0, 0, .42);
+  text-align: center;
+  transform: translateX(-50%) translateY(18px);
+  opacity: 0;
+  transition: opacity .36s var(--ease), transform .36s var(--ease);
+}
+.sc-prize.is-in { opacity: 1; transform: translateX(-50%) translateY(0); }
+.sc-prize-kicker {
+  display: inline-block; padding: 5px 12px; border-radius: var(--r-full);
+  background: var(--brand-50); color: var(--brand-600);
+  font-size: 11.5px; font-weight: 800;
+}
+.sc-prize-name {
+  margin-top: 13px; font-size: 29px; font-weight: 800; letter-spacing: -.035em;
+  line-height: 1.2; word-break: keep-all; color: var(--ink-900);
+}
+.sc-prize-name span {
+  background: var(--brand-grad);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.sc-prize-desc { margin-top: 9px; font-size: 14px; line-height: 1.6; color: var(--ink-500); }
+.sc-prize-actions { display: flex; gap: 9px; margin-top: 20px; }
+.sc-prize-actions .btn { flex: 1; }
+
+/* 종이꽃 — JS가 만들어 넣는다 */
+.sc-confetti { position: absolute; inset: 0; z-index: 4; overflow: hidden; pointer-events: none; }
+.sc-conf {
+  position: absolute; top: -8%; width: 8px; height: 13px; border-radius: 2px;
+  animation: scConfFall linear forwards;
+}
+@keyframes scConfFall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(115vh) rotate(720deg); opacity: .85; }
+}
+
+/* ── 반응형 ──────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  :root { --sc-w: 126px; --sc-h: 200px; }
+  .sc-stage { height: 258px; }
+  .sc-prize-name { font-size: 25px; }
+}
+@media (max-width: 380px) {
+  :root { --sc-w: 112px; --sc-h: 178px; }
+  .sc-stage { height: 234px; }
+}
+
+/* 움직임 최소화를 켠 사용자에게는 연출을 걷어낸다. 뽑기 결과 자체는 그대로 나온다. */
+@media (prefers-reduced-motion: reduce) {
+  .sc-card, .sc-face, .sc-flier, .sc-prize { transition-duration: .01ms !important; }
+  .sc-conf, .is-front .sc-face-front::after { animation: none !important; }
+  .sc-confetti { display: none; }
+}

@@ -25,6 +25,7 @@ public class PageRoutingController {
             "find-password", "find-password-sent", "find-password-reset", "find-password-done",
             "terms-service", "terms-privacy", "notice-detail",
             "explore", "recommend", "taste-quiz", "receipt-upload", "receipt-upload-desktop", "roulette",
+            "settlement",
             "mypage", "mypage-edit", "mypage-reviews", "chat", "business-mypage", "admin",
             "support", "admin-test", "store-search-popup"
     );

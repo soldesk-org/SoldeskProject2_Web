@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko" data-auth-state="guest">
+<head>
+<meta charset="UTF-8">
+<!-- 페이지 전환 흰 번쩍임 방지(2026-08-21) — index.html의 같은 위치 주석 참고 -->
+<style>html{background-color:#f8f7fb}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>잇티웨이</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="assets/images/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
+<meta name="description" content="정산할 사람을 담고 카드를 뽑아 오늘의 계산 담당을 정해보세요.">
+
+<!--
+================================================================================
+ settlement — 정산 카드 뽑기 (2026-08-24 신규)
+--------------------------------------------------------------------------------
+ 참가자 이름을 최대 10명 담고, 신용카드 모양 카드를 트럼프 카드처럼 부채꼴로 펼친 뒤
+ 랜덤으로 한 장을 뽑아 "오늘의 계산 담당"을 정하는 화면.
+
+ [진입 경로]
+   헤더 nav "정산 뽑기"(PC) / 드로어 "정산 카드 뽑기"(모바일·앱).
+   ⚠️ 1024px 이상에서는 드로어가 display:none이라 **헤더 nav가 유일한 진입점**이고,
+   1023px 이하에서는 헤더 nav가 숨고 드로어가 진입점이다. 둘 다 있어야 전 환경이 커버된다.
+   하단 탭바는 5칸이 꽉 차 있어 넣지 않았다.
+
+ [주요 DOM id]
+   #scName / #scAddBtn        참가자 이름 입력 / 추가
+   #scMsg                     입력 관련 안내(중복·최대 인원 등)
+   #scNames / #scEmpty        참가자 칩 목록 / 비었을 때 안내
+   #scCount                   현재 인원 수
+   #scFan / #scStageEmpty     부채꼴 카드가 그려지는 곳 / 비었을 때 안내
+   #scDrawBtn / #scResetBtn   랜덤 뽑기 / 전체 비우기
+   #scHint                    무대 하단 상태 문구
+   #scOverlay                 당첨 연출 오버레이(.e-modal 아님 — settlement.css 주석 참고)
+     #scFlier                 원본 카드 위치에서 중앙으로 날아가는 복제 카드
+     #scPrize                 당첨 팝업 (#scPrizeName / #scPrizeDesc)
+     #scConfetti              종이꽃
+     #scAgainBtn / #scCloseBtn
+
+ [서버]
+   호출하는 API가 없다. 순수 클라이언트 기능이고 로그인도 필요 없다(roulette과 같은 성격).
+   ⚠️ 확장자 없는 /settlement 로 접근하려면 PageRoutingController의 PAGES 화이트리스트에
+   "settlement"가 들어 있어야 한다. 빠지면 404다. (data-nav-page 활성화도 확장자 없는
+   URL을 전제로 동작한다 — eatty-ui.js는 경로 마지막 세그먼트를 그대로 비교한다.)
+================================================================================
+-->
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- ?v= 는 캐시 무효화용(2026-08-21) — recommend.html의 같은 위치 주석 참고 -->
+<link rel="stylesheet" href="assets/css/eatty.css?v=20260824a">
+<script defer src="assets/js/api.js?v=20260823a"></script>
+<script defer src="assets/js/eatty-ui.js"></script>
+<script defer src="assets/js/settlement.js"></script>
+
+<link rel="stylesheet" href="assets/css/settlement.css">
+</head>
+<body class="has-tabbar">
+
+<!-- ============================== 헤더 ============================== -->
+<header class="e-header e-header--solid" id="siteHeader">
+  <div class="e-container e-header-inner">
+    <a href="/" class="e-logo" id="logoHome">
+      <span class="e-logo-mark" aria-hidden="true"><img src="img/logo.png" alt="잇티웨이" class="e-logo-img"></span>
+      <span class="e-logo-text hidden sm:inline">잇티<em>웨이</em></span>
+    </a>
+
+    <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
+      <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
+      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+      <a class="e-nav-link" href="settlement" data-nav-page="settlement">정산 뽑기</a>
+      <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
+      <a class="e-nav-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+      <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
+      <a class="e-nav-link" href="business-mypage" data-auth-view="business" data-nav-page="business-mypage" hidden>내 매장</a>
+      <a class="e-nav-link" href="admin" data-auth-view="admin" data-nav-page="admin" hidden>관리자</a>
+    </nav>
+
+    <div class="e-header-actions">
+      <div class="flex items-center gap-2" id="headerGuestArea" data-auth-view="guest">
+        <a href="login" class="btn btn-ghost btn-sm" id="headerLoginBtn">로그인</a>
+        <a href="signup" class="btn btn-primary btn-sm btn-pill" id="headerSignupBtn">회원가입</a>
+      </div>
+
+      <div class="flex items-center gap-1" id="headerAuthArea" data-auth-view="auth" hidden>
+        <button type="button" class="e-icon-btn" id="headerNotiBtn" aria-label="알림">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          </svg>
+          <span class="e-dot"></span>
+        </button>
+        <div class="e-dropdown">
+          <button type="button" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-[var(--ink-50)] transition"
+                  id="headerProfileBtn" data-dropdown-toggle="headerProfileMenu" aria-expanded="false" aria-haspopup="true">
+            <span class="e-avatar e-avatar-sm" id="headerAvatar" aria-hidden="true">잇</span>
+            <svg class="w-4 h-4 text-[var(--ink-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="e-dropdown-menu" id="headerProfileMenu">
+            <div class="e-dropdown-head">
+              <p class="text-sm font-extrabold text-[var(--ink-900)]" id="headerNickname">잇티러버</p>
+              <p class="text-xs text-[var(--ink-500)] mt-0.5" id="headerEmail">eatty@example.com</p>
+              <span class="e-badge e-badge--brand mt-2" id="headerFoodBtiBadge" hidden></span>
+            </div>
+            <a class="e-dropdown-item" href="mypage">마이페이지</a>
+            <a class="e-dropdown-item" href="mypage-reviews">내 리뷰</a>
+            <div class="e-dropdown-sep"></div>
+            <button type="button" class="e-dropdown-item e-dropdown-item--danger" id="headerLogoutBtn">로그아웃</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="e-header-burger" id="drawerOpenBtn" data-drawer-open="mainDrawer" aria-label="메뉴 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- 모바일 드로어 -->
+<div class="e-drawer-backdrop" data-drawer-backdrop="mainDrawer"></div>
+<aside class="e-drawer" id="mainDrawer" aria-hidden="true" aria-label="모바일 메뉴">
+  <div class="e-drawer-head">
+    <span class="e-logo-text">잇티<em>웨이</em></span>
+    <button type="button" class="e-modal-close" data-drawer-close="mainDrawer" aria-label="메뉴 닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="e-drawer-body">
+    <a class="e-drawer-link" href="explore" data-nav-page="explore">지도 탐색</a>
+    <a class="e-drawer-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+    <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
+    <a class="e-drawer-link" href="settlement" data-nav-page="settlement">정산 카드 뽑기</a>
+    <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
+    <a class="e-drawer-link" href="taste-quiz" data-nav-page="taste-quiz">음식 취향 찾기</a>
+  </div>
+</aside>
+
+<main id="mainContent" class="py-8 md:py-12">
+  <div class="e-container w-full" style="max-width:880px">
+
+    <div class="text-center mb-8">
+      <h1 class="t-h2">오늘 계산은 <span class="t-brand">누구?</span></h1>
+      <p class="t-lead mt-3">
+        정산할 사람을 담고 카드를 뽑으면,<br>
+        오늘의 계산 담당이 <b class="t-brand">한 방에</b> 정해져요.
+      </p>
+    </div>
+
+    <!-- ── 참가자 ── -->
+    <section class="e-card e-card-pad" aria-labelledby="scPeopleTitle">
+      <div class="e-card-head">
+        <h2 class="e-card-title" id="scPeopleTitle">참가자</h2>
+        <span class="sc-count" style="margin-left:auto"><b id="scCount">0</b> / 10</span>
+      </div>
+
+      <div class="sc-add-row">
+        <input id="scName" class="sc-input" type="text" maxlength="12"
+               placeholder="이름을 입력하세요" autocomplete="off" aria-label="참가자 이름">
+        <button type="button" class="btn btn-secondary" id="scAddBtn">추가</button>
+      </div>
+      <p class="sc-msg" id="scMsg" role="status" aria-live="polite"></p>
+
+      <div class="sc-names" id="scNames"></div>
+      <div class="sc-empty" id="scEmpty">아직 참가자가 없어요. 이름을 추가해 주세요.</div>
+    </section>
+
+    <!-- ── 카드 덱 ── -->
+    <section class="e-card e-card-pad mt-4" aria-labelledby="scDeckTitle">
+      <div class="e-card-head">
+        <h2 class="e-card-title" id="scDeckTitle">카드 덱</h2>
+      </div>
+
+      <div class="sc-stage">
+        <p class="sc-stage-empty" id="scStageEmpty">참가자를 추가하면 카드가 펼쳐져요.</p>
+        <div class="sc-fan" id="scFan"></div>
+      </div>
+
+      <div class="sc-actions">
+        <button type="button" class="btn btn-outline" id="scResetBtn" disabled>전체 비우기</button>
+        <button type="button" class="btn btn-primary btn-lg" id="scDrawBtn" style="flex:1" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 7h11a3 3 0 0 1 3 3v7"/><path d="m15 4 3 3-3 3"/><path d="M20 17h-9a3 3 0 0 1-3-3V7"/>
+          </svg>
+          랜덤 뽑기
+        </button>
+      </div>
+      <p class="sc-hint" id="scHint">2명 이상부터 뽑을 수 있어요.</p>
+    </section>
+
+  </div>
+</main>
+
+<!-- ============================== 당첨 연출 ==============================
+ .e-modal을 쓰지 않았다 — 날아가는 카드와 당첨 패널을 한 레이어에서 같이 보여줘야 하는데
+ .e-modal의 백드롭이 카드 위를 덮어 탁해진다. ESC/백드롭 닫기는 settlement.js가 직접 처리한다.
+-->
+<div class="sc-overlay" id="scOverlay" role="dialog" aria-modal="true" aria-labelledby="scPrizeName" aria-hidden="true">
+  <div class="sc-overlay-bg" id="scOverlayBg"></div>
+  <div class="sc-confetti" id="scConfetti" aria-hidden="true"></div>
+  <div class="sc-flier" id="scFlier" aria-hidden="true"></div>
+
+  <div class="sc-prize" id="scPrize">
+    <span class="sc-prize-kicker">정산 당첨</span>
+    <div class="sc-prize-name" id="scPrizeName"></div>
+    <p class="sc-prize-desc" id="scPrizeDesc"></p>
+    <div class="sc-prize-actions">
+      <button type="button" class="btn btn-outline" id="scCloseBtn">닫기</button>
+      <button type="button" class="btn btn-primary" id="scAgainBtn">다시 뽑기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 모바일 하단 탭바 -->
+<nav class="e-tabbar" aria-label="모바일 주요 메뉴">
+  <a class="e-tabbar-item" href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H10v7H4a1 1 0 0 1-1-1V10Z"/></svg>
+    홈
+  </a>
+  <a class="e-tabbar-item" href="explore">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    탐색
+  </a>
+  <a class="e-tabbar-item" href="recommend">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
+    AI추천
+  </a>
+  <a class="e-tabbar-item" href="chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+    잇티챗
+  </a>
+  <a class="e-tabbar-item" href="mypage">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    내정보
+  </a>
+</nav>
+
+</body>
+</html>
