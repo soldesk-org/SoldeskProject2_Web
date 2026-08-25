@@ -142,14 +142,16 @@
    .ex-sheet.is-open .e-modal-panel 은 eatty.css의 .e-modal.is-open .e-modal-panel 과
    명시도가 같으므로(클래스 3개) **로드 순서로 이긴다.** 로드 순서를 바꾸면 연출이 깨진다.
    =========================================================================== */
-.ex-sheet { place-items: end center; padding: 0; }
+/* 화면 바닥/좌우에 붙이지 않고 **여백을 두고 떠 있는 카드**다. 그래서 네 모서리가 모두 둥글다.
+   아래 여백은 홈 인디케이터 자리(env)까지 더해서 잡는다. */
+.ex-sheet { place-items: end center; padding: 0 12px calc(12px + env(safe-area-inset-bottom)); }
 .ex-sheet .e-modal-panel {
   width: 100%; max-width: 440px; max-height: 86dvh;
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
-  /* 홈 인디케이터 자리를 시트 안쪽 여백으로 확보한다(앱에서 마지막 행이 가리지 않게). */
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
-  /* 아래에서 올라오는 연출 — .e-modal-panel의 translateY(14px)+scale 기본값을 덮어쓴다. */
-  transform: translateY(100%);
+  border-radius: var(--r-lg);
+  padding-bottom: 12px; /* 마지막 행 아래 안쪽 여백 */
+  /* 아래에서 올라오는 연출 — .e-modal-panel의 translateY(14px)+scale 기본값을 덮어쓴다.
+     시트가 바닥에서 12px 떠 있으므로 100%만으로는 그만큼 화면에 남는다 → 여백만큼 더 내린다. */
+  transform: translateY(calc(100% + 20px));
   transition: transform .34s cubic-bezier(.32, .72, 0, 1);
 }
 .ex-sheet.is-open .e-modal-panel { transform: translateY(0); }
@@ -167,7 +169,7 @@
 }
 .ex-sheet-grip:active::before { background: var(--ink-300); }
 
-.ex-sheet-head { padding: 14px 22px 14px; }
+.ex-sheet-head { padding: 14px 20px 12px; }
 .ex-sheet-title { font-size: 18px; font-weight: 800; color: var(--ink-900); letter-spacing: -.025em; }
 .ex-sheet-desc {
   margin-top: 5px; font-size: 13.5px; color: var(--ink-500); line-height: 1.5;
@@ -175,23 +177,33 @@
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 
-/* 행 목록을 감싸는 연회색 카드 */
+/* 행 목록.
+   ⚠️ 배경은 **시트와 같은 흰색(투명)**이다. 회색은 hover/누름 상태에서만 나타난다.
+   border-radius + overflow:hidden은 첫/마지막 행의 hover 배경이 카드 모서리를 따라 둥글게
+   잘리도록 남겨둔 것이다(배경이 투명해도 이 두 속성은 의미가 있다). */
 .ex-sheet-list {
-  margin: 0 16px; border-radius: var(--r-md);
-  background: var(--bg-soft); overflow: hidden;
+  margin: 0 12px; border-radius: var(--r-md);
+  background: transparent; overflow: hidden;
 }
 .ex-sheet-item {
   display: flex; align-items: center; gap: 12px;
-  width: 100%; padding: 15px 14px;
+  width: 100%; padding: 14px 12px;
   background: transparent; border: 0; text-align: left;
   font-size: 15px; font-weight: 700; color: var(--ink-900);
   cursor: pointer;
+  transition: background var(--dur) var(--ease);
 }
 /* 행 사이 구분선.
    ⚠️ 양쪽에 :not([hidden])을 붙인 이유 — 이 목록은 환경에 따라 행이 [hidden]으로 빠진다.
    그냥 `+ .ex-sheet-item`으로 두면 앞 행이 감춰져 있어도 CSS 인접 선택자는 DOM 기준이라
    여전히 매칭돼서, 카드 맨 위에 선이 하나 떠 있는 것처럼 보인다. */
-.ex-sheet-item:not([hidden]) + .ex-sheet-item:not([hidden]) { box-shadow: inset 0 1px 0 var(--ink-200); }
+.ex-sheet-item:not([hidden]) + .ex-sheet-item:not([hidden]) { box-shadow: inset 0 1px 0 var(--ink-100); }
+/* hover(마우스 있는 환경)와 누름(터치) 모두 회색으로. 평소에는 흰 배경이다.
+   hover는 hover가 실제로 되는 기기에만 적용한다 — 터치 기기에서 :hover는 탭 후 색이
+   그대로 남는 문제가 있다. */
+@media (hover: hover) {
+  .ex-sheet-item:hover { background: var(--ink-50); }
+}
 .ex-sheet-item:active { background: var(--ink-100); }
 
 .ex-sheet-ico {
