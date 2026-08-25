@@ -34,6 +34,32 @@
   var drawing = false;   // 뽑기~오버레이 닫기까지 입력/삭제를 잠그는 플래그
   var flipped = false;   // 당첨 카드를 뒤집었는지
 
+  /* fanOrder[i] = 화면 i번째(왼쪽부터) 카드가 어떤 names 인덱스를 보여주는지.
+     ⚠️ names 배열 자체는 절대 섞지 않는다 — 참가자 칩 목록은 입력한 순서를 유지해야 하는데
+     names를 섞으면 칩 순서도 같이 뒤섞여 버린다(renderNames도 같은 names를 쓴다).
+     그래서 "카드가 어디 있는지"만 따로 이 배열로 관리하고, 뽑기 전에 이것만 섞는다.
+     이름을 추가/삭제할 때마다 resetFanOrder()로 다시 identity(0,1,2,...) 상태로 되돌린다 —
+     참가자 목록을 편집한 뒤에는 위치도 편집한 순서 그대로 보이는 게 자연스럽다. */
+  var fanOrder = [];
+  function resetFanOrder() { fanOrder = names.map(function (_, i) { return i; }); }
+  function shuffleFanOrder() {
+    for (var i = fanOrder.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = fanOrder[i]; fanOrder[i] = fanOrder[j]; fanOrder[j] = t;
+    }
+  }
+
+  // 부채꼴 카드가 나타나는 타이밍(renderFan)과 뽑기 시작 타이밍(startDraw)이 같은 상수를
+  // 공유해야 한다 — 따로 매직넘버로 두면 한쪽만 바뀌었을 때 카드가 다 펼쳐지기 전에
+  // 뽑기가 시작되는 조용한 버그가 생긴다.
+  // prefers-reduced-motion에서는 settlement.css가 .sc-card의 transition을 .01ms로 누른다.
+  // 그 경우 500ms를 그대로 기다리면 카드가 이미 멈춘 뒤에도 한참 대기하게 되므로 짧게 쓴다.
+  var REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var CARD_ENTER_BASE = 50;                        // 첫 카드가 펼쳐지기 시작하는 지연(ms)
+  var CARD_ENTER_STEP = REDUCED_MOTION ? 0 : 52;   // 카드 한 장마다 늘어나는 지연(ms)
+  var CARD_ENTER_MS = REDUCED_MOTION ? 20 : 500;   // settlement.css .sc-card의 transition 시간과 일치
+  var CARD_COLLAPSE_MS = REDUCED_MOTION ? 20 : 500; // 같은 transition을 되감아 접힐 때도 쓴다
+
   var nameInput = document.getElementById("scName");
   var addBtn = document.getElementById("scAddBtn");
   var namesEl = document.getElementById("scNames");
@@ -140,6 +166,9 @@
     var angles = [];
     for (var k = 0; k < n; k++) angles.push(n === 1 ? 0 : (-spread / 2 + spread * k / (n - 1)));
 
+    // fanOrder가 names와 길이가 안 맞으면(추가/삭제 직후 등) 안전하게 identity로 되돌린다.
+    if (fanOrder.length !== n) resetFanOrder();
+
     /* 부채꼴이 실제로 차지하는 영역을 계산해 (1) 축소 배율과 (2) 수직 보정을 정한다.
        ⚠️ 어림셈으로는 안 된다 — 카드의 transform-origin이 50% 150%(카드 아래 바깥)라서
        회전한 카드는 위로 솟는 게 아니라 **아래로 더 내려간다**(회전축이 아래에 있으니
@@ -159,16 +188,23 @@
     var lift = (base.h / 2 - (ext.top + ext.bottom) / 2) * fs;
     fanEl.style.setProperty("--sc-lift", lift.toFixed(1) + "px");
 
-    names.forEach(function (name, i) {
+    // i = 화면 위치(왼쪽부터), fanOrder[i] = 그 자리에 보여줄 names 인덱스.
+    // ⚠️ names.forEach가 아니라 위치(i) 기준으로 도는 이유 — 셔플 뒤에는 "몇 번째 자리에 누가
+    // 있는지"가 이름 추가 순서와 달라지므로, 자리 인덱스를 축으로 삼아야 각도(--a)가 맞는 자리에 붙는다.
+    for (var i = 0; i < n; i++) {
+      var name = names[fanOrder[i]];
       var el = document.createElement("div");
       el.className = "sc-card";
+      el.dataset.slot = String(i);          // 뽑기 로직이 "화면 몇 번째 자리"를 찾을 때 쓴다
       el.style.setProperty("--a", angles[i].toFixed(2) + "deg");
       el.style.zIndex = String(i + 1);
       buildCard(el, name, false);   // 부채꼴은 앞면만 — 이름을 DOM에 넣지 않는다(위 buildCard 주석)
       fanEl.appendChild(el);
       // 한 장씩 차례로 펼쳐지게 지연을 준다(트럼프 카드 펼치는 느낌).
-      setTimeout(function () { el.classList.add("is-in"); }, 50 + i * 52);
-    });
+      (function (elRef, idx) {
+        setTimeout(function () { elRef.classList.add("is-in"); }, CARD_ENTER_BASE + idx * CARD_ENTER_STEP);
+      })(el, i);
+    }
   }
 
   function cards() { return fanEl.querySelectorAll(".sc-card"); }
@@ -208,14 +244,19 @@
 
     drawBtn.disabled = names.length < MIN || drawing;
     if (clearBtn) clearBtn.disabled = !names.length || drawing;
-    if (noteEl) {
-      noteEl.textContent = drawing ? "뽑는 중이에요"
-        : names.length < MIN ? MIN + "명 이상 담아주세요"
+    // drawing 중의 문구("카드를 섞고 있어요" → "뽑는 중이에요")는 shuffleThenDraw/startDraw가
+    // 단계별로 직접 갱신한다. 여기서 획일적으로 "뽑는 중이에요"로 덮으면 섞는 단계 문구가
+    // 표시될 틈도 없이 매 syncUI() 호출마다 지워진다.
+    if (noteEl && !drawing) {
+      noteEl.textContent = names.length < MIN ? MIN + "명 이상 담아주세요"
         : names.length + "명 중 한 명이 뽑혀요";
     }
   }
 
-  function refresh() { renderNames(); renderFan(); syncUI(); }
+  // 참가자 목록이 바뀔 때마다 부른다(추가/삭제/전체비우기). fanOrder를 여기서 리셋해서
+  // 편집 직후에는 카드 위치가 항상 최신 편집 순서를 반영하게 한다 — 셔플은 뽑기 시작
+  // 버튼을 눌렀을 때만 일어난다.
+  function refresh() { resetFanOrder(); renderNames(); renderFan(); syncUI(); }
 
   /* ── 추가 / 삭제 ──────────────────────────────────────── */
   function addName() {
@@ -264,13 +305,43 @@
     for (var i = 0; i < list.length; i++) list[i].classList.toggle("is-up", i === idx);
   }
 
-  function startDraw() {
-    if (drawing || names.length < MIN) return;
-    drawing = true;
-    flipped = false;
-    syncUI();
+  /* 뽑기 전에 카드를 걷어서 다시 무작위 자리에 펼치는 섞기 애니메이션.
+     ⚠️ 왜 필요한가: 뽑히는 사람 자체는 이미 Math.random()으로 완전히 균등하다(실측 검증됨).
+     하지만 화면상 카드 위치는 항상 참가자를 추가한 순서 그대로 고정돼 있어서, "이름 순서대로
+     카드에 배정된 것처럼" 보이는 착시가 있었다(2026-08-25 지적). 실제로 자리를 뒤섞으면
+     그 착시가 사라지고, 매번 카드를 새로 펼치는 느낌도 더해진다.
+     방식: 현재 카드들을 CSS의 "등장 전" 상태(모여서 접힌 모습)로 되돌린 뒤, fanOrder를
+     Fisher-Yates로 섞고 renderFan()으로 새 자리에 다시 그린다 — buildCard를 다시 타므로
+     이름과 자리의 대응 자체가 바뀐다(단순히 각도만 재배치하는 게 아니다). */
+  function shuffleThenDraw() {
+    var list = cards();
+    for (var i = 0; i < list.length; i++) list[i].classList.remove("is-in");
 
+    setTimeout(function () {
+      shuffleFanOrder();
+      renderFan();
+      // renderFan이 카드를 다시 펼치는 데 걸리는 시간(마지막 카드 지연 + 펼침 전환 시간)만큼
+      // 기다린 뒤 뽑기를 시작한다. 카드가 다 펼쳐지기 전에 훑기 애니메이션이 시작되면
+      // is-up이 아직 "접힌" 카드에 붙어 뜬금없이 보인다.
+      var n = names.length;
+      var enterDone = CARD_ENTER_BASE + Math.max(0, n - 1) * CARD_ENTER_STEP + CARD_ENTER_MS;
+      setTimeout(function () {
+        if (noteEl) noteEl.textContent = "뽑는 중이에요";
+        startDraw();
+      }, enterDone + 120);
+    }, CARD_COLLAPSE_MS);
+  }
+
+  /* ── 뽑기 ─────────────────────────────────────────────────
+     카드를 한 장씩 훑으며 튀어 오르게 하고(올라갔다 내려갔다), 간격을 점점 늘려
+     감속시킨 뒤 마지막에 당첨 카드에서 멈춘다.
+     총 스텝을 laps*n + winner + 1로 잡으면 마지막 스텝의 인덱스가 정확히 winner가 된다.
+     ⚠️ winner는 **화면 자리 인덱스**다. shuffleThenDraw가 이미 자리를 섞어 놨으므로,
+     실제로 뽑히는 사람은 fanOrder[winner]다(flyOut에서 이 대응으로 이름을 가져온다). */
+  function startDraw() {
     var n = names.length;
+    if (n < MIN) { drawing = false; syncUI(); return; }
+
     var winner = Math.floor(Math.random() * n);
     var laps = 2 + Math.floor(Math.random() * 2);   // 2~3바퀴는 돌게 한다
     var total = laps * n + winner + 1;
@@ -288,7 +359,14 @@
     })();
   }
 
-  drawBtn.addEventListener("click", startDraw);
+  drawBtn.addEventListener("click", function () {
+    if (drawing || names.length < MIN) return;
+    drawing = true;
+    flipped = false;
+    syncUI();
+    if (noteEl) noteEl.textContent = "카드를 섞고 있어요";
+    shuffleThenDraw();
+  });
 
   /* ── 뽑힌 카드를 중앙으로 ─────────────────────────────────
      오버레이의 카드 자리(.sc-flier)는 flex로 이미 중앙에 있다. 그래서 "부채꼴에서의
@@ -301,7 +379,7 @@
   function flyOut(i) {
     var srcEl = cards()[i];
     if (!srcEl) { drawing = false; syncUI(); return; }
-    var name = names[i];
+    var name = names[fanOrder[i]];   // i는 화면 자리 인덱스 — fanOrder로 실제 참가자를 찾는다
 
     // ⚠️ flier가 아니라 cardHost에 만든다 — flier에는 클릭 레이어(.sc-flip)가 함께 들어 있어서
     // flier.innerHTML을 덮어쓰면 그 버튼이 사라진다.
