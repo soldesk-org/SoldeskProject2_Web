@@ -226,6 +226,35 @@
     }, true);
   }
 
+  // 시트가 열려 있는 동안 토스트를 시트 위로 올리기 위한 감시자.
+  //
+  // 왜 필요한가: 토스트(.e-toast-area)는 z-index 130으로 모달(100)보다 위에 그려지고, 앱에서는
+  // bottom이 탭바 위(약 107px)라 정확히 시트가 있는 자리에 뜬다. "링크 복사" 토스트가 사라지기 전에
+  // 시트를 다시 열면 토스트가 시트 행 위에 겹치고, .e-toast의 pointer-events:auto 때문에 그 자리의
+  // 탭까지 가로챈다. 실제 위치 보정은 explore.css의 body.is-sheet-open 규칙이 한다.
+  //
+  // closeModal을 직접 고치지 않고 class 변화를 관찰하는 이유: 시트가 닫히는 경로가 여럿이다
+  // (그립 탭, 백드롭 탭, Escape, 행 선택 후 자동 닫기, 끌어내리기). 어느 경로든 is-open이 떨어지므로
+  // 여기서 한 번에 잡는 게 가장 확실하고, 공용 파일(eatty-ui.js)을 건드리지 않는다.
+  var sheetToastWatched = false;
+  function watchSheetForToast(modalId) {
+    if (sheetToastWatched) return;
+    var modal = document.getElementById(modalId);
+    if (!modal || !window.MutationObserver) return;
+    var panel = modal.querySelector(".e-modal-panel");
+    if (!panel) return;
+    sheetToastWatched = true;
+
+    function sync() {
+      var open = modal.classList.contains("is-open");
+      document.body.classList.toggle("is-sheet-open", open);
+      // transform은 레이아웃 높이에 영향을 주지 않으므로, 올라오는 도중에도 최종 높이가 정확히 나온다.
+      document.documentElement.style.setProperty("--ex-sheet-h", open ? panel.offsetHeight + "px" : "0px");
+    }
+    new MutationObserver(sync).observe(modal, { attributes: true, attributeFilter: ["class"] });
+    sync();
+  }
+
   // 선택 모달을 열고 버튼 3개를 지금 환경에 맞게 구성한다.
   // 핸들러는 onclick으로 **덮어쓴다** — 상세 패널을 여러 번 열어도 addEventListener처럼 쌓이지 않는다.
   // sharePromise: { url, code }로 resolve되는 Promise. 모달은 그걸 기다리지 않고 즉시 뜨고,
@@ -283,6 +312,7 @@
     }
 
     bindSheetDrag(modalId);
+    watchSheetForToast(modalId);
     Eatty.openModal(modalId);
   }
 
