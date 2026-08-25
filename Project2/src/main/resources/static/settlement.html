@@ -53,9 +53,9 @@
 <link rel="stylesheet" href="assets/css/eatty.css?v=20260824a">
 <script defer src="assets/js/api.js?v=20260823a"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
-<script defer src="assets/js/settlement.js"></script>
+<script defer src="assets/js/settlement.js?v=20260825a"></script>
 
-<link rel="stylesheet" href="assets/css/settlement.css">
+<link rel="stylesheet" href="assets/css/settlement.css?v=20260825a">
 </head>
 <body class="has-tabbar">
 
@@ -141,78 +141,84 @@
 <main id="mainContent" class="py-8 md:py-12">
   <div class="e-container w-full" style="max-width:880px">
 
-    <div class="text-center mb-8">
-      <h1 class="t-h2">오늘 계산은 <span class="t-brand">누구?</span></h1>
-      <p class="t-lead mt-3">
-        정산할 사람을 담고 카드를 뽑으면,<br>
-        오늘의 계산 담당이 <b class="t-brand">한 방에</b> 정해져요.
-      </p>
+    <div class="sc-hero">
+      <h1>오늘 계산은<br>누가 할까요?</h1>
+      <p>정산할 사람을 담고 카드를 뽑으면<br>오늘의 계산 담당이 정해져요.</p>
     </div>
 
-    <!-- ── 참가자 ── -->
-    <section class="e-card e-card-pad" aria-labelledby="scPeopleTitle">
-      <!-- .e-card-head를 쓰지 않는다 — 그 클래스는 자체 padding(18/22px)과 border-bottom을
-           갖고 있어서 .e-card-pad(22px)와 겹치면 여백이 두 번 들어가고 구분선이 어중간하게 걸린다.
-           .e-card-pad + 자유 내용 조합이 이 프로젝트의 다른 카드들과 같은 방식이다. -->
-      <div class="flex items-center gap-3 mb-4">
-        <h2 class="e-card-title" id="scPeopleTitle">참가자</h2>
-        <span class="sc-count ml-auto"><b id="scCount">0</b> / 10</span>
+    <!-- ── 참가자 ──
+     사이트 공통 .e-card / .btn 대신 이 페이지 전용 .sc-panel / .sc-btn을 쓴다.
+     공통 버튼은 그라데이션+그림자라 토스풍 화면에서 튀고, .e-card-pad와 .e-card-head는
+     여백 규칙이 겹친다(자세한 이유는 settlement.css 주석). -->
+    <section class="sc-panel" aria-labelledby="scPeopleTitle">
+      <div class="sc-panel-head">
+        <h2 class="sc-panel-title" id="scPeopleTitle">참가자</h2>
+        <span class="sc-counter"><b id="scCount">0</b> / 10</span>
       </div>
 
-      <div class="sc-add-row">
+      <div class="sc-add">
         <input id="scName" class="sc-input" type="text" maxlength="12"
-               placeholder="이름을 입력하세요" autocomplete="off" aria-label="참가자 이름">
-        <button type="button" class="btn btn-secondary" id="scAddBtn">추가</button>
+               placeholder="이름 입력" autocomplete="off" aria-label="참가자 이름">
+        <button type="button" class="sc-btn sc-btn--dark" id="scAddBtn">추가</button>
       </div>
-      <p class="sc-msg" id="scMsg" role="status" aria-live="polite"></p>
 
       <div class="sc-names" id="scNames"></div>
-      <div class="sc-empty" id="scEmpty">아직 참가자가 없어요. 이름을 추가해 주세요.</div>
+      <div class="sc-blank" id="scBlank">이름을 담으면 카드가 만들어져요</div>
     </section>
 
     <!-- ── 카드 덱 ── -->
-    <section class="e-card e-card-pad mt-4" aria-labelledby="scDeckTitle">
-      <div class="flex items-center gap-3 mb-4">
-        <h2 class="e-card-title" id="scDeckTitle">카드 덱</h2>
+    <section class="sc-panel" aria-labelledby="scDeckTitle">
+      <div class="sc-panel-head">
+        <h2 class="sc-panel-title" id="scDeckTitle">카드 덱</h2>
+        <button type="button" class="sc-chip-x" id="scClearBtn" aria-label="참가자 모두 비우기"
+                style="width:34px;height:34px;margin-left:auto" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px">
+            <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>
+          </svg>
+        </button>
       </div>
 
-      <div class="sc-stage">
-        <p class="sc-stage-empty" id="scStageEmpty">참가자를 추가하면 카드가 펼쳐져요.</p>
+      <div class="sc-stage" id="scStage">
+        <p class="sc-stage-blank" id="scStageBlank">참가자를 담으면 카드가 펼쳐져요</p>
         <div class="sc-fan" id="scFan"></div>
       </div>
 
       <div class="sc-actions">
-        <button type="button" class="btn btn-outline" id="scResetBtn" disabled>전체 비우기</button>
-        <button type="button" class="btn btn-primary btn-lg" id="scDrawBtn" style="flex:1" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 7h11a3 3 0 0 1 3 3v7"/><path d="m15 4 3 3-3 3"/><path d="M20 17h-9a3 3 0 0 1-3-3V7"/>
-          </svg>
+        <button type="button" class="sc-btn sc-btn--brand sc-btn--lg sc-btn--block" id="scDrawBtn" disabled>
           랜덤 뽑기
         </button>
       </div>
-      <p class="sc-hint" id="scHint">2명 이상부터 뽑을 수 있어요.</p>
+      <p class="sc-note" id="scNote">2명 이상 담아주세요</p>
     </section>
 
   </div>
 </main>
 
 <!-- ============================== 당첨 연출 ==============================
- .e-modal을 쓰지 않았다 — 날아가는 카드와 당첨 패널을 한 레이어에서 같이 보여줘야 하는데
- .e-modal의 백드롭이 카드 위를 덮어 탁해진다. ESC/백드롭 닫기는 settlement.js가 직접 처리한다.
+ .e-modal을 쓰지 않았다 — 백드롭이 카드 위를 덮어 탁해지고, 이 화면은 결과를 흰 패널이 아니라
+ **카드 자체로** 보여주기 때문이다. ESC/백드롭 닫기는 settlement.js가 직접 처리한다.
+
+ 뽑힌 카드는 앞면이 위를 향한 채 중앙에 멈춘다. 이 시점에는 아직 이름이 보이지 않고,
+ 사용자가 카드를 눌러야 3D로 뒤집히며 뒷면 서명란에 이름이 드러난다.
 -->
-<div class="sc-overlay" id="scOverlay" role="dialog" aria-modal="true" aria-labelledby="scPrizeName" aria-hidden="true">
+<div class="sc-overlay" id="scOverlay" role="dialog" aria-modal="true" aria-labelledby="scGuide" aria-hidden="true">
   <div class="sc-overlay-bg" id="scOverlayBg"></div>
   <div class="sc-confetti" id="scConfetti" aria-hidden="true"></div>
-  <div class="sc-flier" id="scFlier" aria-hidden="true"></div>
 
-  <div class="sc-prize" id="scPrize">
-    <span class="sc-prize-kicker">정산 당첨</span>
-    <div class="sc-prize-name" id="scPrizeName"></div>
-    <p class="sc-prize-desc" id="scPrizeDesc"></p>
-    <div class="sc-prize-actions">
-      <button type="button" class="btn btn-outline" id="scCloseBtn">닫기</button>
-      <button type="button" class="btn btn-primary" id="scAgainBtn">다시 뽑기</button>
-    </div>
+  <p class="sc-guide" id="scGuide" role="status" aria-live="polite"></p>
+
+  <!--
+   카드(3D)와 클릭 레이어를 **분리**했다. button 요소 안에 preserve-3d 자식을 두면 일부 엔진에서
+   3D가 평면화돼 뒤집기가 깨지는 경우가 있어서, 버튼은 카드 위에 겹치는 투명 히트 영역으로만 둔다.
+  -->
+  <div class="sc-flier" id="scFlier">
+    <div class="sc-card-host" id="scCardHost"></div>
+    <button type="button" class="sc-flip" id="scFlipBtn" aria-label="카드를 눌러 뽑힌 사람 확인하기"></button>
+  </div>
+
+  <div class="sc-overlay-actions" id="scOverlayActions">
+    <button type="button" class="sc-btn sc-btn--ghost-w" id="scCloseBtn" style="flex:1">닫기</button>
+    <button type="button" class="sc-btn sc-btn--white" id="scAgainBtn">다시 뽑기</button>
   </div>
 </div>
 
