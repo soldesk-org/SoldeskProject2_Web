@@ -45,7 +45,7 @@
   word-break: keep-all; text-wrap: balance;
 }
 .sc-hero p {
-  margin-top: 12px; font-size: 15.5px; font-weight: 500; line-height: 1.62;
+  margin-top: 12px; font-size: 16.5px; font-weight: 500; line-height: 1.62;
   color: var(--sc-ink-2);
   word-break: keep-all; text-wrap: pretty;
 }
@@ -57,9 +57,9 @@
 }
 .sc-panel + .sc-panel { margin-top: 14px; }
 .sc-panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.sc-panel-title { font-size: 17px; font-weight: 700; letter-spacing: -.025em; color: var(--sc-ink); }
+.sc-panel-title { font-size: 19px; font-weight: 700; letter-spacing: -.025em; color: var(--sc-ink); }
 .sc-counter {
-  margin-left: auto; font-size: 14px; font-weight: 600; color: var(--sc-ink-3);
+  margin-left: auto; font-size: 15px; font-weight: 600; color: var(--sc-ink-3);
   font-variant-numeric: tabular-nums;
 }
 .sc-counter b { color: var(--brand-500); }
@@ -69,7 +69,7 @@
 .sc-input {
   flex: 1; min-width: 0; height: 54px; padding: 0 16px;
   border: 1px solid transparent; border-radius: 14px;
-  background: var(--sc-fill); font: inherit; font-size: 16px; font-weight: 500;
+  background: var(--sc-fill); font: inherit; font-size: 17px; font-weight: 500;
   color: var(--sc-ink);
   transition: border-color .16s var(--ease), background .16s var(--ease);
 }
@@ -82,7 +82,7 @@
 .sc-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   height: 54px; padding: 0 20px; border: 0; border-radius: 14px;
-  font: inherit; font-size: 16px; font-weight: 700; letter-spacing: -.02em;
+  font: inherit; font-size: 17px; font-weight: 700; letter-spacing: -.02em;
   cursor: pointer; -webkit-user-select: none; user-select: none;
   transition: background .16s var(--ease), color .16s var(--ease),
               transform .1s var(--ease), opacity .16s var(--ease);
@@ -96,7 +96,7 @@
 .sc-btn--soft { background: var(--sc-fill); color: var(--sc-ink-2); }
 .sc-btn--soft:hover:not(:disabled) { background: #e8ebee; }
 .sc-btn--block { width: 100%; }
-.sc-btn--lg { height: 58px; font-size: 17px; border-radius: 16px; }
+.sc-btn--lg { height: 58px; font-size: 18.5px; border-radius: 16px; }
 .sc-btn svg { width: 19px; height: 19px; }
 
 /* ── 참가자 칩 ───────────────────────────────────────────── */
@@ -106,7 +106,7 @@
   display: inline-flex; align-items: center; gap: 3px;
   height: 38px; padding: 0 6px 0 14px; border-radius: var(--r-full);
   background: var(--sc-fill);
-  font-size: 15px; font-weight: 600; letter-spacing: -.02em; color: var(--sc-ink);
+  font-size: 16px; font-weight: 600; letter-spacing: -.02em; color: var(--sc-ink);
   animation: scChipIn .22s var(--ease) both;
 }
 @keyframes scChipIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
@@ -122,7 +122,7 @@
 .sc-blank {
   margin-top: 14px; padding: 26px 14px; border-radius: 16px;
   background: var(--sc-fill);
-  text-align: center; font-size: 14px; font-weight: 500; color: var(--sc-ink-3);
+  text-align: center; font-size: 15px; font-weight: 500; color: var(--sc-ink-3);
 }
 
 /* ── 부채꼴 무대 ─────────────────────────────────────────── */
@@ -133,7 +133,7 @@
 }
 .sc-stage-blank {
   position: absolute; inset: 0; display: grid; place-items: center;
-  font-size: 14px; font-weight: 500; color: var(--sc-ink-3);
+  font-size: 15px; font-weight: 500; color: var(--sc-ink-3);
 }
 /* --sc-fs(축소 배율)는 settlement.js가 폭/높이를 함께 보고 계산해 넣는다. */
 .sc-fan {
@@ -230,7 +230,7 @@
 .sc-actions { display: flex; gap: 8px; margin-top: 16px; }
 .sc-note {
   margin-top: 12px; text-align: center;
-  font-size: 13px; font-weight: 500; color: var(--sc-ink-3);
+  font-size: 14.5px; font-weight: 500; color: var(--sc-ink-3);
 }
 
 /* ── 당첨 오버레이 ───────────────────────────────────────────
@@ -252,10 +252,10 @@
 
 .sc-guide {
   position: relative; z-index: 2; text-align: center;
-  font-size: 15px; font-weight: 600; letter-spacing: -.02em; color: rgba(255, 255, 255, .72);
+  font-size: 22px; font-weight: 600; letter-spacing: -.02em; color: rgba(255, 255, 255, .72);
   transition: opacity .25s var(--ease);
 }
-.sc-guide b { display: block; margin-bottom: 5px; font-size: 13px; color: rgba(255, 255, 255, .45); font-weight: 600; }
+.sc-guide b { display: block; margin-bottom: 5px; font-size: 15px; color: rgba(255, 255, 255, .45); font-weight: 600; }
 
 /* 뽑힌 카드 — 부채꼴에서의 위치/각도로 시작해 이 자리로 날아온다(좌표는 JS가 넣는다).
    ⚠️ 기본 크기로는 뒷면 시안의 미세 문구가 안 읽혀서 --sc-rs 배율로 확대한다.
@@ -289,7 +289,7 @@
 
 .sc-overlay-actions {
   position: relative; z-index: 2;
-  display: flex; gap: 8px; width: min(340px, 100%);
+  display: flex; gap: 9px; width: min(380px, 100%);
   opacity: 0; transform: translateY(10px); pointer-events: none;
   transition: opacity .3s var(--ease), transform .3s var(--ease);
 }
@@ -314,17 +314,28 @@
 /* ── 반응형 ──────────────────────────────────────────────────
    ⚠️ 카드 크기(--sc-w/--sc-h)는 건드리지 않는다(파일 상단 주석 참고).
    무대 높이만 줄이고, 카드 축소는 JS가 --sc-fs로 처리한다. */
+/* ⚠️ 확대 배율(--sc-rs)의 상한은 **뒤집힌 뒤의 가로 폭**이 결정한다.
+   뒤집히면 카드 폭이 --sc-h(253.5px) x 배율이 되고, 오버레이 좌우 여백이 24px씩이므로
+   253.5 * 배율 + 48 <= 화면 폭 이어야 한다.
+     배율 1.5  -> 428px 필요   (768px 이상에서만 안전)
+     배율 1.3  -> 378px 필요
+     배율 1.15 -> 340px 필요
+   이 계산을 어기면 뒤집는 순간 카드 좌우가 화면 밖으로 잘린다. */
 @media (max-width: 767px) {
-  :root { --sc-rs: 1.25; }
+  :root { --sc-rs: 1.3; }
   .sc-hero h1 { font-size: 26px; }
-  .sc-hero p { font-size: 14.5px; }
+  .sc-hero p { font-size: 15.5px; }
   .sc-panel { padding: 18px; border-radius: 20px; }
+  .sc-panel-title { font-size: 18px; }
   .sc-stage { height: 262px; }
   .sc-overlay { gap: 18px; }
+  .sc-guide { font-size: 19px; }
+  .sc-guide b { font-size: 14px; }
 }
 @media (max-width: 380px) {
   :root { --sc-rs: 1.15; }
   .sc-stage { height: 238px; }
+  .sc-guide { font-size: 18px; }
 }
 /* 세로로 짧은 화면(가로 모드, 작은 노트북)에서는 카드 + 안내 + 버튼이 한 화면에 안 들어간다. */
 @media (max-height: 720px) {
