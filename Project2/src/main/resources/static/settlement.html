@@ -151,9 +151,12 @@
 
     <!-- ── 참가자 ── -->
     <section class="e-card e-card-pad" aria-labelledby="scPeopleTitle">
-      <div class="e-card-head">
+      <!-- .e-card-head를 쓰지 않는다 — 그 클래스는 자체 padding(18/22px)과 border-bottom을
+           갖고 있어서 .e-card-pad(22px)와 겹치면 여백이 두 번 들어가고 구분선이 어중간하게 걸린다.
+           .e-card-pad + 자유 내용 조합이 이 프로젝트의 다른 카드들과 같은 방식이다. -->
+      <div class="flex items-center gap-3 mb-4">
         <h2 class="e-card-title" id="scPeopleTitle">참가자</h2>
-        <span class="sc-count" style="margin-left:auto"><b id="scCount">0</b> / 10</span>
+        <span class="sc-count ml-auto"><b id="scCount">0</b> / 10</span>
       </div>
 
       <div class="sc-add-row">
@@ -169,7 +172,7 @@
 
     <!-- ── 카드 덱 ── -->
     <section class="e-card e-card-pad mt-4" aria-labelledby="scDeckTitle">
-      <div class="e-card-head">
+      <div class="flex items-center gap-3 mb-4">
         <h2 class="e-card-title" id="scDeckTitle">카드 덱</h2>
       </div>
 
