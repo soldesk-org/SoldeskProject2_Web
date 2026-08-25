@@ -53,9 +53,9 @@
 <link rel="stylesheet" href="assets/css/eatty.css?v=20260824a">
 <script defer src="assets/js/api.js?v=20260823a"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
-<script defer src="assets/js/settlement.js?v=20260825d"></script>
+<script defer src="assets/js/settlement.js?v=20260825e"></script>
 
-<link rel="stylesheet" href="assets/css/settlement.css?v=20260825f">
+<link rel="stylesheet" href="assets/css/settlement.css?v=20260825g">
 </head>
 <body class="has-tabbar">
 
@@ -214,9 +214,17 @@
    카드(3D)와 클릭 레이어를 **분리**했다. button 요소 안에 preserve-3d 자식을 두면 일부 엔진에서
    3D가 평면화돼 뒤집기가 깨지는 경우가 있어서, 버튼은 카드 위에 겹치는 투명 히트 영역으로만 둔다.
   -->
-  <div class="sc-flier" id="scFlier">
-    <div class="sc-card-host" id="scCardHost"></div>
-    <button type="button" class="sc-flip" id="scFlipBtn" aria-label="카드를 눌러 뽑힌 사람 확인하기"></button>
+  <!--
+   .sc-flier-slot이 필요한 이유: transform(회전·확대)은 레이아웃 크기에 반영되지 않는다.
+   카드는 세로 상자(160x253.5)를 가진 채 가로로 눕고 확대되므로, 슬롯이 없으면 실제 보이는
+   크기보다 작은 자리만 차지해서 위아래의 안내 문구와 버튼을 카드가 덮어버린다.
+   슬롯이 "보이는 크기"만큼 자리를 잡아 준다.
+  -->
+  <div class="sc-flier-slot">
+    <div class="sc-flier" id="scFlier">
+      <div class="sc-card-host" id="scCardHost"></div>
+      <button type="button" class="sc-flip" id="scFlipBtn" aria-label="카드를 눌러 뽑힌 사람 확인하기"></button>
+    </div>
   </div>
 
   <div class="sc-overlay-actions" id="scOverlayActions">

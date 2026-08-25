@@ -177,28 +177,25 @@
    눈에 띄지 않았다. 모서리는 원본이 검정 배경이고 아래에서 border-radius로 잘라낸다.
 
    ⚠️ 뒷면 시안은 **가로**다. 세로 카드 상자에 넣으려면 폭/높이를 맞바꾼 가로 크기로 만들어
-   rotate(-90deg)로 눕힌다. 그러면 회전 후 외곽이 세로 상자와 정확히 일치한다. 카드 전체가
-   뒤집힐 때 rotate(90deg)를 받으므로 -90 + 90 = 0이 되어 뒷면이 똑바로 선다
-   (그 순간 카드는 가로가 된다 — 실물 카드를 뒤집어 눕혀 보는 것과 같은 모습).
+   rotate(-90deg)로 눕힌다. 그러면 회전 후 외곽이 세로 상자와 정확히 일치한다.
+   당첨 카드는 .sc-flier가 rotate(90deg)를 갖고 있으므로 -90 + 90 = 0이 되어 뒷면이 똑바로 선다.
 
    ⚠️ 3D(rotateY + backface-visibility)를 쓰지 않는다. 부모 Z회전과 자식 Y회전이 겹치면
-   브라우저에 따라 내용이 거울상으로 뒤집힌다. 회전 중간에 앞/뒷면을 불투명도로 교차하면
-   같은 인상을 주면서 그 위험이 없다.
+   브라우저에 따라 내용이 거울상으로 뒤집힌다. 뒤집기는 "화면 가로로 얇게 눌렀다 펴기 +
+   그 순간 앞/뒷면 교체"로 흉내낸다 — 2D만 쓰므로 그 위험이 없다.
    ------------------------------------------------------------------ */
 .sc-card-inner {
   position: absolute; inset: 0; border-radius: 15px;
   box-shadow: 0 8px 22px rgba(10, 12, 18, .26);
-  transition: transform .8s cubic-bezier(.32, .8, .24, 1);
 }
-/* 뒤집기 = 카드를 가로로 눕히기. 당첨 카드에만 붙는다(부채꼴 카드는 뒤집지 않는다). */
-.sc-flier.is-flipped .sc-card-inner { transform: rotate(90deg); }
 
 .sc-side {
   position: absolute; border-radius: 15px; overflow: hidden;
   background-repeat: no-repeat; background-position: center center;
   background-size: cover;
-  /* 회전이 절반쯤 진행됐을 때 앞/뒷면이 바뀌도록 지연을 준다. */
-  transition: opacity .3s var(--ease) .27s;
+  /* 카드가 가장 얇아진 순간(뒤집기 애니메이션 중간, 0.33s)에 맞춰 순간적으로 교체한다.
+     이때 카드는 선처럼 얇아서 교체 자체가 보이지 않는다. */
+  transition: opacity .1s linear .28s;
 }
 
 /* 앞면 — 세로 시안. 카드 상자를 그대로 채운다. */
@@ -273,19 +270,51 @@
    확대는 width/height를 키우는 대신 scale로 한다 — 크기를 키우면 서명란 이름의 좌표(%)는
    따라오지만 글자 크기는 안 따라와서 따로 맞춰야 한다(파일 상단 "크기는 한 벌만" 원칙).
    JS는 시작 transform만 인라인으로 넣고 마지막에 비우므로, 최종 상태는 이 규칙이 결정한다. */
+   ⚠️ rotate(90deg)가 **여기(정지 상태)에 있다.** 뽑힌 카드는 부채꼴에서 세로로 출발해
+   중앙으로 오는 동안 가로로 돌아 눕는다(2026-08-25 요청). JS는 시작 transform만 인라인으로
+   넣고 마지막에 비우므로, 비워진 순간 이 값으로 전환되면서 회전이 함께 일어난다.
+   앞면 시안이 세로 디자인이라 가로로 누우면 로고와 칩이 옆으로 눕는다 — 실물 세로형 카드를
+   가로로 든 모습과 같고, 요청상 감수한 부분이다. 뒷면은 가로 시안이라 똑바로 선다. */
+/* 카드가 "보이는 크기"만큼 자리를 차지하게 하는 슬롯.
+   ⚠️ transform은 레이아웃 크기를 바꾸지 않는다. 카드는 세로 상자(--sc-w x --sc-h)를 가진 채
+   가로로 눕고 확대되므로, 슬롯 없이 두면 실제보다 작은 자리만 차지해 위아래의 안내 문구와
+   버튼을 카드가 덮어버린다(그래서 안내 문구가 안 보였다). 가로로 누운 뒤의 크기는
+   폭 = --sc-h x 배율, 높이 = --sc-w x 배율 이다. */
+.sc-flier-slot {
+  position: relative; z-index: 2; flex: none;
+  width: calc(var(--sc-h) * var(--sc-rs, 1.5));
+  height: calc(var(--sc-w) * var(--sc-rs, 1.5));
+}
 .sc-flier {
-  position: relative; z-index: 2;
+  position: absolute; left: 50%; top: 50%;
   width: var(--sc-w); height: var(--sc-h);
-  transform: scale(var(--sc-rs, 1.5));
+  margin-left: calc(var(--sc-w) / -2);
+  margin-top: calc(var(--sc-h) / -2);
+  transform: scale(var(--sc-rs, 1.5)) rotate(90deg);
   will-change: transform;
 }
 /* 카드가 실제로 그려지는 곳 */
 .sc-card-host { position: absolute; inset: 0; }
-/* 아직 안 뒤집었을 때 "눌러보세요" 신호 — 아주 약한 호흡 */
+
+/* 아직 안 뒤집었을 때 "눌러보세요" 신호 — 아주 약한 호흡.
+   ⚠️ .sc-flier가 아니라 자식(.sc-card-host)에 걸어야 한다. 부모에 걸면 등장 연출(인라인
+   transform 전환)을 애니메이션이 덮어써서 카드가 날아오지 않는다.
+   ⚠️ 부모가 rotate(90deg)라 축이 바뀐다 — 자식의 로컬 +X가 화면 +Y(아래)로 매핑되므로,
+   화면에서 위로 뜨게 하려면 translateX(음수)를 써야 한다. translateY를 쓰면 좌우로 흔들린다. */
 .sc-flier:not(.is-flipped) .sc-card-host { animation: scBreathe 2.1s var(--ease) infinite; }
 @keyframes scBreathe {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-7px); }
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(-7px); }
+}
+
+/* 뒤집기 — 화면 가로 방향으로 얇게 눌렀다 펴면서 그 사이에 앞/뒷면을 교체한다.
+   ⚠️ scaleY를 쓰는 이유: rotate(90deg) **뒤**에 오는 변환이라 로컬 Y축이 화면 X축으로
+   매핑된다. 즉 여기서의 scaleY가 화면상 가로 압축이다(세로 축을 중심으로 도는 것처럼 보인다).
+   ⚠️ 0%/100%가 정지 상태 transform과 정확히 같아야 한다. 다르면 애니메이션 시작/끝에 튄다. */
+.sc-flier.is-flipped { animation: scTurn .66s var(--ease); }
+@keyframes scTurn {
+  0%, 100% { transform: scale(var(--sc-rs, 1.5)) rotate(90deg) scaleY(1); }
+  50%      { transform: scale(var(--sc-rs, 1.5)) rotate(90deg) scaleY(.06); }
 }
 
 /* 카드 위에 겹치는 투명 클릭 영역(버튼). 3D에 관여하지 않는다. */
@@ -358,8 +387,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sc-card, .sc-card-inner, .sc-flier, .sc-overlay-actions { transition-duration: .01ms !important; }
-  .sc-flier:not(.is-flipped) .sc-flip { animation: none; }
+  .sc-card, .sc-flier, .sc-overlay-actions { transition-duration: .01ms !important; }
+  /* 앞/뒷면 교체는 남기되 지연 없이 즉시 — 뒤집기 압축 애니메이션이 없으므로 기다릴 이유가 없다 */
+  .sc-side { transition: opacity .01ms linear !important; }
+  .sc-flier:not(.is-flipped) .sc-card-host,
+  .sc-flier.is-flipped { animation: none !important; }
   .sc-conf { animation: none !important; }
   .sc-confetti { display: none; }
 }

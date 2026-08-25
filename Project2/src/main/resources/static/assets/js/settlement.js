@@ -294,9 +294,12 @@
 
   /* ── 뽑힌 카드를 중앙으로 ─────────────────────────────────
      오버레이의 카드 자리(.sc-flier)는 flex로 이미 중앙에 있다. 그래서 "부채꼴에서의
-     위치/각도"를 시작값으로 역산해 넣고 transform을 비우면, 제자리로 돌아오는 것처럼
-     자연스럽게 날아온다(FLIP 기법).
-     ⚠️ 이름은 아직 보이지 않는다 — 앞면이 위를 향한 상태로 멈추고, 사용자가 눌러야 뒤집힌다. */
+     위치/각도/배율"을 시작값으로 역산해 인라인 transform에 넣고, 다음 프레임에 그것을
+     비우면 CSS 정지 상태로 전환되면서 제자리로 날아온다(FLIP 기법).
+
+     ⚠️ CSS 정지 상태에 rotate(90deg)가 들어 있어서, 이 전환만으로 **카드가 세로에서
+     가로로 돌아 눕는다.** 즉 회전은 등장 연출의 일부이고 별도 코드가 없다.
+     ⚠️ 이름은 아직 보이지 않는다 — 가로로 누운 앞면이 보이고, 사용자가 눌러야 뒷면이 나온다. */
   function flyOut(i) {
     var srcEl = cards()[i];
     if (!srcEl) { drawing = false; syncUI(); return; }
@@ -352,15 +355,17 @@
       flipBtn.setAttribute("aria-label", "뽑힌 사람 확인 완료");
     }
 
-    // 뒷면이 보이기 시작하는 시점(전환 780ms의 중반)에 문구를 바꾸고 축하 연출을 넣는다.
+    /* 타이밍은 CSS의 뒤집기 애니메이션(scTurn .66s)에 맞춘다.
+       0.33s에 카드가 가장 얇아지고 그때 앞/뒷면이 교체되므로, 문구 변경과 축하 연출은
+       그 직후에 넣고 버튼은 애니메이션이 끝난 뒤 띄운다. CSS 시간을 바꾸면 여기도 맞춰야 한다. */
     setTimeout(function () {
       if (guideEl) guideEl.innerHTML = '<b>오늘 계산은</b>이 카드의 주인입니다';
       popConfetti();
-    }, 400);
+    }, 380);
     setTimeout(function () {
       if (ovActions) ovActions.classList.add("is-in");
       if (againBtn) againBtn.focus({ preventScroll: true });
-    }, 820);
+    }, 700);
   }
 
   if (flipBtn) flipBtn.addEventListener("click", flipCard);
