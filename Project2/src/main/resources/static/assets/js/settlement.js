@@ -100,33 +100,71 @@
     nameEl.style.fontSize = name.length > 10 ? "9px" : name.length > 8 ? "10.5px" : "13px";
   }
 
+  /* 부채꼴이 실제로 차지하는 영역(카드 박스 좌상단 기준, 배율 적용 전 px).
+     카드마다 네 꼭짓점을 transform-origin(50% 150%) 기준으로 회전시켜 최소/최대를 구한다.
+     CSS와 같은 회전식을 쓴다(y축이 아래로 향하므로 각도 부호도 CSS와 동일):
+       x' = x·cos a − y·sin a
+       y' = x·sin a + y·cos a */
+  function fanExtent(angles, w, h) {
+    var ox = w / 2, oy = h * 1.5;                     // transform-origin
+    var pts = [[0, 0], [w, 0], [0, h], [w, h]];       // 카드 네 꼭짓점
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+    for (var i = 0; i < angles.length; i++) {
+      var a = angles[i] * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+      for (var j = 0; j < pts.length; j++) {
+        var x = pts[j][0] - ox, y = pts[j][1] - oy;
+        var sx = ox + (x * ca - y * sa);
+        var sy = oy + (x * sa + y * ca);
+        if (sx < minX) minX = sx;
+        if (sx > maxX) maxX = sx;
+        if (sy < minY) minY = sy;
+        if (sy > maxY) maxY = sy;
+      }
+    }
+    return { left: minX, right: maxX, top: minY, bottom: maxY, w: maxX - minX, h: maxY - minY };
+  }
+
   /* ── 부채꼴 렌더 ───────────────────────────────────────── */
   function renderFan() {
     fanEl.innerHTML = "";
     var n = names.length;
     if (stageBlank) stageBlank.hidden = n > 0;
-    if (!n) { fanEl.style.removeProperty("--sc-fs"); return; }
+    if (!n) {
+      fanEl.style.removeProperty("--sc-fs");
+      fanEl.style.removeProperty("--sc-lift");
+      return;
+    }
 
     var base = cardBase();
     var spread = Math.min(72, n * 9.5);   // 사람이 적으면 좁게, 많아지면 넓게
 
-    /* 축소 배율 — 폭과 높이를 **둘 다** 본다.
-       카드 크기를 한 벌로 고정했기 때문에(settlement.css 상단 주석) 좁은 화면에서는
-       이 배율만으로 맞춰야 한다. 폭만 보면 세로로 잘리는 화면이 생긴다. */
-    var radius = base.h * 1.50;
-    var rad = spread / 2 * Math.PI / 180;
-    var fanW = 2 * radius * Math.sin(rad) + base.w;
-    // 부채꼴로 기울면 카드 위쪽 모서리가 그만큼 더 올라간다 → 필요한 높이도 커진다.
-    var fanH = base.h + radius * (1 - Math.cos(rad)) + 16;
+    var angles = [];
+    for (var k = 0; k < n; k++) angles.push(n === 1 ? 0 : (-spread / 2 + spread * k / (n - 1)));
+
+    /* 부채꼴이 실제로 차지하는 영역을 계산해 (1) 축소 배율과 (2) 수직 보정을 정한다.
+       ⚠️ 어림셈으로는 안 된다 — 카드의 transform-origin이 50% 150%(카드 아래 바깥)라서
+       회전한 카드는 위로 솟는 게 아니라 **아래로 더 내려간다**(회전축이 아래에 있으니
+       카드가 축을 중심으로 옆으로 눕듯 돌면서 아래쪽으로 뻗는다). 그래서 카드 높이만으로
+       어림하면 아래가 잘리거나 아래로 치우쳐 보인다. 네 꼭짓점을 직접 회전시켜 구한다. */
+    var ext = fanExtent(angles, base.w, base.h);
+
     var availW = (stageEl ? stageEl.clientWidth : window.innerWidth) - 20;
-    var availH = (stageEl ? stageEl.clientHeight : 300) - 34;
-    var fs = Math.min(1, availW / fanW, availH / fanH);
-    fanEl.style.setProperty("--sc-fs", Math.max(0.4, fs).toFixed(3));
+    var availH = (stageEl ? stageEl.clientHeight : 300) - 20;
+    var fs = Math.max(0.4, Math.min(1, availW / ext.w, availH / ext.h));
+    fanEl.style.setProperty("--sc-fs", fs.toFixed(3));
+
+    /* 실제 영역의 중심을 무대 정중앙에 맞춘다.
+       .sc-fan은 무대에서 세로 가운데 정렬되어 있고, scale은 박스 중심(높이의 절반)을
+       기준으로 걸린다. 그래서 영역 중심을 박스 중심으로 끌어오는 이동량은
+       (박스중심 - 영역중심) x 배율 이다. translateY는 scale 뒤에 적용되므로 화면 px다. */
+    var lift = (base.h / 2 - (ext.top + ext.bottom) / 2) * fs;
+    fanEl.style.setProperty("--sc-lift", lift.toFixed(1) + "px");
 
     names.forEach(function (name, i) {
       var el = document.createElement("div");
       el.className = "sc-card";
-      el.style.setProperty("--a", (n === 1 ? 0 : (-spread / 2 + spread * i / (n - 1))).toFixed(2) + "deg");
+      el.style.setProperty("--a", angles[i].toFixed(2) + "deg");
       el.style.zIndex = String(i + 1);
       buildCard(el, name, false);   // 부채꼴은 앞면만 — 이름을 DOM에 넣지 않는다(위 buildCard 주석)
       fanEl.appendChild(el);

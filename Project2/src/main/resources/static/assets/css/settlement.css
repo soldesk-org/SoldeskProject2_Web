@@ -128,18 +128,29 @@
 /* ── 부채꼴 무대 ─────────────────────────────────────────── */
 .sc-stage {
   position: relative; height: 306px; overflow: hidden;
-  display: flex; align-items: flex-end; justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   border-radius: 18px; background: var(--sc-fill);
 }
 .sc-stage-blank {
   position: absolute; inset: 0; display: grid; place-items: center;
   font-size: 15px; font-weight: 500; color: var(--sc-ink-3);
 }
-/* --sc-fs(축소 배율)는 settlement.js가 폭/높이를 함께 보고 계산해 넣는다. */
+/*
+ --sc-fs(축소 배율)와 --sc-lift(수직 보정)는 settlement.js가 계산해 넣는다.
+
+ ⚠️ --sc-lift가 필요한 이유: 카드는 transform-origin이 50% 150%(카드 아래 바깥)라서,
+ 회전한 카드는 위로 솟는 게 아니라 **아래로 더 내려간다.** 그래서 부채꼴이 실제로 차지하는
+ 영역의 중심이 .sc-fan 박스의 중심보다 아래에 있고, 박스만 가운데 정렬하면 카드가
+ 아래로 치우쳐 보인다(2026-08-25 "PC에서 유독 밑으로 내려가 보인다"는 지적).
+ JS가 네 꼭짓점을 회전시켜 실제 영역을 구한 뒤 그 중심을 무대 정중앙에 맞춘다.
+
+ ⚠️ transform 순서 주의 — translateY가 scale보다 **앞**이라 --sc-lift는 화면 px 그대로다
+ (CSS transform은 오른쪽부터 적용되므로 scale이 먼저 걸린다). 순서를 바꾸면 보정량이
+ 배율만큼 어긋난다.
+*/
 .sc-fan {
   position: relative; width: var(--sc-w); height: var(--sc-h);
-  margin-bottom: 24px;
-  transform: scale(var(--sc-fs, 1));
+  transform: translateY(var(--sc-lift, 0px)) scale(var(--sc-fs, 1));
   transition: transform .35s var(--ease);
 }
 
