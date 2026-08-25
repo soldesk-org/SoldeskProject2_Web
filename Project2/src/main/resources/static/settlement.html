@@ -55,7 +55,7 @@
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/settlement.js?v=20260825f"></script>
 
-<link rel="stylesheet" href="assets/css/settlement.css?v=20260825i">
+<link rel="stylesheet" href="assets/css/settlement.css?v=20260825j">
 </head>
 <body class="has-tabbar">
 
@@ -175,8 +175,15 @@
         <h2 class="sc-panel-title" id="scDeckTitle">카드 뽑기</h2>
         <button type="button" class="sc-chip-x" id="scClearBtn" aria-label="참가자 모두 비우기"
                 style="width:34px;height:34px;margin-left:auto" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px">
-            <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>
+          <!-- Font Awesome Free "trash" 아이콘의 실제 path(요청사항). CDN을 새로 붙이는 대신
+               이 사이트의 다른 아이콘들과 같은 인라인 SVG 관용구로 넣었다 — 새 외부 의존성 없이
+               404/차단 걱정도 없다. 원본 뷰박스(0 0 448 512)를 사이트가 쓰는 24x24 규격에 맞춰
+               좌표만 스케일했고 path 형태는 그대로다. Font Awesome Free는 CC BY 4.0(아이콘)이라
+               출처만 남기면 이렇게 형태를 가져와 써도 된다: https://fontawesome.com/license/free -->
+          <!-- viewBox는 Font Awesome 원본 그대로(0 0 448 512) 두고 style로만 16px에 맞췄다 —
+               좌표를 손으로 다시 계산해 옮기면 오차가 생기기 쉬워서, SVG 자체의 스케일링에 맡겼다. -->
+          <svg viewBox="0 0 448 512" fill="currentColor" style="width:16px;height:16px" aria-hidden="true">
+            <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"/>
           </svg>
         </button>
       </div>
