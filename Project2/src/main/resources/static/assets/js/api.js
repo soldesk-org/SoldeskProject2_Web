@@ -537,7 +537,19 @@
     return false;
   }
 
+  // 토스 이모지 폰트(Tossface) 스타일시트를 한 번만 주입한다. 이모지가 OS 기본이 아니라
+  // 토스 스타일로 렌더된다. 공식 저장소(toss/tossface, SIL OFL 라이선스)를 jsDelivr로 로드.
+  function ensureTossfaceFont() {
+    if (document.getElementById("tossfaceFontCss")) return;
+    var link = document.createElement("link");
+    link.id = "tossfaceFontCss";
+    link.rel = "stylesheet";
+    link.href = "https://cdn.jsdelivr.net/gh/toss/tossface@1.6.1/dist/tossface.css";
+    document.head.appendChild(link);
+  }
+
   function buildModal() {
+    ensureTossfaceFont();
     var overlay = document.createElement("div");
     overlay.id = "appUpdateModal";
     overlay.setAttribute("role", "dialog");
@@ -561,7 +573,8 @@
 
     var icon = document.createElement("div");
     icon.textContent = "🎉";
-    icon.style.cssText = "font-size:34px;line-height:1;margin-bottom:14px";
+    // Tossface를 최우선으로 두어 이모지가 토스 스타일로 렌더되게 한다(폰트 미로드 시 OS 이모지로 폴백).
+    icon.style.cssText = "font-family:'Tossface',sans-serif;font-size:40px;line-height:1;margin-bottom:14px";
 
     var title = document.createElement("div");
     title.textContent = "새 버전이 나왔어요";
