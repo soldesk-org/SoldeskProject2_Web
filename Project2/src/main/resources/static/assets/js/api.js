@@ -506,8 +506,13 @@
 (function (global) {
   "use strict";
 
-  // 새 앱 빌드를 TestFlight/앱스토어에 올릴 때마다 이 값을 그 빌드의 버전으로 올린다.
+  // 최신 빌드 번호는 서버(POST /api/app/version)가 관리한다. 앱이 실행될 때 자기 빌드 번호를
+  // 서버에 보고하면 서버가 "지금까지 본 최대 빌드"를 기록하고 돌려준다. 새 빌드를 처음 실행한
+  // 사람이 서버 최댓값을 올리면, 그보다 낮은 빌드를 쓰는 사용자는 자동으로 업데이트 안내를 받는다.
+  // → 마케팅 버전도, 웹 상수도 손대지 않아도 "새 빌드가 있으면" 알아서 안내된다.
+  // 아래 값은 서버 조회가 실패했을 때만 쓰는 폴백(마케팅 버전 비교)이다.
   var LATEST_APP_VERSION = "1.0.1";
+  var VERSION_ENDPOINT = "/api/app/version";
 
   // "업데이트하러 가기" 버튼이 여는 주소.
   //   - 지금은 TestFlight 배포라 TestFlight 앱을 연다(itms-beta://).
@@ -636,15 +641,38 @@
     document.body.appendChild(buildModal());
   }
 
+  // 서버 조회가 실패했을 때의 폴백: 마케팅 버전(또는 빌드 주입 없음)으로만 판단.
+  function fallbackCheck(cur) {
+    if (!cur || isOlder(cur, LATEST_APP_VERSION)) showUpdateModal();
+  }
+
   function checkAppUpdate() {
     if (!isNativeApp()) return; // 웹에서는 절대 안 뜬다
     try { if (global.sessionStorage.getItem(DISMISS_KEY) === "1") return; } catch (e) {}
 
     var info = global.EattyWayNativeApp;
     var cur = info && info.version;
-    // 버전 주입이 없는 아주 오래된 빌드(!cur)도 구버전으로 취급.
-    if (!cur || isOlder(cur, LATEST_APP_VERSION)) {
-      showUpdateModal();
+    var curBuild = info ? parseInt(info.build, 10) : NaN;
+
+    // 빌드 주입이 아예 없는 아주 오래된 빌드(이 기능 이전) → 무조건 구버전으로 보고 안내.
+    if (!curBuild) { fallbackCheck(cur); return; }
+
+    // 자기 빌드 번호를 서버에 보고하고, 서버가 아는 최신 빌드 번호를 받아 비교한다.
+    // 설치된 빌드가 최신보다 낮으면 업데이트 안내(마케팅 버전을 안 올려도 새 빌드면 뜬다).
+    try {
+      fetch(VERSION_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ build: curBuild })
+      })
+        .then(function (res) { return res.ok ? res.json() : Promise.reject(); })
+        .then(function (data) {
+          var latest = data && parseInt(data.latestBuild, 10);
+          if (latest && curBuild < latest) showUpdateModal();
+        })
+        .catch(function () { fallbackCheck(cur); });
+    } catch (e) {
+      fallbackCheck(cur);
     }
   }
 
