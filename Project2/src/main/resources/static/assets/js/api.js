@@ -491,3 +491,153 @@
     photoPlaceholder: PHOTO_PLACEHOLDER,
   };
 })(window);
+
+/* ===== iOS 앱 버전 업데이트 안내 (2026-08-26 추가) ==================================================
+   이 앱(EattyWayIOS)은 eattyway.com을 웹뷰로 띄우는 껍데기라, 웹 내용은 배포하면 앱에서도 즉시 반영된다.
+   하지만 네이티브 껍데기 자체(로그인 브릿지/공유/스플래시 등 Swift 코드)는 재빌드+재설치가 필요해서,
+   오래된 앱 빌드를 계속 쓰는 팀원이 생긴다. 그런 사용자에게 "새 버전으로 업데이트" 팝업을 띄운다.
+
+   동작:
+   - MainViewController가 atDocumentStart에 window.EattyWayNativeApp = { version, build }를 주입한다.
+   - 아래 LATEST_APP_VERSION(웹에서 관리, 새 앱 빌드 올릴 때마다 올린다)과 비교해서 더 낮으면 안내.
+   - 버전 주입이 아예 없는 아주 오래된 빌드(이 기능 이전 빌드)도 "구버전"으로 보고 안내한다.
+   - 일반 브라우저(웹)에서는 절대 뜨지 않는다(window.Capacitor 있는 앱에서만).
+   ================================================================================================= */
+(function (global) {
+  "use strict";
+
+  // 새 앱 빌드를 TestFlight/앱스토어에 올릴 때마다 이 값을 그 빌드의 버전으로 올린다.
+  var LATEST_APP_VERSION = "1.0.1";
+
+  // "업데이트하러 가기" 버튼이 여는 주소.
+  //   - 지금은 TestFlight 배포라 TestFlight 앱을 연다(itms-beta://).
+  //   - 앱스토어 정식 출시 후에는 아래를 앱 페이지로 바꾼다:
+  //       var UPDATE_URL = "https://apps.apple.com/app/id런APPLE_ID런";
+  var UPDATE_URL = "itms-beta://";
+
+  var DISMISS_KEY = "eattyAppUpdateDismissed"; // 이번 세션에서 "나중에"를 눌렀는지
+
+  function isNativeApp() {
+    try { return !!global.Capacitor; } catch (e) { return false; }
+  }
+
+  function parseVer(v) {
+    return String(v || "").split(".").map(function (n) { return parseInt(n, 10) || 0; });
+  }
+
+  // cur가 latest보다 낮은 버전이면 true.
+  function isOlder(cur, latest) {
+    var a = parseVer(cur), b = parseVer(latest);
+    var len = Math.max(a.length, b.length);
+    for (var i = 0; i < len; i++) {
+      var x = a[i] || 0, y = b[i] || 0;
+      if (x < y) return true;
+      if (x > y) return false;
+    }
+    return false;
+  }
+
+  function buildModal() {
+    var overlay = document.createElement("div");
+    overlay.id = "appUpdateModal";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.style.cssText = [
+      "position:fixed", "inset:0", "z-index:2147483000",
+      "display:flex", "align-items:center", "justify-content:center",
+      "padding:24px", "background:rgba(20,22,28,.46)",
+      "-webkit-backdrop-filter:blur(2px)", "backdrop-filter:blur(2px)",
+      "opacity:0", "transition:opacity .18s ease"
+    ].join(";");
+
+    var card = document.createElement("div");
+    card.style.cssText = [
+      "width:100%", "max-width:340px", "box-sizing:border-box",
+      "background:#fff", "border-radius:20px", "padding:26px 22px 18px",
+      "text-align:center", "box-shadow:0 18px 50px rgba(20,22,28,.28)",
+      "transform:translateY(10px) scale(.98)", "transition:transform .2s ease",
+      "font-family:inherit"
+    ].join(";");
+
+    var icon = document.createElement("div");
+    icon.textContent = "🎉";
+    icon.style.cssText = "font-size:34px;line-height:1;margin-bottom:14px";
+
+    var title = document.createElement("div");
+    title.textContent = "새 버전이 나왔어요";
+    title.style.cssText = "font-size:19px;font-weight:800;color:#181519;margin-bottom:8px";
+
+    var desc = document.createElement("div");
+    desc.textContent = "더 좋아진 EattyWay를 쓰려면 최신 버전으로 업데이트해 주세요.";
+    desc.style.cssText = "font-size:14px;line-height:1.55;color:#6b6a70;margin-bottom:22px";
+
+    var goBtn = document.createElement("button");
+    goBtn.type = "button";
+    goBtn.textContent = "업데이트하러 가기";
+    goBtn.style.cssText = [
+      "width:100%", "border:0", "cursor:pointer",
+      "background:#fea255", "color:#fff", "font-size:16px", "font-weight:700",
+      "padding:15px 0", "border-radius:14px", "margin-bottom:8px",
+      "font-family:inherit"
+    ].join(";");
+    goBtn.addEventListener("click", function () {
+      try { global.location.href = UPDATE_URL; } catch (e) {}
+    });
+
+    var laterBtn = document.createElement("button");
+    laterBtn.type = "button";
+    laterBtn.textContent = "나중에";
+    laterBtn.style.cssText = [
+      "width:100%", "border:0", "cursor:pointer", "background:transparent",
+      "color:#9a99a0", "font-size:14px", "font-weight:600", "padding:10px 0",
+      "font-family:inherit"
+    ].join(";");
+    laterBtn.addEventListener("click", function () {
+      try { global.sessionStorage.setItem(DISMISS_KEY, "1"); } catch (e) {}
+      closeModal(overlay);
+    });
+
+    card.appendChild(icon);
+    card.appendChild(title);
+    card.appendChild(desc);
+    card.appendChild(goBtn);
+    card.appendChild(laterBtn);
+    overlay.appendChild(card);
+
+    // 등장 애니메이션.
+    requestAnimationFrame(function () {
+      overlay.style.opacity = "1";
+      card.style.transform = "translateY(0) scale(1)";
+    });
+    return overlay;
+  }
+
+  function closeModal(overlay) {
+    if (!overlay) return;
+    overlay.style.opacity = "0";
+    setTimeout(function () { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 200);
+  }
+
+  function showUpdateModal() {
+    if (document.getElementById("appUpdateModal")) return;
+    document.body.appendChild(buildModal());
+  }
+
+  function checkAppUpdate() {
+    if (!isNativeApp()) return; // 웹에서는 절대 안 뜬다
+    try { if (global.sessionStorage.getItem(DISMISS_KEY) === "1") return; } catch (e) {}
+
+    var info = global.EattyWayNativeApp;
+    var cur = info && info.version;
+    // 버전 주입이 없는 아주 오래된 빌드(!cur)도 구버전으로 취급.
+    if (!cur || isOlder(cur, LATEST_APP_VERSION)) {
+      showUpdateModal();
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", checkAppUpdate);
+  } else {
+    checkAppUpdate();
+  }
+})(window);
