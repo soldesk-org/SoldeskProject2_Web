@@ -64,12 +64,16 @@
   var CARD_ENTER_STEP = REDUCED_MOTION ? 0 : 52;   // 카드 한 장마다 늘어나는 지연(ms)
   var CARD_ENTER_MS = REDUCED_MOTION ? 20 : 500;   // settlement.css .sc-card의 transition 시간과 일치
 
-  // 셔플(카드 맞바꾸기) 타이밍. .sc-fan.is-shuffling .sc-card 의 transition 시간과 반드시
-  // 일치시켜야 한다 — 이 값들로 "언제 다음 스텝을 시작할지"와 "언제 뽑기를 시작할지"를
-  // 정하는데, CSS 쪽 시간이 다르면 애니메이션이 끝나지 않았는데 다음 단계가 시작돼 버린다.
-  var SHUFFLE_MOVE_MS = REDUCED_MOTION ? 0 : 300;  // 카드 한 번 맞바꿀 때의 이동 시간
-  var SHUFFLE_STEP_MS = REDUCED_MOTION ? 0 : 230;  // 다음 맞바꿈을 시작하기까지의 간격
-                                                    // (MOVE보다 짧게 둬서 스텝끼리 살짝 겹치며 매끄럽게 이어진다)
+  /* 셔플(모았다 펴기) 타이밍.
+     ⚠️ SHUFFLE_STACK_MS/SPREAD_MS는 settlement.css의 .sc-card.is-stack 및 .sc-card 의
+     transform transition 시간과 각각 맞춰야 한다 — CSS 전환이 끝나기 전에 다음 단계가
+     시작되면 카드가 목적지에 닿기도 전에 튀어버린다.
+       STACK: 부채꼴 → 가운데 더미로 모이는 시간(.sc-card.is-stack transition)
+       HOLD : 더미로 포갠 채 잠깐 머무는 시간(리플 느낌)
+       SPREAD: 더미 → 새 부채꼴로 펴지는 시간(.sc-card 기본 transition .5s) */
+  var SHUFFLE_STACK_MS = REDUCED_MOTION ? 0 : 320;
+  var SHUFFLE_HOLD_MS = REDUCED_MOTION ? 0 : 140;
+  var SHUFFLE_SPREAD_MS = REDUCED_MOTION ? 20 : 520;
 
   var nameInput = document.getElementById("scName");
   var addBtn = document.getElementById("scAddBtn");
@@ -203,7 +207,8 @@
       var name = names[fanOrder[i]];
       var el = document.createElement("div");
       el.className = "sc-card";
-      el.dataset.slot = String(i);          // 뽑기 로직이 "화면 몇 번째 자리"를 찾을 때 쓴다
+      el.dataset.slot = String(i);            // 화면 몇 번째 자리인지(셔플로 바뀐다)
+      el.dataset.nameIdx = String(fanOrder[i]); // 이 카드가 보여주는 참가자(고정 — 셔플해도 안 바뀜)
       el.style.setProperty("--a", angles[i].toFixed(2) + "deg");
       el.style.zIndex = String(i + 1);
       buildCard(el, name, false);   // 부채꼴은 앞면만 — 이름을 DOM에 넣지 않는다(위 buildCard 주석)
@@ -217,77 +222,78 @@
 
   function cards() { return fanEl.querySelectorAll(".sc-card"); }
 
-  /* ── 카드 실제 맞바꾸기(셔플) ─────────────────────────────
-     예전 방식(카드를 전부 지웠다가 다시 그리기)은 "사라졌다 다시 생기는 것"으로 보인다는
-     지적을 받았다. 대신 지금은 화면의 두 카드가 서로 자리를 **실제로 이동**해서 맞바꾼다 —
-     DOM 노드 자체는 그대로 있고, 각도(--a)와 z-index만 서로 교환한 뒤 CSS transition으로
-     자연스럽게 미끄러져 자리를 바꾼다. 앞면이 전부 동일한 이미지라 이름표를 다시 그릴
-     필요도 없다(뽑기 공정성상 부채꼴 카드에는 원래도 이름이 없다).
+  /* ── 카드 섞기: 모았다가 새 순서로 다시 펼치기 ─────────────
+     그동안 두 가지를 거쳤다.
+       (1) 카드를 전부 지웠다 다시 그리기 → "사라졌다 다시 생긴다"고 지적받음
+       (2) 무작위 두 장씩 각도만 맞바꾸기 → 제자리에서 홱홱 튀어 어색하다고 지적받음
+     이번엔 실제 카드를 섞는 동작에 가장 가까운 방식으로 바꿨다:
+       ① 부채꼴로 펼쳐진 카드들이 가운데로 모여 한 더미로 포개진다(덱을 탁탁 정리하듯,
+          약간의 무작위 어긋남 --sx/--sr로 "섞이는 중"인 느낌).
+       ② 잠깐 그 상태를 유지(리플하듯).
+       ③ fanOrder를 새로 섞고, 같은 카드 DOM들을 새 자리 각도로 다시 부채꼴로 쫙 펼친다.
+     카드는 이 과정 내내 화면에 그대로 있고(지우지도 opacity 0으로 감추지도 않는다),
+     DOM 노드도 그대로다 — 각 카드의 --a/z-index/dataset.slot만 바꾼다.
 
-     swapPair(a, b): 화면상 a번째, b번째 자리의 카드를 서로 맞바꾼다.
-       - fanOrder[a] <-> fanOrder[b] (실제 참가자 대응도 함께 바뀐다)
-       - 두 엘리먼트의 --a(각도)와 z-index를 맞바꾼다
-       - 살짝 위로 뜨는 상태(is-swap)를 짧게 얹어서 카드가 서로를 스쳐 지나가는 느낌을 준다 */
-  function swapPair(a, b) {
-    var t = fanOrder[a]; fanOrder[a] = fanOrder[b]; fanOrder[b] = t;
-
-    var list = cards();
-    var elA = null, elB = null;
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].dataset.slot === String(a)) elA = list[i];
-      if (list[i].dataset.slot === String(b)) elB = list[i];
+     ⚠️ fanOrder(자리→참가자 매핑)는 카드에 심어둔 dataset.nameIdx로부터 다시 만든다.
+     이 값은 셔플과 무관하게 그 카드가 어떤 참가자인지를 고정으로 들고 있어서, 자리를
+     아무리 바꿔도 "이 자리엔 지금 누가 있나"를 항상 정확히 복원할 수 있다. */
+  function fisherYates(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
     }
-    if (!elA || !elB) return;
-
-    var angleA = elA.style.getPropertyValue("--a");
-    var angleB = elB.style.getPropertyValue("--a");
-    var zA = elA.style.zIndex, zB = elB.style.zIndex;
-
-    elA.style.setProperty("--a", angleB);
-    elB.style.setProperty("--a", angleA);
-    elA.style.zIndex = zB;
-    elB.style.zIndex = zA;
-
-    // dataset.slot도 함께 바꿔야 다음 swapPair 호출에서 "화면 a번째"를 다시 정확히 찾는다.
-    elA.dataset.slot = String(b);
-    elB.dataset.slot = String(a);
-
-    elA.classList.add("is-swap");
-    elB.classList.add("is-swap");
-    setTimeout(function () {
-      elA.classList.remove("is-swap");
-      elB.classList.remove("is-swap");
-    }, SHUFFLE_MOVE_MS);
+    return arr;
   }
 
-  /* 뽑기 전에 카드를 실제로 몇 차례 맞바꿔 뒤섞는 애니메이션.
-     ⚠️ 왜 필요한가: 뽑히는 사람 자체는 이미 Math.random()으로 완전히 균등하다(실측 검증됨).
-     하지만 화면상 카드 위치는 항상 참가자를 추가한 순서 그대로 고정돼 있어서, "이름 순서대로
-     카드에 배정된 것처럼" 보이는 착시가 있었다(2026-08-25 지적). 카드를 실제로 맞바꾸면
-     그 착시가 사라지고, 트럼프를 섞는 듀얼 셔플 같은 느낌도 더해진다.
+  // 카드 한 벌을 "가운데 더미로 모으기 → 새 순서로 펼치기" 한 사이클.
+  function shuffleOnce(done) {
+    var list = Array.prototype.slice.call(cards());
+    var n = list.length;
 
-     방식: 서로 다른 두 자리를 고른 무작위 쌍을 여러 번(카드 수에 비례) swapPair로 실행한다.
-     매번 완전히 새로운 무작위 쌍을 고르므로(이전에 어떤 쌍을 섞었는지 기억하지 않는다),
-     충분한 횟수를 반복하면 최종 배치는 통계적으로 균등하게 섞인다 — 그리고 어차피 최종
-     승자는 이 배치와 무관하게 Math.random()으로 다시 뽑으므로, 셔플의 균등성 자체가
-     공정성을 좌우하지는 않는다(순수히 "보는 재미 + 위치 고정 착시 제거" 목적). */
+    // ① 가운데로 모으기 — 각 카드에 약간씩 다른 어긋남을 줘서 흐트러진 더미처럼 보이게 한다.
+    list.forEach(function (el) {
+      el.classList.remove("is-up");
+      el.style.setProperty("--sx", (Math.random() * 22 - 11).toFixed(1) + "px");
+      el.style.setProperty("--sr", (Math.random() * 10 - 5).toFixed(1) + "deg");
+      el.classList.add("is-stack");
+    });
+
+    // ② 잠깐 포갠 채로 두었다가 ③ 새 순서로 펼친다.
+    setTimeout(function () {
+      var n2 = names.length;
+      var angles = calcAngles(n2);
+      var perm = fisherYates(list.map(function (_, i) { return i; })); // 카드 DOM별 새 자리
+
+      list.forEach(function (el, k) {
+        var slot = perm[k];
+        el.style.setProperty("--a", angles[slot].toFixed(2) + "deg");
+        el.style.zIndex = String(slot + 1);
+        el.dataset.slot = String(slot);
+        el.classList.remove("is-stack");   // 부채꼴 자리로 다시 펼쳐진다
+      });
+
+      // 자리→참가자 매핑을 카드가 들고 있는 nameIdx로 재구성한다.
+      var order = new Array(n2);
+      list.forEach(function (el) { order[Number(el.dataset.slot)] = Number(el.dataset.nameIdx); });
+      fanOrder = order;
+
+      setTimeout(done, SHUFFLE_SPREAD_MS);
+    }, SHUFFLE_STACK_MS + SHUFFLE_HOLD_MS);
+  }
+
+  /* 뽑기 전 섞기. 한 번 모았다 펴는 것보다 두 번 반복하면 "섞는 중"이라는 인상이 확실하다.
+     ⚠️ 왜 섞는가: 뽑히는 사람 자체는 이미 Math.random()으로 완전히 균등하다(실측 검증됨).
+     화면상 카드 위치가 항상 참가자 추가 순서로 고정돼 "순서대로 배정된 것 같다"는 착시가
+     있어서(2026-08-25 지적), 위치를 실제로 뒤섞어 그 착시를 없앤다. 최종 승자는 이 배치와
+     무관하게 다시 Math.random()으로 뽑으므로 셔플 균등성이 공정성을 좌우하지는 않는다. */
   function shuffleCards(onDone) {
     var n = names.length;
     if (n < 2) { onDone(); return; }
-
-    // 카드가 많을수록 더 여러 번 섞는다. 최소 6번은 돌려야 "고작 한두 번 스쳤나" 싶은
-    // 느낌이 안 든다.
-    var rounds = Math.max(6, n * 2);
-    var r = 0;
-
-    (function step() {
-      if (r >= rounds) { onDone(); return; }
-      var a = Math.floor(Math.random() * n);
-      var b = Math.floor(Math.random() * n);
-      if (a === b) { b = (b + 1) % n; }   // 같은 자리를 고르면 옆자리로 밀어 항상 실제로 맞바뀌게 한다
-      swapPair(a, b);
-      r++;
-      setTimeout(step, SHUFFLE_STEP_MS);
+    var cycles = 2, c = 0;
+    (function run() {
+      if (c >= cycles) { onDone(); return; }
+      c++;
+      shuffleOnce(run);
     })();
   }
 
@@ -382,8 +388,8 @@
      카드를 한 장씩 훑으며 튀어 오르게 하고(올라갔다 내려갔다), 간격을 점점 늘려
      감속시킨 뒤 마지막에 당첨 카드에서 멈춘다.
      총 스텝을 laps*n + winner + 1로 잡으면 마지막 스텝의 인덱스가 정확히 winner가 된다. */
-  // idx는 **화면 자리 인덱스**다. swapPair가 각도/z-index만 바꾸고 DOM 순서(=cards()가 반환하는
-  // 순서)는 그대로 두므로, "화면 몇 번째 자리인가"는 always dataset.slot으로 찾아야 한다.
+  // idx는 **화면 자리 인덱스**다. 셔플은 각도/z-index/dataset.slot만 바꾸고 DOM 순서
+  // (=cards()가 반환하는 순서)는 그대로 두므로, "화면 몇 번째 자리인가"는 항상 dataset.slot으로 찾는다.
   function markUp(idx) {
     var list = cards();
     for (var i = 0; i < list.length; i++) {
@@ -443,7 +449,7 @@
      가로로 돌아 눕는다.** 즉 회전은 등장 연출의 일부이고 별도 코드가 없다.
      ⚠️ 이름은 아직 보이지 않는다 — 가로로 누운 앞면이 보이고, 사용자가 눌러야 뒷면이 나온다. */
   function flyOut(i) {
-    // i는 화면 자리 인덱스다. swapPair가 DOM 순서를 바꾸지 않으므로 dataset.slot으로 찾는다
+    // i는 화면 자리 인덱스다. 셔플이 DOM 순서를 바꾸지 않으므로 dataset.slot으로 찾는다
     // (markUp과 같은 이유).
     var srcEl = null;
     var list = cards();

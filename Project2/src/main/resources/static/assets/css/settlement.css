@@ -166,13 +166,16 @@
 .sc-card.is-in { transform: rotate(var(--a)) translateY(0) scale(1); opacity: 1; }
 .sc-card.is-up { transform: rotate(var(--a)) translateY(-30px) scale(1.04); } /* 훑고 지나갈 때 */
 .sc-card.is-gone { opacity: 0; }
-/* 셔플로 자리를 맞바꾸는 순간(settlement.js의 swapPair) — 살짝 떠오르며 각도(--a)가
-   바뀐 자리로 미끄러진다. transition 시간(.3s)은 JS의 SHUFFLE_MOVE_MS와 반드시 같아야
-   한다 — 다르면 다음 스텝이 이 애니메이션이 끝나기 전에 시작되거나, 끝난 뒤에도 한참
-   기다리게 된다. */
-.sc-card.is-swap {
-  transition: transform .3s cubic-bezier(.34, 1.1, .4, 1);
-  transform: rotate(var(--a)) translateY(-18px) scale(1.05);
+/* 섞기 ① 단계 — 부채꼴 카드가 가운데로 모여 한 더미로 포개진다(settlement.js의 shuffleOnce).
+   각 카드에 약간씩 다른 --sx(좌우 어긋남)/--sr(회전)을 줘서 흐트러진 더미처럼 보인다.
+   ⚠️ transition 시간(.32s)은 JS의 SHUFFLE_STACK_MS와 같아야 한다 — 다르면 카드가 다 모이기
+   전에 다음 단계(펼치기)가 시작된다.
+   ⚠️ 각도를 --a가 아니라 --sr로 준다. --a는 "부채꼴 자리 각도"라서 그대로 두면 모이지 않는다.
+   translateY(-6px)로 살짝 띄워 더미가 무대 중앙 부근에 뜨게 한다.
+   ⚠️ .sc-card.is-in보다 스타일시트에서 뒤에 와야 이긴다(같은 명시도). 순서 유지할 것. */
+.sc-card.is-stack {
+  transition: transform .32s cubic-bezier(.4, 0, .2, 1);
+  transform: rotate(var(--sr, 0deg)) translateX(var(--sx, 0px)) translateY(-6px) scale(1.02);
 }
 
 /* ── 카드 (실제 카드 시안 이미지를 그대로 사용) ─────────────────────────
