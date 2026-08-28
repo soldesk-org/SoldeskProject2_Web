@@ -67,7 +67,11 @@
   /* 2026-08-20 수정 — "확인" 버튼은 라운드 없이(참고 이미지)
      2026-08-20 재수정 — 버튼 밑에 여백이 비어 보인다는 지적으로 버튼 자체를 btn-lg(46px→54px)로
      키워서 그 공간을 채움. */
-  #wheelConfirmBtn { border-radius: 0; }
+  /* 2026-08-22 수정 — 이 버튼에 쓰이는 .btn-primary 공용 그림자(--sh-brand-sm, 사이트 전역 버튼용)가
+     이 시트 안에서는 유독 넓고 진하게 보인다는 지적으로, 이 버튼만 더 작고 옅은 그림자로 덮어썼다
+     (전역 --sh-brand-sm 값 자체를 바꾸면 사이트의 다른 모든 primary 버튼에도 영향이 가서, 여기만
+     scoped로 처리). */
+  #wheelConfirmBtn { border-radius: 0; box-shadow: 0 2px 6px rgba(253, 109, 74, .18); }
 
   /* 별점 입력 - 이 페이지에서만 더 크게(다른 페이지의 공용 .e-rating-input에는 영향 없음) */
   #reviewRatingInput { gap: 8px; }
