@@ -1666,6 +1666,16 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 }
 .e-modal-close:hover { background: var(--ink-100); color: var(--ink-800); }
 .e-modal-close svg { width: 19px; height: 19px; }
+/* 2026-08-26 — 드로어(사이드 배너)를 열 때 JS가 접근성을 위해 닫기(X) 버튼에 포커스를 준다.
+   그런데 브라우저가 이 프로그램적 포커스를 :focus-visible로 판정하면 전역 포커스 링(227행)이 그려져
+   "자동 호버처럼 X에 테두리가 보인다"는 리포트가 나왔다. 드로어 헤더의 닫기 버튼에서는 포커스 링을
+   끈다(X는 위치·모양이 명확해 링이 없어도 인지에 문제 없음). 키보드 Tab 이동 자체는 그대로 동작. */
+.e-drawer .e-modal-close:focus,
+.e-drawer .e-modal-close:focus-visible {
+  outline: none;
+  background: transparent;
+}
+.e-drawer .e-modal-close:hover { background: var(--ink-100); }
 .e-modal-icon {
   width: 52px; height: 52px; border-radius: var(--r-md); flex: none;
   display: grid; place-items: center; margin-bottom: 16px;
