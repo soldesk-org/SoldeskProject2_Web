@@ -25,6 +25,10 @@
   // 새로운 곳들로 채워지도록, 지금까지 보여준 place_id를 누적해서 기억해둔다. 새 검색(폼 제출/예시
   // 칩)이면 다른 조건이므로 초기화한다.
   var shownPlaceIds = [];
+  // 2026-08-22 추가 - 검색 후 입력창을 비우기로 하면서("입력한 게 안 없어져" 지적), "다른 곳 추천"
+  // (retryBtn)이 여전히 같은 조건으로 재검색해야 하는데 그때 입력창이 비어있으면 buildQueryText()가
+  // 빈 문자열을 돌려줘 깨진다 — 마지막으로 실제 검색에 쓰인 문구를 여기 따로 기억해뒀다가 재검색에 쓴다.
+  var lastQueryText = "";
 
   function show(which) {
     emptyBox.hidden = which !== "empty";
@@ -310,8 +314,9 @@
   }
 
   function runRecommend(isRetry) {
-    var text = buildQueryText();
+    var text = isRetry ? lastQueryText : buildQueryText();
     if (!text) { Eatty.toast("찾고 있는 조건을 입력해주세요.", "error"); query.focus(); return; }
+    lastQueryText = text;
     show("loading");
     // 2026-08-13 추가 — "최근 질문" 클릭은 누르자마자 바로 맨 위로 스크롤되는데, 검색은 결과가 올 때까지
     // (LLM 추론 때문에 몇 초 걸림) 화면이 그대로라 눌렀는지 안 눌렀는지 헷갈렸다. 최근 질문과 대칭으로
@@ -333,6 +338,10 @@
         renderResults(data, isRetry);
         show("result");
         pushRecent(query.value.trim() || text);
+        // 2026-08-22 추가 - 검색 후에도 입력창에 방금 친 문구가 그대로 남아있던 문제("버튼 눌렀는데
+        // 입력한 게 안 없어져" 지적). 최근 질문 기록(pushRecent)은 이미 지우기 전에 값을 읽어뒀으니
+        // 그 다음에 비운다.
+        query.value = "";
         resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
       }).catch(function () {
         // 2026-08-10 수정 — Cloudflare 터널이 끊기면 err.message에 "error code: 1033" 같은 원본 에러
