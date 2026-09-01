@@ -397,7 +397,9 @@
         <!-- ==================== 결과 ==================== -->
         <div id="recommendResult" hidden>
           <!-- 결과 헤더 -->
-          <div class="flex flex-wrap items-center gap-3 mb-1">
+          <!-- 2026-08-22 수정 - 헤더(제목+버튼)와 그 아래 결과 카드 사이 여백이 거의 없어 붙어
+               보인다는 지적으로 mb-1 -> mb-4로 늘림 -->
+          <div class="flex flex-wrap items-center gap-3 mb-4">
             <h2 class="t-h3" id="recommendResultTitle">추천 결과</h2>
             <div class="ml-auto flex gap-2">
               <button type="button" class="btn btn-outline btn-sm" id="saveAllBtn">
