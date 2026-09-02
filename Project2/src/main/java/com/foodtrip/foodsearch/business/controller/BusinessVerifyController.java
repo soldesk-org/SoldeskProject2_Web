@@ -1,6 +1,9 @@
 package com.foodtrip.foodsearch.business.controller;
 
+import java.util.Map;
+
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,5 +46,19 @@ public class BusinessVerifyController {
         }
         return new BusinessVerifyResponseDto(true, result.businessNumber(), result.companyName(),
                 result.representativeName(), result.address(), result.openDate());
+    }
+
+    // 2026-08-22 추가 — 증명원 업로드 전에 사업자등록번호만으로 "등록된 번호가 맞는지 + 폐업하지
+    // 않았는지"를 즉시 확인하는 가벼운 사전 확인. 화면의 "진위확인" 버튼이 지금까지는 증명원 업로드
+    // 없이는 아예 호출이 안 됐던 문제("입력을 해도 증명원을 올려야 진위확인이 된다" 지적)를 해결한다.
+    // 이름/개업일까지 대조하는 완전한 진위확인은 여전히 증명원 업로드(verifyLicense) 쪽에서 이뤄진다.
+    @PostMapping("/api/business-number-status")
+    public Map<String, Object> checkBusinessNumberStatus(@RequestBody Map<String, String> body) {
+        String businessNumber = body.get("businessNumber");
+        if (businessNumber == null || businessNumber.replace("-", "").length() != 10) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "사업자등록번호 10자리를 정확히 입력해주세요.");
+        }
+        String status = businessVerificationClient.checkNumberStatus(businessNumber.replace("-", ""));
+        return Map.of("valid", true, "businessStatus", status);
     }
 }

@@ -111,6 +111,35 @@ public class BusinessVerificationClient {
         return v.substring(0, 4) + "-" + v.substring(4, 6) + "-" + v.substring(6, 8);
     }
 
+    // 2026-08-22 추가 — 증명원 업로드 없이 사업자등록번호만으로 "등록된 번호 + 영업 중인지"를 즉시
+    // 확인하는 가벼운 확인(국세청 상태조회 API, business_auth.py의 새 /verify-number). 기존 verify()
+    // 는 이름/개업일까지 대조하는 완전한 진위확인이라 증명원 없이는 애초에 호출이 불가능했는데
+    // ("증명원을 올려야 진위확인이 된다" 지적), 그 전 단계로 번호만 먼저 가볍게 확인할 수 있게 한다.
+    public String checkNumberStatus(String businessNumber) {
+        Map<String, Object> body;
+        try {
+            body = restClient.post()
+                    .uri("/verify-number")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("businessNumber", businessNumber))
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {
+                    });
+        } catch (RestClientResponseException e) {
+            throw new CustomException(ErrorCode.BUSINESS_VERIFICATION_FAILED, extractErrorMessage(e));
+        } catch (RestClientException e) {
+            throw new CustomException(ErrorCode.BUSINESS_VERIFY_SERVICE_UNAVAILABLE,
+                    "사업자 인증 서버와 통신할 수 없습니다: " + e.getMessage());
+        }
+
+        if (body == null || !"SUCCESS".equals(String.valueOf(body.get("status")))) {
+            String message = body != null ? String.valueOf(body.getOrDefault("message", "사업자등록번호 확인에 실패했습니다."))
+                    : "사업자 인증 서버 응답이 비어 있습니다.";
+            throw new CustomException(ErrorCode.BUSINESS_VERIFICATION_FAILED, message);
+        }
+        return String.valueOf(body.getOrDefault("businessStatus", "계속사업자"));
+    }
+
     private String extractErrorMessage(RestClientResponseException e) {
         try {
             Map<String, Object> errorBody = e.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {

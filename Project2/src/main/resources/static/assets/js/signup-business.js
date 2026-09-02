@@ -4,14 +4,48 @@
 
   // 사업자등록증명원 OCR+원본확인+진위확인(2026-08-04 실제 연동) — Python(FastAPI) 사업자 인증 서버의
   // POST /verify 하나가 OCR/원본확인/진위확인을 한 번에 수행하고, 사업자등록번호도 문서에서 직접 추출한다
-  // (수동 입력 항목이 아니다). 그래서 "진위확인"/"OCR 인식" 두 버튼 모두 같은 검증을 실행하며, 성공하면
-  // 인식된 사업자등록번호로 #bizRegNo1~3을 자동으로 채운다. 파일을 먼저 업로드해야 호출할 수 있다.
+  // (수동 입력 항목이 아니다). 파일을 먼저 업로드해야 호출할 수 있다.
   // 이 화면의 검증은 어디까지나 제출 전 미리보기이고, 실제 회원가입 제출 시 서버가 다시 독립적으로
   // 검증하므로(MemberServiceImpl.signUpBusiness) 이 결과를 조작해서 보내는 건 의미가 없다.
+  //
+  // 2026-08-22 수정 — 원래 "진위확인"/"OCR 인식" 두 버튼이 완전히 같은 API(증명원 필수)를 썼는데,
+  // "번호를 입력하고 진위확인을 눌러도 증명원을 올려야 한다"는 지적으로 실제로 그게 사실이었음을
+  // 확인했다(국세청 진위확인 API는 이름/개업일까지 대조해야 해서 OCR 없이는 원천적으로 호출 불가).
+  // 그 전 단계로 번호만으로 "등록 여부 + 영업 중인지"만 가볍게 확인하는 API(국세청 상태조회,
+  // /api/business-number-status)를 새로 만들어서 "진위확인" 버튼은 이제 이걸 쓰고, "OCR 인식" 버튼만
+  // 기존처럼 증명원 업로드가 필요한 완전한 진위확인을 담당한다.
   var licenseInput = document.getElementById("bizLicenseInput");
   var ocrResult = document.getElementById("bizOcrResult");
   var regNoCheckBtn = document.getElementById("bizRegNoCheckBtn");
   var ocrRunBtn = document.getElementById("bizOcrRunBtn");
+
+  function runNumberStatusCheck() {
+    var n1 = document.getElementById("bizRegNo1").value.trim();
+    var n2 = document.getElementById("bizRegNo2").value.trim();
+    var n3 = document.getElementById("bizRegNo3").value.trim();
+    var businessNumber = n1 + n2 + n3;
+    if (businessNumber.length !== 10 || !/^\d{10}$/.test(businessNumber)) {
+      Eatty.toast("사업자등록번호 10자리를 정확히 입력해주세요.", "error");
+      return;
+    }
+
+    var originalText = regNoCheckBtn.textContent;
+    regNoCheckBtn.disabled = true;
+    regNoCheckBtn.textContent = "확인 중...";
+
+    Api.request("/api/business-number-status", { method: "POST", auth: false, body: { businessNumber: businessNumber } })
+      .then(function (data) {
+        document.getElementById("bizRegNoCombined").value = businessNumber;
+        Eatty.toast("등록된 사업자등록번호입니다(" + (data.businessStatus || "계속사업자") + "). 증명원을 업로드해 OCR 인증을 이어서 진행해주세요.", "success");
+      })
+      .catch(function (err) {
+        Eatty.toast(err.message || "사업자등록번호 확인에 실패했습니다.", "error");
+      })
+      .finally(function () {
+        regNoCheckBtn.disabled = false;
+        regNoCheckBtn.textContent = originalText;
+      });
+  }
 
   function runBusinessVerify(triggerBtn) {
     var file = licenseInput.files && licenseInput.files[0];
@@ -65,7 +99,7 @@
       });
   }
 
-  if (regNoCheckBtn) regNoCheckBtn.addEventListener("click", function () { runBusinessVerify(regNoCheckBtn); });
+  if (regNoCheckBtn) regNoCheckBtn.addEventListener("click", runNumberStatusCheck);
   if (ocrRunBtn) ocrRunBtn.addEventListener("click", function () { runBusinessVerify(ocrRunBtn); });
 
   var ocrConfirmBtn = document.getElementById("bizOcrConfirmBtn");
