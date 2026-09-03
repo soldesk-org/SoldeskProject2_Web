@@ -59,7 +59,7 @@
 <!-- ?v= 는 캐시 무효화용(2026-08-21) — recommend.html의 같은 위치 주석 참고 -->
 <link rel="stylesheet" href="assets/css/eatty.css?v=20260826d">
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
-<script defer src="assets/js/api.js?v=20260826e"></script>
+<script defer src="assets/js/api.js?v=20260822b"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 </head>
 
@@ -76,7 +76,7 @@
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
-      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" hidden href="recommend" data-nav-page="recommend">AI 추천</a>
       <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
       <a class="e-nav-link" href="settlement" data-nav-page="settlement">카드 뽑기</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
@@ -193,7 +193,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
       지도 탐색
     </a>
-    <a class="e-drawer-link" href="recommend" data-nav-page="recommend">
+    <a class="e-drawer-link" hidden href="recommend" data-nav-page="recommend">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
       AI 자연어 추천
     </a>
@@ -305,13 +305,13 @@
 
           <div class="mt-10 flex flex-wrap gap-x-8 gap-y-4" data-auth-view="guest">
             <a href="signup" class="btn btn-secondary">3초 회원가입</a>
-            <a href="recommend" class="btn btn-outline">
+            <a hidden href="recommend" class="btn btn-outline">
               AI 추천 먼저 써보기
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
             </a>
           </div>
           <div class="mt-10 flex flex-wrap gap-3" data-auth-view="auth" hidden>
-            <a href="recommend" class="btn btn-primary">오늘 뭐 먹지? AI에게 묻기</a>
+            <a hidden href="recommend" class="btn btn-primary">오늘 뭐 먹지? AI에게 묻기</a>
             <a href="mypage" class="btn btn-outline">내 즐겨찾기 보기</a>
           </div>
         </div>
@@ -426,7 +426,7 @@
 
       <div class="mt-12 grid md:grid-cols-2 lg:grid-cols-4 gap-5">
 
-        <a href="recommend" class="e-card e-card-pad e-card-hover block">
+        <a hidden href="recommend" class="e-card e-card-pad e-card-hover block">
           <span class="w-12 h-12 rounded-[14px] grid place-items-center text-white mb-5" style="background:var(--brand-grad)">
             <svg class="w-6 h-6" viewBox="0 0 576 512" fill="currentColor"><path d="M234.7 42.7L197 56.8c-3 1.1-5 4-5 7.2s2 6.1 5 7.2l37.7 14.1L248.8 123c1.1 3 4 5 7.2 5s6.1-2 7.2-5l14.1-37.7L315 71.2c3-1.1 5-4 5-7.2s-2-6.1-5-7.2L277.3 42.7 263.2 5c-1.1-3-4-5-7.2-5s-6.1 2-7.2 5L234.7 42.7zM46.1 395.4c-18.7 18.7-18.7 49.1 0 67.9l34.6 34.6c18.7 18.7 49.1 18.7 67.9 0L529.9 116.5c18.7-18.7 18.7-49.1 0-67.9L495.3 14.1c-18.7-18.7-49.1-18.7-67.9 0L46.1 395.4zM484.6 82.6l-105 105-23.3-23.3 105-105 23.3 23.3zM7.5 117.2C3 118.9 0 123.2 0 128s3 9.1 7.5 10.8L64 160l21.2 56.5c1.7 4.5 6 7.5 10.8 7.5s9.1-3 10.8-7.5L128 160l56.5-21.2c4.5-1.7 7.5-6 7.5-10.8s-3-9.1-7.5-10.8L128 96 106.8 39.5C105.1 35 100.8 32 96 32s-9.1 3-10.8 7.5L64 96 7.5 117.2zm352 256c-4.5 1.7-7.5 6-7.5 10.8s3 9.1 7.5 10.8L416 416l21.2 56.5c1.7 4.5 6 7.5 10.8 7.5s9.1-3 10.8-7.5L480 416l56.5-21.2c4.5-1.7 7.5-6 7.5-10.8s-3-9.1-7.5-10.8L480 352l-21.2-56.5c-1.7-4.5-6-7.5-10.8-7.5s-9.1 3-10.8 7.5L416 352l-56.5 21.2z"/></svg>
           </span>
@@ -567,7 +567,7 @@
             <a href="signup-business" class="btn btn-lg bg-white/15 text-white border-white/30 hover:bg-white/25" id="ctaBusinessBtn">사업자로 가입하기</a>
           </div>
           <div class="mt-9 flex flex-col sm:flex-row gap-3 justify-center" data-auth-view="auth" hidden>
-            <a href="recommend" class="btn btn-white btn-lg">AI 추천 받기</a>
+            <a hidden href="recommend" class="btn btn-white btn-lg">AI 추천 받기</a>
             <a href="explore" class="btn btn-lg bg-white/15 text-white border-white/30 hover:bg-white/25">지도에서 찾기</a>
           </div>
         </div>
@@ -595,7 +595,7 @@
         <p class="e-footer-title">서비스</p>
         <nav class="e-footer-list">
           <a href="explore">지도 탐색</a>
-          <a href="recommend">AI 추천</a>
+          <a hidden href="recommend">AI 추천</a>
           <a href="taste-quiz">음식 취향 찾기 테스트</a>
           <a href="chat">잇티챗</a>
         </nav>
@@ -639,7 +639,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
     탐색
   </a>
-  <a class="e-tabbar-item" href="recommend" data-nav-page="recommend">
+  <a class="e-tabbar-item" hidden href="recommend" data-nav-page="recommend">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
     AI추천
   </a>

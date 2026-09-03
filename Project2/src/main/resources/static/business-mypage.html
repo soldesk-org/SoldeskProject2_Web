@@ -86,7 +86,7 @@
 <!-- ?v= 는 캐시 무효화용(2026-08-21) — recommend.html의 같은 위치 주석 참고 -->
 <link rel="stylesheet" href="assets/css/eatty.css?v=20260826d">
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
-<script defer src="assets/js/api.js?v=20260822a"></script>
+<script defer src="assets/js/api.js?v=20260822b"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/business-mypage.js"></script>
 </head>
@@ -105,7 +105,7 @@
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="business-mypage" data-nav-page="business-mypage">내 매장</a>
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
-      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" hidden href="recommend" data-nav-page="recommend">AI 추천</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
       <a class="e-nav-link" href="support" data-nav-page="support">고객센터</a>
     </nav>
@@ -175,7 +175,7 @@
     </div>
     <a class="e-drawer-link" href="business-mypage" data-nav-page="business-mypage">내 매장 관리</a>
     <a class="e-drawer-link" href="explore">지도 탐색</a>
-    <a class="e-drawer-link" href="recommend">AI 추천</a>
+    <a class="e-drawer-link" hidden href="recommend">AI 추천</a>
     <a class="e-drawer-link" href="chat">잇티챗</a>
     <div class="e-drawer-sep"></div>
     <a class="e-drawer-link" href="mypage-edit">계정 정보 수정</a>

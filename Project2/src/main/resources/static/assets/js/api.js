@@ -356,20 +356,23 @@
 
   document.addEventListener("DOMContentLoaded", initNotifications);
 
-  /* AI 추천 서버 가동 여부에 따라 메뉴/버튼 숨김(2026-08-22 추가) — AI 추천 서버는 팀원 로컬 PC에서
-     필요할 때만 켜는 서버라 항상 떠있지 않다. 서버가 꺼져있으면 "AI 추천"으로 가는 링크를 전부
-     화면에서 숨긴다(헤더 메뉴/드로어/하단 탭바/홈 화면 CTA 카드 등, href="recommend"인 요소 전부
-     한 번에 잡는다 — data-nav-page="recommend"인 것도 전부 href="recommend"라 이 선택자 하나로 충분).
-     recommend.html 자체는 URL로 직접 들어왔을 때를 대비해 recommend.js가 같은 상태 API로 별도 처리한다. */
+  /* AI 추천 서버 가동 여부에 따라 메뉴/버튼 숨김(2026-08-22 추가, 같은 날 재수정) — AI 추천 서버는
+     팀원 로컬 PC에서 필요할 때만 켜는 서버라 항상 떠있지 않다. href="recommend"인 링크(헤더 메뉴/
+     드로어/하단 탭바/홈 화면 CTA 카드 등, data-nav-page="recommend"인 것도 전부 포함)는 이제 HTML에
+     처음부터 hidden이 박혀 있다 — 상태 확인이 끝나기 전까지 "일단 보였다가 꺼져있으면 숨기는" 예전
+     방식은 새로고침할 때마다 버튼이 잠깐 나타났다 사라지는 깜빡임이 있었다("이상해" 지적). 이제는
+     반대로 서버가 켜져있다고 확인된 경우에만 hidden을 풀어서 보여준다 — 확인 전/실패 시에는 계속
+     숨김 상태라 깜빡임이 없다. recommend.html 자체는 URL로 직접 들어왔을 때를 대비해 recommend.js가
+     같은 상태 API로 별도 처리한다. */
   function initRecommendationAvailability() {
     request("/api/recommendations/status", { auth: false })
       .then(function (data) {
-        if (data && data.up) return;
+        if (!data || !data.up) return;
         document.querySelectorAll('a[href="recommend"]').forEach(function (el) {
-          el.hidden = true;
+          el.hidden = false;
         });
       })
-      .catch(function () { /* 상태 확인 실패는 무시 - 링크는 그대로 두고 페이지 자체(recommend.js)가 처리 */ });
+      .catch(function () { /* 상태 확인 실패는 무시 - 숨긴 채로 둔다(fail-safe) */ });
   }
   document.addEventListener("DOMContentLoaded", initRecommendationAvailability);
 

@@ -56,7 +56,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- ?v= 는 캐시 무효화용(2026-08-21) — recommend.html의 같은 위치 주석 참고 -->
 <link rel="stylesheet" href="assets/css/eatty.css?v=20260826d">
-<script defer src="assets/js/api.js?v=20260822a"></script>
+<script defer src="assets/js/api.js?v=20260822b"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/taste-quiz.js"></script>
 
@@ -75,7 +75,7 @@
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
-      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" hidden href="recommend" data-nav-page="recommend">AI 추천</a>
       <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
       <a class="e-nav-link" href="settlement" data-nav-page="settlement">카드 뽑기</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
@@ -136,7 +136,7 @@
   </div>
   <div class="e-drawer-body">
     <a class="e-drawer-link" href="explore" data-nav-page="explore">지도 탐색</a>
-    <a class="e-drawer-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+    <a class="e-drawer-link" hidden href="recommend" data-nav-page="recommend">AI 추천</a>
     <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
     <a class="e-drawer-link" href="settlement" data-nav-page="settlement">카드 뽑기</a>
     <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
@@ -382,7 +382,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
     탐색
   </a>
-  <a class="e-tabbar-item" href="recommend">
+  <a class="e-tabbar-item" hidden href="recommend">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
     AI추천
   </a>

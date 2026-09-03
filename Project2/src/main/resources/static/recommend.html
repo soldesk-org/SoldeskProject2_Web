@@ -67,7 +67,7 @@
      때는 이 값을 같이 올려서 즉시 반영되게 한다(HTML은 캐시되지 않으므로 새 URL이 바로 적용된다). -->
 <link rel="stylesheet" href="assets/css/eatty.css?v=20260826d">
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
-<script defer src="assets/js/api.js?v=20260822a"></script>
+<script defer src="assets/js/api.js?v=20260822b"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
 <script defer src="assets/js/recommend.js?v=20260822b"></script>
 
@@ -86,7 +86,7 @@
 
     <nav class="e-nav" id="mainNav" aria-label="주요 메뉴">
       <a class="e-nav-link" href="explore" data-nav-page="explore">지도 탐색</a>
-      <a class="e-nav-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+      <a class="e-nav-link" hidden href="recommend" data-nav-page="recommend">AI 추천</a>
       <a class="e-nav-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
       <a class="e-nav-link" href="settlement" data-nav-page="settlement">카드 뽑기</a>
       <a class="e-nav-link" href="chat" data-nav-page="chat">잇티챗</a>
@@ -165,7 +165,7 @@
       </a>
     </div>
     <a class="e-drawer-link" href="explore" data-nav-page="explore">지도 탐색</a>
-    <a class="e-drawer-link" href="recommend" data-nav-page="recommend">AI 추천</a>
+    <a class="e-drawer-link" hidden href="recommend" data-nav-page="recommend">AI 추천</a>
     <a class="e-drawer-link" href="roulette" data-nav-page="roulette">메뉴 룰렛</a>
     <a class="e-drawer-link" href="settlement" data-nav-page="settlement">카드 뽑기</a>
     <a class="e-drawer-link" href="chat" data-nav-page="chat">잇티챗</a>
@@ -177,16 +177,16 @@
      URL로 직접 들어오는 경우까지 막을 수는 없어서 이 페이지 자체도 recommend.js에서 같은 상태를
      한 번 더 확인해 막는다. 토스뱅크류 "서비스 준비중" 안내 톤 참고. 기본 hidden, 서버가 꺼져있을
      때만 recommend.js가 보여주고 #recommendMain은 숨긴다. -->
-<div id="recommendUnavailable" hidden class="e-container" style="min-height:calc(100vh - var(--header-h)); display:flex; align-items:center; justify-content:center; padding:40px 20px;">
+<div id="recommendUnavailable" hidden class="e-container" style="min-height:calc(100vh - var(--header-h)); display:flex; align-items:center; justify-content:center; padding:40px 20px; background:#fff;">
   <div class="text-center" style="max-width:360px;">
-    <div style="width:88px;height:88px;margin:0 auto 24px;border-radius:28px;background:var(--brand-grad-soft);display:flex;align-items:center;justify-content:center;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-600)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:44px;height:44px;">
+    <div style="width:120px;height:120px;margin:0 auto 32px;border-radius:50%;background:var(--brand-grad-soft);display:flex;align-items:center;justify-content:center;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-600)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:56px;height:56px;">
         <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
       </svg>
     </div>
-    <h2 class="t-h3 mb-2">AI 추천이 잠시 쉬고 있어요</h2>
-    <p class="t-sm" style="color:var(--ink-500)">현재 서비스 준비중이에요.<br>오전 9시 ~ 오후 6시까지 이용하실 수 있어요.</p>
-    <a href="/" class="btn btn-primary btn-lg mt-6">홈으로 돌아가기</a>
+    <h2 class="t-h2 mb-3">AI 추천이 잠시 쉬고 있어요</h2>
+    <p class="t-md" style="color:var(--ink-500); line-height:1.6;">현재 서비스 준비중이에요.<br>오전 9시 ~ 오후 6시까지 이용하실 수 있어요.</p>
+    <a href="/" class="btn btn-primary btn-lg btn-pill mt-8">홈으로 돌아가기</a>
   </div>
 </div>
 
@@ -565,7 +565,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
     탐색
   </a>
-  <a class="e-tabbar-item" href="recommend" data-nav-page="recommend">
+  <a class="e-tabbar-item" hidden href="recommend" data-nav-page="recommend">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.5l1.9-5.9 6.1-1.9-6.1-1.9L12 3Z"/></svg>
     AI추천
   </a>
