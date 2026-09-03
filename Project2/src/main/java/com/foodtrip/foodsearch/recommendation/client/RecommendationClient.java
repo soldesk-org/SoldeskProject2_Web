@@ -1,6 +1,9 @@
 package com.foodtrip.foodsearch.recommendation.client;
 
+import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +29,9 @@ import com.foodtrip.foodsearch.recommendation.dto.RecommendationSearchAnalysisDt
 public class RecommendationClient {
 
     private final RestClient restClient;
+    private final HttpClient rawHttpClient;
+    private final String baseUrl;
+    private final String internalToken;
 
     public RecommendationClient(@Value("${recommendation.base-url}") String baseUrl,
                                  @Value("${recommendation.internal-token:}") String internalToken) {
@@ -44,6 +50,28 @@ public class RecommendationClient {
             builder.defaultHeader("X-Internal-Token", internalToken);
         }
         this.restClient = builder.build();
+        this.rawHttpClient = httpClient;
+        this.baseUrl = baseUrl;
+        this.internalToken = internalToken;
+    }
+
+    // 2026-08-22 추가 — AI 추천 서버는 팀원 로컬 PC에서만 켜져 있는 경우가 많아(항상 떠있는 서버가
+    // 아님), 서버가 꺼져있을 때 "AI 추천" 메뉴 자체를 숨기고 페이지에 강제로 들어가도 "준비중" 화면을
+    // 보여주기 위한 가벼운 상태 확인. admin의 SystemStatusServiceImpl.checkHttpServer()와 같은 방식
+    // (FastAPI는 라우트 없는 "/"가 404라 "/docs"로 확인) — 짧은 타임아웃(2초)으로 빠르게 판단한다.
+    public boolean isUp() {
+        try {
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(URI.create(baseUrl + "/docs"))
+                    .timeout(Duration.ofSeconds(2))
+                    .GET();
+            if (!internalToken.isBlank()) {
+                requestBuilder.header("X-Internal-Token", internalToken);
+            }
+            HttpResponse<Void> response = rawHttpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.discarding());
+            return response.statusCode() >= 200 && response.statusCode() < 300;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public RecommendResponseDto recommend(String text, Double x, Double y, Integer radius, Integer size) {

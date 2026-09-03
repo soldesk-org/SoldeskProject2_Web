@@ -67,9 +67,9 @@
      때는 이 값을 같이 올려서 즉시 반영되게 한다(HTML은 캐시되지 않으므로 새 URL이 바로 적용된다). -->
 <link rel="stylesheet" href="assets/css/eatty.css?v=20260826d">
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=i99edc9due"></script>
-<script defer src="assets/js/api.js?v=20260823a"></script>
+<script defer src="assets/js/api.js?v=20260822a"></script>
 <script defer src="assets/js/eatty-ui.js"></script>
-<script defer src="assets/js/recommend.js?v=20260822a"></script>
+<script defer src="assets/js/recommend.js?v=20260822b"></script>
 
 <link rel="stylesheet" href="assets/css/recommend.css?v=20260821d">
 </head>
@@ -173,7 +173,24 @@
   </div>
 </aside>
 
-<main>
+<!-- AI 추천 서버 꺼짐 안내(2026-08-22 추가) — 헤더 메뉴/버튼은 api.js가 서버 상태를 보고 숨기지만,
+     URL로 직접 들어오는 경우까지 막을 수는 없어서 이 페이지 자체도 recommend.js에서 같은 상태를
+     한 번 더 확인해 막는다. 토스뱅크류 "서비스 준비중" 안내 톤 참고. 기본 hidden, 서버가 꺼져있을
+     때만 recommend.js가 보여주고 #recommendMain은 숨긴다. -->
+<div id="recommendUnavailable" hidden class="e-container" style="min-height:calc(100vh - var(--header-h)); display:flex; align-items:center; justify-content:center; padding:40px 20px;">
+  <div class="text-center" style="max-width:360px;">
+    <div style="width:88px;height:88px;margin:0 auto 24px;border-radius:28px;background:var(--brand-grad-soft);display:flex;align-items:center;justify-content:center;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-600)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:44px;height:44px;">
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+      </svg>
+    </div>
+    <h2 class="t-h3 mb-2">AI 추천이 잠시 쉬고 있어요</h2>
+    <p class="t-sm" style="color:var(--ink-500)">현재 서비스 준비중이에요.<br>오전 9시 ~ 오후 6시까지 이용하실 수 있어요.</p>
+    <a href="/" class="btn btn-primary btn-lg mt-6">홈으로 돌아가기</a>
+  </div>
+</div>
+
+<main id="recommendMain">
   <!-- ==================== 질문 입력 ==================== -->
   <section class="bg-white border-b border-[var(--line)] e-hero-glow flex items-center" style="min-height:calc(100vh - var(--header-h))">
     <div class="e-container relative z-10 py-10">

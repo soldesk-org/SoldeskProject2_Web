@@ -2,6 +2,21 @@
   var DEFAULT_CENTER = { lat: 37.4979, lng: 127.0276 }; // 강남역
   var RECENT_KEY = "eatty:recommendRecentQueries";
 
+  // 2026-08-22 추가 — AI 추천 서버가 꺼져있을 때 이 페이지에 URL로 직접 들어오면 "서비스 준비중"
+  // 화면만 보이게 한다(헤더 메뉴 숨김은 api.js가 담당, 이건 그 우회 경로를 막는 것). 상태 확인
+  // 자체가 실패해도(네트워크 오류 등) 안전하게 "꺼져있다"로 간주한다 — 어차피 서버가 꺼져있는 게
+  // 이 프로젝트에서 흔한 상태라, 애매하면 깨진 화면을 보여주는 것보다 안내 화면이 낫다.
+  Api.request("/api/recommendations/status", { auth: false })
+    .then(function (data) { if (!data || !data.up) showRecommendUnavailable(); })
+    .catch(function () { showRecommendUnavailable(); });
+
+  function showRecommendUnavailable() {
+    var main = document.getElementById("recommendMain");
+    var unavailable = document.getElementById("recommendUnavailable");
+    if (main) main.hidden = true;
+    if (unavailable) unavailable.hidden = false;
+  }
+
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];

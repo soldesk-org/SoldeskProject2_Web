@@ -356,6 +356,23 @@
 
   document.addEventListener("DOMContentLoaded", initNotifications);
 
+  /* AI 추천 서버 가동 여부에 따라 메뉴/버튼 숨김(2026-08-22 추가) — AI 추천 서버는 팀원 로컬 PC에서
+     필요할 때만 켜는 서버라 항상 떠있지 않다. 서버가 꺼져있으면 "AI 추천"으로 가는 링크를 전부
+     화면에서 숨긴다(헤더 메뉴/드로어/하단 탭바/홈 화면 CTA 카드 등, href="recommend"인 요소 전부
+     한 번에 잡는다 — data-nav-page="recommend"인 것도 전부 href="recommend"라 이 선택자 하나로 충분).
+     recommend.html 자체는 URL로 직접 들어왔을 때를 대비해 recommend.js가 같은 상태 API로 별도 처리한다. */
+  function initRecommendationAvailability() {
+    request("/api/recommendations/status", { auth: false })
+      .then(function (data) {
+        if (data && data.up) return;
+        document.querySelectorAll('a[href="recommend"]').forEach(function (el) {
+          el.hidden = true;
+        });
+      })
+      .catch(function () { /* 상태 확인 실패는 무시 - 링크는 그대로 두고 페이지 자체(recommend.js)가 처리 */ });
+  }
+  document.addEventListener("DOMContentLoaded", initRecommendationAvailability);
+
   /* ===== iOS 앱(EattyWayIOS, Capacitor WKWebView) 전용 브릿지 (2026-08-21 추가) ==================
      iOS 앱에서는 소셜 로그인을 앱 안에서 열지 않고 **앱 밖(기본 브라우저)으로 내보내서** 로그인시키고,
      끝나면 커스텀 스킴으로 앱이 자동으로 다시 열리게 한다(요기요 앱과 같은 방식). 브라우저로 나가기
