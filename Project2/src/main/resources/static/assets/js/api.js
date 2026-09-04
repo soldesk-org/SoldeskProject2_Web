@@ -364,15 +364,31 @@
      반대로 서버가 켜져있다고 확인된 경우에만 hidden을 풀어서 보여준다 — 확인 전/실패 시에는 계속
      숨김 상태라 깜빡임이 없다. recommend.html 자체는 URL로 직접 들어왔을 때를 대비해 recommend.js가
      같은 상태 API로 별도 처리한다. */
+  // 2026-09-04 수정 — 매 페이지 로드마다 상태 확인 응답(네트워크 왕복)을 기다렸다가 버튼을 보여주면
+  // 그 사이 시간만큼 버튼이 "잠깐 없다가 나타나는" 지연이 생긴다. 직전에 확인된 결과를 localStorage에
+  // 캐시해두고 페이지 로드 즉시(응답을 기다리지 않고) 먼저 반영해서 체감 지연을 없애고, 실제 응답이
+  // 오면 그걸로 다시 한번 정확하게 맞춘다(캐시가 없거나 서버가 방금 꺼진 경우 등 어긋난 상황 보정).
+  var AI_RECO_CACHE_KEY = "eatty:aiRecoUp";
+  function applyRecommendationVisibility(up) {
+    document.querySelectorAll('a[href="recommend"]').forEach(function (el) {
+      el.hidden = !up;
+    });
+  }
   function initRecommendationAvailability() {
+    var cached = null;
+    try { cached = localStorage.getItem(AI_RECO_CACHE_KEY); } catch (e) { /* 무시 */ }
+    if (cached === "1") applyRecommendationVisibility(true);
+
     request("/api/recommendations/status", { auth: false })
       .then(function (data) {
-        if (!data || !data.up) return;
-        document.querySelectorAll('a[href="recommend"]').forEach(function (el) {
-          el.hidden = false;
-        });
+        var up = !!(data && data.up);
+        applyRecommendationVisibility(up);
+        try { localStorage.setItem(AI_RECO_CACHE_KEY, up ? "1" : "0"); } catch (e) { /* 무시 */ }
       })
-      .catch(function () { /* 상태 확인 실패는 무시 - 숨긴 채로 둔다(fail-safe) */ });
+      .catch(function () {
+        // 상태 확인 실패는 캐시가 없을 때만 숨긴 채로 둔다(fail-safe). 캐시로 이미 보여준 상태라면
+        // 일시적인 네트워크 오류로 다시 숨기지는 않는다.
+      });
   }
   document.addEventListener("DOMContentLoaded", initRecommendationAvailability);
 

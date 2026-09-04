@@ -5,19 +5,40 @@
   // 2026-08-22 추가, 2026-09-04 수정 — AI 추천 서버가 꺼져있을 때 이 페이지에 URL로 직접 들어오면
   // "서비스 준비중" 화면만 보이게 한다(헤더 메뉴 숨김은 api.js가 담당, 이건 그 우회 경로를 막는 것).
   // 화면(HTML)에서부터 #recommendUnavailable이 기본으로 보이고 #recommendMain은 기본 숨김 상태라
-  // 상태 확인 응답을 기다리는 동안 깜빡임 없이 바로 안내 화면이 뜬다. 서버가 켜져있는 게 확인된
-  // 경우에만 반대로 뒤집어서 본문을 보여준다 — 상태 확인 자체가 실패해도(네트워크 오류 등) 안전하게
-  // "꺼져있다"로 간주(이 프로젝트에서 서버가 꺼져있는 게 흔한 상태라, 애매하면 깨진 화면을 보여주는
-  // 것보다 안내 화면이 낫다).
+  // 상태 확인 응답을 기다리는 동안 깜빡임 없이 바로 안내 화면이 뜬다. 다만 서버가 실제로는 켜져있는
+  // 일반적인 경우에도 응답을 기다리는 그 짧은 시간만큼 안내 화면이 먼저 번쩍였다가 본문으로 바뀌는
+  // 게 어색해서, api.js가 다른 페이지에서 미리 확인해 localStorage에 남겨둔 마지막 상태(캐시)가
+  // "켜짐"이면 응답을 기다리지 않고 곧바로 본문을 보여주고, 실제 응답이 오면 그걸로 다시 한번
+  // 정확하게 맞춘다(캐시와 실제가 어긋난 경우 보정 — 예: 그 사이 서버가 꺼졌으면 다시 안내 화면으로).
+  // 캐시가 없거나 "꺼짐"이면 기존처럼 HTML 기본값(안내 화면)을 유지한 채 응답을 기다린다 — 상태 확인
+  // 자체가 실패해도(네트워크 오류 등) 안전하게 "꺼져있다"로 간주한다.
+  var AI_RECO_CACHE_KEY = "eatty:aiRecoUp";
+  (function applyCachedState() {
+    try {
+      if (localStorage.getItem(AI_RECO_CACHE_KEY) === "1") showRecommendMain();
+    } catch (e) { /* 무시 */ }
+  })();
+
   Api.request("/api/recommendations/status", { auth: false })
-    .then(function (data) { if (data && data.up) showRecommendMain(); })
-    .catch(function () { /* 실패 시 기본값(안내 화면)을 그대로 유지 */ });
+    .then(function (data) {
+      var up = !!(data && data.up);
+      if (up) showRecommendMain(); else showRecommendUnavailable();
+      try { localStorage.setItem(AI_RECO_CACHE_KEY, up ? "1" : "0"); } catch (e) { /* 무시 */ }
+    })
+    .catch(function () { /* 실패 시 현재 화면 상태를 그대로 유지 */ });
 
   function showRecommendMain() {
     var main = document.getElementById("recommendMain");
     var unavailable = document.getElementById("recommendUnavailable");
     if (unavailable) unavailable.hidden = true;
     if (main) main.hidden = false;
+  }
+
+  function showRecommendUnavailable() {
+    var main = document.getElementById("recommendMain");
+    var unavailable = document.getElementById("recommendUnavailable");
+    if (main) main.hidden = true;
+    if (unavailable) unavailable.hidden = false;
   }
 
   function escapeHtml(s) {
