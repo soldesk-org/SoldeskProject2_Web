@@ -30,8 +30,11 @@ spring:
         dialect: org.hibernate.dialect.MariaDBDialect
 
   mail:
-    host: smtp.daum.net
-    port: 465
+    # 2026-09-07 — Daum(개인 프리메일) 발송이 스팸함으로 분류되는 문제로 Brevo(트랜잭션 메일 서비스,
+    # SPF/DKIM/DMARC를 eattyway.com 도메인에 정식으로 설정)로 전환하면서 host/port를 하드코딩에서
+    # 환경변수로 뺐다. 기본값은 그대로 Daum(smtp.daum.net:465)이라 값을 안 채우면 기존과 동일하게 동작한다.
+    host: ${MAIL_HOST:smtp.daum.net}
+    port: ${MAIL_PORT:465}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_APP_PASSWORD:}
     properties:

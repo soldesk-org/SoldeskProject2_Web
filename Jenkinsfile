@@ -55,6 +55,8 @@ pipeline {
                         string(credentialsId: 'soldesk-redis-host', variable: 'REDIS_HOST'),
                         string(credentialsId: 'soldesk-redis-port', variable: 'REDIS_PORT'),
                         string(credentialsId: 'soldesk-redis-password', variable: 'REDIS_PASSWORD'),
+                        string(credentialsId: 'soldesk-mail-host', variable: 'MAIL_HOST'),
+                        string(credentialsId: 'soldesk-mail-port', variable: 'MAIL_PORT'),
                         string(credentialsId: 'soldesk-mail-username', variable: 'MAIL_USERNAME'),
                         string(credentialsId: 'soldesk-mail-app-password', variable: 'MAIL_APP_PASSWORD'),
                         string(credentialsId: 'soldesk-mail-from-address', variable: 'MAIL_FROM_ADDRESS'),
@@ -158,6 +160,8 @@ pipeline {
                         string(credentialsId: 'soldesk-redis-host', variable: 'REDIS_HOST'),
                         string(credentialsId: 'soldesk-redis-port', variable: 'REDIS_PORT'),
                         string(credentialsId: 'soldesk-redis-password', variable: 'REDIS_PASSWORD'),
+                        string(credentialsId: 'soldesk-mail-host', variable: 'MAIL_HOST'),
+                        string(credentialsId: 'soldesk-mail-port', variable: 'MAIL_PORT'),
                         string(credentialsId: 'soldesk-mail-username', variable: 'MAIL_USERNAME'),
                         string(credentialsId: 'soldesk-mail-app-password', variable: 'MAIL_APP_PASSWORD'),
                         string(credentialsId: 'soldesk-mail-from-address', variable: 'MAIL_FROM_ADDRESS'),
@@ -221,6 +225,8 @@ JWT_REFRESH_EXPIRATION_HOURS_SHORT=$JWT_REFRESH_EXPIRATION_HOURS_SHORT
 REDIS_HOST=$REDIS_HOST
 REDIS_PORT=$REDIS_PORT
 REDIS_PASSWORD=$REDIS_PASSWORD
+MAIL_HOST=$MAIL_HOST
+MAIL_PORT=$MAIL_PORT
 MAIL_USERNAME=$MAIL_USERNAME
 MAIL_APP_PASSWORD=$MAIL_APP_PASSWORD
 MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS
