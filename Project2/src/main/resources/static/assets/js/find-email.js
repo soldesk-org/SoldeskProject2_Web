@@ -56,6 +56,8 @@
       .catch(function (err) {
         if (err.code === "MEMBER_NOT_FOUND") {
           Eatty.toast("일치하는 계정을 찾을 수 없습니다.", "error");
+        } else if (err.code === "SMS_SEND_FAIL") {
+          Eatty.toast("SMS 서버와 통신할 수 없습니다", "error");
         } else {
           Eatty.toast(err.message || "요청에 실패했습니다.", "error");
         }

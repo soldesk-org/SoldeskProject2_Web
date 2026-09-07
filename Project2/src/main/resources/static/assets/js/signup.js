@@ -137,7 +137,10 @@
         if (timer) timer.dispatchEvent(new Event("eatty:timer-restart"));
         Eatty.toast("인증번호를 발송했습니다.", "success");
       })
-      .catch(function (err) { Eatty.toast(err.message || "인증번호 발송에 실패했습니다.", "error"); })
+      .catch(function (err) {
+        var msg = err.code === "SMS_SEND_FAIL" ? "SMS 서버와 통신할 수 없습니다" : (err.message || "인증번호 발송에 실패했습니다.");
+        Eatty.toast(msg, "error");
+      })
       .finally(function () { sendPhoneBtn.disabled = false; });
   });
 

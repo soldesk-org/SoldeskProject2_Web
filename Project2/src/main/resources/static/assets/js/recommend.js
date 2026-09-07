@@ -545,8 +545,9 @@
       var places = data.places || [];
       if (!places.length) { followupModalBody.innerHTML = '<p class="t-sm text-center py-14">근처에서 찾지 못했어요.</p>'; return; }
       followupModalBody.innerHTML = places.map(function (p) { return followupPlaceRow(p, type); }).join("");
-    }).catch(function (err) {
-      followupModalBody.innerHTML = '<p class="t-sm text-center py-14 text-red-500">' + escapeHtml(err.message || "불러오지 못했습니다.") + '</p>';
+    }).catch(function () {
+      Eatty.closeModal("followupModal");
+      Eatty.toast("AI 추천 서버와 통신할 수 없습니다", "error");
     });
   });
 })();
