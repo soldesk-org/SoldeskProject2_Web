@@ -154,11 +154,8 @@
     var tr = document.createElement("tr");
     tr.setAttribute("data-member-id", m.memberId);
     var disabled = m.role === "ADMIN" || m.status === "WITHDRAWN";
-    var actionBtn = m.status === "SUSPENDED"
-      ? '<button type="button" class="btn btn-outline btn-xs" data-release-member>해제</button>'
-      : (m.role !== "ADMIN" && m.status !== "WITHDRAWN"
-        ? '<button type="button" class="btn btn-danger-soft btn-xs" data-suspend-member data-modal-open="suspendModal">정지</button>'
-        : "");
+    // 2026-09-07 수정 — 목록에 정지/해제 버튼을 바로 노출하지 않고 "상세" 보기 안에서만 처리하도록
+    // 변경(오조작 방지). 정지/해제 로직 자체는 memberDetailActionBtn(상세 모달)에 이미 있어 그대로 재사용.
     tr.innerHTML =
       '<td><label class="e-check"><input type="checkbox" name="memberCheck" value="' + m.memberId + '"' + (disabled ? " disabled" : "") + '><span class="sr-only-e">선택</span></label></td>' +
       '<td><div class="flex items-center gap-2.5"><span class="e-avatar e-avatar-xs flex-none" aria-hidden="true">' + escapeHtml((m.nickname || "?").charAt(0)) + '</span>' +
@@ -166,7 +163,7 @@
       '<td><span class="e-badge e-badge--gray">' + (ROLE_LABEL[m.role] || m.role) + '</span></td>' +
       '<td><span class="e-status ' + (m.status === "ACTIVE" ? "e-status--on" : m.status === "SUSPENDED" ? "e-status--off" : "e-status--idle") + ' !text-[12.5px]">' + (STATUS_LABEL[m.status] || m.status) + '</span></td>' +
       '<td class="t-num t-sm">' + fmtDate(m.createdAt) + '</td>' +
-      '<td class="cell-actions"><button type="button" class="btn btn-ghost btn-xs" data-view-member data-modal-open="memberDetailModal">상세</button> ' + actionBtn + '</td>';
+      '<td class="cell-actions"><button type="button" class="btn btn-ghost btn-xs" data-view-member data-modal-open="memberDetailModal">상세</button></td>';
     return tr;
   }
 
@@ -243,6 +240,8 @@
       // 하단 액션 버튼도 항상 "정지 처리"로 고정돼 있어서, 이미 정지된 회원을 봐도 또 정지시키려는
       // 버튼만 나오고 해제할 방법이 없었다 — 상태에 따라 정지/해제로 전환한다.
       var actionBtn = document.getElementById("memberDetailActionBtn");
+      // 관리자 계정/탈퇴 회원은 정지·해제 대상이 아니므로 버튼 자체를 숨긴다(목록에서 하던 것과 동일 규칙).
+      actionBtn.hidden = m.role === "ADMIN" || m.status === "WITHDRAWN";
       if (m.status === "SUSPENDED") {
         actionBtn.textContent = "정지 해제";
         actionBtn.removeAttribute("data-modal-open");
@@ -252,6 +251,11 @@
         actionBtn.textContent = "정지 처리";
         actionBtn.setAttribute("data-modal-open", "suspendModal");
         actionBtn.removeAttribute("data-detail-release-member");
+        // 2026-09-07 추가 — 목록의 정지 버튼을 없애고 상세 화면이 유일한 진입점이 되면서, 여기서도
+        // suspendConfirmBtn이 참조하는 suspendTargetId를 직접 채워줘야 한다(예전엔 목록의
+        // data-suspend-member 클릭 핸들러가 이 값을 채웠음).
+        suspendTargetId = id;
+        document.getElementById("suspendTargetName").textContent = m.nickname;
       }
     } else if (e.target.closest("[data-suspend-member]")) {
       suspendTargetId = id;
