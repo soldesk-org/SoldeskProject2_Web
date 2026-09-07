@@ -17,9 +17,3 @@ services:
     environment:
       REDIS_HOST: host.docker.internal
       DB_URL: jdbc:mariadb://host.docker.internal:3306/soldesk_project
-    # 2026-09-07 추가 — eattyway.com은 Cloudflare 프록시(오렌지 구름)로 연결되는데, Free 플랜의
-    # Proxied 레코드는 오리진의 표준 포트(80/443)로만 전달한다. 이 프로젝트엔 별도 Nginx 리버스
-    # 프록시가 없어서, 컨테이너 내부 포트(8081)를 호스트의 80번에도 추가로 매핑해 Cloudflare가
-    # 바로 붙을 수 있게 한다(8081도 기존처럼 그대로 유지 — 직접 IP:8081 접속/디버깅용).
-    ports:
-      - "80:8081"
