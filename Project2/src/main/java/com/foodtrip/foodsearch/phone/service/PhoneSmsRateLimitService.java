@@ -47,6 +47,16 @@ public class PhoneSmsRateLimitService {
         }
     }
 
+    /**
+     * 실제 SMS 발송이 실패했을 때(뿌리오 쪽 시스템 오류 등, 이용자 귀책이 아닌 경우) checkAndRecord로
+     * 올렸던 카운트를 되돌린다 — 2026-09-07 추가. 이게 없으면 우리 쪽/뿌리오 쪽 장애로 계속 실패하는
+     * 상황에서도 카운트가 계속 쌓여서, 정작 이용자는 문자 한 통도 못 받았는데 "일일 한도 초과"로
+     * 막히는 문제가 있었다(실제로 겪음).
+     */
+    public void release(String ip) {
+        redisTemplate.opsForValue().decrement(countKey(ip));
+    }
+
     private String countKey(String ip) {
         return "phone:sms:count:" + ip + ":" + LocalDate.now();
     }

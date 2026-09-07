@@ -119,7 +119,15 @@ public class PhoneAuthService {
                 PhoneVerification.create(memberId, phone, code, purpose, expiredAt)
         );
 
-        ppurioSmsService.sendSms(phone, buildMessage(code));
+        try {
+            ppurioSmsService.sendSms(phone, buildMessage(code));
+        } catch (RuntimeException e) {
+            // 실제 발송이 안 됐는데도 checkAndRecord에서 이미 올려둔 카운트는 그대로 남으므로,
+            // 뿌리오 쪽 시스템 오류(IP 차단 등 이용자 귀책이 아닌 실패)로 반복 실패할 때 이용자가
+            // 문자 한 통 못 받고도 일일 한도를 소진하는 문제가 있었다(2026-09-07 발견) — 되돌린다.
+            phoneSmsRateLimitService.release(clientIp);
+            throw e;
+        }
     }
 
     @Transactional
