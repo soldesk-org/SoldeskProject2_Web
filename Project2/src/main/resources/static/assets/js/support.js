@@ -41,7 +41,10 @@
     counter: document.getElementById('inputCounter')
   };
 
-  var idleTimer = null, graceTimer = null;
+  /* graceDeadline: 자동 종료까지 남은 시간을 "틱 횟수"가 아니라 절대 시각으로 들고 있는다(2026-09-09).
+     브라우저가 백그라운드 탭의 setInterval을 억제해서, 다른 탭/창에 가 있으면 카운트다운이 멈춘 것처럼
+     보이고 실제 종료도 그만큼 늦어지던 문제 때문(사용자 지적). 0이면 카운트다운이 돌고 있지 않다는 뜻. */
+  var idleTimer = null, graceTimer = null, graceDeadline = 0;
 
   /* ------------------------------------------------------------ 유틸 */
   function nowLabel() {
@@ -342,6 +345,7 @@
 
     clearTimeout(idleTimer);
     clearInterval(graceTimer);
+    graceDeadline = 0;
     hideThinking();
 
     var endedIdEl = document.getElementById('endedSessionId');
@@ -379,25 +383,31 @@
   function resetIdle() {
     clearTimeout(idleTimer);
     clearInterval(graceTimer);
+    graceDeadline = 0;
     if (state.ended) return;
     idleTimer = setTimeout(showIdleWarning, IDLE_LIMIT_MS);
   }
 
+  /* 남은 초를 deadline에서 매번 다시 계산한다 — 백그라운드 탭에서 틱이 밀려도 화면에 돌아온 순간
+     실제 경과 시간이 그대로 반영되고, 이미 시간이 지났으면 즉시 종료된다. */
+  function renderGrace() {
+    if (!graceDeadline) return;
+    var left = Math.max(0, Math.ceil((graceDeadline - Date.now()) / 1000));
+    document.getElementById('idleCountdown').textContent = left;
+    if (left <= 0) {
+      clearInterval(graceTimer);
+      graceDeadline = 0;
+      beaconEnd('idle_timeout');
+      endSession('idle_timeout');
+    }
+  }
+
   function showIdleWarning() {
     if (state.ended) return;
-    var left = IDLE_GRACE_SEC;
-    document.getElementById('idleCountdown').textContent = left;
+    graceDeadline = Date.now() + IDLE_GRACE_SEC * 1000;
+    renderGrace();
     Eatty.openModal('idleWarnModal');
-
-    graceTimer = setInterval(function () {
-      left--;
-      document.getElementById('idleCountdown').textContent = left;
-      if (left <= 0) {
-        clearInterval(graceTimer);
-        beaconEnd('idle_timeout');
-        endSession('idle_timeout');
-      }
-    }, 1000);
+    graceTimer = setInterval(renderGrace, 1000);
   }
 
   /* ================================== 이벤트 바인딩 */
@@ -437,6 +447,12 @@
   document.getElementById('idleEndNowBtn').addEventListener('click', function () {
     beaconEnd('button');
     endSession('button');
+  });
+
+  /* 다른 탭에 다녀오면 그동안 밀린 틱을 기다리지 않고 곧바로 남은 시간을 다시 계산한다(2026-09-09).
+     카운트다운이 돌고 있지 않을 때(graceDeadline === 0)는 renderGrace()가 그냥 빠져나온다. */
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) renderGrace();
   });
 
   /* 봇 답변 피드백 / 복사 */
