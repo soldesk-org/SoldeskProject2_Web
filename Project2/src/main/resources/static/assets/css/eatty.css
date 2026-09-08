@@ -560,6 +560,13 @@ html::-webkit-scrollbar-thumb:hover { background: var(--ink-300); background-cli
 @media (min-width: 640px) {
   .e-auth-main { padding: calc(32px + env(safe-area-inset-top)) 40px 64px; }
 }
+/* 2026-09-09 — 좌우 2단 레이아웃(1024px 이상, 왼쪽 브랜드 패널이 보이는 구간)에서는 위/아래 여백이
+   32px/64px로 달라서 .e-auth-card의 margin:auto로도 카드가 화면 중앙보다 32px 위에 놓였다(사업자
+   로그인처럼 내용이 짧아 스크롤이 없는 화면에서 특히 눈에 띔 — 실측: 위 157px / 아래 189px).
+   이 구간만 위아래를 같게 맞춘다(모바일은 스크롤 여유가 필요해 기존 32/64 그대로 둔다). */
+@media (min-width: 1024px) {
+  .e-auth-main { padding-top: 48px; padding-bottom: 48px; }
+}
 .e-auth-card {
   width: 100%; max-width: 424px; margin: auto;
 }
