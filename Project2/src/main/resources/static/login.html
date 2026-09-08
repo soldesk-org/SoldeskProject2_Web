@@ -115,7 +115,6 @@
         <div class="e-field">
           <label class="e-label" for="loginPassword">
             비밀번호 <span class="req">*</span>
-            <a href="find-password" class="e-label-side hover:text-[var(--brand-600)]" id="findPasswordLink">비밀번호를 잊으셨나요?</a>
           </label>
           <div class="e-input-wrap has-icon has-suffix">
             <svg class="e-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -136,15 +135,23 @@
           </p>
         </div>
 
-        <div class="flex items-center justify-between mb-6">
+        <div class="mb-6">
           <label class="e-check" for="rememberMe">
             <input type="checkbox" id="rememberMe" name="rememberMe" value="true">
             <span>로그인 상태 유지</span>
           </label>
-          <a href="find-email" class="e-link text-[13px]" id="findEmailLink">이메일 찾기</a>
         </div>
 
         <button type="submit" class="btn btn-primary btn-lg btn-block" id="loginSubmitBtn">로그인</button>
+
+        <!-- 계정 찾기(2026-09-09) — 예전엔 "비밀번호를 잊으셨나요?"가 비밀번호 라벨 옆에, "이메일 찾기"가
+             로그인 상태 유지 줄 오른쪽에 따로 떨어져 있어서 눈에 잘 안 띄었다. 일반적인 로그인 화면처럼
+             로그인 버튼 아래에 둘을 나란히 모아둔다(사업자 로그인도 같은 구조). -->
+        <div class="flex items-center justify-center gap-3 mt-5 text-[13px]">
+          <a href="find-email" class="e-link" id="findEmailLink">이메일 찾기</a>
+          <span class="text-[var(--ink-300)]" aria-hidden="true">|</span>
+          <a href="find-password" class="e-link" id="findPasswordLink">비밀번호 찾기</a>
+        </div>
       </form>
 
       <div class="e-divider">또는 소셜 계정으로</div>
