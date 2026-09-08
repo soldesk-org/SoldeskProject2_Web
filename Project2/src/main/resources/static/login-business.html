@@ -130,21 +130,20 @@
           </p>
         </div>
 
-        <div class="mb-6">
+        <!-- 계정 찾기(2026-09-09) — 일반 회원 로그인(login.html)과 같은 구조로 통일. -->
+        <div class="flex items-center justify-between mb-6">
           <label class="e-check" for="bizRememberMe">
             <input type="checkbox" id="bizRememberMe" name="rememberMe" value="true">
             <span>로그인 상태 유지</span>
           </label>
+          <span class="flex items-center gap-2 text-[13px]">
+            <a href="find-email" class="e-link" id="bizFindEmailLink">이메일 찾기</a>
+            <span class="text-[var(--ink-300)]" aria-hidden="true">|</span>
+            <a href="find-password" class="e-link" id="bizFindPasswordLink">비밀번호 찾기</a>
+          </span>
         </div>
 
         <button type="submit" class="btn btn-secondary btn-lg btn-block" id="bizLoginSubmitBtn">사업자 로그인</button>
-
-        <!-- 계정 찾기(2026-09-09) — 일반 회원 로그인(login.html)과 같은 구조로 통일. -->
-        <div class="flex items-center justify-center gap-3 mt-5 text-[13px]">
-          <a href="find-email" class="e-link" id="bizFindEmailLink">이메일 찾기</a>
-          <span class="text-[var(--ink-300)]" aria-hidden="true">|</span>
-          <a href="find-password" class="e-link" id="bizFindPasswordLink">비밀번호 찾기</a>
-        </div>
       </form>
 
       <p class="text-center text-sm text-[var(--ink-500)] mt-8">
